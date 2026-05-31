@@ -2,6 +2,23 @@
 
 Durable backlog so nothing gets lost between sessions. Newest on top.
 
+## >>> NEXT SESSION (tonight): build #5 then #1 <<<
+Order matters: saveable scenario objects first (clean foundation), then Solve-For
+writes its answer INTO a scenario.
+
+#5 — NAME / SAVE SCENARIOS (do first):
+- Scenarios become named, saveable objects, not transient slider state. Baseline
+  = anchor. This is the long-planned "household-centric data root."
+- Both tabs read from this shared set; unlocks the Sequencing selector later.
+- Scope check before coding: where do saved scenarios live (in-memory array now,
+  localStorage later?), rename/duplicate/delete UI, how baseline stays special.
+  Keep it minimal — don't build persistence machinery we don't need yet.
+
+#1 — SOLVE FOR (do second): full spec below under "Big feature". DECIDE BEFORE
+CODING: how you ARM the float lever (tap a lever to select it as the unknown?).
+That interaction is the whole feature — nail it on paper first.
+
+
 ## Big feature — SOLVE FOR mode (the thing that makes Parallax different)
 The "so what, everyone has scenarios" problem. Every tool runs FORWARD: move
 levers → watch the %. That's a toy. The advisor's real job is BACKWARD:
