@@ -50,11 +50,11 @@ body{background:radial-gradient(1200px 600px at 88% -12%, var(--gold-glow), tran
 .page[data-page="scenarios"]{overflow-y:auto;overflow-x:hidden}
 /* Cap the scenarios block so columns don't stretch across a wide monitor.
    ~210px per scenario + the 148px label gutter; centered. */
-.scn-scroll,.page[data-page="scenarios"] .cf-toggle,.page[data-page="scenarios"] .cf-drawer{max-width:790px;width:100%;margin-left:auto;margin-right:auto}
+.scn-scroll,.page[data-page="scenarios"] .cf-toggle,.page[data-page="scenarios"] .cf-drawer{max-width:1180px;width:100%;margin-left:auto;margin-right:auto}
 .page[data-page="scenarios"] .eyebrow{position:sticky;top:0;z-index:25;background:var(--bg);padding:20px 0 16px}
-.scn-band{position:sticky;top:53px;z-index:20;display:grid;grid-template-columns:148px repeat(3,1fr);background:var(--surface-2);border:1px solid var(--rule);border-radius:4px 4px 0 0;box-shadow:0 10px 22px -16px rgba(0,0,0,.9)}
+.scn-band{position:sticky;top:53px;z-index:20;display:grid;grid-template-columns:148px repeat(3,1fr);background:var(--surface);border:1px solid var(--rule);border-radius:4px 4px 0 0}
 .scn-band::before{content:'';position:absolute;left:0;right:0;top:-10px;height:10px;background:var(--bg)}
-.band-cell{border-right:1px solid var(--rule-faint);padding:11px 14px 10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;min-height:150px}
+.band-cell{border-right:1px solid var(--rule-faint);padding:14px 14px 14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;min-height:172px}
 .band-cell:last-child{border-right:none}
 .band-cell.base{background:rgba(63,107,120,.05)}
 .band-cell.label{align-items:flex-start;justify-content:flex-end}
@@ -65,8 +65,6 @@ body{background:radial-gradient(1200px 600px at 88% -12%, var(--gold-glow), tran
 .circle-val{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
 .circle-val .big{font-size:28px;font-weight:400;line-height:1;font-family:'Inter';letter-spacing:-.01em}
 .circle-val .lbl{font-size:8.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-mute);margin-top:3px}
-.delta{font-size:11.5px;font-weight:600;letter-spacing:.02em;font-family:'Inter'}
-.delta.up{color:var(--positive-bright)} .delta.down{color:var(--negative-bright)} .delta.flat{color:var(--ink-faint)}
 
 .scn-levers{display:grid;grid-template-columns:148px repeat(3,1fr);border-left:1px solid var(--rule);border-right:1px solid var(--rule)}
 .lev-name{display:flex;align-items:center;border-right:1px solid var(--rule-faint);border-bottom:1px solid var(--rule-faint);padding:0 14px;min-height:74px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-mute);font-weight:500;line-height:1.3}
@@ -1722,23 +1720,17 @@ function ring(pct){
       stroke-dasharray="${c}" stroke-dashoffset="${off}" transform="rotate(-90 50 50)" style="transition:stroke-dashoffset .7s cubic-bezier(.4,0,.2,1)"/></svg>`;
 }
 function renderBand(){
-  const base=scenarios[0].res;
   let h=`<div class="band-cell label"><span>Scenario</span></div>`;
   scenarios.forEach(s=>{
     const sr=s.res?s.res.successRate:0;
     const col= sr>=85?'var(--positive-bright)':sr>=70?'var(--gold-bright)':'var(--negative-bright)';
-    let delta;
-    // One decimal everywhere on % so small but real movement (e.g. pension
-    // age 62↔65 shifts ~1pt) is visible instead of rounding away.
-    if(s.base) delta=`<span class="delta flat">baseline</span>`;
-    else{ const d=(sr-base.successRate);
-      const sign=d>0?'+':'';
-      delta=`<span class="delta ${d>0.05?'up':d<-0.05?'down':'flat'}">${sign}${d.toFixed(1)} pts vs base</span>`; }
+    // No "+x pts vs base" line — the deltas between circles are obvious math the
+    // advisor and client can read off the % themselves; the label was clutter.
     h+=`<div class="band-cell ${s.base?'base':''}">
       <span class="col-name ${s.base?'base-tag':''}">${s.name}</span>
       <div class="circle-wrap">${ring(sr)}
         <div class="circle-val"><span class="big" style="color:${col}">${sr.toFixed(1)}%</span><span class="lbl">Success</span></div></div>
-      ${delta}</div>`;
+    </div>`;
   });
   $('#scn-band').innerHTML=h;
 }
