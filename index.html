@@ -1395,8 +1395,16 @@ function renderInputs(){
       }else{
         const pre=f.type==='money'?'<span class="pre">$</span>':'';
         const post=f.type==='pct'?'<span class="pre">%</span>':'';
-        const dv=f.type==='pct'?Math.round(v*100):v;
-        h+=`<div class="inp-row"><label>${f.label}</label><div class="field">${pre}<input type="number" data-path="${f.path}" data-type="${f.type}" value="${dv}" step="${f.type==='money'?1000:1}">${post}${xBtn}</div></div>`;
+        // Money fields render as text with comma grouping (1,200,000) — number
+        // inputs can't show commas. Parsed on change by stripping non-digits.
+        // Age/pct stay numeric so the up/down arrows still work.
+        if(f.type==='money'){
+          const dv=(v||0).toLocaleString('en-US');
+          h+=`<div class="inp-row"><label>${f.label}</label><div class="field">${pre}<input type="text" inputmode="numeric" data-path="${f.path}" data-type="money" value="${dv}">${xBtn}</div></div>`;
+        }else{
+          const dv=f.type==='pct'?Math.round(v*100):v;
+          h+=`<div class="inp-row"><label>${f.label}</label><div class="field">${pre}<input type="number" data-path="${f.path}" data-type="${f.type}" value="${dv}" step="1">${post}${xBtn}</div></div>`;
+        }
       }
     });
     h+=`</div>`;
@@ -1420,10 +1428,18 @@ function renderInputs(){
   $$('#inp-grid input,#inp-grid select').forEach(el=>{
     el.addEventListener('change',e=>{
       const path=e.target.dataset.path, type=e.target.dataset.type;
-      let v=type==='risk'?+e.target.value:parseFloat(e.target.value);
+      // Money fields are text — strip everything but digits before parsing.
+      const raw=e.target.value;
+      let v;
+      if(type==='money')      v=parseFloat(String(raw).replace(/[^0-9.]/g,''));
+      else if(type==='risk')  v=+raw;
+      else                    v=parseFloat(raw);
       if(!isFinite(v)) return;
       if(type==='pct')   v=Math.max(0,Math.min(100,v))/100;
-      if(type==='money') v=Math.max(0,v);
+      if(type==='money'){
+        v=Math.max(0,Math.round(v));
+        e.target.value=v.toLocaleString('en-US');   // re-format with commas in place
+      }
       setPath(plan,path,v);
       reseedScenarios();
       buildLevers();              // Scenarios sliders reflect the new base
@@ -1438,10 +1454,13 @@ function renderInputs(){
 const LEVCFG=[
   {key:'retireAge', name:'Retirement Age', min:55,max:72,step:1, fmt:v=>[v,'']},
   {key:'ssAge',     name:'SS Start Age',   min:62,max:70,step:1, fmt:v=>[v,'']},
-  {key:'spend',     name:'Annual Spending',min:80000,max:300000,step:5000, fmt:v=>['$'+Math.round(v/1000)+'k','']},
-  {key:'eventAmt',  name:'One-Time Event', min:0,max:400000,step:10000, fmt:(v,L)=> v>0?['$'+Math.round(v/1000)+'k','@ '+L.eventAge] : ['—','']},
+  // All dollar levers render full digits with comma grouping — no abbreviations.
+  // The advisor wants to see the exact number they're proposing, not a rounded
+  // shorthand. Step values stay round so the slider snaps cleanly.
+  {key:'spend',     name:'Annual Spending',min:80000,max:300000,step:5000, fmt:v=>['$'+v.toLocaleString('en-US'),'']},
+  {key:'eventAmt',  name:'One-Time Event', min:0,max:400000,step:10000, fmt:(v,L)=> v>0?['$'+v.toLocaleString('en-US'),'@ '+L.eventAge] : ['—','']},
   {key:'risk',      name:'Allocation',     min:1,max:5,step:1, fmt:v=>[RISK_LABELS[v],'gr/df']},
-  {key:'savings',   name:'Savings / yr',   min:0,max:120000,step:5000, fmt:v=>['$'+Math.round(v/1000)+'k','']},
+  {key:'savings',   name:'Savings / yr',   min:0,max:120000,step:5000, fmt:v=>['$'+v.toLocaleString('en-US'),'']},
   // Pension snaps between the ages that actually have entered amounts (62, 65).
   // Label shows the dollar value the engine will pay for that age — if no entry
   // exists for that age, it shows "—" (and the engine pays 0).
@@ -1453,7 +1472,7 @@ const LEVCFG=[
   // us one." Not an error — just the next input.
   {key:'pensionAge', name:'Pension',       min:55,max:70,step:1, fmt:v=>{
     const m=(plan.income.pension && plan.income.pension.benefitByAge) || {};
-    const amt=m[v]; return (amt && amt>0) ? ['$'+Math.round(amt/1000)+'k','@ '+v] : ['__needs__', v];
+    const amt=m[v]; return (amt && amt>0) ? ['$'+amt.toLocaleString('en-US'),'@ '+v] : ['__needs__', v];
   }},
 ];
 
@@ -1508,13 +1527,16 @@ function renderBand(){
     const sr=s.res?s.res.successRate:0;
     const col= sr>=85?'var(--positive-bright)':sr>=70?'var(--gold-bright)':'var(--negative-bright)';
     let delta;
+    // One decimal everywhere on % so small but real movement (e.g. pension
+    // age 62↔65 shifts ~1pt) is visible instead of rounding away.
     if(s.base) delta=`<span class="delta flat">baseline</span>`;
-    else{ const d=Math.round(sr-base.successRate);
-      delta=`<span class="delta ${d>0?'up':d<0?'down':'flat'}">${d>0?'+':''}${d} pts vs base</span>`; }
+    else{ const d=(sr-base.successRate);
+      const sign=d>0?'+':'';
+      delta=`<span class="delta ${d>0.05?'up':d<-0.05?'down':'flat'}">${sign}${d.toFixed(1)} pts vs base</span>`; }
     h+=`<div class="band-cell ${s.base?'base':''}">
       <span class="col-name ${s.base?'base-tag':''}">${s.name}</span>
       <div class="circle-wrap">${ring(sr)}
-        <div class="circle-val"><span class="big" style="color:${col}">${sr.toFixed(0)}%</span><span class="lbl">Success</span></div></div>
+        <div class="circle-val"><span class="big" style="color:${col}">${sr.toFixed(1)}%</span><span class="lbl">Success</span></div></div>
       ${delta}</div>`;
   });
   $('#scn-band').innerHTML=h;
@@ -1578,7 +1600,9 @@ function renderFoot(){
   let h=`<div class="foot-cell" style="color:var(--ink-faint)">Median end</div>`;
   scenarios.forEach(s=>{
     // Match the LINE: this is where the drawn median path actually ends.
-    const t=s.res?fmtM(s.res.envelope[s.res.envelope.length-1].p50):'—';
+    // Full digits w/ commas — no $1.5M shorthand. Whole dollars (no cents).
+    const v=s.res?s.res.envelope[s.res.envelope.length-1].p50:null;
+    const t=v!=null ? '$'+Math.max(0,Math.round(v)).toLocaleString('en-US') : '—';
     h+=`<div class="foot-cell ${s.base?'base':''}">&nbsp;<b>${t}</b></div>`;
   });
   $('#scn-foot').innerHTML=h;
