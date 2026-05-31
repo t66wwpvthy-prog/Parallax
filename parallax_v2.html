@@ -8,26 +8,27 @@
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
 <style>
 :root{
-  /* Warm neutral graphite — no navy cast. Surfaces step up in lightness so
-     panels separate by tone, not just by rule lines. */
-  --bg-deep:#0a0b0a; --bg:#111310;
-  --surface:#191c17; --surface-2:#222620; --surface-3:#2c302a;
-  --rule:#373b33; --rule-bright:#4c5147; --rule-faint:#1e211b;
-  /* Ink: warm off-white. Muted/faint raised for legibility on dark. */
-  --ink:#eaece5; --ink-bright:#fbfcf8; --ink-mute:#aab0a2; --ink-faint:#7b8174; --ink-ghost:#41463c;
-  /* Brass (the identity) + sage. */
-  --gold:#d9ad5c; --gold-bright:#f2c978; --gold-deep:#8a6c33; --gold-glow:rgba(217,173,92,.22);
-  --teal:#7fa8a2; --teal-bright:#aed8d2; --teal-deep:#4f7773; --teal-glow:rgba(127,168,162,.20);
-  /* Result language: refined sage-emerald for good, brass for caution,
-     terracotta for risk — earthy, never neon. */
-  --positive:#6fae8b; --positive-bright:#88c4a0;
-  --negative:#cf836f; --negative-bright:#e09a82;
-  /* Scenario line trio: sage teal / brass gold / soft violet (replaces navy). */
-  --s1:#aed8d2; --s2:#f2c978; --s3:#bfa2d6; --s4:#cda6e0;
+  /* OBSIDIAN BRASS — premium financial palette. No green anywhere.
+     Background #171A1D · Panel #252A2E · Text #E7E1D3 · Brass #A98F5A ·
+     Steel-teal #6D8790. Surfaces step in warm graphite; results read in
+     steel-teal (strong) / brass (caution) / clay (risk). */
+  --bg-deep:#121417; --bg:#171A1D;
+  --surface:#1e2225; --surface-2:#252A2E; --surface-3:#2f343a;
+  --rule:#353b41; --rule-bright:#4a515a; --rule-faint:#212529;
+  --ink:#e7e1d3; --ink-bright:#f6f1e6; --ink-mute:#a7a395; --ink-faint:#7a7669; --ink-ghost:#3d4138;
+  /* Brass = the identity accent. */
+  --gold:#a98f5a; --gold-bright:#c8ab6f; --gold-deep:#6f5c39; --gold-glow:rgba(169,143,90,.16);
+  /* Steel-teal = the cool secondary (NOT green). */
+  --teal:#6d8790; --teal-bright:#8fa9b1; --teal-deep:#46606a; --teal-glow:rgba(109,135,144,.16);
+  /* Result language: steel-teal (strong) / brass (caution) / clay (at-risk). */
+  --positive:#6d8790; --positive-bright:#8fa9b1;
+  --negative:#b8734f; --negative-bright:#cf8a64;
+  /* Scenario line trio: brass / steel-teal / dusty mauve. Earthy, distinct. */
+  --s1:#c8ab6f; --s2:#8fa9b1; --s3:#a4869c; --s4:#cda6e0;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;background:var(--bg);font-family:'Sora',sans-serif;color:var(--ink);font-size:14px;-webkit-font-smoothing:antialiased;overflow:hidden}
-body{background:radial-gradient(1100px 560px at 88% -12%, var(--gold-glow), transparent 62%),linear-gradient(180deg,#0d0f0c,var(--bg) 46%,#0a0b0a);}
+body{background:radial-gradient(1100px 560px at 88% -12%, var(--gold-glow), transparent 64%),linear-gradient(180deg,#13161a,var(--bg) 46%,#121417);}
 .wrap{height:100vh;display:flex;flex-direction:column;overflow:hidden}
 
 .hdr{display:flex;align-items:center;gap:18px;padding:13px 28px;border-bottom:1px solid var(--rule);background:var(--bg-deep);flex:0 0 auto}
@@ -336,9 +337,9 @@ plan.income.pension = { benefitByAge: { 62: 36000, 63: 38160, 64: 40320, 65: 424
 plan.savings.annual      = 30000;
 plan.simulation.iterations = 1000;
 
-// Scenario line trio — sage teal / brass gold / soft violet. Matches the
-// --s1/2/3 tokens; the violet replaces the old navy (too cold, low contrast).
-const COLHEX=['#aed8d2','#f2c978','#bfa2d6'];
+// Scenario line trio — brass / steel-teal / dusty mauve. Matches --s1/2/3.
+// No green: the old mint/sage read as "Tron" on some displays.
+const COLHEX=['#c8ab6f','#8fa9b1','#a4869c'];
 
 /* The three scenario columns. Each holds lever values + its last engine result.
    lever values are the ACTUAL planning values (age, $, etc.), not slider ticks. */
@@ -629,14 +630,14 @@ function runAll(){
 }
 
 /* ── render: sticky band of circles ── */
-// Success ring color band: sage-emerald (strong) / brass (caution) /
-// terracotta (at risk) — earthy, matches the result-language tokens.
-function ringColor(pct){ return pct>=85?'#88c4a0':pct>=70?'#f2c978':'#e09a82'; }
+// Success ring color band: steel-teal (strong) / brass (caution) /
+// clay (at risk). No green — matches the Obsidian Brass result tokens.
+function ringColor(pct){ return pct>=85?'#8fa9b1':pct>=70?'#c8ab6f':'#cf8a64'; }
 function ring(pct){
   const r=42,c=2*Math.PI*r,off=c*(1-pct/100);
   const col=ringColor(pct);
   return `<svg viewBox="0 0 100 100" width="116" height="116">
-    <circle cx="50" cy="50" r="${r}" fill="none" stroke="#2c302a" stroke-width="5.5"/>
+    <circle cx="50" cy="50" r="${r}" fill="none" stroke="#2f343a" stroke-width="5.5"/>
     <circle cx="50" cy="50" r="${r}" fill="none" stroke="${col}" stroke-width="5.5" stroke-linecap="round"
       stroke-dasharray="${c}" stroke-dashoffset="${off}" transform="rotate(-90 50 50)" style="transition:stroke-dashoffset .7s cubic-bezier(.4,0,.2,1)"/></svg>`;
 }
@@ -917,7 +918,7 @@ function renderCashflow(){
 
 /* ── SEQUENCING tab ── */
 const SEQ_YEARS=[1973,1982,2000,1929];
-const SEQ_HEX={1973:'#e09a82',1982:'#88c4a0',2000:'#f2c978',1929:'#bfa2d6'};
+const SEQ_HEX={1973:'#cf8a64',1982:'#8fa9b1',2000:'#c8ab6f',1929:'#a4869c'};
 function buildSeqSelect(){
   const sel=$('#seq-select');
   const cur=sel.value;
