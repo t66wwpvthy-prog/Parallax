@@ -28,6 +28,19 @@ He is the domain expert and product owner, **not** a software engineer. So:
 2. Delete before adding — subtraction is the default. Ask "what would removing cost?"
 3. Simplify the process — fewer steps, fewer abstractions.
 4. Cut beats refactor — fewer rules = less code.
+5. The engine is the single TRUTH SOURCE. It drives every sim calculation in the
+   tool. The UI only changes the *controlled variables, views, concepts, what-ifs,
+   and representations* of that truth — it never adds its own formulas or re-derives
+   numbers. Do NOT modify the truth source or add new math to it unless Nathan and
+   you EXPLICITLY agree to a major change. (Lesson: a UI-side "expected return"
+   formula was drawing the hero line instead of the engine — deleted; the line now
+   reads the engine's median directly.)
+6. When choosing between implementations, default to the one most faithful to the
+   tool's PURPOSE (truth based on what we know). Scenarios compares apples-to-apples:
+   the engine runs every column through the SAME market draws; only the controlled
+   levers differ, so any difference between columns is the *decision*, never sampling
+   luck. The hero line therefore uses the engine's stable median band (envelope p50),
+   not a single random path that would make columns non-comparable.
 
 History: the prior build became "a bloated PowerPoint of disconnected concepts" —
 unreadable even to its author. We tore it down to the engine and are rebuilding

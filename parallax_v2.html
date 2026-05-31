@@ -156,7 +156,6 @@ body{background:radial-gradient(1200px 600px at 85% -10%, rgba(108,197,211,.07),
 <script type="module">
 import {
   runSimulation, runHistoricalPath, generateReturnPath,
-  RISK_PROFILES, ASSET_KEYS, ASSET_STATS,
   defaultPlan as plan
 } from "./engine.js";
 /* ╔══════════════════════════════════════════════════════════════╗
@@ -334,7 +333,8 @@ function buildLevers(){
 function renderFoot(){
   let h=`<div class="foot-cell" style="color:var(--ink-faint)">Median end</div>`;
   scenarios.forEach(s=>{
-    const t=s.res?fmtM(s.res.terminal.p50):'—';
+    // Match the LINE: this is where the drawn median path actually ends.
+    const t=s.res?fmtM(s.res.envelope[s.res.envelope.length-1].p50):'—';
     h+=`<div class="foot-cell ${s.base?'base':''}">&nbsp;<b>${t}</b></div>`;
   });
   $('#scn-foot').innerHTML=h;
@@ -371,65 +371,21 @@ function axes(W,H,ageStart,ageEnd,maxBal){
     g+=`<text x="${x}" y="${H-9}" fill="#667386" font-size="11" font-family="Inter" text-anchor="${k===0?'start':k===5?'end':'middle'}">Age ${a}</text>`;}
   return g;
 }
-function expectedAnnualReturn(riskProfile){
-  // Deterministic expected REAL return for an allocation, using the COMPOUND
-  // (geometric) return — NOT the arithmetic mean. A real portfolio never
-  // compounds at its arithmetic mean; volatility drags realized growth down to
-  // the geometric rate (g ≈ μ − σ²/2). Using the arithmetic mean overstates a
-  // 37-year horizon massively (e.g. aggressive 8.4% → a fake $35M line). The
-  // geometric rate makes this deterministic line track the engine's Monte Carlo
-  // MEDIAN, so the line and the % circle tell the same, honest story.
-  // Use each asset's empirical long-run COMPOUND (geometric) real return, cagr,
-  // weighted by allocation. cagr already embeds that asset's own volatility drag,
-  // and weighting the empirical geometrics needs no correlation assumptions.
-  const w=RISK_PROFILES[riskProfile].weights;
-  let er=0;
-  for(const k of ASSET_KEYS){ const st=ASSET_STATS[k]; if(st && w[k]) er += w[k]*st.cagr; }
-  return er;   // expected compound (geometric) real return
-}
-function expectedTrajectory(res, riskProfile){
-  // Fully deterministic expected path. Return = allocation's expected real return.
-  // Cash flow is rebuilt from RESOLVED INPUTS (res.params) — not from any sampled
-  // sim — so nothing random touches the line. Same levers ⇒ identical line;
-  // change only allocation ⇒ the line fans by exactly the compounding effect of
-  // that allocation over the horizon. Dispersion stays in the % circle.
-  const P=res.params; if(!P) return [];
-  const er=expectedAnnualReturn(riskProfile);
-  const taxRate=(P.taxRates && P.taxRates.ordinary!=null) ? P.taxRates.ordinary : 0.22;
-  const start=P.accounts.taxable.balance+P.accounts.traditional.balance+P.accounts.roth.balance;
-  const H=P.horizonYears, age0=P.currentAge, retAge=P.retirementAge;
-  const out=[start]; let bal=start;
-  for(let y=0;y<H;y++){
-    const age=age0+y;
-    const working = age < retAge;
-    // income streams (return-independent)
-    const ss   = age>=P.ss.startAge ? P.ss.amount : 0;
-    const oi   = (P.otherIncome.amount && age>=P.otherIncome.startAge && age<=P.otherIncome.endAge) ? P.otherIncome.amount : 0;
-    const pen  = (P.pension.amount && age>=P.pension.startAge)
-                 ? P.pension.amount*Math.pow(1+(P.pension.colaReal||0), age-P.pension.startAge) : 0;
-    const income = ss+oi+pen;
-    // outflows
-    const ltc  = age>=P.ltc.onsetAge ? P.ltc.amount : 0;
-    const expenses = working ? 0 : (P.expenses.living+P.expenses.housing+P.expenses.debt+P.expenses.healthcare*(P.healthcareMult||1)) + ltc;
-    const goals = (P.goals.vacation||0)+(P.goals.property||0)+(P.goals.gifts||0);
-    const savings = working ? (P.savingsAnnual||0) : 0;
-    // portfolio shortfall (after-tax), grossed up like the engine does
-    const gap = Math.max(0, (expenses+goals) - income);
-    const draw = gap>0 ? gap/(1-taxRate) : 0;
-    bal = bal*(1+er) + savings + (income - (expenses+goals)) ; // net of income vs needs
-    // when income < needs, the negative term above already removes the shortfall;
-    // tax on the withdrawal is the extra drag:
-    bal -= draw*taxRate;
-    if(bal<0) bal=0;
-    out.push(bal);
-  }
-  return out;
+function enginePath(res){
+  // The line IS the engine's output — no UI math. paths.p50 is the single
+  // coherent simulated path the engine flags as most-central to its median
+  // (real dollars). We prepend the starting balance so the line begins at
+  // today's portfolio value. Sequence-of-returns risk is already woven into
+  // this path (and into the % circle) because it comes from the real sim —
+  // it is NOT a variable on this tab, just a truth carried in the output.
+  if(!res.envelope) return [];
+  return res.envelope.map(e=>Math.max(0, e.p50));
 }
 function drawScenarioChart(){
   const svg=$('#scn-svg'),W=1000,H=340;
   if(!scenarios[0].res){svg.innerHTML='';return;}
   const ageStart=plan.household.primary.currentAge, ageEnd=plan.household.primary.planEndAge;
-  const traj=scenarios.map(s=>expectedTrajectory(s.res, s.lev.risk));
+  const traj=scenarios.map(s=>enginePath(s.res));
   const n=traj[0].length;
   let maxBal=0; traj.forEach(t=>t.forEach(v=>{ if(v>maxBal)maxBal=v; }));
   maxBal=maxBal*1.06||1;
@@ -442,7 +398,7 @@ function drawScenarioChart(){
     h+=`<path d="${smoothPath(pts)}" fill="none" stroke="${COLHEX[i]}" stroke-width="${scenarios[i].base?3:2.2}" stroke-linejoin="round" stroke-linecap="round" opacity="${scenarios[i].base?1:.92}"/>`;
   });
   svg.innerHTML=h;
-  $('#scn-chart-sub').textContent=`Expected wealth path · today's dollars · Age ${ageStart} → ${ageEnd}`;
+  $('#scn-chart-sub').textContent=`Median simulated path · today's dollars · Age ${ageStart} → ${ageEnd}`;
 }
 
 /* ── SEQUENCING tab ── */
