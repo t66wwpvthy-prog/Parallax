@@ -80,6 +80,11 @@ body{background:radial-gradient(1200px 600px at 88% -12%, var(--gold-glow), tran
 .lev-val .pen-in{font-family:'Inter';font-size:15px;font-weight:600;color:var(--ink-bright);background:transparent;border:none;border-bottom:1px dashed var(--rule-bright);width:84px;padding:0 2px;outline:none;text-align:right}
 .lev-val .pen-in::placeholder{color:var(--ink-faint);font-weight:500}
 .lev-val .pen-in:focus{border-bottom-color:var(--gold)}
+/* Inline type-in boxes for the dollar/age levers. Same quiet dashed underline
+   as the pension box; width tuned per content (dollars wider, age narrow). */
+.lev-val .lev-in{font-family:'Inter';font-size:17px;font-weight:600;color:var(--ink-bright);background:transparent;border:none;border-bottom:1px dashed var(--rule-bright);width:78px;padding:0 2px;outline:none;text-align:right}
+.lev-val .lev-in:focus{border-bottom-color:var(--gold)}
+.lev-val .lev-in.age-in{width:34px;text-align:center}
 .lev-slider{-webkit-appearance:none;width:100%;height:14px;background:transparent;cursor:pointer}
 .lev-slider::-webkit-slider-runnable-track{height:2px;background:var(--rule-bright);border-radius:2px}
 .lev-slider::-webkit-slider-thumb{-webkit-appearance:none;height:11px;width:11px;border-radius:50%;background:var(--gold);margin-top:-4.5px;border:2px solid var(--bg-deep)}
@@ -254,14 +259,9 @@ body{background:radial-gradient(1200px 600px at 88% -12%, var(--gold-glow), tran
       <div class="scn-levers" id="scn-levers"></div>
       <div class="scn-foot" id="scn-foot"></div>
     </div>
-    <div class="scn-chart">
-      <div class="chart-head">
-        <span class="chart-title">Portfolio Balance · Today's Dollars</span>
-        <span class="chart-sub" id="scn-chart-sub"></span>
-        <div class="chart-legend" id="scn-legend"></div>
-      </div>
-      <div class="chart-body"><svg id="scn-svg" viewBox="0 0 1000 340" preserveAspectRatio="none"></svg></div>
-    </div>
+    <!-- The Scenarios line chart was removed: it duplicated what the % circles +
+         cash-flow drawer already say. A richer wealth-path visual is planned for
+         the Sequencing tab, where sequence-of-returns risk gives it real teeth. -->
     <!-- Cash-flow drawer: expand to see the year-by-year breakdown for each
          scenario (income, withdrawals, ending balance), side-by-side. The
          engine already emits these rows from its typical simulated path —
@@ -612,10 +612,14 @@ const LEVCFG=[
   // All dollar levers render full digits with comma grouping — no abbreviations.
   // The advisor wants to see the exact number they're proposing, not a rounded
   // shorthand. Step values stay round so the slider snaps cleanly.
-  {key:'spend',     name:'Annual Spending',min:80000,max:300000,step:5000, fmt:v=>['$'+v.toLocaleString('en-US'),'']},
-  {key:'eventAmt',  name:'One-Time Event', min:0,max:400000,step:10000, fmt:(v,L)=> v>0?['$'+v.toLocaleString('en-US'),'@ '+L.eventAge] : ['—','']},
+  // Spending is stored ANNUAL (the engine's unit) but shown/edited MONTHLY —
+  // clients know their monthly number off-hand. edit:'monthly' wires the box.
+  {key:'spend',     name:'Monthly Spending',min:80000,max:360000,step:1200, edit:'monthly', fmt:v=>['$'+Math.round(v/12).toLocaleString('en-US'),'/mo']},
+  // One-time event carries BOTH an amount and an age; edit:'event' renders the
+  // two type-in boxes (amount + age) alongside the amount slider.
+  {key:'eventAmt',  name:'One-Time Event', min:0,max:500000,step:5000, edit:'event', fmt:(v,L)=>['$'+(v||0).toLocaleString('en-US'),'@ '+L.eventAge]},
   {key:'risk',      name:'Allocation',     min:1,max:5,step:1, fmt:v=>[RISK_LABELS[v],'growth / defensive']},
-  {key:'savings',   name:'Savings / yr',   min:0,max:120000,step:5000, fmt:v=>['$'+v.toLocaleString('en-US'),'']},
+  {key:'savings',   name:'Savings / yr',   min:0,max:200000,step:1000, edit:'money', fmt:v=>['$'+v.toLocaleString('en-US'),'/yr']},
   // Pension snaps between the ages that actually have entered amounts (62, 65).
   // Label shows the dollar value the engine will pay for that age — if no entry
   // exists for that age, it shows "—" (and the engine pays 0).
@@ -660,7 +664,7 @@ function runAll(){
         const ov=leversToOverrides(s.lev);
         s.res=runSimulation(p, ov, sharedPaths);
       });
-      renderBand(); renderFoot(); drawScenarioChart(); renderCashflow(); buildSeqSelect(); runSeq();
+      renderBand(); renderFoot(); renderCashflow(); buildSeqSelect(); runSeq();
       $('#status').textContent='Complete';
     }catch(e){ $('#status').textContent='Error'; console.error(e); }
     btn.disabled=false; running=false;
@@ -702,7 +706,6 @@ function renderBand(){
       ${delta}</div>`;
   });
   $('#scn-band').innerHTML=h;
-  $('#scn-legend').innerHTML=scenarios.map((s,i)=>`<span class="lg"><span class="sw" style="background:${COLHEX[i]}"></span>${s.name}</span>`).join('');
 }
 
 /* ── render: lever grid (built once, values update in place) ── */
@@ -714,6 +717,21 @@ function renderLevValue(cfg, lev){
   const [val,unit]=cfg.fmt(lev[cfg.key], lev);
   if(val==='__needs__'){
     return `$<input class="pen-in" type="text" inputmode="numeric" data-pen-age="${unit}"> <span class="unit">@ ${unit}</span>`;
+  }
+  // Type-in boxes for the dollar/age levers. The box edits the same value the
+  // slider drives — both stay in sync. data-edit tells the input handler how to
+  // interpret the typed number (monthly→annual, plain money, or event age).
+  if(cfg.edit==='monthly'){
+    const mo=Math.round(lev[cfg.key]/12);
+    return `$<input class="lev-in" type="text" inputmode="numeric" data-edit="monthly" data-key="${cfg.key}" value="${mo.toLocaleString('en-US')}"> <span class="unit">/mo</span>`;
+  }
+  if(cfg.edit==='money'){
+    return `$<input class="lev-in" type="text" inputmode="numeric" data-edit="money" data-key="${cfg.key}" value="${(lev[cfg.key]||0).toLocaleString('en-US')}"> <span class="unit">${unit}</span>`;
+  }
+  if(cfg.edit==='event'){
+    return `$<input class="lev-in" type="text" inputmode="numeric" data-edit="eventAmt" data-key="eventAmt" value="${(lev.eventAmt||0).toLocaleString('en-US')}">`
+         + ` <span class="unit">@ age</span> `
+         + `<input class="lev-in age-in" type="text" inputmode="numeric" data-edit="eventAge" data-key="eventAge" value="${lev.eventAge}">`;
   }
   return `${val}${unit?` <span class="unit">${unit}</span>`:''}`;
 }
@@ -760,9 +778,45 @@ function buildLevers(){
 // Typed value writes into the plan's benefit-by-age map for that exact age,
 // then every column refreshes (the amount is reference data shared across
 // scenarios — the DECISION is the age, not the amount).
-// Live commas while typing into the inline pension input, AND save on change.
+// Live commas while typing into any inline numeric input (pension + lever boxes).
 $('#scn-levers').addEventListener('input', e=>{
-  if(e.target.classList && e.target.classList.contains('pen-in')) liveCommas(e.target);
+  const t=e.target;
+  if(!t.classList) return;
+  if(t.classList.contains('pen-in')) liveCommas(t);
+  // Age boxes are 2-digit, no commas; dollar boxes get comma grouping.
+  else if(t.classList.contains('lev-in') && !t.classList.contains('age-in')) liveCommas(t);
+});
+// Type-in lever boxes (monthly spend / savings / one-time event amount+age).
+// Writes the value the slider also drives, then refreshes that cell + status.
+// On change (blur/enter) we commit; the column re-runs on the next Run.
+$('#scn-levers').addEventListener('change', e=>{
+  const t=e.target;
+  if(!t.classList || !t.classList.contains('lev-in')) return;
+  const span=t.closest('[id^="lv-"]'); if(!span) return;
+  const ci=+span.id.split('-')[1];
+  const L=scenarios[ci].lev;
+  const num=parseFloat(String(t.value).replace(/[^0-9.]/g,''));
+  const edit=t.dataset.edit;
+  const cfg=LEVCFG.find(c=>c.key===t.dataset.key) || LEVCFG.find(c=>c.edit==='event');
+  if(edit==='monthly'){
+    if(!isFinite(num)||num<0) return;
+    L.spend=Math.round(num*12);                 // store annual; engine's unit
+  } else if(edit==='money'){
+    if(!isFinite(num)||num<0) return;
+    L[t.dataset.key]=Math.round(num);
+  } else if(edit==='eventAmt'){
+    L.eventAmt=isFinite(num)&&num>0?Math.round(num):0;
+  } else if(edit==='eventAge'){
+    const a=Math.round(num);
+    const lo=plan.household.primary.currentAge, hi=plan.household.primary.planEndAge;
+    if(isFinite(a)) L.eventAge=Math.max(lo,Math.min(hi,a));
+  }
+  // Refresh the cell (rebuilds box + repositions slider) and the value display.
+  const dispCfg=LEVCFG.find(c=>c.key===span.id.split('-').slice(2).join('-'));
+  $(`#lv-${ci}-${dispCfg.key}`).innerHTML=renderLevValue(dispCfg, L);
+  const sl=$(`#scn-levers .lev-slider[data-col="${ci}"][data-key="${dispCfg.key}"]`);
+  if(sl){ const r=levRange(dispCfg); sl.value=Math.max(r.min,Math.min(r.max,L[dispCfg.key])); }
+  $('#status').textContent='Adjusted · Run to update';
 });
 $('#scn-levers').addEventListener('change', e=>{
   if(!e.target.classList || !e.target.classList.contains('pen-in')) return;
@@ -820,103 +874,6 @@ function axes(W,H,ageStart,ageEnd,maxBal){
     g+=`<text x="${x}" y="${H-9}" fill="#aab0a2" font-size="12" font-family="Inter" text-anchor="${k===0?'start':k===5?'end':'middle'}">Age ${a}</text>`;}
   return g;
 }
-function enginePath(res){
-  // The line IS the engine's output — no UI math. paths.p50 is the single
-  // coherent simulated path the engine flags as most-central to its median
-  // (real dollars). We prepend the starting balance so the line begins at
-  // today's portfolio value. Sequence-of-returns risk is already woven into
-  // this path (and into the % circle) because it comes from the real sim —
-  // it is NOT a variable on this tab, just a truth carried in the output.
-  if(!res.envelope) return [];
-  return res.envelope.map(e=>Math.max(0, e.p50));
-}
-// Geometry of the last-drawn scenario chart, kept so the hover crosshair can
-// map a pointer x back to an age index and read each line's value there.
-let scnChartGeo=null;
-function drawScenarioChart(){
-  const svg=$('#scn-svg'),W=1000,H=340;
-  if(!scenarios[0].res){svg.innerHTML='';scnChartGeo=null;return;}
-  const ageStart=plan.household.primary.currentAge, ageEnd=plan.household.primary.planEndAge;
-  const traj=scenarios.map(s=>enginePath(s.res));
-  const n=traj[0].length;
-  let maxBal=0; traj.forEach(t=>t.forEach(v=>{ if(v>maxBal)maxBal=v; }));
-  maxBal=maxBal*1.06||1;
-  const x0=PADL, x1=W-PADR, y0=PADT, y1=H-PADB;
-  const X=idx=> x0+(x1-x0)*(idx/(n-1));
-  const Y=v => y1-(Math.max(0,v)/maxBal)*(y1-y0);
-  let h=axes(W,H,ageStart,ageEnd,maxBal);
-  traj.forEach((t,i)=>{
-    const pts=t.map((v,idx)=>[X(idx),Y(v)]);
-    h+=`<path d="${smoothPath(pts)}" fill="none" stroke="${COLHEX[i]}" stroke-width="${scenarios[i].base?3:2.3}" stroke-linejoin="round" stroke-linecap="round" opacity="${scenarios[i].base?1:.9}"/>`;
-  });
-  // Empty overlay group the crosshair populates on hover (kept above the lines).
-  h+=`<g id="scn-cross"></g>`;
-  svg.innerHTML=h;
-  // Stash geometry + the trajectories for the crosshair handler.
-  scnChartGeo={W,H,x0,x1,y0,y1,n,ageStart,X,Y,traj,maxBal};
-  // Honest label: the line is the median across simulations at each year (a
-  // slice through the percentile envelope), not a single coherent path. The
-  // cash-flow drawer is what shows a coherent year-by-year reality.
-  $('#scn-chart-sub').textContent=`Median wealth across simulations · today's dollars · Age ${ageStart} → ${ageEnd}`;
-}
-
-/* Hover crosshair: a vertical guide, a dot on each scenario line at the hovered
-   age, and a floating readout listing each scenario's wealth there. The age
-   readout also drives a highlight on the matching cash-flow drawer row, so the
-   chart and the table read the same year together. */
-function scnCrosshair(evt){
-  const g=scnChartGeo; if(!g) return;
-  const svg=$('#scn-svg');
-  const rect=svg.getBoundingClientRect();
-  // Map client x → viewBox x (svg is non-uniformly scaled via preserveAspectRatio=none).
-  const vx=(evt.clientX-rect.left)/rect.width*g.W;
-  if(vx<g.x0-2||vx>g.x1+2){ clearScnCrosshair(); return; }
-  // Nearest age index.
-  const frac=Math.max(0,Math.min(1,(vx-g.x0)/(g.x1-g.x0)));
-  const idx=Math.round(frac*(g.n-1));
-  const cx=g.X(idx);
-  const age=g.ageStart+idx;
-  let dots='';
-  const readout=[];
-  g.traj.forEach((t,i)=>{
-    const v=t[idx]; if(v==null) return;
-    const cy=g.Y(v);
-    dots+=`<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="4.5" fill="${COLHEX[i]}" stroke="#111310" stroke-width="2"/>`;
-    readout.push({i,v,cy});
-  });
-  const guide=`<line x1="${cx.toFixed(1)}" y1="${g.y0}" x2="${cx.toFixed(1)}" y2="${g.y1}" stroke="#4c5147" stroke-width="1" stroke-dasharray="3 3"/>`;
-  $('#scn-cross').innerHTML=guide+dots;
-  // HTML floating readout (positioned over the chart-body in client coords).
-  const body=svg.parentElement;
-  const bodyRect=body.getBoundingClientRect();
-  const px=(cx/g.W)*bodyRect.width;
-  const side = px > bodyRect.width*0.6 ? 'right' : 'left';
-  const rows=scenarios.map((s,i)=>{
-    const r=readout.find(d=>d.i===i);
-    return `<div class="ro-row"><span class="ro-sw" style="background:${COLHEX[i]}"></span><span class="ro-nm">${s.name}</span><span class="ro-v">${r?'$'+Math.round(r.v).toLocaleString('en-US'):'—'}</span></div>`;
-  }).join('');
-  let tip=$('#scn-tip');
-  if(!tip){ tip=document.createElement('div'); tip.id='scn-tip'; tip.className='scn-tip'; body.appendChild(tip); }
-  tip.innerHTML=`<div class="ro-age">Age ${age}</div>${rows}`;
-  tip.style.display='block';
-  tip.style[side]=(side==='left'?(px+16):(bodyRect.width-px+16))+'px';
-  tip.style[side==='left'?'right':'left']='auto';
-  tip.style.top='8px';
-  // Sync cash-flow drawer highlight (if open).
-  highlightCashflowRow(age);
-}
-function clearScnCrosshair(){
-  const c=$('#scn-cross'); if(c) c.innerHTML='';
-  const tip=$('#scn-tip'); if(tip) tip.style.display='none';
-  highlightCashflowRow(null);
-}
-function highlightCashflowRow(age){
-  $$('.cf-table tr.hl').forEach(tr=>tr.classList.remove('hl'));
-  if(age==null) return;
-  const tr=$(`.cf-table tr[data-age="${age}"]`);
-  if(tr){ tr.classList.add('hl'); }
-}
-
 /* ── Cash-flow drawer ────────────────────────────────────────────────────
    Each scenario's res.paths.p50 is the "typical" coherent simulated path —
    the engine picks the sim that tracks the year-by-year median envelope
@@ -1025,16 +982,11 @@ $$('.htab').forEach(t=>t.onclick=()=>{
   t.classList.add('on'); $(`.page[data-page="${t.dataset.page}"]`).classList.add('on');
   // Returning to Scenarios after a base-plan edit re-runs the engine so the
   // columns reflect the new source; otherwise just redraw.
-  if(t.dataset.page==='scenarios'){ if(plansDirty){ plansDirty=false; runAll(); } else drawScenarioChart(); }
+  if(t.dataset.page==='scenarios'){ if(plansDirty){ plansDirty=false; runAll(); } }
   if(t.dataset.page==='sequencing') runSeq();
   if(t.dataset.page==='inputs') renderInputs();
 });
 $('#run-btn').onclick=runAll;
-// Chart hover crosshair (pointer events cover mouse + touch-drag).
-(()=>{ const svg=$('#scn-svg');
-  svg.addEventListener('pointermove', scnCrosshair);
-  svg.addEventListener('pointerleave', clearScnCrosshair);
-})();
 // Cash-flow drawer toggle. We render on open (and every Run while open).
 $('#cf-btn').onclick=()=>{
   const d=$('#cf-drawer');

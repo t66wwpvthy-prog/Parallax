@@ -13,6 +13,18 @@ Durable backlog so nothing gets lost between sessions. Newest on top.
   width. Tighten column width / horizontal spacing so it's not so spread out.
 
 ## Done recently
+- Scenarios levers now have type-in boxes (not just sliders): Monthly Spending
+  (renamed from Annual; stored annual, edited monthly), One-Time Event (amount +
+  AGE both typeable), Savings/yr. Slider + box stay in sync.
+- Removed the Scenarios line chart (redundant with the % circles + cash-flow
+  drawer). A richer wealth-path visual is planned for the Sequencing tab. Shared
+  chart helpers (axes/smoothPath) kept for the Sequencing chart.
+- Verified full Scenarios lever sweep through the engine on the real base plan
+  (age 58 / retire 65 / $205k / $30k sav → 97.8%): retire age, allocation,
+  spend, one-time event, savings all behave. SS is wired correctly (benefit
+  dollars exact: 62→$25.2k, 67→$36k, 70→$44.6k) but moves the % little here —
+  honest: SS is a small lever for a high-spend household. OPEN: decide how to
+  frame SS (lifetime-dollars trade-off vs the % circle).
 - Pension mechanics: (1) per-household slider range — the pension slider now
   spans ONLY the ages with a quoted benefit (benefitByAge keys), so it can't
   wander onto a $0 age. Add a quote and the range grows. (2) Smart-default link
