@@ -8,34 +8,31 @@
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
 <style>
 :root{
-  /* OBSIDIAN BRASS — premium financial palette. No green anywhere.
-     Background #171A1D · Panel #252A2E · Text #E7E1D3 · Brass #A98F5A ·
-     Steel-teal #6D8790. Surfaces step in warm graphite; results read in
-     steel-teal (strong) / brass (caution) / clay (risk). */
-  --bg-deep:#121417; --bg:#171A1D;
-  --surface:#1e2225; --surface-2:#252A2E; --surface-3:#2f343a;
-  --rule:#353b41; --rule-bright:#4a515a; --rule-faint:#212529;
-  --ink:#e7e1d3; --ink-bright:#f6f1e6; --ink-mute:#a7a395; --ink-faint:#7a7669; --ink-ghost:#3d4138;
-  /* Brass = the identity accent. */
-  --gold:#a98f5a; --gold-bright:#c8ab6f; --gold-deep:#6f5c39; --gold-glow:rgba(169,143,90,.16);
-  /* Steel-teal = the cool secondary (NOT green). */
-  --teal:#6d8790; --teal-bright:#8fa9b1; --teal-deep:#46606a; --teal-glow:rgba(109,135,144,.16);
-  /* Result language: steel-teal (strong) / brass (caution) / clay (at-risk). */
-  --positive:#6d8790; --positive-bright:#8fa9b1;
-  --negative:#b8734f; --negative-bright:#cf8a64;
-  /* Scenario line trio: brass / steel-teal / dusty mauve. Earthy, distinct. */
-  --s1:#c8ab6f; --s2:#8fa9b1; --s3:#a4869c; --s4:#cda6e0;
+  /* LIGHT REPORT — warm "paper" financial document. Dark slate ink on
+     off-white; brass + slate accents. Gold is reserved for emphasis
+     (probability rings, the active-tab underline) — never header/body text
+     on beige, where its contrast is too weak. Results read as slate
+     (strong) / brass (caution) / clay (at-risk). */
+  --bg-deep:#e7e1d4; --bg:#f4efe6;
+  --surface:#fbf8f1; --surface-2:#ffffff; --surface-3:#f1ece1;
+  --rule:#d8d0bf; --rule-bright:#c2b8a2; --rule-faint:#e8e2d5;
+  --ink:#23282e; --ink-bright:#11151a; --ink-mute:#5d6671; --ink-faint:#8a93a0; --ink-ghost:#c2c8d0;
+  --gold:#9a7322; --gold-bright:#b88c30; --gold-deep:#6f521a; --gold-glow:rgba(154,115,34,.10);
+  --teal:#3f6b78; --teal-bright:#557f8c; --teal-deep:#2c4d57; --teal-glow:rgba(63,107,120,.10);
+  --positive:#3f6b78; --positive-bright:#557f8c;
+  --negative:#a8522f; --negative-bright:#bf6038;
+  --s1:#9a7322; --s2:#3f6b78; --s3:#7d5a82; --s4:#7d5a82;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;background:var(--bg);font-family:'Sora',sans-serif;color:var(--ink);font-size:14px;-webkit-font-smoothing:antialiased;overflow:hidden}
-body{background:radial-gradient(1100px 560px at 88% -12%, var(--gold-glow), transparent 64%),linear-gradient(180deg,#13161a,var(--bg) 46%,#121417);}
+body{background:radial-gradient(1200px 600px at 88% -12%, var(--gold-glow), transparent 60%),linear-gradient(180deg,#f6f2ea,var(--bg) 44%,#ece5d8);}
 .wrap{height:100vh;display:flex;flex-direction:column;overflow:hidden}
 
 .hdr{display:flex;align-items:center;gap:18px;padding:13px 28px;border-bottom:1px solid var(--rule);background:var(--bg-deep);flex:0 0 auto}
-.wordmark{font-size:15px;font-weight:400;letter-spacing:.30em;text-transform:uppercase;background:linear-gradient(180deg,#fff1c9,#e8c47a 45%,#b48740);-webkit-background-clip:text;background-clip:text;color:transparent}
+.wordmark{font-size:15px;font-weight:600;letter-spacing:.30em;text-transform:uppercase;color:var(--ink-bright)}
 .hdr-tabs{display:flex;margin-left:24px}
 .htab{background:none;border:none;border-bottom:2px solid transparent;color:var(--ink-mute);cursor:pointer;font-family:'Sora';font-size:12px;letter-spacing:.2em;text-transform:uppercase;padding:6px 20px;font-weight:500;transition:color .2s,border-color .2s}
-.htab:hover{color:var(--ink)} .htab.on{color:var(--gold);border-bottom-color:var(--gold)}
+.htab:hover{color:var(--ink)} .htab.on{color:var(--ink-bright);font-weight:600;border-bottom-color:var(--gold)}
 .hdr-right{margin-left:auto;display:flex;align-items:center;gap:16px}
 .status{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-mute)}
 .run-btn{padding:9px 22px;background:linear-gradient(180deg,var(--gold-bright),var(--gold));color:#06121a;border:none;border-radius:3px;font-family:'Sora';font-weight:700;font-size:10.5px;letter-spacing:.26em;text-transform:uppercase;cursor:pointer;box-shadow:0 6px 18px -8px rgba(214,170,89,.5)}
