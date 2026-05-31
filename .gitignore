@@ -1,5 +1,5 @@
-# Throwaway preview/screenshot artifacts from theme + verification runs
-shot-*.png
+node_modules/
+*.png
 variant-*.html
 _*.mjs
-node_modules/
+.cache/
