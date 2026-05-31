@@ -372,12 +372,20 @@ function axes(W,H,ageStart,ageEnd,maxBal){
   return g;
 }
 function expectedAnnualReturn(riskProfile){
-  // Deterministic expected REAL return for an allocation = Σ weightᵢ · meanᵢ
-  // (portfolio-centric: the market enters only through the chosen allocation).
+  // Deterministic expected REAL return for an allocation, using the COMPOUND
+  // (geometric) return — NOT the arithmetic mean. A real portfolio never
+  // compounds at its arithmetic mean; volatility drags realized growth down to
+  // the geometric rate (g ≈ μ − σ²/2). Using the arithmetic mean overstates a
+  // 37-year horizon massively (e.g. aggressive 8.4% → a fake $35M line). The
+  // geometric rate makes this deterministic line track the engine's Monte Carlo
+  // MEDIAN, so the line and the % circle tell the same, honest story.
+  // Use each asset's empirical long-run COMPOUND (geometric) real return, cagr,
+  // weighted by allocation. cagr already embeds that asset's own volatility drag,
+  // and weighting the empirical geometrics needs no correlation assumptions.
   const w=RISK_PROFILES[riskProfile].weights;
   let er=0;
-  for(const k of ASSET_KEYS){ const st=ASSET_STATS[k]; if(st && w[k]) er += w[k]*st.mean; }
-  return er;
+  for(const k of ASSET_KEYS){ const st=ASSET_STATS[k]; if(st && w[k]) er += w[k]*st.cagr; }
+  return er;   // expected compound (geometric) real return
 }
 function expectedTrajectory(res, riskProfile){
   // Fully deterministic expected path. Return = allocation's expected real return.
