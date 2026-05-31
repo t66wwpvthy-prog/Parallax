@@ -2,15 +2,16 @@
 
 Durable backlog so nothing gets lost between sessions. Newest on top.
 
-## Design — deferred (Nathan: "still not right," moving on for now)
+## Design — deferred
 - **Inputs tab — escape the boxes-in-boxes grid.** Every planning tool uses the
   same rigid nested-card layout — clean but boring. Explore a freestyle / open
   input layout that doesn't feel like a tax form. (Idea, not yet specced.)
-- **Top banner (% circle band) is too TALL** — it eats into the Retirement Age
-  input line below it. Reduce the band height / circle wrap so the first lever
-  row isn't crowded.
-- **Columns are too WIDE horizontally** — each scenario column has far too much
-  width. Tighten column width / horizontal spacing so it's not so spread out.
+
+## Design — done
+- Top banner height reduced (ring 148→118px, smaller %, tighter min-height) so
+  it no longer crowds the Retirement Age row.
+- Scenarios block capped + centered (max-width 790px) so columns don't stretch
+  across a wide monitor.
 
 ## Done recently
 - Scenarios levers now have type-in boxes (not just sliders): Monthly Spending
