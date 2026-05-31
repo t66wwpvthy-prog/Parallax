@@ -51,14 +51,14 @@ body{background:radial-gradient(1100px 560px at 88% -12%, var(--gold-glow), tran
 .page[data-page="scenarios"] .eyebrow{position:sticky;top:0;z-index:25;background:var(--bg);padding:20px 0 16px}
 .scn-band{position:sticky;top:53px;z-index:20;display:grid;grid-template-columns:148px repeat(3,1fr);background:var(--surface-2);border:1px solid var(--rule);border-radius:4px 4px 0 0;box-shadow:0 10px 22px -16px rgba(0,0,0,.9)}
 .scn-band::before{content:'';position:absolute;left:0;right:0;top:-10px;height:10px;background:var(--bg)}
-.band-cell{border-right:1px solid var(--rule-faint);padding:14px 14px 13px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:166px}
+.band-cell{border-right:1px solid var(--rule-faint);padding:14px 14px 13px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:200px}
 .band-cell:last-child{border-right:none}
 .band-cell.base{background:rgba(122,163,158,.05)}
 .band-cell.label{align-items:flex-start;justify-content:flex-end}
 .band-cell.label span{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-mute);font-weight:500}
 .col-name{font-size:11.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-bright);font-weight:600;text-align:center}
 .col-name.base-tag{color:var(--teal-bright)}
-.circle-wrap{position:relative;width:116px;height:116px}
+.circle-wrap{position:relative;width:148px;height:148px}
 .circle-val{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
 .circle-val .big{font-size:34px;font-weight:400;line-height:1;font-family:'Inter';letter-spacing:-.01em}
 .circle-val .lbl{font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-mute);margin-top:5px}
@@ -1650,11 +1650,13 @@ function runAll(){
 // clay (at risk). No green — matches the Obsidian Brass result tokens.
 function ringColor(pct){ return pct>=85?'#8fa9b1':pct>=70?'#c8ab6f':'#cf8a64'; }
 function ring(pct){
-  const r=42,c=2*Math.PI*r,off=c*(1-pct/100);
+  // Larger ring (148px wrap) with a thinner stroke pushed near the edge, so the
+  // interior fits the 34px % number comfortably without clipping.
+  const r=45,c=2*Math.PI*r,off=c*(1-pct/100);
   const col=ringColor(pct);
-  return `<svg viewBox="0 0 100 100" width="116" height="116">
-    <circle cx="50" cy="50" r="${r}" fill="none" stroke="#2f343a" stroke-width="5.5"/>
-    <circle cx="50" cy="50" r="${r}" fill="none" stroke="${col}" stroke-width="5.5" stroke-linecap="round"
+  return `<svg viewBox="0 0 100 100" width="148" height="148">
+    <circle cx="50" cy="50" r="${r}" fill="none" stroke="#2f343a" stroke-width="4"/>
+    <circle cx="50" cy="50" r="${r}" fill="none" stroke="${col}" stroke-width="4" stroke-linecap="round"
       stroke-dasharray="${c}" stroke-dashoffset="${off}" transform="rotate(-90 50 50)" style="transition:stroke-dashoffset .7s cubic-bezier(.4,0,.2,1)"/></svg>`;
 }
 function renderBand(){
