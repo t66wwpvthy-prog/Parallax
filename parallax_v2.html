@@ -8,34 +8,41 @@
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
 <style>
 :root{
-  --bg-deep:#070b10; --bg:#0b1118;
-  --surface:#101820; --surface-2:#151f2a; --surface-3:#1d2a36;
-  --rule:#26313d; --rule-bright:#3a4655; --rule-faint:#17212b;
-  --ink:#e8eef6; --ink-bright:#f8fbff; --ink-mute:#9aa7bb; --ink-faint:#667386; --ink-ghost:#3b4655;
-  --gold:#d6aa59; --gold-bright:#f0c773; --gold-deep:#8a6c33; --gold-glow:rgba(214,170,89,.24);
-  --teal:#7aa39e; --teal-bright:#a9d5cf; --teal-deep:#4f7773; --teal-glow:rgba(122,163,158,.22);
-  --positive:#85b89c; --positive-bright:#a9d3bc;
-  --negative:#e07670; --negative-bright:#f0918d;
-  --s1:#a9d5cf; --s2:#f0c773; --s3:#9db4e0; --s4:#cda6e0;
+  /* Warm neutral graphite — no navy cast. Surfaces step up in lightness so
+     panels separate by tone, not just by rule lines. */
+  --bg-deep:#0a0b0a; --bg:#111310;
+  --surface:#191c17; --surface-2:#222620; --surface-3:#2c302a;
+  --rule:#373b33; --rule-bright:#4c5147; --rule-faint:#1e211b;
+  /* Ink: warm off-white. Muted/faint raised for legibility on dark. */
+  --ink:#eaece5; --ink-bright:#fbfcf8; --ink-mute:#aab0a2; --ink-faint:#7b8174; --ink-ghost:#41463c;
+  /* Brass (the identity) + sage. */
+  --gold:#d9ad5c; --gold-bright:#f2c978; --gold-deep:#8a6c33; --gold-glow:rgba(217,173,92,.22);
+  --teal:#7fa8a2; --teal-bright:#aed8d2; --teal-deep:#4f7773; --teal-glow:rgba(127,168,162,.20);
+  /* Result language: refined sage-emerald for good, brass for caution,
+     terracotta for risk — earthy, never neon. */
+  --positive:#6fae8b; --positive-bright:#88c4a0;
+  --negative:#cf836f; --negative-bright:#e09a82;
+  /* Scenario line trio: sage teal / brass gold / soft violet (replaces navy). */
+  --s1:#aed8d2; --s2:#f2c978; --s3:#bfa2d6; --s4:#cda6e0;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%;background:var(--bg);font-family:'Sora',sans-serif;color:var(--ink);font-size:13px;-webkit-font-smoothing:antialiased;overflow:hidden}
-body{background:radial-gradient(1200px 600px at 85% -10%, rgba(108,197,211,.07), transparent 60%),linear-gradient(180deg,#090e14,var(--bg) 45%,#070b10);}
+html,body{height:100%;background:var(--bg);font-family:'Sora',sans-serif;color:var(--ink);font-size:14px;-webkit-font-smoothing:antialiased;overflow:hidden}
+body{background:radial-gradient(1100px 560px at 88% -12%, var(--gold-glow), transparent 62%),linear-gradient(180deg,#0d0f0c,var(--bg) 46%,#0a0b0a);}
 .wrap{height:100vh;display:flex;flex-direction:column;overflow:hidden}
 
 .hdr{display:flex;align-items:center;gap:18px;padding:13px 28px;border-bottom:1px solid var(--rule);background:var(--bg-deep);flex:0 0 auto}
 .wordmark{font-size:15px;font-weight:400;letter-spacing:.30em;text-transform:uppercase;background:linear-gradient(180deg,#fff1c9,#e8c47a 45%,#b48740);-webkit-background-clip:text;background-clip:text;color:transparent}
 .hdr-tabs{display:flex;margin-left:24px}
-.htab{background:none;border:none;border-bottom:1px solid transparent;color:var(--ink-faint);cursor:pointer;font-family:'Sora';font-size:11px;letter-spacing:.22em;text-transform:uppercase;padding:6px 20px;font-weight:400;transition:.2s}
-.htab:hover{color:var(--ink-mute)} .htab.on{color:var(--gold);border-bottom-color:var(--gold)}
-.hdr-right{margin-left:auto;display:flex;align-items:center;gap:14px}
-.status{font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-faint)}
+.htab{background:none;border:none;border-bottom:2px solid transparent;color:var(--ink-mute);cursor:pointer;font-family:'Sora';font-size:12px;letter-spacing:.2em;text-transform:uppercase;padding:6px 20px;font-weight:500;transition:color .2s,border-color .2s}
+.htab:hover{color:var(--ink)} .htab.on{color:var(--gold);border-bottom-color:var(--gold)}
+.hdr-right{margin-left:auto;display:flex;align-items:center;gap:16px}
+.status{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-mute)}
 .run-btn{padding:9px 22px;background:linear-gradient(180deg,var(--gold-bright),var(--gold));color:#06121a;border:none;border-radius:3px;font-family:'Sora';font-weight:700;font-size:10.5px;letter-spacing:.26em;text-transform:uppercase;cursor:pointer;box-shadow:0 6px 18px -8px rgba(214,170,89,.5)}
 .run-btn:active{transform:translateY(1px)} .run-btn:disabled{filter:saturate(.3) brightness(.7);cursor:wait}
 
 .page{flex:1 1 auto;min-height:0;display:none;flex-direction:column;padding:0 28px 22px}
 .page.on{display:flex}
-.eyebrow{font-size:10px;color:var(--ink-mute);letter-spacing:.3em;text-transform:uppercase;font-weight:500;display:flex;align-items:center;gap:12px}
+.eyebrow{font-size:11.5px;color:var(--ink-mute);letter-spacing:.26em;text-transform:uppercase;font-weight:500;display:flex;align-items:center;gap:12px}
 .eyebrow::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,var(--rule-bright),transparent);max-width:320px}
 
 /* SCENARIOS */
@@ -47,18 +54,18 @@ body{background:radial-gradient(1200px 600px at 85% -10%, rgba(108,197,211,.07),
 .band-cell:last-child{border-right:none}
 .band-cell.base{background:rgba(122,163,158,.05)}
 .band-cell.label{align-items:flex-start;justify-content:flex-end}
-.band-cell.label span{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-faint);font-weight:500}
-.col-name{font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-bright);font-weight:600;text-align:center}
+.band-cell.label span{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-mute);font-weight:500}
+.col-name{font-size:11.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-bright);font-weight:600;text-align:center}
 .col-name.base-tag{color:var(--teal-bright)}
-.circle-wrap{position:relative;width:108px;height:108px}
+.circle-wrap{position:relative;width:116px;height:116px}
 .circle-val{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
-.circle-val .big{font-size:32px;font-weight:300;line-height:1;font-family:'Inter';letter-spacing:-.01em}
-.circle-val .lbl{font-size:8px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-mute);margin-top:4px}
-.delta{font-size:10.5px;font-weight:600;letter-spacing:.04em;font-family:'Inter'}
+.circle-val .big{font-size:34px;font-weight:400;line-height:1;font-family:'Inter';letter-spacing:-.01em}
+.circle-val .lbl{font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-mute);margin-top:5px}
+.delta{font-size:11.5px;font-weight:600;letter-spacing:.02em;font-family:'Inter'}
 .delta.up{color:var(--positive-bright)} .delta.down{color:var(--negative-bright)} .delta.flat{color:var(--ink-faint)}
 
 .scn-levers{display:grid;grid-template-columns:148px repeat(3,1fr);border-left:1px solid var(--rule);border-right:1px solid var(--rule)}
-.lev-name{display:flex;align-items:center;border-right:1px solid var(--rule-faint);border-bottom:1px solid var(--rule-faint);padding:0 12px;min-height:60px;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-mute);font-weight:500;line-height:1.25}
+.lev-name{display:flex;align-items:center;border-right:1px solid var(--rule-faint);border-bottom:1px solid var(--rule-faint);padding:0 14px;min-height:62px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-mute);font-weight:500;line-height:1.3}
 .lev-cell{display:flex;flex-direction:column;justify-content:center;gap:6px;border-right:1px solid var(--rule-faint);border-bottom:1px solid var(--rule-faint);padding:0 14px;min-height:60px}
 .lev-cell.base{background:rgba(122,163,158,.04)}
 .scn-levers > :nth-child(4n){border-right:none}
@@ -78,26 +85,34 @@ body{background:radial-gradient(1200px 600px at 85% -10%, rgba(108,197,211,.07),
 .lev-slider:disabled{opacity:.4;cursor:default}
 .lev-slider.base-lock::-webkit-slider-thumb{background:var(--teal)}
 .scn-foot{display:grid;grid-template-columns:148px repeat(3,1fr);border:1px solid var(--rule);border-top:none;border-radius:0 0 4px 4px}
-.foot-cell{border-right:1px solid var(--rule-faint);padding:11px 14px;font-family:'Inter';font-size:11px;color:var(--ink-mute)}
+.foot-cell{border-right:1px solid var(--rule-faint);padding:12px 14px;font-family:'Inter';font-size:12.5px;color:var(--ink-mute)}
 .foot-cell:last-child{border-right:none}
 .foot-cell.base{background:rgba(122,163,158,.05)}
 .foot-cell b{color:var(--ink-bright);font-weight:600}
 
 .scn-chart{flex:0 0 auto;height:360px;margin-top:18px;border:1px solid var(--rule);border-radius:4px;background:var(--surface);padding:16px 22px 14px;display:flex;flex-direction:column}
 .chart-head{display:flex;align-items:baseline;gap:16px;margin-bottom:6px;flex:0 0 auto}
-.chart-title{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-bright);font-weight:500}
-.chart-sub{font-size:9.5px;color:var(--ink-mute);letter-spacing:.1em;text-transform:uppercase}
-.chart-legend{margin-left:auto;display:flex;gap:16px}
-.lg{display:flex;align-items:center;gap:6px;font-size:9.5px;color:var(--ink-mute);letter-spacing:.06em}
-.lg .sw{width:14px;height:2.5px;border-radius:2px}
-.chart-body{flex:1 1 auto;min-height:0}
+.chart-title{font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-bright);font-weight:600}
+.chart-sub{font-size:11px;color:var(--ink-mute);letter-spacing:.06em;text-transform:uppercase}
+.chart-legend{margin-left:auto;display:flex;gap:18px}
+.lg{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--ink-mute);letter-spacing:.04em}
+.lg .sw{width:16px;height:3px;border-radius:2px}
+.chart-body{flex:1 1 auto;min-height:0;position:relative}
 .chart-body svg{width:100%;height:100%;display:block}
+/* Floating hover readout for the chart crosshair. Warm panel, high contrast,
+   tabular numbers so the values line up as you scrub across ages. */
+.scn-tip{position:absolute;display:none;pointer-events:none;z-index:5;background:rgba(25,28,23,.96);border:1px solid var(--rule-bright);border-radius:7px;padding:9px 11px;box-shadow:0 12px 30px -10px rgba(0,0,0,.7);min-width:172px;backdrop-filter:blur(3px)}
+.scn-tip .ro-age{font-family:'Sora';font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);font-weight:600;margin-bottom:7px}
+.scn-tip .ro-row{display:flex;align-items:center;gap:8px;padding:2px 0;font-family:'Inter';font-size:12.5px}
+.scn-tip .ro-sw{width:9px;height:9px;border-radius:50%;flex:0 0 auto}
+.scn-tip .ro-nm{color:var(--ink-mute);flex:1 1 auto;white-space:nowrap}
+.scn-tip .ro-v{color:var(--ink-bright);font-weight:600;font-variant-numeric:tabular-nums}
 
 /* SEQUENCING */
 .page[data-page="sequencing"]{padding-top:20px}
 .seq-bar{flex:0 0 auto;display:flex;align-items:center;gap:14px;margin:14px 0}
 .seq-pick{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--rule);border-radius:3px;padding:8px 14px}
-.seq-pick .k{font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-mute);font-weight:500}
+.seq-pick .k{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-mute);font-weight:500}
 .seq-pick select{background:var(--surface-2);border:1px solid var(--rule-bright);color:var(--ink-bright);font-family:'Sora';font-size:12px;font-weight:500;letter-spacing:.04em;padding:6px 30px 6px 12px;border-radius:3px;outline:none;appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M0 0 L5 6 L10 0' fill='%239aa6b9'/></svg>");background-repeat:no-repeat;background-position:right 11px center;cursor:pointer}
 .seq-legend{margin-left:auto;display:flex;gap:16px}
 .seq-chart{flex:1 1 auto;min-height:0;border:1px solid var(--rule);border-radius:4px;background:var(--surface);padding:16px 22px 12px;display:flex;flex-direction:column}
@@ -105,8 +120,8 @@ body{background:radial-gradient(1200px 600px at 85% -10%, rgba(108,197,211,.07),
 .seq-stats{flex:0 0 auto;display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--rule);border-top:none;border-radius:0 0 4px 4px;background:var(--surface-2)}
 .seq-stat{padding:11px 18px;border-right:1px solid var(--rule-faint);display:flex;flex-direction:column;gap:3px}
 .seq-stat:last-child{border-right:none}
-.seq-stat .k{font-size:8.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-mute);font-weight:500}
-.seq-stat .v{font-family:'Inter';font-size:15px;font-weight:600}
+.seq-stat .k{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-mute);font-weight:500}
+.seq-stat .v{font-family:'Inter';font-size:16px;font-weight:600}
 /* Inputs (base plan / household data root). Sized for client-facing review:
    labels and numbers comfortably readable from across a desk; group titles
    in gold so the household structure scans at a glance. */
@@ -149,7 +164,9 @@ body{background:radial-gradient(1200px 600px at 85% -10%, rgba(108,197,211,.07),
 .cf-table td.dim{color:var(--ink-faint)}
 .cf-ga{background:rgba(169,213,207,.05)} .cf-gb{background:rgba(240,199,115,.05)} .cf-gc{background:rgba(157,180,224,.05)}
 .cf-table tr.retire td{border-top:1px dashed var(--gold);}
-.cf-table tr.retire td.age::after{content:'  retire';color:var(--gold);font-size:9px;font-weight:500;letter-spacing:.1em}
+.cf-table tr.retire td.age::after{content:'  retire';color:var(--gold);font-size:10px;font-weight:500;letter-spacing:.1em}
+.cf-table tr.hl td{background:rgba(217,173,92,.13)!important}
+.cf-table tr.hl td.age{background:rgba(217,173,92,.18)!important;color:var(--gold-bright)}
 </style>
 </head>
 <body>
@@ -255,7 +272,9 @@ plan.income.pension = { benefitByAge: { 62: 36000, 63: 38160, 64: 40320, 65: 424
 plan.savings.annual      = 30000;
 plan.simulation.iterations = 1000;
 
-const COLHEX=['#a9d5cf','#f0c773','#9db4e0'];
+// Scenario line trio — sage teal / brass gold / soft violet. Matches the
+// --s1/2/3 tokens; the violet replaces the old navy (too cold, low contrast).
+const COLHEX=['#aed8d2','#f2c978','#bfa2d6'];
 
 /* The three scenario columns. Each holds lever values + its last engine result.
    lever values are the ACTUAL planning values (age, $, etc.), not slider ticks. */
@@ -546,13 +565,16 @@ function runAll(){
 }
 
 /* ── render: sticky band of circles ── */
+// Success ring color band: sage-emerald (strong) / brass (caution) /
+// terracotta (at risk) — earthy, matches the result-language tokens.
+function ringColor(pct){ return pct>=85?'#88c4a0':pct>=70?'#f2c978':'#e09a82'; }
 function ring(pct){
   const r=42,c=2*Math.PI*r,off=c*(1-pct/100);
-  const col= pct>=85?'#a9d3bc':pct>=70?'#f0c773':'#f0918d';
-  return `<svg viewBox="0 0 100 100" width="108" height="108">
-    <circle cx="50" cy="50" r="${r}" fill="none" stroke="#26313d" stroke-width="6"/>
-    <circle cx="50" cy="50" r="${r}" fill="none" stroke="${col}" stroke-width="6" stroke-linecap="round"
-      stroke-dasharray="${c}" stroke-dashoffset="${off}" transform="rotate(-90 50 50)" style="transition:stroke-dashoffset .6s ease"/></svg>`;
+  const col=ringColor(pct);
+  return `<svg viewBox="0 0 100 100" width="116" height="116">
+    <circle cx="50" cy="50" r="${r}" fill="none" stroke="#2c302a" stroke-width="5.5"/>
+    <circle cx="50" cy="50" r="${r}" fill="none" stroke="${col}" stroke-width="5.5" stroke-linecap="round"
+      stroke-dasharray="${c}" stroke-dashoffset="${off}" transform="rotate(-90 50 50)" style="transition:stroke-dashoffset .7s cubic-bezier(.4,0,.2,1)"/></svg>`;
 }
 function renderBand(){
   const base=scenarios[0].res;
@@ -667,14 +689,16 @@ function smoothPath(pts){
 function axes(W,H,ageStart,ageEnd,maxBal){
   const x0=PADL, x1=W-PADR, y0=PADT, y1=H-PADB;
   let g='';
-  for(let i=0;i<=4;i++){const y=y0+(y1-y0)/4*i; g+=`<line x1="${x0}" y1="${y}" x2="${x1}" y2="${y}" stroke="#17212b"/>`;}
+  // Horizontal gridlines — warm graphite, slightly brighter than before so the
+  // grid is legible without competing with the data lines.
+  for(let i=0;i<=4;i++){const y=y0+(y1-y0)/4*i; g+=`<line x1="${x0}" y1="${y}" x2="${x1}" y2="${y}" stroke="#2a2e26"/>`;}
   // y labels (right-aligned in the left gutter)
   for(let i=0;i<=4;i++){const v=maxBal*(1-i/4); const y=y0+(y1-y0)/4*i;
-    g+=`<text x="${x0-10}" y="${y+4}" fill="#667386" font-size="11" font-family="Inter" text-anchor="end">${fmtM(v)}</text>`;}
+    g+=`<text x="${x0-12}" y="${y+4}" fill="#aab0a2" font-size="12" font-family="Inter" text-anchor="end">${fmtM(v)}</text>`;}
   // x age ticks
   const span=ageEnd-ageStart;
   for(let k=0;k<=5;k++){const a=Math.round(ageStart+span*k/5); const x=x0+(x1-x0)*k/5;
-    g+=`<text x="${x}" y="${H-9}" fill="#667386" font-size="11" font-family="Inter" text-anchor="${k===0?'start':k===5?'end':'middle'}">Age ${a}</text>`;}
+    g+=`<text x="${x}" y="${H-9}" fill="#aab0a2" font-size="12" font-family="Inter" text-anchor="${k===0?'start':k===5?'end':'middle'}">Age ${a}</text>`;}
   return g;
 }
 function enginePath(res){
@@ -687,9 +711,12 @@ function enginePath(res){
   if(!res.envelope) return [];
   return res.envelope.map(e=>Math.max(0, e.p50));
 }
+// Geometry of the last-drawn scenario chart, kept so the hover crosshair can
+// map a pointer x back to an age index and read each line's value there.
+let scnChartGeo=null;
 function drawScenarioChart(){
   const svg=$('#scn-svg'),W=1000,H=340;
-  if(!scenarios[0].res){svg.innerHTML='';return;}
+  if(!scenarios[0].res){svg.innerHTML='';scnChartGeo=null;return;}
   const ageStart=plan.household.primary.currentAge, ageEnd=plan.household.primary.planEndAge;
   const traj=scenarios.map(s=>enginePath(s.res));
   const n=traj[0].length;
@@ -701,13 +728,74 @@ function drawScenarioChart(){
   let h=axes(W,H,ageStart,ageEnd,maxBal);
   traj.forEach((t,i)=>{
     const pts=t.map((v,idx)=>[X(idx),Y(v)]);
-    h+=`<path d="${smoothPath(pts)}" fill="none" stroke="${COLHEX[i]}" stroke-width="${scenarios[i].base?3:2.2}" stroke-linejoin="round" stroke-linecap="round" opacity="${scenarios[i].base?1:.92}"/>`;
+    h+=`<path d="${smoothPath(pts)}" fill="none" stroke="${COLHEX[i]}" stroke-width="${scenarios[i].base?3:2.3}" stroke-linejoin="round" stroke-linecap="round" opacity="${scenarios[i].base?1:.9}"/>`;
   });
+  // Empty overlay group the crosshair populates on hover (kept above the lines).
+  h+=`<g id="scn-cross"></g>`;
   svg.innerHTML=h;
+  // Stash geometry + the trajectories for the crosshair handler.
+  scnChartGeo={W,H,x0,x1,y0,y1,n,ageStart,X,Y,traj,maxBal};
   // Honest label: the line is the median across simulations at each year (a
   // slice through the percentile envelope), not a single coherent path. The
   // cash-flow drawer is what shows a coherent year-by-year reality.
   $('#scn-chart-sub').textContent=`Median wealth across simulations · today's dollars · Age ${ageStart} → ${ageEnd}`;
+}
+
+/* Hover crosshair: a vertical guide, a dot on each scenario line at the hovered
+   age, and a floating readout listing each scenario's wealth there. The age
+   readout also drives a highlight on the matching cash-flow drawer row, so the
+   chart and the table read the same year together. */
+function scnCrosshair(evt){
+  const g=scnChartGeo; if(!g) return;
+  const svg=$('#scn-svg');
+  const rect=svg.getBoundingClientRect();
+  // Map client x → viewBox x (svg is non-uniformly scaled via preserveAspectRatio=none).
+  const vx=(evt.clientX-rect.left)/rect.width*g.W;
+  if(vx<g.x0-2||vx>g.x1+2){ clearScnCrosshair(); return; }
+  // Nearest age index.
+  const frac=Math.max(0,Math.min(1,(vx-g.x0)/(g.x1-g.x0)));
+  const idx=Math.round(frac*(g.n-1));
+  const cx=g.X(idx);
+  const age=g.ageStart+idx;
+  let dots='';
+  const readout=[];
+  g.traj.forEach((t,i)=>{
+    const v=t[idx]; if(v==null) return;
+    const cy=g.Y(v);
+    dots+=`<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="4.5" fill="${COLHEX[i]}" stroke="#111310" stroke-width="2"/>`;
+    readout.push({i,v,cy});
+  });
+  const guide=`<line x1="${cx.toFixed(1)}" y1="${g.y0}" x2="${cx.toFixed(1)}" y2="${g.y1}" stroke="#4c5147" stroke-width="1" stroke-dasharray="3 3"/>`;
+  $('#scn-cross').innerHTML=guide+dots;
+  // HTML floating readout (positioned over the chart-body in client coords).
+  const body=svg.parentElement;
+  const bodyRect=body.getBoundingClientRect();
+  const px=(cx/g.W)*bodyRect.width;
+  const side = px > bodyRect.width*0.6 ? 'right' : 'left';
+  const rows=scenarios.map((s,i)=>{
+    const r=readout.find(d=>d.i===i);
+    return `<div class="ro-row"><span class="ro-sw" style="background:${COLHEX[i]}"></span><span class="ro-nm">${s.name}</span><span class="ro-v">${r?'$'+Math.round(r.v).toLocaleString('en-US'):'—'}</span></div>`;
+  }).join('');
+  let tip=$('#scn-tip');
+  if(!tip){ tip=document.createElement('div'); tip.id='scn-tip'; tip.className='scn-tip'; body.appendChild(tip); }
+  tip.innerHTML=`<div class="ro-age">Age ${age}</div>${rows}`;
+  tip.style.display='block';
+  tip.style[side]=(side==='left'?(px+16):(bodyRect.width-px+16))+'px';
+  tip.style[side==='left'?'right':'left']='auto';
+  tip.style.top='8px';
+  // Sync cash-flow drawer highlight (if open).
+  highlightCashflowRow(age);
+}
+function clearScnCrosshair(){
+  const c=$('#scn-cross'); if(c) c.innerHTML='';
+  const tip=$('#scn-tip'); if(tip) tip.style.display='none';
+  highlightCashflowRow(null);
+}
+function highlightCashflowRow(age){
+  $$('.cf-table tr.hl').forEach(tr=>tr.classList.remove('hl'));
+  if(age==null) return;
+  const tr=$(`.cf-table tr[data-age="${age}"]`);
+  if(tr){ tr.classList.add('hl'); }
 }
 
 /* ── Cash-flow drawer ────────────────────────────────────────────────────
@@ -746,7 +834,7 @@ function renderCashflow(){
     // baseline retirement age — additional markers per scenario would clutter).
     const retireAge = plan.household.primary.retirementAge;
     const isRetire = (age === retireAge);
-    h += `<tr class="${isRetire?'retire':''}"><td class="age">${age}</td>`;
+    h += `<tr class="${isRetire?'retire':''}" data-age="${age}"><td class="age">${age}</td>`;
     scenarios.forEach((s,i)=>{
       const r = rowsByScen[i][y];
       if(!r){ h += `<td colspan="3" class="dim ${gcls[i]}">—</td>`; return; }
@@ -765,7 +853,7 @@ function renderCashflow(){
 
 /* ── SEQUENCING tab ── */
 const SEQ_YEARS=[1973,1982,2000,1929];
-const SEQ_HEX={1973:'#e0918d',1982:'#a9d3bc',2000:'#f0c773',1929:'#9db4e0'};
+const SEQ_HEX={1973:'#e09a82',1982:'#88c4a0',2000:'#f2c978',1929:'#bfa2d6'};
 function buildSeqSelect(){
   const sel=$('#seq-select');
   const cur=sel.value;
@@ -823,6 +911,11 @@ $$('.htab').forEach(t=>t.onclick=()=>{
   if(t.dataset.page==='inputs') renderInputs();
 });
 $('#run-btn').onclick=runAll;
+// Chart hover crosshair (pointer events cover mouse + touch-drag).
+(()=>{ const svg=$('#scn-svg');
+  svg.addEventListener('pointermove', scnCrosshair);
+  svg.addEventListener('pointerleave', clearScnCrosshair);
+})();
 // Cash-flow drawer toggle. We render on open (and every Run while open).
 $('#cf-btn').onclick=()=>{
   const d=$('#cf-drawer');
