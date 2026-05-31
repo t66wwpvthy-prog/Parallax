@@ -24,7 +24,7 @@
      off-white ground. */
   --positive:#16401f; --positive-bright:#194a2c;
   --negative:#7e2b38; --negative-bright:#8f3340;
-  --s1:#9a7322; --s2:#3f6b78; --s3:#7d5a82; --s4:#7d5a82;
+  --s1:#9a7322; --s2:#3f6b78; --s3:#7d5a82;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;background:var(--bg);font-family:'Sora',sans-serif;color:var(--ink);font-size:14px;-webkit-font-smoothing:antialiased;overflow:hidden}
@@ -97,23 +97,14 @@ body{background:radial-gradient(1200px 600px at 88% -12%, var(--gold-glow), tran
 .foot-cell.base{background:rgba(63,107,120,.05)}
 .foot-cell b{color:var(--ink-bright);font-weight:600}
 
-.scn-chart{flex:0 0 auto;height:360px;margin-top:18px;border:1px solid var(--rule);border-radius:4px;background:var(--surface);padding:16px 22px 14px;display:flex;flex-direction:column}
+/* Shared chart chrome (used by the Sequencing chart). */
 .chart-head{display:flex;align-items:baseline;gap:16px;margin-bottom:6px;flex:0 0 auto}
 .chart-title{font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-bright);font-weight:600}
 .chart-sub{font-size:11px;color:var(--ink-mute);letter-spacing:.06em;text-transform:uppercase}
-.chart-legend{margin-left:auto;display:flex;gap:18px}
 .lg{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--ink-mute);letter-spacing:.04em}
 .lg .sw{width:16px;height:3px;border-radius:2px}
 .chart-body{flex:1 1 auto;min-height:0;position:relative}
 .chart-body svg{width:100%;height:100%;display:block}
-/* Floating hover readout for the chart crosshair. Warm panel, high contrast,
-   tabular numbers so the values line up as you scrub across ages. */
-.scn-tip{position:absolute;display:none;pointer-events:none;z-index:5;background:rgba(25,28,23,.96);border:1px solid var(--rule-bright);border-radius:7px;padding:9px 11px;box-shadow:0 12px 30px -10px rgba(0,0,0,.7);min-width:172px;backdrop-filter:blur(3px)}
-.scn-tip .ro-age{font-family:'Sora';font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);font-weight:600;margin-bottom:7px}
-.scn-tip .ro-row{display:flex;align-items:center;gap:8px;padding:2px 0;font-family:'Inter';font-size:12.5px}
-.scn-tip .ro-sw{width:9px;height:9px;border-radius:50%;flex:0 0 auto}
-.scn-tip .ro-nm{color:var(--ink-mute);flex:1 1 auto;white-space:nowrap}
-.scn-tip .ro-v{color:var(--ink-bright);font-weight:600;font-variant-numeric:tabular-nums}
 
 /* SEQUENCING */
 .page[data-page="sequencing"]{padding-top:20px}
@@ -172,8 +163,6 @@ body{background:radial-gradient(1200px 600px at 88% -12%, var(--gold-glow), tran
 .cf-ga{background:rgba(169,213,207,.05)} .cf-gb{background:rgba(240,199,115,.05)} .cf-gc{background:rgba(157,180,224,.05)}
 .cf-table tr.retire td{border-top:1px dashed var(--gold);}
 .cf-table tr.retire td.age::after{content:'  retire';color:var(--gold);font-size:10px;font-weight:500;letter-spacing:.1em}
-.cf-table tr.hl td{background:rgba(217,173,92,.13)!important}
-.cf-table tr.hl td.age{background:rgba(217,173,92,.18)!important;color:var(--gold-bright)}
 
 /* ──────────────────────────────────────────────────────────────────────────
    PHONE / TOUCH (iOS-first). The desktop layout is a fixed 100vh, no-scroll,
@@ -211,12 +200,7 @@ body{background:radial-gradient(1200px 600px at 88% -12%, var(--gold-glow), tran
   .lev-slider::-webkit-slider-runnable-track{height:3px}
   .lev-val{font-size:18px}
 
-  .scn-chart{height:300px;margin-top:16px}
   .chart-head{flex-wrap:wrap;gap:6px 14px}
-  .chart-legend{margin-left:0;width:100%;gap:14px}
-  /* The hover crosshair is a desktop affordance; tap-readout still works but
-     the floating tip is constrained so it can't overflow the small viewport. */
-  .scn-tip{min-width:150px;font-size:13px}
 
   /* Inputs: single column, full-width fields. */
   .inp-grid{grid-template-columns:1fr;max-width:none;gap:16px}
@@ -1872,6 +1856,8 @@ function renderFoot(){
 function fmtM(v){ if(!isFinite(v)||v<=0) return '$0'; if(v>=1e6) return '$'+(v/1e6).toFixed(1)+'M'; if(v>=1e3) return '$'+Math.round(v/1e3)+'K'; return '$'+Math.round(v); }
 // Plot margins inside the viewBox (leaves room for axis labels).
 const PADL=78, PADR=14, PADT=12, PADB=30;
+// Chart axis colors, matched to the light-theme tokens (--rule-faint / --ink-faint).
+const GRID='#e8e2d5', AXIS_INK='#8a93a0';
 // Smooth a series of [x,y] points into a path using Catmull-Rom -> bezier.
 // Tension kept low so the line stays trackable, not wavy ("toddler-drawn").
 function smoothPath(pts){
@@ -1889,16 +1875,17 @@ function smoothPath(pts){
 function axes(W,H,ageStart,ageEnd,maxBal){
   const x0=PADL, x1=W-PADR, y0=PADT, y1=H-PADB;
   let g='';
-  // Horizontal gridlines — warm graphite, slightly brighter than before so the
-  // grid is legible without competing with the data lines.
-  for(let i=0;i<=4;i++){const y=y0+(y1-y0)/4*i; g+=`<line x1="${x0}" y1="${y}" x2="${x1}" y2="${y}" stroke="#2a2e26"/>`;}
+  // Horizontal gridlines — faint rule color so the grid is legible without
+  // competing with the data lines. (Was a dark-theme near-black; fixed for the
+  // light "paper" theme.)
+  for(let i=0;i<=4;i++){const y=y0+(y1-y0)/4*i; g+=`<line x1="${x0}" y1="${y}" x2="${x1}" y2="${y}" stroke="${GRID}"/>`;}
   // y labels (right-aligned in the left gutter)
   for(let i=0;i<=4;i++){const v=maxBal*(1-i/4); const y=y0+(y1-y0)/4*i;
-    g+=`<text x="${x0-12}" y="${y+4}" fill="#aab0a2" font-size="12" font-family="Inter" text-anchor="end">${fmtM(v)}</text>`;}
+    g+=`<text x="${x0-12}" y="${y+4}" fill="${AXIS_INK}" font-size="12" font-family="Inter" text-anchor="end">${fmtM(v)}</text>`;}
   // x age ticks
   const span=ageEnd-ageStart;
   for(let k=0;k<=5;k++){const a=Math.round(ageStart+span*k/5); const x=x0+(x1-x0)*k/5;
-    g+=`<text x="${x}" y="${H-9}" fill="#aab0a2" font-size="12" font-family="Inter" text-anchor="${k===0?'start':k===5?'end':'middle'}">Age ${a}</text>`;}
+    g+=`<text x="${x}" y="${H-9}" fill="${AXIS_INK}" font-size="12" font-family="Inter" text-anchor="${k===0?'start':k===5?'end':'middle'}">Age ${a}</text>`;}
   return g;
 }
 /* ── Cash-flow drawer ────────────────────────────────────────────────────
@@ -1937,7 +1924,7 @@ function renderCashflow(){
     // baseline retirement age — additional markers per scenario would clutter).
     const retireAge = plan.household.primary.retirementAge;
     const isRetire = (age === retireAge);
-    h += `<tr class="${isRetire?'retire':''}" data-age="${age}"><td class="age">${age}</td>`;
+    h += `<tr class="${isRetire?'retire':''}"><td class="age">${age}</td>`;
     scenarios.forEach((s,i)=>{
       const r = rowsByScen[i][y];
       if(!r){ h += `<td colspan="3" class="dim ${gcls[i]}">—</td>`; return; }
@@ -1966,8 +1953,12 @@ function buildSeqSelect(){
 }
 function runSeq(){
   const sel=$('#seq-select'); const s=scenarios.find(x=>x.name===sel.value)||scenarios[0];
+  // Sequencing holds the PLAN fixed and varies only the market order, so the
+  // only scenario lever that carries over is ALLOCATION (baked into the plan
+  // clone here). Retire-age/SS/spend/savings/event do NOT apply on this tab by
+  // design — that's the Scenarios tab's job. (TODO when scenarios become saved
+  // objects: decide if Sequencing should honor more of the chosen scenario.)
   const p=planForScenario(s.lev);
-  // apply the same lever overrides by baking them into a resolved plan via runHistoricalPath
   // runHistoricalPath(plan, startYear, strategy) returns a single coherent path
   const strat=p.portfolio.withdrawalStrategy||'taxable-first';
   const runs=SEQ_YEARS.map(y=>({year:y, path:runHistoricalPath(p, y, strat)}));
