@@ -19,8 +19,11 @@
   --ink:#23282e; --ink-bright:#11151a; --ink-mute:#5d6671; --ink-faint:#8a93a0; --ink-ghost:#c2c8d0;
   --gold:#9a7322; --gold-bright:#b88c30; --gold-deep:#6f521a; --gold-glow:rgba(154,115,34,.10);
   --teal:#3f6b78; --teal-bright:#557f8c; --teal-deep:#2c4d57; --teal-glow:rgba(63,107,120,.10);
-  --positive:#3f6b78; --positive-bright:#557f8c;
-  --negative:#a8522f; --negative-bright:#bf6038;
+  /* Result language on paper: deep green (strong) / bronze gold (caution,
+     via --gold) / deep burgundy (at-risk). Tuned dark enough to read on the
+     off-white ground. */
+  --positive:#2c6b4a; --positive-bright:#2f7a55;
+  --negative:#7e2b38; --negative-bright:#8f3340;
   --s1:#9a7322; --s2:#3f6b78; --s3:#7d5a82; --s4:#7d5a82;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -629,7 +632,8 @@ function runAll(){
 /* ── render: sticky band of circles ── */
 // Success ring color band: steel-teal (strong) / brass (caution) /
 // clay (at risk). No green — matches the Obsidian Brass result tokens.
-function ringColor(pct){ return pct>=85?'#3f6b78':pct>=70?'#9a7322':'#a8522f'; }
+// Ring band matches the % number: deep green / bronze gold / deep burgundy.
+function ringColor(pct){ return pct>=85?'#2f7a55':pct>=70?'#9a7322':'#8f3340'; }
 function ring(pct){
   // Larger ring (148px wrap) with a thinner stroke pushed near the edge, so the
   // interior fits the 34px % number comfortably without clipping.
