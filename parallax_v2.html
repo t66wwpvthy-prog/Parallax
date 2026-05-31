@@ -65,6 +65,13 @@ body{background:radial-gradient(1200px 600px at 85% -10%, rgba(108,197,211,.07),
 .lev-val{font-family:'Inter';font-size:17px;font-weight:600;color:var(--ink-bright);display:flex;align-items:baseline;gap:6px}
 .lev-val.base{color:var(--teal-bright)}
 .lev-val .unit{font-size:10px;color:var(--ink-faint);font-weight:500;letter-spacing:.04em}
+/* Inline pension-amount input: appears when the lever lands on an age that has
+   no entered benefit yet. Looks like part of the value display (not an error).
+   The "$" prefix sits in the normal value color; the input is borderless and
+   inherits the typography so it reads as a natural prompt for a number. */
+.lev-val .pen-in{font-family:'Inter';font-size:15px;font-weight:600;color:var(--ink-bright);background:transparent;border:none;border-bottom:1px dashed var(--rule-bright);width:64px;padding:0 2px;outline:none}
+.lev-val .pen-in::placeholder{color:var(--ink-faint);font-weight:500}
+.lev-val .pen-in:focus{border-bottom-color:var(--gold)}
 .lev-slider{-webkit-appearance:none;width:100%;height:14px;background:transparent;cursor:pointer}
 .lev-slider::-webkit-slider-runnable-track{height:2px;background:var(--rule-bright);border-radius:2px}
 .lev-slider::-webkit-slider-thumb{-webkit-appearance:none;height:11px;width:11px;border-radius:50%;background:var(--gold);margin-top:-4.5px;border:2px solid var(--bg-deep)}
@@ -212,7 +219,7 @@ plan.income.socialSecurity.spouse  = { pia: 30000, claimAge: 67 };
 // Demo pension: only the two ages the statement actually quoted. The engine
 // pays exactly what's entered for the chosen age and nothing in between —
 // no interpolation, no invented numbers (see engine.test.js).
-plan.income.pension = { benefitByAge: { 62: 36000, 65: 48000 }, startAge: 65, colaPct: 0 };
+plan.income.pension = { benefitByAge: { 62: 36000, 63: 38160, 64: 40320, 65: 42480 }, startAge: 65, colaPct: 0 };
 plan.savings.annual      = 30000;
 plan.simulation.iterations = 1000;
 
@@ -310,8 +317,13 @@ const INPUT_GROUPS=[
   ]},
   // Pension: only the ages the actual statement quotes. Add rows here if the
   // client's plan offers more (e.g. 60, 67). Missing ages pay 0 — by design.
+  // Pension benefit-by-age: only the ages the statement actually quotes have
+  // amounts here. Other ages get filled in inline from the Scenarios lever as
+  // the advisor explores — by design (truth source: we don't invent numbers).
   {title:'Pension', fields:[
     {path:'income.pension.benefitByAge.62', label:'Benefit if claimed @ 62', type:'money'},
+    {path:'income.pension.benefitByAge.63', label:'Benefit if claimed @ 63', type:'money'},
+    {path:'income.pension.benefitByAge.64', label:'Benefit if claimed @ 64', type:'money'},
     {path:'income.pension.benefitByAge.65', label:'Benefit if claimed @ 65', type:'money'},
   ]},
 ];
@@ -386,9 +398,15 @@ const LEVCFG=[
   // Pension snaps between the ages that actually have entered amounts (62, 65).
   // Label shows the dollar value the engine will pay for that age — if no entry
   // exists for that age, it shows "—" (and the engine pays 0).
-  {key:'pensionAge', name:'Pension',       min:62,max:65,step:3, fmt:v=>{
+  // Pension claim age. Range spans the realistic window; the displayed dollar
+  // amount comes from whatever the advisor has entered for that exact age.
+  // No entry yet → the value spot becomes an inline input (handled in
+  // renderLevValue, not here). This is the truth-source contract surfacing
+  // naturally as a UI affordance: "we don't have a number for this age, give
+  // us one." Not an error — just the next input.
+  {key:'pensionAge', name:'Pension',       min:55,max:70,step:1, fmt:v=>{
     const m=(plan.income.pension && plan.income.pension.benefitByAge) || {};
-    const amt=m[v]||0; return amt>0 ? ['$'+Math.round(amt/1000)+'k','@ '+v] : ['—',''];
+    const amt=m[v]; return (amt && amt>0) ? ['$'+Math.round(amt/1000)+'k','@ '+v] : ['__needs__', v];
   }},
 ];
 
@@ -457,14 +475,24 @@ function renderBand(){
 }
 
 /* ── render: lever grid (built once, values update in place) ── */
+// Format a single lever value into the inner HTML for its display span.
+// Special return ['__needs__', age] from a fmt() means "no entered amount for
+// this age yet" — render an inline input so the advisor can type one in
+// without leaving the lever. Plain numbers/strings render as before.
+function renderLevValue(cfg, lev){
+  const [val,unit]=cfg.fmt(lev[cfg.key], lev);
+  if(val==='__needs__'){
+    return `$<input class="pen-in" type="number" min="0" step="1000" placeholder="amount" data-pen-age="${unit}"> <span class="unit">@ ${unit}</span>`;
+  }
+  return `${val}${unit?` <span class="unit">${unit}</span>`:''}`;
+}
 function buildLevers(){
   let h='';
   LEVCFG.forEach(cfg=>{
     h+=`<div class="lev-name">${cfg.name}</div>`;
     scenarios.forEach((s,ci)=>{
-      const [val,unit]=cfg.fmt(s.lev[cfg.key], s.lev);
       h+=`<div class="lev-cell ${s.base?'base':''}">
-        <span class="lev-val ${s.base?'base':''}" id="lv-${ci}-${cfg.key}">${val}${unit?` <span class="unit">${unit}</span>`:''}</span>
+        <span class="lev-val ${s.base?'base':''}" id="lv-${ci}-${cfg.key}">${renderLevValue(cfg,s.lev)}</span>
         <input class="lev-slider ${s.base?'base-lock':''}" type="range" min="${cfg.min}" max="${cfg.max}" step="${cfg.step}"
                value="${s.lev[cfg.key]}" data-col="${ci}" data-key="${cfg.key}">
       </div>`;
@@ -477,8 +505,24 @@ function buildLevers(){
       const ci=+e.target.dataset.col, key=e.target.dataset.key;
       scenarios[ci].lev[key]=+e.target.value;
       const cfg=LEVCFG.find(c=>c.key===key);
-      const [val,unit]=cfg.fmt(scenarios[ci].lev[key], scenarios[ci].lev);
-      $(`#lv-${ci}-${key}`).innerHTML=val+(unit?` <span class="unit">${unit}</span>`:'');
+      $(`#lv-${ci}-${key}`).innerHTML=renderLevValue(cfg, scenarios[ci].lev);
+      $('#status').textContent='Adjusted · Run to update';
+    });
+  });
+  // wire inline pension-amount inputs: typed value is written into the plan's
+  // benefit-by-age map for that exact age, then every column refreshes (the
+  // amount is reference data shared across scenarios — the DECISION is the
+  // age, not the amount). Market bundle is left intact: only the cash flow
+  // changes, not the markets.
+  $$('.pen-in').forEach(inp=>{
+    inp.addEventListener('change',e=>{
+      const age=+e.target.dataset.penAge;
+      const amt=parseFloat(e.target.value);
+      if(!isFinite(amt) || amt<0) return;
+      if(!plan.income.pension) plan.income.pension={ benefitByAge:{}, startAge:65, colaPct:0 };
+      if(!plan.income.pension.benefitByAge) plan.income.pension.benefitByAge={};
+      plan.income.pension.benefitByAge[age]=amt;
+      buildLevers();          // refresh every column's value display
       $('#status').textContent='Adjusted · Run to update';
     });
   });
