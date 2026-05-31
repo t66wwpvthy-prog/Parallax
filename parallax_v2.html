@@ -299,7 +299,7 @@ body{background:radial-gradient(1200px 600px at 88% -12%, var(--gold-glow), tran
 
 <script type="module">
 import {
-  runSimulation, runHistoricalPath, generateReturnPath,
+  runSimulation, runHistoricalPath, generateReturnPath, resetSeed,
   defaultPlan as plan
 } from "./engine.js";
 /* ╔══════════════════════════════════════════════════════════════╗
@@ -614,6 +614,7 @@ function runAll(){
       const horizon = plan.household.primary.planEndAge - plan.household.primary.currentAge;
       const iters = plan.simulation.iterations;
       if(!sharedPaths || sharedPaths.length !== iters || sharedPaths[0].length !== horizon){
+        resetSeed();              // fixed seed → identical bundle every load, no % drift
         sharedPaths = [];
         for(let i=0;i<iters;i++) sharedPaths.push(generateReturnPath(horizon));
       }

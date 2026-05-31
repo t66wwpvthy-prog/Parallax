@@ -426,13 +426,29 @@ const plan = {
 };
 
 
+// Seeded RNG (mulberry32). The bootstrap draws are deterministic so identical
+// inputs reproduce an identical success % — no sampling drift on page refresh.
+// Distribution is unchanged; this only fixes *which* draws come out. Call
+// resetSeed() before generating a bundle to reproduce it; pass a fresh seed
+// (e.g. Date.now()) only if you deliberately want a new random bundle.
+const DEFAULT_SEED = 0x9e3779b9;
+let _rngState = DEFAULT_SEED >>> 0;
+function resetSeed(seed = DEFAULT_SEED){ _rngState = seed >>> 0; }
+function rand(){
+  _rngState = (_rngState + 0x6D2B79F5) >>> 0;
+  let t = _rngState;
+  t = Math.imul(t ^ (t >>> 15), t | 1);
+  t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+}
+
 function generateReturnPath(horizonYears){
   const path = [];
   const minBlock = 3, maxBlock = 5;
   while(path.length < horizonYears){
-    const blockLen = minBlock + Math.floor(Math.random() * (maxBlock - minBlock + 1));
+    const blockLen = minBlock + Math.floor(rand() * (maxBlock - minBlock + 1));
     const maxStart = RETURN_DATA.length - blockLen;
-    const startIdx = Math.floor(Math.random() * (maxStart + 1));
+    const startIdx = Math.floor(rand() * (maxStart + 1));
     for(let i = 0; i < blockLen && path.length < horizonYears; i++){
       path.push(RETURN_DATA[startIdx + i]);
     }
@@ -1018,7 +1034,7 @@ function runHistoricalPath(plan, startYear, strategy){
 export {
   RETURN_DATA, ASSET_META, ASSET_KEYS, EQUITY_MIX, DEFENSIVE_MIX,
   RISK_PROFILES, ASSET_STATS, LONGRUN_INFLATION,
-  buildAssetWeights, computeAssetStats, generateReturnPath, weightedAssetReturn,
+  buildAssetWeights, computeAssetStats, generateReturnPath, resetSeed, weightedAssetReturn,
   runSimulation, resolveInputs, runSinglePath, analyzeResults, runHistoricalPath,
   plan as defaultPlan
 };
