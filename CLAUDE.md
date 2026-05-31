@@ -125,6 +125,14 @@ this shared set. This is the long-planned "household-centric data root."
   built, never sorted mathematical extremes (true-but-absurd, destroys trust).
 - RightCapital two-tier nav (domains row + sections row) for when Parallax grows.
 - Historical-context / narrative layer.
+- **Seamless Scenarios → Sequencing flow + per-scenario annual cash-flow view**
+  (the north star). Model the GENERAL flow on RightCapital: adjust scenario inputs
+  in the columns (we do this now), and open a cash-flow view inside that same window
+  showing year-by-year annual cash flows for each scenario being modeled. Don't
+  reinvent the design — that flow works; OUR edge is the engine behind it. Low-lift
+  on the data side: the engine ALREADY emits per-year rows per sim (balance,
+  withdrawal, socialSecurity, otherIncome, pension), so the cash-flow table is
+  mostly a VIEW of existing truth, not new math. Keep the visual shell shared.
 
 ## Hard-won lessons (do not relearn the hard way)
 - Don't optimize CSS for elegance/line-count. A clever property-level style merge
