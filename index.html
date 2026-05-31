@@ -1333,15 +1333,12 @@ const INPUT_GROUPS=[
   ]},
   // Pension: only the ages the actual statement quotes. Add rows here if the
   // client's plan offers more (e.g. 60, 67). Missing ages pay 0 — by design.
-  // Pension benefit-by-age: only the ages the statement actually quotes have
-  // amounts here. Other ages get filled in inline from the Scenarios lever as
-  // the advisor explores — by design (truth source: we don't invent numbers).
-  {title:'Pension', fields:[
-    {path:'income.pension.benefitByAge.62', label:'Benefit if claimed @ 62', type:'money'},
-    {path:'income.pension.benefitByAge.63', label:'Benefit if claimed @ 63', type:'money'},
-    {path:'income.pension.benefitByAge.64', label:'Benefit if claimed @ 64', type:'money'},
-    {path:'income.pension.benefitByAge.65', label:'Benefit if claimed @ 65', type:'money'},
-  ]},
+  // Pension is rendered DYNAMICALLY (see renderInputs): one row per age in
+  // plan.income.pension.benefitByAge, sorted ascending. New ages added via
+  // the Scenarios pension lever appear here automatically on next render —
+  // so Inputs stays the running record of every benefit the advisor has
+  // entered, in order.
+  {title:'Pension', dynamic:'pension'},
 ];
 const getPath=(o,p)=>p.split('.').reduce((a,k)=>a&&a[k],o);
 const setPath=(o,p,v)=>{const ks=p.split('.');const last=ks.pop();let t=o;for(const k of ks)t=t[k];t[last]=v;};
@@ -1366,11 +1363,20 @@ function reseedScenarios(){
   baseSnapshot=nb;
 }
 
+// Build the Pension group's fields fresh on every render so any new
+// age entered via the Scenarios inline input shows up here as its own row.
+function pensionFields(){
+  const m=(plan.income.pension && plan.income.pension.benefitByAge) || {};
+  return Object.keys(m).map(Number).sort((a,b)=>a-b).map(age=>(
+    {path:`income.pension.benefitByAge.${age}`, label:`Benefit if claimed @ ${age}`, type:'money'}
+  ));
+}
 function renderInputs(){
   let h='';
   INPUT_GROUPS.forEach(g=>{
     h+=`<div class="inp-group"><h3>${g.title}</h3>`;
-    g.fields.forEach(f=>{
+    const fields = g.dynamic==='pension' ? pensionFields() : g.fields;
+    fields.forEach(f=>{
       const v=getPath(plan,f.path);
       if(f.type==='risk'){
         const opts=Object.keys(RISK_NAMES).map(k=>
@@ -1498,7 +1504,7 @@ function renderBand(){
 function renderLevValue(cfg, lev){
   const [val,unit]=cfg.fmt(lev[cfg.key], lev);
   if(val==='__needs__'){
-    return `$<input class="pen-in" type="number" min="0" step="1000" placeholder="amount" data-pen-age="${unit}"> <span class="unit">@ ${unit}</span>`;
+    return `$<input class="pen-in" type="number" min="0" step="1000" data-pen-age="${unit}"> <span class="unit">@ ${unit}</span>`;
   }
   return `${val}${unit?` <span class="unit">${unit}</span>`:''}`;
 }
@@ -1525,24 +1531,24 @@ function buildLevers(){
       $('#status').textContent='Adjusted · Run to update';
     });
   });
-  // wire inline pension-amount inputs: typed value is written into the plan's
-  // benefit-by-age map for that exact age, then every column refreshes (the
-  // amount is reference data shared across scenarios — the DECISION is the
-  // age, not the amount). Market bundle is left intact: only the cash flow
-  // changes, not the markets.
-  $$('.pen-in').forEach(inp=>{
-    inp.addEventListener('change',e=>{
-      const age=+e.target.dataset.penAge;
-      const amt=parseFloat(e.target.value);
-      if(!isFinite(amt) || amt<0) return;
-      if(!plan.income.pension) plan.income.pension={ benefitByAge:{}, startAge:65, colaPct:0 };
-      if(!plan.income.pension.benefitByAge) plan.income.pension.benefitByAge={};
-      plan.income.pension.benefitByAge[age]=amt;
-      buildLevers();          // refresh every column's value display
-      $('#status').textContent='Adjusted · Run to update';
-    });
-  });
 }
+// Inline pension-amount inputs are inserted dynamically when a slider lands on
+// an age with no entered benefit, so a direct per-element listener (re-bound
+// only at buildLevers time) would miss them. Delegate from #scn-levers once.
+// Typed value writes into the plan's benefit-by-age map for that exact age,
+// then every column refreshes (the amount is reference data shared across
+// scenarios — the DECISION is the age, not the amount).
+$('#scn-levers').addEventListener('change', e=>{
+  if(!e.target.classList || !e.target.classList.contains('pen-in')) return;
+  const age=+e.target.dataset.penAge;
+  const amt=parseFloat(e.target.value);
+  if(!isFinite(amt) || amt<0) return;
+  if(!plan.income.pension) plan.income.pension={ benefitByAge:{}, startAge:65, colaPct:0 };
+  if(!plan.income.pension.benefitByAge) plan.income.pension.benefitByAge={};
+  plan.income.pension.benefitByAge[age]=amt;
+  buildLevers();
+  $('#status').textContent='Adjusted · Run to update';
+});
 function renderFoot(){
   let h=`<div class="foot-cell" style="color:var(--ink-faint)">Median end</div>`;
   scenarios.forEach(s=>{
