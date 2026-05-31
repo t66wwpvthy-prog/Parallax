@@ -409,10 +409,14 @@ const plan = {
     // spouse: null when single; otherwise { pia, claimAge }.
     socialSecurity: { primary: { pia: 36000, claimAge: 67 }, spouse: null },
     other:          { amount: 0,     startAge: 65, endAge: 75 },
-    // Pension: benefit amount entered directly (the amount offered at the chosen
-    // claim age); claim age sets when it starts; COLA = nominal annual escalator
-    // (0 = none), modeled like the SS COLA. Default 0 (no COLA — most private pensions).
-    pension:        { base: 0, startAge: 65, colaPct: 0 }
+    // Pension: a DISCRETE benefit-by-age map taken straight off the plan statement
+    // ({ age: annualBenefit, ... }) — the advisor enters only ages they actually
+    // have a number for. The engine NEVER interpolates or extrapolates a missing
+    // age (that would invent data we don't have). startAge = the chosen collection
+    // age; if it isn't a key in benefitByAge the modeled benefit is 0. COLA =
+    // nominal annual escalator (0 = none), modeled like the SS COLA. `base` is kept
+    // only as a legacy single-amount fallback.
+    pension:        { benefitByAge: {}, base: 0, startAge: 65, colaPct: 0 }
   },
   expenses:   { living: 188000, housing: 0, debt: 0, healthcare: 12000 },
   ltc:        { amount: 0, onsetAge: 85 },   // flat long-term-care cost ($/yr) from onsetAge onward
@@ -564,8 +568,17 @@ function resolveInputs(plan, ov){
                           ? plan.household.primary.retirementAge : curAge) + (ov.retireDelay || 0));
   const savingsAnnual = Math.max(0, ((plan.savings && plan.savings.annual) || 0) * (1 + (ov.savingsBump || 0)));
   const pen           = plan.income.pension || {};
-  const penBase       = Math.max(0, (pen.base || 0));
-  const penStartAge   = (pen.startAge != null ? pen.startAge : 65) + (ov.pensionDelay || 0);
+  // Chosen collection age. The UI computes this (retirement-linked or custom) and
+  // passes it as an absolute override; fall back to the plan's startAge (+ legacy
+  // pensionDelay) when no absolute age is supplied.
+  const penStartAge   = (ov.pensionStartAge != null ? ov.pensionStartAge
+                          : (pen.startAge != null ? pen.startAge : 65) + (ov.pensionDelay || 0));
+  // Discrete lookup: use ONLY the amount explicitly entered for this exact age.
+  // A missing age means no modeled benefit (0) — we never invent the number.
+  // `base` remains a legacy fallback for plans that still carry a single amount.
+  const byAge         = pen.benefitByAge || {};
+  const penEntered    = (byAge[penStartAge] != null) ? byAge[penStartAge] : pen.base;
+  const penBase       = Math.max(0, (penEntered || 0));
   // Pension COLA: advisor enters a NOMINAL annual COLA% (like the SS COLA).
   // Engine is real-dollar, so convert to real drift: real = nominalCOLA − inflation.
   // 0% COLA → −inflation (flat-nominal pension erodes); COLA = inflation → flat real.
