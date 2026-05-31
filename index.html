@@ -127,6 +127,29 @@ body{background:radial-gradient(1200px 600px at 85% -10%, rgba(108,197,211,.07),
    clearly only when the advisor reaches for it. */
 .inp-row .row-x{margin-left:8px;width:22px;height:22px;border:none;background:transparent;color:var(--ink-faint);font-size:18px;line-height:1;cursor:pointer;border-radius:4px;padding:0}
 .inp-row .row-x:hover{color:var(--negative-bright);background:rgba(240,145,141,.08)}
+
+/* Year-by-year cash-flow drawer on the Scenarios page. Three scenarios side
+   by side; each scenario's columns are softly tinted in its line color so the
+   eye groups them without needing dividers. The Age column is sticky so the
+   advisor can scroll into late years and still know which row they're reading. */
+.cf-toggle{margin:18px 0 12px;display:flex;justify-content:flex-end}
+.cf-toggle button{background:transparent;border:1px solid var(--rule);color:var(--ink-mute);font-family:'Sora';font-size:11px;letter-spacing:.16em;text-transform:uppercase;padding:8px 16px;border-radius:5px;cursor:pointer}
+.cf-toggle button:hover{color:var(--gold);border-color:var(--gold)}
+.cf-drawer{border:1px solid var(--rule);border-radius:8px;background:var(--surface);overflow:hidden;margin-bottom:18px}
+.cf-drawer-head{padding:12px 18px;border-bottom:1px solid var(--rule);font-family:'Sora';font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);display:flex;justify-content:space-between;align-items:center}
+.cf-drawer-head .sub{color:var(--ink-faint);font-family:'Sora';font-weight:400;letter-spacing:.04em;text-transform:none;font-size:11px}
+.cf-scroll{max-height:460px;overflow:auto}
+.cf-table{width:100%;border-collapse:collapse;font-family:'Inter';font-size:12px;font-variant-numeric:tabular-nums}
+.cf-table thead{position:sticky;top:0;background:var(--surface-2);z-index:2}
+.cf-table th,.cf-table td{padding:7px 10px;text-align:right;border-bottom:1px solid var(--rule-faint);white-space:nowrap}
+.cf-table th{font-weight:500;color:var(--ink-mute);font-size:10px;letter-spacing:.08em;text-transform:uppercase;border-bottom:1px solid var(--rule)}
+.cf-table th.scen{text-align:center;font-weight:600;letter-spacing:.12em}
+.cf-table th.age, .cf-table td.age{position:sticky;left:0;background:var(--surface);text-align:left;color:var(--ink);font-weight:600;z-index:1}
+.cf-table thead th.age{background:var(--surface-2)}
+.cf-table td.dim{color:var(--ink-faint)}
+.cf-ga{background:rgba(169,213,207,.05)} .cf-gb{background:rgba(240,199,115,.05)} .cf-gc{background:rgba(157,180,224,.05)}
+.cf-table tr.retire td{border-top:1px dashed var(--gold);}
+.cf-table tr.retire td.age::after{content:'  retire';color:var(--gold);font-size:9px;font-weight:500;letter-spacing:.1em}
 </style>
 </head>
 <body>
@@ -157,6 +180,12 @@ body{background:radial-gradient(1200px 600px at 85% -10%, rgba(108,197,211,.07),
       </div>
       <div class="chart-body"><svg id="scn-svg" viewBox="0 0 1000 340" preserveAspectRatio="none"></svg></div>
     </div>
+    <!-- Cash-flow drawer: expand to see the year-by-year breakdown for each
+         scenario (income, withdrawals, ending balance), side-by-side. The
+         engine already emits these rows from its typical simulated path —
+         this is purely a view of existing truth, no new math. -->
+    <div class="cf-toggle"><button id="cf-btn">Show year-by-year cash flow ▾</button></div>
+    <div class="cf-drawer" id="cf-drawer" hidden></div>
   </section>
 
   <section class="page" data-page="sequencing">
@@ -1525,7 +1554,7 @@ function runAll(){
         const ov=leversToOverrides(s.lev);
         s.res=runSimulation(p, ov, sharedPaths);
       });
-      renderBand(); renderFoot(); drawScenarioChart(); buildSeqSelect(); runSeq();
+      renderBand(); renderFoot(); drawScenarioChart(); renderCashflow(); buildSeqSelect(); runSeq();
       $('#status').textContent='Complete';
     }catch(e){ $('#status').textContent='Error'; console.error(e); }
     btn.disabled=false; running=false;
@@ -1694,6 +1723,59 @@ function drawScenarioChart(){
   $('#scn-chart-sub').textContent=`Median simulated path · today's dollars · Age ${ageStart} → ${ageEnd}`;
 }
 
+/* ── Cash-flow drawer ────────────────────────────────────────────────────
+   Each scenario's res.paths.p50 is the "typical" coherent simulated path —
+   the engine picks the sim that tracks the year-by-year median envelope
+   most closely. Its .rows array carries year, age, socialSecurity, pension,
+   otherIncome, withdrawal, expenses, goals, taxes, balance. We render those
+   per scenario side by side. The numbers here are reality-of-one-path
+   (coherent), not blended percentiles — that's why this view exists.
+   Plumbing only; no engine changes. */
+function cfMoney(v){
+  if(!isFinite(v)) return '—';
+  const n = Math.round(v);
+  if(n === 0) return '$0';
+  return '$' + Math.abs(n).toLocaleString('en-US');
+}
+function renderCashflow(){
+  const drawer = $('#cf-drawer');
+  if(drawer.hidden) return;   // only render when open; runAll re-renders if so
+  const rowsByScen = scenarios.map(s => (s.res && s.res.paths && s.res.paths.p50) ? s.res.paths.p50.rows : []);
+  const gcls = ['cf-ga','cf-gb','cf-gc'];
+  let h = '<table class="cf-table"><thead><tr><th class="age" rowspan="2">Age</th>';
+  scenarios.forEach((s,i)=>{
+    h += `<th class="scen ${gcls[i]}" colspan="3" style="color:${COLHEX[i]}">${s.name}</th>`;
+  });
+  h += '</tr><tr>';
+  scenarios.forEach((s,i)=>{
+    h += `<th class="${gcls[i]}">Income</th><th class="${gcls[i]}">Withdraw</th><th class="${gcls[i]}">End Balance</th>`;
+  });
+  h += '</tr></thead><tbody>';
+  const len = Math.max(0, ...rowsByScen.map(r => r.length));
+  const curAge = plan.household.primary.currentAge;
+  for(let y = 0; y < len; y++){
+    const age = curAge + y + 1;
+    // Mark the row where any scenario crosses into retirement (for the
+    // baseline retirement age — additional markers per scenario would clutter).
+    const retireAge = plan.household.primary.retirementAge;
+    const isRetire = (age === retireAge);
+    h += `<tr class="${isRetire?'retire':''}"><td class="age">${age}</td>`;
+    scenarios.forEach((s,i)=>{
+      const r = rowsByScen[i][y];
+      if(!r){ h += `<td colspan="3" class="dim ${gcls[i]}">—</td>`; return; }
+      const inc = (r.socialSecurity || 0) + (r.pension || 0) + (r.otherIncome || 0);
+      h += `<td class="${gcls[i]}">${cfMoney(inc)}</td>`;
+      h += `<td class="${gcls[i]}">${cfMoney(r.withdrawal || 0)}</td>`;
+      h += `<td class="${gcls[i]}">${cfMoney(r.balance || 0)}</td>`;
+    });
+    h += '</tr>';
+  }
+  h += '</tbody></table>';
+  drawer.innerHTML =
+    `<div class="cf-drawer-head"><span>Annual Cash Flow</span><span class="sub">Typical simulated path · today's dollars</span></div>` +
+    `<div class="cf-scroll">${h}</div>`;
+}
+
 /* ── SEQUENCING tab ── */
 const SEQ_YEARS=[1973,1982,2000,1929];
 const SEQ_HEX={1973:'#e0918d',1982:'#a9d3bc',2000:'#f0c773',1929:'#9db4e0'};
@@ -1754,6 +1836,13 @@ $$('.htab').forEach(t=>t.onclick=()=>{
   if(t.dataset.page==='inputs') renderInputs();
 });
 $('#run-btn').onclick=runAll;
+// Cash-flow drawer toggle. We render on open (and every Run while open).
+$('#cf-btn').onclick=()=>{
+  const d=$('#cf-drawer');
+  d.hidden = !d.hidden;
+  $('#cf-btn').textContent = d.hidden ? 'Show year-by-year cash flow ▾' : 'Hide cash flow ▴';
+  if(!d.hidden) renderCashflow();
+};
 
 buildLevers();
 renderInputs();
