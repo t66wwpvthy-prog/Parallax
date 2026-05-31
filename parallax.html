@@ -167,6 +167,66 @@ body{background:radial-gradient(1100px 560px at 88% -12%, var(--gold-glow), tran
 .cf-table tr.retire td.age::after{content:'  retire';color:var(--gold);font-size:10px;font-weight:500;letter-spacing:.1em}
 .cf-table tr.hl td{background:rgba(217,173,92,.13)!important}
 .cf-table tr.hl td.age{background:rgba(217,173,92,.18)!important;color:var(--gold-bright)}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   PHONE / TOUCH (iOS-first). The desktop layout is a fixed 100vh, no-scroll,
+   multi-column grid — unusable on a phone. Below 760px we: let the whole app
+   scroll vertically; stack the header; enlarge sliders and tap targets; and
+   keep the three scenario columns column-aligned by letting that block scroll
+   horizontally as a unit (band + levers + foot share one min-width so their
+   columns stay registered). Charts already scale via SVG viewBox.
+   ────────────────────────────────────────────────────────────────────────── */
+@media (max-width:760px){
+  html,body{overflow:auto;font-size:15px;-webkit-text-size-adjust:100%}
+  .wrap{height:auto;min-height:100vh;overflow:visible}
+
+  /* Header wraps; tabs become a scrollable row; Run stays reachable. */
+  .hdr{flex-wrap:wrap;gap:10px 14px;padding:12px 16px;position:sticky;top:0;z-index:60}
+  .hdr-tabs{margin-left:0;order:3;width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .htab{padding:8px 16px;font-size:13px;white-space:nowrap}
+  .hdr-right{gap:12px}
+  .run-btn{padding:11px 20px;font-size:12px}
+
+  .page{padding:0 14px 28px}
+  .page[data-page="scenarios"]{overflow-x:visible}
+  .page[data-page="scenarios"] .eyebrow{position:static;padding:16px 0 12px}
+
+  /* Scenario comparison: scroll the band+levers+foot together horizontally so
+     the % circles, sliders, and totals stay in the same three columns. */
+  .scn-band,.scn-levers,.scn-foot{min-width:620px}
+  .scn-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:4px}
+  .scn-band{position:static;box-shadow:none}
+  .scn-band::before{display:none}
+
+  /* Bigger touch targets on the sliders. */
+  .lev-slider{height:30px}
+  .lev-slider::-webkit-slider-thumb{height:22px;width:22px;margin-top:-10px;border-width:3px}
+  .lev-slider::-webkit-slider-runnable-track{height:3px}
+  .lev-val{font-size:18px}
+
+  .scn-chart{height:300px;margin-top:16px}
+  .chart-head{flex-wrap:wrap;gap:6px 14px}
+  .chart-legend{margin-left:0;width:100%;gap:14px}
+  /* The hover crosshair is a desktop affordance; tap-readout still works but
+     the floating tip is constrained so it can't overflow the small viewport. */
+  .scn-tip{min-width:150px;font-size:13px}
+
+  /* Inputs: single column, full-width fields. */
+  .inp-grid{grid-template-columns:1fr;max-width:none;gap:16px}
+  .inp-row{padding:14px 16px}
+  .inp-row input,.inp-row select{font-size:16px;width:130px} /* 16px avoids iOS zoom-on-focus */
+
+  /* Sequencing: selector + stats stack. */
+  .seq-bar{flex-wrap:wrap}
+  .seq-legend{margin-left:0;width:100%;flex-wrap:wrap;gap:10px 16px}
+  .seq-chart{min-height:340px}
+  .seq-stats{grid-template-columns:repeat(2,1fr)}
+
+  /* Cash-flow drawer scrolls both axes on a phone. */
+  .cf-scroll{max-height:none}
+  .cf-toggle{justify-content:stretch}
+  .cf-toggle button{width:100%}
+}
 </style>
 </head>
 <body>
@@ -186,9 +246,13 @@ body{background:radial-gradient(1100px 560px at 88% -12%, var(--gold-glow), tran
 
   <section class="page on" data-page="scenarios">
     <div class="eyebrow"><span>Scenarios · Compare Choices</span></div>
-    <div class="scn-band" id="scn-band"></div>
-    <div class="scn-levers" id="scn-levers"></div>
-    <div class="scn-foot" id="scn-foot"></div>
+    <!-- band + levers + foot share one horizontally-scrollable wrapper so their
+         three columns stay registered on narrow (phone) viewports. -->
+    <div class="scn-scroll">
+      <div class="scn-band" id="scn-band"></div>
+      <div class="scn-levers" id="scn-levers"></div>
+      <div class="scn-foot" id="scn-foot"></div>
+    </div>
     <div class="scn-chart">
       <div class="chart-head">
         <span class="chart-title">Portfolio Balance · Today's Dollars</span>
