@@ -43,18 +43,18 @@ body{background:radial-gradient(1200px 600px at 85% -10%, rgba(108,197,211,.07),
 .page[data-page="scenarios"] .eyebrow{position:sticky;top:0;z-index:25;background:var(--bg);padding:20px 0 16px}
 .scn-band{position:sticky;top:53px;z-index:20;display:grid;grid-template-columns:148px repeat(3,1fr);background:var(--surface-2);border:1px solid var(--rule);border-radius:4px 4px 0 0;box-shadow:0 10px 22px -16px rgba(0,0,0,.9)}
 .scn-band::before{content:'';position:absolute;left:0;right:0;top:-10px;height:10px;background:var(--bg)}
-.band-cell{border-right:1px solid var(--rule-faint);padding:12px 14px 11px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:136px}
+.band-cell{border-right:1px solid var(--rule-faint);padding:14px 14px 13px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:166px}
 .band-cell:last-child{border-right:none}
 .band-cell.base{background:rgba(122,163,158,.05)}
 .band-cell.label{align-items:flex-start;justify-content:flex-end}
 .band-cell.label span{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-faint);font-weight:500}
-.col-name{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-bright);font-weight:600;text-align:center}
+.col-name{font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-bright);font-weight:600;text-align:center}
 .col-name.base-tag{color:var(--teal-bright)}
-.circle-wrap{position:relative;width:90px;height:90px}
+.circle-wrap{position:relative;width:108px;height:108px}
 .circle-val{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
-.circle-val .big{font-size:25px;font-weight:300;line-height:1}
-.circle-val .lbl{font-size:7.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-mute);margin-top:3px}
-.delta{font-size:10px;font-weight:600;letter-spacing:.04em;font-family:'Inter'}
+.circle-val .big{font-size:32px;font-weight:300;line-height:1;font-family:'Inter';letter-spacing:-.01em}
+.circle-val .lbl{font-size:8px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-mute);margin-top:4px}
+.delta{font-size:10.5px;font-weight:600;letter-spacing:.04em;font-family:'Inter'}
 .delta.up{color:var(--positive-bright)} .delta.down{color:var(--negative-bright)} .delta.flat{color:var(--ink-faint)}
 
 .scn-levers{display:grid;grid-template-columns:148px repeat(3,1fr);border-left:1px solid var(--rule);border-right:1px solid var(--rule)}
@@ -76,7 +76,7 @@ body{background:radial-gradient(1200px 600px at 85% -10%, rgba(108,197,211,.07),
 .foot-cell.base{background:rgba(122,163,158,.05)}
 .foot-cell b{color:var(--ink-bright);font-weight:600}
 
-.scn-chart{flex:0 0 auto;height:300px;margin-top:16px;border:1px solid var(--rule);border-radius:4px;background:var(--surface);padding:14px 18px 8px;display:flex;flex-direction:column}
+.scn-chart{flex:0 0 auto;height:360px;margin-top:18px;border:1px solid var(--rule);border-radius:4px;background:var(--surface);padding:16px 22px 14px;display:flex;flex-direction:column}
 .chart-head{display:flex;align-items:baseline;gap:16px;margin-bottom:6px;flex:0 0 auto}
 .chart-title{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-bright);font-weight:500}
 .chart-sub{font-size:9.5px;color:var(--ink-mute);letter-spacing:.1em;text-transform:uppercase}
@@ -127,7 +127,7 @@ body{background:radial-gradient(1200px 600px at 85% -10%, rgba(108,197,211,.07),
         <span class="chart-sub" id="scn-chart-sub">Each line = one scenario, median engine path</span>
         <div class="chart-legend" id="scn-legend"></div>
       </div>
-      <div class="chart-body"><svg id="scn-svg" viewBox="0 0 1000 260" preserveAspectRatio="none"></svg></div>
+      <div class="chart-body"><svg id="scn-svg" viewBox="0 0 1000 340" preserveAspectRatio="none"></svg></div>
     </div>
   </section>
 
@@ -209,6 +209,12 @@ const scenarios=[
   {name:'Scenario B', base:false, lev:defaultLevers(), res:null},
   {name:'Scenario C', base:false, lev:defaultLevers(), res:null},
 ];
+// Demo deltas so the tool opens telling a story (advisor adjusts from here):
+//  B = retire 2 years later  -> security clearly improves (higher success).
+//  C = aggressive allocation -> wealth line jumps, but success does NOT improve
+//      (volatility drag). The teaching moment: more return != more safety.
+scenarios[1].lev.retireAge = 67;
+scenarios[2].lev.risk      = 5;
 
 /* Map a scenario's levers -> engine override object. */
 function leversToOverrides(L){
@@ -271,11 +277,11 @@ function runAll(){
 
 /* ── render: sticky band of circles ── */
 function ring(pct){
-  const r=40,c=2*Math.PI*r,off=c*(1-pct/100);
+  const r=42,c=2*Math.PI*r,off=c*(1-pct/100);
   const col= pct>=85?'#a9d3bc':pct>=70?'#f0c773':'#f0918d';
-  return `<svg viewBox="0 0 100 100" width="90" height="90">
-    <circle cx="50" cy="50" r="${r}" fill="none" stroke="#26313d" stroke-width="7"/>
-    <circle cx="50" cy="50" r="${r}" fill="none" stroke="${col}" stroke-width="7" stroke-linecap="round"
+  return `<svg viewBox="0 0 100 100" width="108" height="108">
+    <circle cx="50" cy="50" r="${r}" fill="none" stroke="#26313d" stroke-width="6"/>
+    <circle cx="50" cy="50" r="${r}" fill="none" stroke="${col}" stroke-width="6" stroke-linecap="round"
       stroke-dasharray="${c}" stroke-dashoffset="${off}" transform="rotate(-90 50 50)" style="transition:stroke-dashoffset .6s ease"/></svg>`;
 }
 function renderBand(){
@@ -336,25 +342,33 @@ function renderFoot(){
 
 /* ── chart helpers ── */
 function fmtM(v){ if(!isFinite(v)||v<=0) return '$0'; if(v>=1e6) return '$'+(v/1e6).toFixed(1)+'M'; if(v>=1e3) return '$'+Math.round(v/1e3)+'K'; return '$'+Math.round(v); }
-function pathFromRows(rows, W, H, maxBal, n){
-  // rows: engine sim rows with .balance; build a polyline across plan years
-  const pts=[];
-  for(let i=0;i<rows.length;i++){
-    const x=(i/(n-1))*W;
-    const y=H-(Math.max(0,rows[i].balance)/maxBal)*H;
-    pts.push(x.toFixed(1)+' '+y.toFixed(1));
+// Plot margins inside the viewBox (leaves room for axis labels).
+const PADL=78, PADR=14, PADT=12, PADB=30;
+// Smooth a series of [x,y] points into a path using Catmull-Rom -> bezier.
+// Tension kept low so the line stays trackable, not wavy ("toddler-drawn").
+function smoothPath(pts){
+  if(pts.length<2) return '';
+  if(pts.length===2) return `M ${pts[0][0]} ${pts[0][1]} L ${pts[1][0]} ${pts[1][1]}`;
+  let d=`M ${pts[0][0].toFixed(1)} ${pts[0][1].toFixed(1)}`;
+  for(let i=0;i<pts.length-1;i++){
+    const p0=pts[i-1]||pts[i], p1=pts[i], p2=pts[i+1], p3=pts[i+2]||pts[i+1];
+    const c1x=p1[0]+(p2[0]-p0[0])/6, c1y=p1[1]+(p2[1]-p0[1])/6;
+    const c2x=p2[0]-(p3[0]-p1[0])/6, c2y=p2[1]-(p3[1]-p1[1])/6;
+    d+=` C ${c1x.toFixed(1)} ${c1y.toFixed(1)}, ${c2x.toFixed(1)} ${c2y.toFixed(1)}, ${p2[0].toFixed(1)} ${p2[1].toFixed(1)}`;
   }
-  return 'M '+pts.join(' L ');
+  return d;
 }
 function axes(W,H,ageStart,ageEnd,maxBal){
+  const x0=PADL, x1=W-PADR, y0=PADT, y1=H-PADB;
   let g='';
-  for(let i=0;i<=4;i++){const y=H/4*i; g+=`<line x1="0" y1="${y}" x2="${W}" y2="${y}" stroke="#17212b"/>`;}
-  // y labels
-  for(let i=0;i<=4;i++){const v=maxBal*(1-i/4); g+=`<text x="6" y="${H/4*i+11}" fill="#667386" font-size="10.5" font-family="Inter">${fmtM(v)}</text>`;}
-  // x age ticks every ~ (span/5)
+  for(let i=0;i<=4;i++){const y=y0+(y1-y0)/4*i; g+=`<line x1="${x0}" y1="${y}" x2="${x1}" y2="${y}" stroke="#17212b"/>`;}
+  // y labels (right-aligned in the left gutter)
+  for(let i=0;i<=4;i++){const v=maxBal*(1-i/4); const y=y0+(y1-y0)/4*i;
+    g+=`<text x="${x0-10}" y="${y+4}" fill="#667386" font-size="11" font-family="Inter" text-anchor="end">${fmtM(v)}</text>`;}
+  // x age ticks
   const span=ageEnd-ageStart;
-  for(let k=0;k<=5;k++){const a=Math.round(ageStart+span*k/5); const x=W*k/5;
-    g+=`<text x="${x}" y="${H-4}" fill="#667386" font-size="11" font-family="Inter" text-anchor="${k===0?'start':k===5?'end':'middle'}">Age ${a}</text>`;}
+  for(let k=0;k<=5;k++){const a=Math.round(ageStart+span*k/5); const x=x0+(x1-x0)*k/5;
+    g+=`<text x="${x}" y="${H-9}" fill="#667386" font-size="11" font-family="Inter" text-anchor="${k===0?'start':k===5?'end':'middle'}">Age ${a}</text>`;}
   return g;
 }
 function expectedAnnualReturn(riskProfile){
@@ -404,20 +418,23 @@ function expectedTrajectory(res, riskProfile){
   return out;
 }
 function drawScenarioChart(){
-  const svg=$('#scn-svg'),W=1000,H=260;
+  const svg=$('#scn-svg'),W=1000,H=340;
   if(!scenarios[0].res){svg.innerHTML='';return;}
   const ageStart=plan.household.primary.currentAge, ageEnd=plan.household.primary.planEndAge;
   const traj=scenarios.map(s=>expectedTrajectory(s.res, s.lev.risk));
   const n=traj[0].length;
   let maxBal=0; traj.forEach(t=>t.forEach(v=>{ if(v>maxBal)maxBal=v; }));
-  maxBal=maxBal*1.05||1;
+  maxBal=maxBal*1.06||1;
+  const x0=PADL, x1=W-PADR, y0=PADT, y1=H-PADB;
+  const X=idx=> x0+(x1-x0)*(idx/(n-1));
+  const Y=v => y1-(Math.max(0,v)/maxBal)*(y1-y0);
   let h=axes(W,H,ageStart,ageEnd,maxBal);
   traj.forEach((t,i)=>{
-    const pts=t.map((v,idx)=>((idx/(n-1))*W).toFixed(1)+' '+(H-(Math.max(0,v)/maxBal)*H).toFixed(1));
-    h+=`<path d="M ${pts.join(' L ')}" fill="none" stroke="${COLHEX[i]}" stroke-width="${scenarios[i].base?2.6:2}" stroke-linejoin="round" opacity="${scenarios[i].base?1:.92}"/>`;
+    const pts=t.map((v,idx)=>[X(idx),Y(v)]);
+    h+=`<path d="${smoothPath(pts)}" fill="none" stroke="${COLHEX[i]}" stroke-width="${scenarios[i].base?3:2.2}" stroke-linejoin="round" stroke-linecap="round" opacity="${scenarios[i].base?1:.92}"/>`;
   });
   svg.innerHTML=h;
-  $('#scn-chart-sub').textContent=`Expected path by allocation · decisions only · Age ${ageStart} → ${ageEnd}`;
+  $('#scn-chart-sub').textContent=`Expected wealth path · today's dollars · Age ${ageStart} → ${ageEnd}`;
 }
 
 /* ── SEQUENCING tab ── */
@@ -448,9 +465,13 @@ function drawSeqChart(runs){
   let maxBal=0,n=0;
   runs.forEach(r=>{const rows=seqRows(r); n=Math.max(n,rows.length); rows.forEach(x=>{if(x.balance>maxBal)maxBal=x.balance;});});
   maxBal=maxBal*1.05||1;
+  const x0=PADL, x1=W-PADR, y0=PADT, y1=H-PADB;
+  const X=idx=> x0+(x1-x0)*(idx/(n-1));
+  const Y=v => y1-(Math.max(0,v)/maxBal)*(y1-y0);
   let h=axes(W,H,ageStart,ageEnd,maxBal);
   runs.forEach(r=>{const rows=seqRows(r);
-    h+=`<path d="${pathFromRows(rows,W,H,maxBal,n)}" fill="none" stroke="${SEQ_HEX[r.year]}" stroke-width="2.2" stroke-linejoin="round"/>`;});
+    const pts=rows.map((x,idx)=>[X(idx),Y(x.balance)]);
+    h+=`<path d="${smoothPath(pts)}" fill="none" stroke="${SEQ_HEX[r.year]}" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>`;});
   svg.innerHTML=h;
 }
 function renderSeqStats(runs){

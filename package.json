@@ -4,5 +4,9 @@
   "type": "module",
   "scripts": {
     "test": "node --test"
+  },
+  "devDependencies": {
+    "playwright": "^1.60.0",
+    "puppeteer": "^25.1.0"
   }
 }
