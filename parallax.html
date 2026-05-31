@@ -69,7 +69,7 @@ body{background:radial-gradient(1200px 600px at 85% -10%, rgba(108,197,211,.07),
    no entered benefit yet. Looks like part of the value display (not an error).
    The "$" prefix sits in the normal value color; the input is borderless and
    inherits the typography so it reads as a natural prompt for a number. */
-.lev-val .pen-in{font-family:'Inter';font-size:15px;font-weight:600;color:var(--ink-bright);background:transparent;border:none;border-bottom:1px dashed var(--rule-bright);width:64px;padding:0 2px;outline:none}
+.lev-val .pen-in{font-family:'Inter';font-size:15px;font-weight:600;color:var(--ink-bright);background:transparent;border:none;border-bottom:1px dashed var(--rule-bright);width:84px;padding:0 2px;outline:none;text-align:right}
 .lev-val .pen-in::placeholder{color:var(--ink-faint);font-weight:500}
 .lev-val .pen-in:focus{border-bottom-color:var(--gold)}
 .lev-slider{-webkit-appearance:none;width:100%;height:14px;background:transparent;cursor:pointer}
@@ -107,24 +107,25 @@ body{background:radial-gradient(1200px 600px at 85% -10%, rgba(108,197,211,.07),
 .seq-stat:last-child{border-right:none}
 .seq-stat .k{font-size:8.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-mute);font-weight:500}
 .seq-stat .v{font-family:'Inter';font-size:15px;font-weight:600}
-/* Inputs (base plan / household data root) */
-.page[data-page="inputs"]{padding-top:20px;overflow-y:auto}
-.inp-intro{color:var(--ink-mute);font-size:12px;line-height:1.55;margin:0 0 22px;max-width:620px}
-.inp-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 28px;max-width:860px}
-.inp-group{border:1px solid var(--rule);border-radius:6px;background:var(--surface);overflow:hidden}
-.inp-group h3{margin:0;padding:11px 16px;font-family:'Sora';font-size:10px;font-weight:500;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);background:var(--surface-2);border-bottom:1px solid var(--rule)}
-.inp-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:9px 16px;border-bottom:1px solid var(--rule-faint)}
+/* Inputs (base plan / household data root). Sized for client-facing review:
+   labels and numbers comfortably readable from across a desk; group titles
+   in gold so the household structure scans at a glance. */
+.page[data-page="inputs"]{padding-top:24px;overflow-y:auto}
+.inp-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px 32px;max-width:980px}
+.inp-group{border:1px solid var(--rule);border-radius:8px;background:var(--surface);overflow:hidden}
+.inp-group h3{margin:0;padding:14px 20px;font-family:'Sora';font-size:12px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);background:var(--surface-2);border-bottom:1px solid var(--rule)}
+.inp-row{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:13px 20px;border-bottom:1px solid var(--rule-faint)}
 .inp-row:last-child{border-bottom:none}
-.inp-row label{font-size:12px;color:var(--ink-mute)}
-.inp-row .field{display:flex;align-items:center;gap:5px}
-.inp-row .pre{color:var(--ink-faint);font-size:12px}
-.inp-row input,.inp-row select{font-family:'Inter';font-size:13px;font-weight:600;color:var(--ink-bright);background:var(--surface-2);border:1px solid var(--rule);border-radius:4px;padding:5px 8px;width:110px;text-align:right}
-.inp-row select{text-align:left;width:auto;min-width:110px}
+.inp-row label{font-size:14px;color:var(--ink);font-family:'Sora'}
+.inp-row .field{display:flex;align-items:center;gap:6px}
+.inp-row .pre{color:var(--ink-faint);font-size:14px}
+.inp-row input,.inp-row select{font-family:'Inter';font-size:16px;font-weight:600;color:var(--ink-bright);background:var(--surface-2);border:1px solid var(--rule);border-radius:5px;padding:7px 10px;width:148px;text-align:right}
+.inp-row select{text-align:left;width:auto;min-width:148px;font-size:15px}
 .inp-row input:focus,.inp-row select:focus{outline:none;border-color:var(--gold);background:var(--bg-deep)}
 /* Quiet "remove this row" affordance for dynamic groups like Pension. Lives in
    the row, muted; turns negative red on hover so the destructive action reads
    clearly only when the advisor reaches for it. */
-.inp-row .row-x{margin-left:6px;width:18px;height:18px;border:none;background:transparent;color:var(--ink-faint);font-size:14px;line-height:1;cursor:pointer;border-radius:3px;padding:0}
+.inp-row .row-x{margin-left:8px;width:22px;height:22px;border:none;background:transparent;color:var(--ink-faint);font-size:18px;line-height:1;cursor:pointer;border-radius:4px;padding:0}
 .inp-row .row-x:hover{color:var(--negative-bright);background:rgba(240,145,141,.08)}
 </style>
 </head>
@@ -179,9 +180,6 @@ body{background:radial-gradient(1200px 600px at 85% -10%, rgba(108,197,211,.07),
 
   <section class="page" data-page="inputs">
     <div class="eyebrow"><span>Inputs · Base Plan</span></div>
-    <p class="inp-intro">The household's base plan — the single source every scenario draws from.
-      Edit here; the Baseline mirrors these values and each scenario keeps its own adjustment on top.
-      Changes apply when you return to Scenarios.</p>
     <div class="inp-grid" id="inp-grid"></div>
   </section>
 </div>
@@ -1348,6 +1346,25 @@ const INPUT_GROUPS=[
 const getPath=(o,p)=>p.split('.').reduce((a,k)=>a&&a[k],o);
 const setPath=(o,p,v)=>{const ks=p.split('.');const last=ks.pop();let t=o;for(const k of ks)t=t[k];t[last]=v;};
 
+// Live comma formatting for money inputs. Reformats on every keystroke and
+// preserves the caret's LOGICAL position (after the same number of digits)
+// so typing left-to-right feels natural — no caret-jumping-to-end weirdness.
+function liveCommas(el){
+  const old = el.value;
+  const caret = el.selectionStart ?? old.length;
+  const digitsBefore = (old.slice(0, caret).match(/\d/g) || []).length;
+  const digits = old.replace(/[^0-9]/g, '');
+  if(!digits){ el.value = ''; return; }
+  const formatted = parseInt(digits, 10).toLocaleString('en-US');
+  el.value = formatted;
+  let pos = 0, seen = 0;
+  while(pos < formatted.length && seen < digitsBefore){
+    if(/\d/.test(formatted[pos])) seen++;
+    pos++;
+  }
+  el.setSelectionRange(pos, pos);
+}
+
 let baseSnapshot=defaultLevers();   // base lever values; used to preserve deltas
 let plansDirty=false;
 
@@ -1424,6 +1441,10 @@ function renderInputs(){
       renderInputs();
       $('#status').textContent='Plan edited · open Scenarios';
     });
+  });
+  // Live commas as the user types into any money field on the Inputs page.
+  $$('#inp-grid input[data-type="money"]').forEach(el=>{
+    el.addEventListener('input', e => liveCommas(e.target));
   });
   $$('#inp-grid input,#inp-grid select').forEach(el=>{
     el.addEventListener('change',e=>{
@@ -1551,7 +1572,7 @@ function renderBand(){
 function renderLevValue(cfg, lev){
   const [val,unit]=cfg.fmt(lev[cfg.key], lev);
   if(val==='__needs__'){
-    return `$<input class="pen-in" type="number" min="0" step="1000" data-pen-age="${unit}"> <span class="unit">@ ${unit}</span>`;
+    return `$<input class="pen-in" type="text" inputmode="numeric" data-pen-age="${unit}"> <span class="unit">@ ${unit}</span>`;
   }
   return `${val}${unit?` <span class="unit">${unit}</span>`:''}`;
 }
@@ -1585,14 +1606,18 @@ function buildLevers(){
 // Typed value writes into the plan's benefit-by-age map for that exact age,
 // then every column refreshes (the amount is reference data shared across
 // scenarios — the DECISION is the age, not the amount).
+// Live commas while typing into the inline pension input, AND save on change.
+$('#scn-levers').addEventListener('input', e=>{
+  if(e.target.classList && e.target.classList.contains('pen-in')) liveCommas(e.target);
+});
 $('#scn-levers').addEventListener('change', e=>{
   if(!e.target.classList || !e.target.classList.contains('pen-in')) return;
   const age=+e.target.dataset.penAge;
-  const amt=parseFloat(e.target.value);
+  const amt=parseFloat(String(e.target.value).replace(/[^0-9.]/g,''));
   if(!isFinite(amt) || amt<0) return;
   if(!plan.income.pension) plan.income.pension={ benefitByAge:{}, startAge:65, colaPct:0 };
   if(!plan.income.pension.benefitByAge) plan.income.pension.benefitByAge={};
-  plan.income.pension.benefitByAge[age]=amt;
+  plan.income.pension.benefitByAge[age]=Math.round(amt);
   buildLevers();
   $('#status').textContent='Adjusted · Run to update';
 });
