@@ -345,15 +345,31 @@ const COLHEX=['#9a7322','#3f6b78','#7d5a82'];
    lever values are the ACTUAL planning values (age, $, etc.), not slider ticks. */
 const RISK_LABELS={1:'30 / 70',2:'44 / 56',3:'59 / 41',4:'73 / 27',5:'88 / 12'};
 function defaultLevers(){
-  return {
+  const L={
     retireAge:  plan.household.primary.retirementAge,
     ssAge:      plan.income.socialSecurity.primary.claimAge,
     spend:      plan.expenses.living,
     eventAmt:   0, eventAge: 70,
     risk:       plan.portfolio.riskProfile,
     savings:    plan.savings.annual,
+    // pensionAge tracks retirement by DEFAULT (most people switch on a pension
+    // when they retire — no reason to take taxable fixed income while still
+    // earning). pensionAuto stays true until the advisor grabs the pension
+    // slider, which frees it to hold any quoted age independently.
+    pensionAuto: true,
     pensionAge: (plan.income.pension && plan.income.pension.startAge) || 65
   };
+  syncPension(L);
+  return L;
+}
+// If pension is still auto-linked, snap its claim age to the retirement age,
+// clamped into the household's quoted pension range. No-op once the advisor has
+// taken manual control of the pension lever (pensionAuto=false).
+function syncPension(L){
+  if(!L.pensionAuto) return;
+  const a=pensionAges();
+  const lo = a.length ? a[0] : 62, hi = a.length ? a[a.length-1] : 65;
+  L.pensionAge = Math.max(lo, Math.min(hi, L.retireAge));
 }
 // All three scenarios start identical — same levers, same results.
 // The advisor moves levers to show the effect of each decision.
@@ -475,9 +491,10 @@ function reseedScenarios(){
       if(!LINKED.includes(k)) return;         // allocation / one-time event stay as set
       const cfg=LEVCFG.find(c=>c.key===k);
       let v=nb[k]+(s.lev[k]-baseSnapshot[k]);  // new base + this scenario's delta
-      if(cfg) v=Math.max(cfg.min,Math.min(cfg.max,v));
+      if(cfg){ const r=levRange(cfg); v=Math.max(r.min,Math.min(r.max,v)); }
       s.lev[k]=v;
     });
+    syncPension(s.lev);   // auto-linked pension follows the (possibly new) retire age
   });
   baseSnapshot=nb;
 }
@@ -566,6 +583,26 @@ function renderInputs(){
       $('#status').textContent='Plan edited · open Scenarios';
     });
   });
+}
+
+// Pension slider range is PER-HOUSEHOLD: it spans only the ages the advisor has
+// actually quoted a benefit for (the keys of benefitByAge). This means the
+// slider can never wander onto an age with no number — so it can't silently pay
+// $0. Enter a new quote (e.g. age 67) and the slider grows to include it on the
+// next render. Falls back to a sane window if nothing is entered yet.
+function pensionAges(){
+  const m=(plan.income.pension && plan.income.pension.benefitByAge) || {};
+  return Object.keys(m).map(Number).filter(n=>!isNaN(n)).sort((a,b)=>a-b);
+}
+// Effective slider range for a lever. Pension is dynamic; everything else is
+// the static min/max declared in LEVCFG.
+function levRange(cfg){
+  if(cfg.key==='pensionAge'){
+    const a=pensionAges();
+    if(a.length) return { min:a[0], max:a[a.length-1], step:1 };
+    return { min:62, max:65, step:1 };
+  }
+  return { min:cfg.min, max:cfg.max, step:cfg.step };
 }
 
 /* ── lever display config (label, formatter, slider range→value & back) ── */
@@ -684,11 +721,12 @@ function buildLevers(){
   let h='';
   LEVCFG.forEach(cfg=>{
     h+=`<div class="lev-name">${cfg.name}</div>`;
+    const r=levRange(cfg);
     scenarios.forEach((s,ci)=>{
       h+=`<div class="lev-cell ${s.base?'base':''}">
         <span class="lev-val ${s.base?'base':''}" id="lv-${ci}-${cfg.key}">${renderLevValue(cfg,s.lev)}</span>
-        <input class="lev-slider ${s.base?'base-lock':''}" type="range" min="${cfg.min}" max="${cfg.max}" step="${cfg.step}"
-               value="${s.lev[cfg.key]}" data-col="${ci}" data-key="${cfg.key}">
+        <input class="lev-slider ${s.base?'base-lock':''}" type="range" min="${r.min}" max="${r.max}" step="${r.step}"
+               value="${Math.max(r.min,Math.min(r.max,s.lev[cfg.key]))}" data-col="${ci}" data-key="${cfg.key}">
       </div>`;
     });
   });
@@ -697,9 +735,21 @@ function buildLevers(){
   $$('.lev-slider').forEach(sl=>{
     sl.addEventListener('input',e=>{
       const ci=+e.target.dataset.col, key=e.target.dataset.key;
-      scenarios[ci].lev[key]=+e.target.value;
+      const L=scenarios[ci].lev;
+      L[key]=+e.target.value;
+      // Grabbing the pension slider frees it from the retirement-age link.
+      if(key==='pensionAge') L.pensionAuto=false;
+      // Moving retirement age re-syncs an auto-linked pension and refreshes its
+      // slider + value in place.
+      if(key==='retireAge' && L.pensionAuto){
+        syncPension(L);
+        const pcfg=LEVCFG.find(c=>c.key==='pensionAge');
+        const psl=$(`#scn-levers .lev-slider[data-col="${ci}"][data-key="pensionAge"]`);
+        if(psl) psl.value=L.pensionAge;
+        $(`#lv-${ci}-pensionAge`).innerHTML=renderLevValue(pcfg, L);
+      }
       const cfg=LEVCFG.find(c=>c.key===key);
-      $(`#lv-${ci}-${key}`).innerHTML=renderLevValue(cfg, scenarios[ci].lev);
+      $(`#lv-${ci}-${key}`).innerHTML=renderLevValue(cfg, L);
       $('#status').textContent='Adjusted · Run to update';
     });
   });
