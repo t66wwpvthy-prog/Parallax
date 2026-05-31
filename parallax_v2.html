@@ -41,9 +41,9 @@ body{background:radial-gradient(1200px 600px at 85% -10%, rgba(108,197,211,.07),
 /* SCENARIOS */
 .page[data-page="scenarios"]{overflow-y:auto;overflow-x:hidden}
 .page[data-page="scenarios"] .eyebrow{position:sticky;top:0;z-index:25;background:var(--bg);padding:20px 0 16px}
-.scn-band{position:sticky;top:53px;z-index:20;display:grid;grid-template-columns:172px repeat(3,1fr);background:var(--surface-2);border:1px solid var(--rule);border-radius:4px 4px 0 0;box-shadow:0 10px 22px -16px rgba(0,0,0,.9)}
+.scn-band{position:sticky;top:53px;z-index:20;display:grid;grid-template-columns:148px repeat(3,1fr);background:var(--surface-2);border:1px solid var(--rule);border-radius:4px 4px 0 0;box-shadow:0 10px 22px -16px rgba(0,0,0,.9)}
 .scn-band::before{content:'';position:absolute;left:0;right:0;top:-10px;height:10px;background:var(--bg)}
-.band-cell{border-right:1px solid var(--rule-faint);padding:13px 14px 12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:150px}
+.band-cell{border-right:1px solid var(--rule-faint);padding:12px 14px 11px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:136px}
 .band-cell:last-child{border-right:none}
 .band-cell.base{background:rgba(122,163,158,.05)}
 .band-cell.label{align-items:flex-start;justify-content:flex-end}
@@ -57,12 +57,12 @@ body{background:radial-gradient(1200px 600px at 85% -10%, rgba(108,197,211,.07),
 .delta{font-size:10px;font-weight:600;letter-spacing:.04em;font-family:'Inter'}
 .delta.up{color:var(--positive-bright)} .delta.down{color:var(--negative-bright)} .delta.flat{color:var(--ink-faint)}
 
-.scn-levers{display:grid;grid-template-columns:172px repeat(3,1fr);border-left:1px solid var(--rule);border-right:1px solid var(--rule)}
-.lev-name{display:flex;align-items:center;border-right:1px solid var(--rule-faint);border-bottom:1px solid var(--rule-faint);padding:0 14px;min-height:64px;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-mute);font-weight:500;line-height:1.25}
-.lev-cell{display:flex;flex-direction:column;justify-content:center;gap:7px;border-right:1px solid var(--rule-faint);border-bottom:1px solid var(--rule-faint);padding:0 14px;min-height:64px}
+.scn-levers{display:grid;grid-template-columns:148px repeat(3,1fr);border-left:1px solid var(--rule);border-right:1px solid var(--rule)}
+.lev-name{display:flex;align-items:center;border-right:1px solid var(--rule-faint);border-bottom:1px solid var(--rule-faint);padding:0 12px;min-height:60px;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-mute);font-weight:500;line-height:1.25}
+.lev-cell{display:flex;flex-direction:column;justify-content:center;gap:6px;border-right:1px solid var(--rule-faint);border-bottom:1px solid var(--rule-faint);padding:0 14px;min-height:60px}
 .lev-cell.base{background:rgba(122,163,158,.04)}
 .scn-levers > :nth-child(4n){border-right:none}
-.lev-val{font-family:'Inter';font-size:14px;font-weight:600;color:var(--ink-bright);display:flex;align-items:baseline;gap:6px}
+.lev-val{font-family:'Inter';font-size:17px;font-weight:600;color:var(--ink-bright);display:flex;align-items:baseline;gap:6px}
 .lev-val.base{color:var(--teal-bright)}
 .lev-val .unit{font-size:10px;color:var(--ink-faint);font-weight:500;letter-spacing:.04em}
 .lev-slider{-webkit-appearance:none;width:100%;height:14px;background:transparent;cursor:pointer}
@@ -70,7 +70,7 @@ body{background:radial-gradient(1200px 600px at 85% -10%, rgba(108,197,211,.07),
 .lev-slider::-webkit-slider-thumb{-webkit-appearance:none;height:11px;width:11px;border-radius:50%;background:var(--gold);margin-top:-4.5px;border:2px solid var(--bg-deep)}
 .lev-slider:disabled{opacity:.4;cursor:default}
 .lev-slider.base-lock::-webkit-slider-thumb{background:var(--teal)}
-.scn-foot{display:grid;grid-template-columns:172px repeat(3,1fr);border:1px solid var(--rule);border-top:none;border-radius:0 0 4px 4px}
+.scn-foot{display:grid;grid-template-columns:148px repeat(3,1fr);border:1px solid var(--rule);border-top:none;border-radius:0 0 4px 4px}
 .foot-cell{border-right:1px solid var(--rule-faint);padding:11px 14px;font-family:'Inter';font-size:11px;color:var(--ink-mute)}
 .foot-cell:last-child{border-right:none}
 .foot-cell.base{background:rgba(122,163,158,.05)}
@@ -164,12 +164,26 @@ import {
    ╚══════════════════════════════════════════════════════════════╝ */
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 
-/* Demo household: pre-retirement so accumulation shows in the line.
-   Engine `plan` is the single source of truth; we clone+override per scenario. */
-plan.household.primary.currentAge = 58;
+/* Demo household — HNW, 58yo, retiring at 65. $2.8M total portfolio.
+   $140k living + $12k healthcare; $36k SS at 67; $30k/yr savings until retire.
+   Spending creates real tension: Cons ~88%, Mod ~91%, Agg ~90% success
+   (aggressive line is higher but vol drag pulls success below moderate — the
+   honest risk/return trade-off the tool is meant to show). */
+plan.household.primary.currentAge    = 58;
 plan.household.primary.retirementAge = 65;
-plan.household.primary.planEndAge = 95;
-plan.savings.annual = 40000;
+plan.household.primary.planEndAge    = 95;
+plan.portfolio.accounts.taxable.balance      = 800000;
+plan.portfolio.accounts.traditional.balance  = 1600000;
+plan.portfolio.accounts.roth.balance         = 400000;
+plan.portfolio.accounts.taxable.basisPct     = 0.55;
+plan.expenses.living     = 140000;
+plan.expenses.healthcare = 12000;
+plan.goals.vacation      = 12000;
+plan.goals.property      = 5000;
+plan.goals.gifts         = 5000;
+plan.income.socialSecurity.amount   = 36000;
+plan.income.socialSecurity.startAge = 67;
+plan.savings.annual      = 30000;
 plan.simulation.iterations = 1000;
 
 const COLHEX=['#a9d5cf','#f0c773','#9db4e0'];
@@ -187,16 +201,14 @@ function defaultLevers(){
     savings:   plan.savings.annual
   };
 }
+// All three scenarios start identical — same levers, same results.
+// The advisor moves levers to show the effect of each decision.
+// Allocation is just one of the levers (risk slider), not the column identity.
 const scenarios=[
-  {name:'Conservative', base:true, lev:defaultLevers(), res:null},
-  {name:'Moderate', lev:defaultLevers(), res:null},
-  {name:'Aggressive', lev:defaultLevers(), res:null},
+  {name:'Baseline',   base:true, lev:defaultLevers(), res:null},
+  {name:'Scenario B', base:false, lev:defaultLevers(), res:null},
+  {name:'Scenario C', base:false, lev:defaultLevers(), res:null},
 ];
-// Everything identical except allocation — isolates the pure effect of the
-// portfolio decision on the wealth line.
-scenarios[0].lev.risk=2;  // Conservative  (45/55)
-scenarios[1].lev.risk=3;  // Moderate      (60/40)
-scenarios[2].lev.risk=5;  // Aggressive    (90/10)
 
 /* Map a scenario's levers -> engine override object. */
 function leversToOverrides(L){
