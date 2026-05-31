@@ -147,6 +147,22 @@ function historicalProxyComponents(row, riskProfile){
 /* hoisted module constants the engine depends on */
 const LONGRUN_INFLATION = 0.025;
 
+// Social Security claim-age math (modern Full Retirement Age = 67, born 1960+).
+// pia = Primary Insurance Amount = the benefit at FRA. The actual benefit is the
+// pia adjusted for when you actually file (the real SSA schedule):
+//   • file LATE  → delayed retirement credits, +8%/yr, capped at age 70.
+//   • file EARLY → permanent reduction: 5/9 of 1% per month for the first 36
+//     months before FRA, then 5/12 of 1% per month beyond that. (62 = 30% cut.)
+const SS_FRA = 67;
+function ssAdjust(pia, claimAge){
+  const c = Math.max(62, Math.min(70, claimAge));
+  if(c >= SS_FRA) return pia * (1 + 0.08 * (c - SS_FRA));
+  const monthsEarly = (SS_FRA - c) * 12;
+  const first36 = Math.min(monthsEarly, 36);
+  const beyond  = Math.max(0, monthsEarly - 36);
+  return pia * (1 - (first36 * (5/900) + beyond * (5/1200)));
+}
+
 const RETURN_DATA = [
   {y:1928, usLarge:+0.4630, usSmall:+0.6495, intlDev:null   , emerging:null   , usBonds:+0.0258, cash:+0.0486, reit:null   , gold:+0.0183},
   {y:1929, usLarge:-0.0830, usSmall:-0.4608, intlDev:null   , emerging:null   , usBonds:+0.0420, cash:+0.0316, reit:null   , gold:-0.0015},
@@ -387,7 +403,11 @@ const plan = {
   },
   savings: { annual: 0 },   // pre-retirement contribution ($/yr) — only applies when retirementAge > currentAge
   income: {
-    socialSecurity: { amount: 36000, startAge: 67 },
+    // Social Security — per person. pia = the benefit at Full Retirement Age
+    // (today's dollars), i.e. the number off the SSA statement. claimAge sets
+    // when they file (62–70); the engine actuarially adjusts pia for that age.
+    // spouse: null when single; otherwise { pia, claimAge }.
+    socialSecurity: { primary: { pia: 36000, claimAge: 67 }, spouse: null },
     other:          { amount: 0,     startAge: 65, endAge: 75 },
     // Pension: benefit amount entered directly (the amount offered at the chosen
     // claim age); claim age sets when it starts; COLA = nominal annual escalator
@@ -487,13 +507,31 @@ function resolveInputs(plan, ov){
                   - plan.household.primary.currentAge;
   const equityShockShare = profile.eq;
 
-  // SS delay: each year past FRA increases benefit by ~8% (real SS rule),
-  // capped at age 70 where the benefit is locked. A negative delay would
-  // mean filing earlier, but we don't model that — the lever is one-directional.
-  const ssDelayYears = Math.max(0, ov.ssDelayYears || 0);
-  const baseSsAge = plan.income.socialSecurity.startAge;
-  const cappedDelay = Math.min(ssDelayYears, Math.max(0, 70 - baseSsAge));
-  const ssAmountMultiplier = 1 + (cappedDelay * 0.08);
+  // Social Security — per person. Each benefit is the pia (benefit at FRA, today's
+  // dollars) actuarially adjusted for the actual claim age, haircut by any ssCut
+  // stress, then mapped onto the PRIMARY's age timeline (the frame the sim runs in)
+  // so a spouse of a different age switches on at the right simulation year.
+  // ssDelayYears (the SS Start Age lever) is a SIGNED shift to the PRIMARY's claim
+  // age; the spouse keeps their own claim age (edited on the input page).
+  const ssCfg = plan.income.socialSecurity || {};
+  const ssCutMult = 1 - (ov.ssCut || 0);
+  const ssDelta = ov.ssDelayYears || 0;
+  const pCurAge = plan.household.primary.currentAge;
+  const spouseCurAge = (plan.household.spouse && plan.household.spouse.currentAge != null)
+                       ? plan.household.spouse.currentAge : pCurAge;
+  const ssBenefits = [];
+  function addSS(person, isPrimary){
+    if(!person || !(person.pia > 0)) return;
+    const claim = Math.max(62, Math.min(70, (person.claimAge != null ? person.claimAge : SS_FRA)
+                                            + (isPrimary ? ssDelta : 0)));
+    const personCurAge = isPrimary ? pCurAge : spouseCurAge;
+    ssBenefits.push({
+      amount:   ssAdjust(person.pia, claim) * ssCutMult,
+      startAge: pCurAge + (claim - personCurAge)   // claim age expressed in the primary's age frame
+    });
+  }
+  addSS(ssCfg.primary, true);
+  addSS(ssCfg.spouse, false);
 
   // Spend cut: proportional reduction across all expense categories.
   // spendCut reduces spending (stress); spendBump raises it (elasticity probe).
@@ -547,10 +585,7 @@ function resolveInputs(plan, ov){
       weights: profile.weights
     },
     returnAdj: (ov.returnAdj || 0) / 100,
-    ss: {
-      amount:   plan.income.socialSecurity.amount * ssAmountMultiplier * (1 - (ov.ssCut || 0)),
-      startAge: baseSsAge + cappedDelay
-    },
+    ss: ssBenefits,   // array of { amount, startAge } in the primary's age frame
     otherIncome:    { ...plan.income.other },
     pension:        { amount: pensionAmount, startAge: penStartAge, colaReal: penColaReal },
     ltc:            { amount: Math.max(0, (ltc.amount || 0) * (1 + (ov.ltcAdj || 0))), onsetAge: (ltc.onsetAge != null ? ltc.onsetAge : 999) },
@@ -639,8 +674,10 @@ function runSinglePath(p, returnPath){
       continue;
     }
 
-    // External income (today's dollars — no COLA).
-    const ssInc = age >= p.ss.startAge ? p.ss.amount : 0;
+    // External income (today's dollars — no COLA). SS is the sum of each
+    // person's benefit that has started by this age (primary + spouse).
+    let ssInc = 0;
+    for(const b of p.ss){ if(age >= b.startAge) ssInc += b.amount; }
     const oiInc = (age >= p.otherIncome.startAge && age <= p.otherIncome.endAge)
                   ? p.otherIncome.amount : 0;
     const penInc = (p.pension && age >= p.pension.startAge)

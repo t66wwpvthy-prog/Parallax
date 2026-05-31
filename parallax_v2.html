@@ -182,8 +182,10 @@ plan.expenses.healthcare = 12000;
 plan.goals.vacation      = 12000;
 plan.goals.property      = 5000;
 plan.goals.gifts         = 5000;
-plan.income.socialSecurity.amount   = 36000;
-plan.income.socialSecurity.startAge = 67;
+// Two earners: one maxed (~$48k PIA at FRA), spouse a strong earner (~$30k).
+// pia = benefit at FRA (67) in today's dollars, straight off the SSA statement.
+plan.income.socialSecurity.primary = { pia: 48000, claimAge: 67 };
+plan.income.socialSecurity.spouse  = { pia: 30000, claimAge: 67 };
 plan.savings.annual      = 30000;
 plan.simulation.iterations = 1000;
 
@@ -195,7 +197,7 @@ const RISK_LABELS={1:'30 / 70',2:'44 / 56',3:'59 / 41',4:'73 / 27',5:'88 / 12'};
 function defaultLevers(){
   return {
     retireAge: plan.household.primary.retirementAge,
-    ssAge:     plan.income.socialSecurity.startAge,
+    ssAge:     plan.income.socialSecurity.primary.claimAge,
     spend:     plan.expenses.living,
     eventAmt:  0, eventAge: 70,
     risk:      plan.portfolio.riskProfile,
@@ -221,7 +223,7 @@ scenarios[2].lev.risk      = 5;
 function leversToOverrides(L){
   const ov={};
   const baseRetire = plan.household.primary.retirementAge;
-  const baseSs     = plan.income.socialSecurity.startAge;
+  const baseSs     = plan.income.socialSecurity.primary.claimAge;
   if(L.retireAge !== baseRetire) ov.retireDelay = L.retireAge - baseRetire;
   if(L.ssAge !== baseSs)         ov.ssDelayYears = L.ssAge - baseSs;
   // spend: express as bump fraction vs plan.expenses.living
