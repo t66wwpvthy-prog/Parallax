@@ -2,6 +2,39 @@
 
 Durable backlog so nothing gets lost between sessions. Newest on top.
 
+## Big feature — SOLVE FOR mode (the thing that makes Parallax different)
+The "so what, everyone has scenarios" problem. Every tool runs FORWARD: move
+levers → watch the %. That's a toy. The advisor's real job is BACKWARD:
+"retire at 62 at 90% confidence — what spending does that take?" = SOLVE-FOR.
+Client states the GOAL, engine finds the LEVER.
+
+Why it's on-doctrine, not bolt-on:
+- Most tools can't do solve-for credibly — their engine is too weak to trust the
+  answer. Parallax's engine is real/fast/verified, so this is the engine FLEXING
+  the one thing it's actually better at. No new math (doctrine #5) — same truth
+  engine run in reverse (numerically: bisection/solver calling runSimulation).
+- Doctrine #1 (model interactions): the answer "this lever must move THIS much
+  to hit your goal" IS an interaction made visible, not an isolated stat.
+
+THE RULE that keeps it honest: lock everything, free EXACTLY ONE lever, solve
+for it. One unknown. Multiple free levers = infinite answers = the tool guessing
+instead of telling truth. Don't allow it.
+
+The toggle (Nathan wants it slick/clever, easy to find, neat transition):
+- Concept: the % CIRCLE ITSELF is the switch — reuse the hero element, add no new
+  real estate (delete-before-adding). Normal = solid output ring showing result.
+  Activate solve-for → ring hollows to a DASHED TARGET ring, the % becomes an
+  editable field (type the % you want). Levers below dim except the ONE you pick
+  to "float," which lights up; engine solves it and animates that lever's
+  value/slider to the answer. The output literally becomes the input = the
+  inversion made physical.
+- Open Qs: which levers are solvable (spending/savings/retire-age clean;
+  allocation is discrete 1-5 so "solve" = nearest profile; SS/pension bounded).
+  How to pick the float lever (tap a lever to arm it?). Feasibility/no-solution
+  state ("no spending level reaches 90% — even $0 only gets 84%"). Per-scenario
+  or baseline-only first.
+- NOT built — spec only, parked 2026-05. Real feature, own session.
+
 ## Design — deferred
 - **Inputs tab — escape the boxes-in-boxes grid.** Every planning tool uses the
   same rigid nested-card layout — clean but boring. Explore a freestyle / open
