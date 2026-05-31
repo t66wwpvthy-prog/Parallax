@@ -6,6 +6,16 @@ Durable backlog so nothing gets lost between sessions. Newest on top.
 - **Inputs tab — escape the boxes-in-boxes grid.** Every planning tool uses the
   same rigid nested-card layout — clean but boring. Explore a freestyle / open
   input layout that doesn't feel like a tax form. (Idea, not yet specced.)
+- **Scenarios "shared-track" redesign (BIG — own session).** Kill the 3-column
+  boxes-in-boxes repetition. One shared horizontal track per lever: when all
+  scenarios AGREE, show a single calm value; when one DIVERGES, it splits into
+  colored dots (brass/slate/mauve) at their positions, with value labels above.
+  Eye goes straight to the actual decision instead of scanning identical cells.
+  On-doctrine (surfaces the interaction). Mock sketched & approved-in-spirit
+  2026-05; NOT built — it's a ground-up rebuild of the Scenarios layout, do it
+  deliberately in a focused session, not impulsively. Open Qs: how to edit a
+  merged value (click to expand all three?), how dots behave on tap/drag,
+  pension's @age sub-label.
 
 ## Design — done
 - Top banner height reduced (ring 148→118px, smaller %, tighter min-height) so
