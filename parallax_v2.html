@@ -164,10 +164,12 @@ import {
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 
 /* Demo household — HNW, 58yo, retiring at 65. $2.8M total portfolio.
-   $140k living + $12k healthcare; $36k SS at 67; $30k/yr savings until retire.
-   Spending creates real tension: Cons ~88%, Mod ~91%, Agg ~90% success
-   (aggressive line is higher but vol drag pulls success below moderate — the
-   honest risk/return trade-off the tool is meant to show). */
+   $180k living + $12k healthcare; $36k SS at 67; $30k/yr savings until retire.
+   Spend is set high enough to create real tension: Baseline (Moderate, ret 65)
+   ~74% — a plan that needs attention. Moving levers shows it honestly: retiring
+   2yr later lifts success ~+11pts; going aggressive raises the wealth line but
+   leaves success BELOW the retire-later case (vol drag) — the risk/return truth
+   the tool exists to show. */
 plan.household.primary.currentAge    = 58;
 plan.household.primary.retirementAge = 65;
 plan.household.primary.planEndAge    = 95;
@@ -175,7 +177,7 @@ plan.portfolio.accounts.taxable.balance      = 800000;
 plan.portfolio.accounts.traditional.balance  = 1600000;
 plan.portfolio.accounts.roth.balance         = 400000;
 plan.portfolio.accounts.taxable.basisPct     = 0.55;
-plan.expenses.living     = 140000;
+plan.expenses.living     = 180000;
 plan.expenses.healthcare = 12000;
 plan.goals.vacation      = 12000;
 plan.goals.property      = 5000;
