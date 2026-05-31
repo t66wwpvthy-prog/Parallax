@@ -1225,6 +1225,10 @@ plan.goals.gifts         = 5000;
 // pia = benefit at FRA (67) in today's dollars, straight off the SSA statement.
 plan.income.socialSecurity.primary = { pia: 48000, claimAge: 67 };
 plan.income.socialSecurity.spouse  = { pia: 30000, claimAge: 67 };
+// Demo pension: only the two ages the statement actually quoted. The engine
+// pays exactly what's entered for the chosen age and nothing in between —
+// no interpolation, no invented numbers (see engine.test.js).
+plan.income.pension = { benefitByAge: { 62: 36000, 65: 48000 }, startAge: 65, colaPct: 0 };
 plan.savings.annual      = 30000;
 plan.simulation.iterations = 1000;
 
@@ -1235,12 +1239,13 @@ const COLHEX=['#a9d5cf','#f0c773','#9db4e0'];
 const RISK_LABELS={1:'30 / 70',2:'44 / 56',3:'59 / 41',4:'73 / 27',5:'88 / 12'};
 function defaultLevers(){
   return {
-    retireAge: plan.household.primary.retirementAge,
-    ssAge:     plan.income.socialSecurity.primary.claimAge,
-    spend:     plan.expenses.living,
-    eventAmt:  0, eventAge: 70,
-    risk:      plan.portfolio.riskProfile,
-    savings:   plan.savings.annual
+    retireAge:  plan.household.primary.retirementAge,
+    ssAge:      plan.income.socialSecurity.primary.claimAge,
+    spend:      plan.expenses.living,
+    eventAmt:   0, eventAge: 70,
+    risk:       plan.portfolio.riskProfile,
+    savings:    plan.savings.annual,
+    pensionAge: (plan.income.pension && plan.income.pension.startAge) || 65
   };
 }
 // All three scenarios start identical — same levers, same results.
@@ -1270,6 +1275,9 @@ function leversToOverrides(L){
   if(L.spend !== baseSpend)      ov.spendBump = (L.spend - baseSpend)/baseSpend;
   if(L.eventAmt>0){ ov.lumpSum = L.eventAmt; ov.lumpSumYear = Math.max(0, L.eventAge - plan.household.primary.currentAge); }
   if(L.savings !== plan.savings.annual) ov.savingsBump = (L.savings - plan.savings.annual)/Math.max(1,plan.savings.annual);
+  // Pension: always pass the chosen age as an absolute override so the engine
+  // looks up the entered benefit for THAT exact age (or pays 0 if no entry).
+  ov.pensionStartAge = L.pensionAge;
   return ov;
 }
 /* Risk lever changes the profile -> needs a plan clone, not an override. */
@@ -1316,6 +1324,12 @@ const INPUT_GROUPS=[
   {title:'Savings', fields:[
     {path:'savings.annual', label:'Annual savings (pre-retire)', type:'money'},
   ]},
+  // Pension: only the ages the actual statement quotes. Add rows here if the
+  // client's plan offers more (e.g. 60, 67). Missing ages pay 0 — by design.
+  {title:'Pension', fields:[
+    {path:'income.pension.benefitByAge.62', label:'Benefit if claimed @ 62', type:'money'},
+    {path:'income.pension.benefitByAge.65', label:'Benefit if claimed @ 65', type:'money'},
+  ]},
 ];
 const getPath=(o,p)=>p.split('.').reduce((a,k)=>a&&a[k],o);
 const setPath=(o,p,v)=>{const ks=p.split('.');const last=ks.pop();let t=o;for(const k of ks)t=t[k];t[last]=v;};
@@ -1326,7 +1340,7 @@ let plansDirty=false;
 // Re-seed scenarios from the current base, keeping each scenario's adjustment.
 function reseedScenarios(){
   const nb=defaultLevers();
-  const LINKED=['retireAge','ssAge','spend','savings'];   // base-linked levers
+  const LINKED=['retireAge','ssAge','spend','savings','pensionAge'];   // base-linked levers
   scenarios.forEach(s=>{
     Object.keys(nb).forEach(k=>{
       if(s.base){ s.lev[k]=nb[k]; return; }   // baseline always mirrors the base
@@ -1370,6 +1384,7 @@ function renderInputs(){
       setPath(plan,path,v);
       reseedScenarios();
       buildLevers();              // Scenarios sliders reflect the new base
+      sharedPaths=null;           // plan changed → re-roll markets next Run
       plansDirty=true;
       $('#status').textContent='Plan edited · open Scenarios';
     });
@@ -1384,9 +1399,21 @@ const LEVCFG=[
   {key:'eventAmt',  name:'One-Time Event', min:0,max:400000,step:10000, fmt:(v,L)=> v>0?['$'+Math.round(v/1000)+'k','@ '+L.eventAge] : ['—','']},
   {key:'risk',      name:'Allocation',     min:1,max:5,step:1, fmt:v=>[RISK_LABELS[v],'gr/df']},
   {key:'savings',   name:'Savings / yr',   min:0,max:120000,step:5000, fmt:v=>['$'+Math.round(v/1000)+'k','']},
+  // Pension snaps between the ages that actually have entered amounts (62, 65).
+  // Label shows the dollar value the engine will pay for that age — if no entry
+  // exists for that age, it shows "—" (and the engine pays 0).
+  {key:'pensionAge', name:'Pension',       min:62,max:65,step:3, fmt:v=>{
+    const m=(plan.income.pension && plan.income.pension.benefitByAge) || {};
+    const amt=m[v]||0; return amt>0 ? ['$'+Math.round(amt/1000)+'k','@ '+v] : ['—',''];
+  }},
 ];
 
 let running=false;
+// Cached market bundle. Generated once, reused across Runs so that hitting Run
+// twice with no changes yields the EXACT same numbers (sampling noise was
+// causing the % to drift between identical clicks). Invalidated to null
+// whenever the plan changes in the Inputs tab.
+let sharedPaths=null;
 
 /* ── run the engine for all three columns (shared nothing; each its own MC) ── */
 function runAll(){
@@ -1394,14 +1421,16 @@ function runAll(){
   const btn=$('#run-btn'); btn.disabled=true; $('#status').textContent='Running…';
   setTimeout(()=>{
     try{
-      // SHARED PATHS: generate one bundle of return paths and run every scenario
-      // through the SAME markets. This is what makes the comparison valid — any
-      // difference between columns is the DECISIONS, never sampling noise. With
-      // identical levers, two columns now produce identical lines.
+      // SHARED PATHS: one bundle of return paths, reused across scenarios AND
+      // across Runs. Within a Run, every column sees the SAME markets (any
+      // difference between columns is the DECISION). Across Runs, the bundle
+      // is cached so identical inputs give an identical % — no noise drift.
       const horizon = plan.household.primary.planEndAge - plan.household.primary.currentAge;
       const iters = plan.simulation.iterations;
-      const sharedPaths = [];
-      for(let i=0;i<iters;i++) sharedPaths.push(generateReturnPath(horizon));
+      if(!sharedPaths || sharedPaths.length !== iters || sharedPaths[0].length !== horizon){
+        sharedPaths = [];
+        for(let i=0;i<iters;i++) sharedPaths.push(generateReturnPath(horizon));
+      }
       scenarios.forEach(s=>{
         const p=planForScenario(s.lev);
         const ov=leversToOverrides(s.lev);
