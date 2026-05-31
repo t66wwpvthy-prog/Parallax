@@ -3,6 +3,9 @@
 Durable backlog so nothing gets lost between sessions. Newest on top.
 
 ## Design — deferred (Nathan: "still not right," moving on for now)
+- **Inputs tab — escape the boxes-in-boxes grid.** Every planning tool uses the
+  same rigid nested-card layout — clean but boring. Explore a freestyle / open
+  input layout that doesn't feel like a tax form. (Idea, not yet specced.)
 - **Top banner (% circle band) is too TALL** — it eats into the Retirement Age
   input line below it. Reduce the band height / circle wrap so the first lever
   row isn't crowded.
