@@ -21,5 +21,8 @@ const out = html.replace(
   `/* ── engine.js inlined for single-file use ── */\n${engine}\n/* ── end engine ── */`
 );
 
+// Write to BOTH names: parallax.html for explicit download, index.html so the
+// bare GitHub Pages URL serves the tool directly.
 writeFileSync('parallax.html', out);
-console.log('wrote parallax.html (' + out.length + ' bytes)');
+writeFileSync('index.html',    out);
+console.log('wrote parallax.html + index.html (' + out.length + ' bytes)');

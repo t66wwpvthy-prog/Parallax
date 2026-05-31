@@ -1,0 +1,37 @@
+# Auto-rebuild the single-file standalone (index.html + parallax.html) on every
+# push, so the GitHub Pages URL always serves the latest version. The commit-back
+# uses [skip ci] in the message so it doesn't trigger another run.
+name: build-standalone
+
+on:
+  push:
+    branches: ['**']
+    paths-ignore:
+      - 'index.html'
+      - 'parallax.html'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: node build-standalone.mjs
+      - name: Commit rebuilt standalone
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if [ -n "$(git status --porcelain index.html parallax.html)" ]; then
+            git add index.html parallax.html
+            git commit -m "Auto-rebuild standalone [skip ci]"
+            git push
+          else
+            echo "no changes to commit"
+          fi
