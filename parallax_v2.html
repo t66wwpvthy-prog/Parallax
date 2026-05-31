@@ -121,6 +121,11 @@ body{background:radial-gradient(1200px 600px at 85% -10%, rgba(108,197,211,.07),
 .inp-row input,.inp-row select{font-family:'Inter';font-size:13px;font-weight:600;color:var(--ink-bright);background:var(--surface-2);border:1px solid var(--rule);border-radius:4px;padding:5px 8px;width:110px;text-align:right}
 .inp-row select{text-align:left;width:auto;min-width:110px}
 .inp-row input:focus,.inp-row select:focus{outline:none;border-color:var(--gold);background:var(--bg-deep)}
+/* Quiet "remove this row" affordance for dynamic groups like Pension. Lives in
+   the row, muted; turns negative red on hover so the destructive action reads
+   clearly only when the advisor reaches for it. */
+.inp-row .row-x{margin-left:6px;width:18px;height:18px;border:none;background:transparent;color:var(--ink-faint);font-size:14px;line-height:1;cursor:pointer;border-radius:3px;padding:0}
+.inp-row .row-x:hover{color:var(--negative-bright);background:rgba(240,145,141,.08)}
 </style>
 </head>
 <body>
@@ -362,20 +367,40 @@ function renderInputs(){
     const fields = g.dynamic==='pension' ? pensionFields() : g.fields;
     fields.forEach(f=>{
       const v=getPath(plan,f.path);
+      // Dynamic groups (currently Pension) get a small × to remove the row.
+      // Static rows don't — those keys are structural and live in the plan
+      // schema (current age, balances, etc.); zeroing them is the right
+      // way to "remove" a value.
+      const xBtn = g.dynamic ? `<button class="row-x" title="Remove this age" data-rmpath="${f.path}">×</button>` : '';
       if(f.type==='risk'){
         const opts=Object.keys(RISK_NAMES).map(k=>
           `<option value="${k}" ${+k===+v?'selected':''}>${RISK_NAMES[k]} · ${RISK_LABELS[k]}</option>`).join('');
-        h+=`<div class="inp-row"><label>${f.label}</label><div class="field"><select data-path="${f.path}" data-type="risk">${opts}</select></div></div>`;
+        h+=`<div class="inp-row"><label>${f.label}</label><div class="field"><select data-path="${f.path}" data-type="risk">${opts}</select>${xBtn}</div></div>`;
       }else{
         const pre=f.type==='money'?'<span class="pre">$</span>':'';
         const post=f.type==='pct'?'<span class="pre">%</span>':'';
         const dv=f.type==='pct'?Math.round(v*100):v;
-        h+=`<div class="inp-row"><label>${f.label}</label><div class="field">${pre}<input type="number" data-path="${f.path}" data-type="${f.type}" value="${dv}" step="${f.type==='money'?1000:1}">${post}</div></div>`;
+        h+=`<div class="inp-row"><label>${f.label}</label><div class="field">${pre}<input type="number" data-path="${f.path}" data-type="${f.type}" value="${dv}" step="${f.type==='money'?1000:1}">${post}${xBtn}</div></div>`;
       }
     });
     h+=`</div>`;
   });
   $('#inp-grid').innerHTML=h;
+  // Row delete (×): delete the last key along the path and re-render. Pension
+  // path looks like income.pension.benefitByAge.67 — we strip the trailing
+  // "67" off the parent object. Invalidates the cached market bundle since
+  // it changes a future cash flow.
+  $$('#inp-grid .row-x').forEach(btn=>{
+    btn.addEventListener('click', e=>{
+      const path=e.target.dataset.rmpath;
+      const ks=path.split('.'); const last=ks.pop();
+      let t=plan; for(const k of ks){ if(t==null) return; t=t[k]; }
+      if(t!=null) delete t[last];
+      sharedPaths=null; plansDirty=true;
+      renderInputs();
+      $('#status').textContent='Plan edited · open Scenarios';
+    });
+  });
   $$('#inp-grid input,#inp-grid select').forEach(el=>{
     el.addEventListener('change',e=>{
       const path=e.target.dataset.path, type=e.target.dataset.type;
