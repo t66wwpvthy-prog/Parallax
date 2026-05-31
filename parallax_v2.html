@@ -100,6 +100,20 @@ body{background:radial-gradient(1200px 600px at 85% -10%, rgba(108,197,211,.07),
 .seq-stat:last-child{border-right:none}
 .seq-stat .k{font-size:8.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-mute);font-weight:500}
 .seq-stat .v{font-family:'Inter';font-size:15px;font-weight:600}
+/* Inputs (base plan / household data root) */
+.page[data-page="inputs"]{padding-top:20px;overflow-y:auto}
+.inp-intro{color:var(--ink-mute);font-size:12px;line-height:1.55;margin:0 0 22px;max-width:620px}
+.inp-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 28px;max-width:860px}
+.inp-group{border:1px solid var(--rule);border-radius:6px;background:var(--surface);overflow:hidden}
+.inp-group h3{margin:0;padding:11px 16px;font-family:'Sora';font-size:10px;font-weight:500;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);background:var(--surface-2);border-bottom:1px solid var(--rule)}
+.inp-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:9px 16px;border-bottom:1px solid var(--rule-faint)}
+.inp-row:last-child{border-bottom:none}
+.inp-row label{font-size:12px;color:var(--ink-mute)}
+.inp-row .field{display:flex;align-items:center;gap:5px}
+.inp-row .pre{color:var(--ink-faint);font-size:12px}
+.inp-row input,.inp-row select{font-family:'Inter';font-size:13px;font-weight:600;color:var(--ink-bright);background:var(--surface-2);border:1px solid var(--rule);border-radius:4px;padding:5px 8px;width:110px;text-align:right}
+.inp-row select{text-align:left;width:auto;min-width:110px}
+.inp-row input:focus,.inp-row select:focus{outline:none;border-color:var(--gold);background:var(--bg-deep)}
 </style>
 </head>
 <body>
@@ -109,6 +123,7 @@ body{background:radial-gradient(1200px 600px at 85% -10%, rgba(108,197,211,.07),
     <div class="hdr-tabs">
       <button class="htab on" data-page="scenarios">Scenarios</button>
       <button class="htab" data-page="sequencing">Sequencing</button>
+      <button class="htab" data-page="inputs">Inputs</button>
     </div>
     <div class="hdr-right">
       <span class="status" id="status">Ready</span>
@@ -148,6 +163,14 @@ body{background:radial-gradient(1200px 600px at 85% -10%, rgba(108,197,211,.07),
       <div class="chart-body"><svg id="seq-svg" viewBox="0 0 1000 320" preserveAspectRatio="none"></svg></div>
     </div>
     <div class="seq-stats" id="seq-stats"></div>
+  </section>
+
+  <section class="page" data-page="inputs">
+    <div class="eyebrow"><span>Inputs · Base Plan</span></div>
+    <p class="inp-intro">The household's base plan — the single source every scenario draws from.
+      Edit here; the Baseline mirrors these values and each scenario keeps its own adjustment on top.
+      Changes apply when you return to Scenarios.</p>
+    <div class="inp-grid" id="inp-grid"></div>
   </section>
 </div>
 
@@ -238,6 +261,103 @@ function planForScenario(L){
   const p=JSON.parse(JSON.stringify(plan));
   p.portfolio.riskProfile = L.risk;
   return p;
+}
+
+/* ── Inputs tab: edit the base plan (household data root) ──────────────────
+   `plan` is the single source. Scenarios draw their baseline from it; each
+   scenario then carries its own adjustment. Editing a base input re-seeds
+   every column from the NEW base while PRESERVING each scenario's delta (its
+   decision) — so "draw from base, then adjust" holds automatically. */
+if(!plan.income.socialSecurity.spouse) plan.income.socialSecurity.spouse={pia:0,claimAge:67};
+
+const RISK_NAMES={1:'Conservative',2:'Mod-Cons',3:'Moderate',4:'Mod-Agg',5:'Aggressive'};
+const INPUT_GROUPS=[
+  {title:'Household & Plan', fields:[
+    {path:'household.primary.currentAge',    label:'Current age',    type:'age'},
+    {path:'household.primary.retirementAge', label:'Retirement age', type:'age'},
+    {path:'household.primary.planEndAge',    label:'Plan end age',   type:'age'},
+  ]},
+  {title:'Portfolio', fields:[
+    {path:'portfolio.accounts.taxable.balance',     label:'Taxable',            type:'money'},
+    {path:'portfolio.accounts.taxable.basisPct',    label:'Taxable cost basis', type:'pct'},
+    {path:'portfolio.accounts.traditional.balance', label:'Traditional / IRA',  type:'money'},
+    {path:'portfolio.accounts.roth.balance',        label:'Roth',               type:'money'},
+    {path:'portfolio.riskProfile',                  label:'Allocation',         type:'risk'},
+  ]},
+  {title:'Social Security', fields:[
+    {path:'income.socialSecurity.primary.pia',      label:'Primary · benefit @ FRA', type:'money'},
+    {path:'income.socialSecurity.primary.claimAge', label:'Primary · claim age',     type:'age'},
+    {path:'income.socialSecurity.spouse.pia',       label:'Spouse · benefit @ FRA',  type:'money'},
+    {path:'income.socialSecurity.spouse.claimAge',  label:'Spouse · claim age',      type:'age'},
+  ]},
+  {title:'Spending & Goals', fields:[
+    {path:'expenses.living',     label:'Annual living',   type:'money'},
+    {path:'expenses.healthcare', label:'Healthcare / yr', type:'money'},
+    {path:'goals.vacation',      label:'Travel / yr',     type:'money'},
+    {path:'goals.property',      label:'Property / yr',   type:'money'},
+    {path:'goals.gifts',         label:'Gifts / yr',      type:'money'},
+  ]},
+  {title:'Savings', fields:[
+    {path:'savings.annual', label:'Annual savings (pre-retire)', type:'money'},
+  ]},
+];
+const getPath=(o,p)=>p.split('.').reduce((a,k)=>a&&a[k],o);
+const setPath=(o,p,v)=>{const ks=p.split('.');const last=ks.pop();let t=o;for(const k of ks)t=t[k];t[last]=v;};
+
+let baseSnapshot=defaultLevers();   // base lever values; used to preserve deltas
+let plansDirty=false;
+
+// Re-seed scenarios from the current base, keeping each scenario's adjustment.
+function reseedScenarios(){
+  const nb=defaultLevers();
+  const LINKED=['retireAge','ssAge','spend','savings'];   // base-linked levers
+  scenarios.forEach(s=>{
+    Object.keys(nb).forEach(k=>{
+      if(s.base){ s.lev[k]=nb[k]; return; }   // baseline always mirrors the base
+      if(!LINKED.includes(k)) return;         // allocation / one-time event stay as set
+      const cfg=LEVCFG.find(c=>c.key===k);
+      let v=nb[k]+(s.lev[k]-baseSnapshot[k]);  // new base + this scenario's delta
+      if(cfg) v=Math.max(cfg.min,Math.min(cfg.max,v));
+      s.lev[k]=v;
+    });
+  });
+  baseSnapshot=nb;
+}
+
+function renderInputs(){
+  let h='';
+  INPUT_GROUPS.forEach(g=>{
+    h+=`<div class="inp-group"><h3>${g.title}</h3>`;
+    g.fields.forEach(f=>{
+      const v=getPath(plan,f.path);
+      if(f.type==='risk'){
+        const opts=Object.keys(RISK_NAMES).map(k=>
+          `<option value="${k}" ${+k===+v?'selected':''}>${RISK_NAMES[k]} · ${RISK_LABELS[k]}</option>`).join('');
+        h+=`<div class="inp-row"><label>${f.label}</label><div class="field"><select data-path="${f.path}" data-type="risk">${opts}</select></div></div>`;
+      }else{
+        const pre=f.type==='money'?'<span class="pre">$</span>':'';
+        const post=f.type==='pct'?'<span class="pre">%</span>':'';
+        const dv=f.type==='pct'?Math.round(v*100):v;
+        h+=`<div class="inp-row"><label>${f.label}</label><div class="field">${pre}<input type="number" data-path="${f.path}" data-type="${f.type}" value="${dv}" step="${f.type==='money'?1000:1}">${post}</div></div>`;
+      }
+    });
+    h+=`</div>`;
+  });
+  $('#inp-grid').innerHTML=h;
+  $$('#inp-grid input,#inp-grid select').forEach(el=>{
+    el.addEventListener('change',e=>{
+      const path=e.target.dataset.path, type=e.target.dataset.type;
+      let v=type==='risk'?+e.target.value:parseFloat(e.target.value);
+      if(!isFinite(v)) return;
+      if(type==='pct')   v=Math.max(0,Math.min(100,v))/100;
+      if(type==='money') v=Math.max(0,v);
+      setPath(plan,path,v);
+      reseedScenarios();
+      buildLevers();              // Scenarios sliders reflect the new base
+      plansDirty=true;
+      $('#status').textContent='Plan edited · open Scenarios';
+    });
+  });
 }
 
 /* ── lever display config (label, formatter, slider range→value & back) ── */
@@ -458,12 +578,16 @@ $$('.htab').forEach(t=>t.onclick=()=>{
   $$('.htab').forEach(x=>x.classList.remove('on'));
   $$('.page').forEach(x=>x.classList.remove('on'));
   t.classList.add('on'); $(`.page[data-page="${t.dataset.page}"]`).classList.add('on');
-  if(t.dataset.page==='scenarios') drawScenarioChart();
+  // Returning to Scenarios after a base-plan edit re-runs the engine so the
+  // columns reflect the new source; otherwise just redraw.
+  if(t.dataset.page==='scenarios'){ if(plansDirty){ plansDirty=false; runAll(); } else drawScenarioChart(); }
   if(t.dataset.page==='sequencing') runSeq();
+  if(t.dataset.page==='inputs') renderInputs();
 });
 $('#run-btn').onclick=runAll;
 
 buildLevers();
+renderInputs();
 runAll();   // first iteration runs immediately so the tool opens populated
 </script>
 </body>

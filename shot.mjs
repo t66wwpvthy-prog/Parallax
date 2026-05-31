@@ -1,5 +1,5 @@
 // Internal dev tool: render parallax_v2.html headless, click Run, screenshot.
-// Usage: node shot.mjs [outfile.png]
+// Usage: node shot.mjs [outfile.png] [tab]   tab = scenarios|sequencing|inputs
 import puppeteer from 'puppeteer';
 import http from 'http';
 import { readFileSync, existsSync } from 'fs';
@@ -36,6 +36,12 @@ await page.goto(`http://localhost:${PORT}/parallax_v2.html`, { waitUntil: 'netwo
 await page.click('#run-btn').catch(()=>{});
 await page.waitForFunction(() => document.querySelector('#status')?.textContent === 'Complete', { timeout: 15000 }).catch(()=>{});
 await new Promise(r => setTimeout(r, 700)); // let the ring animation settle
+
+const tab = process.argv[3];
+if (tab) {
+  await page.click(`.htab[data-page="${tab}"]`).catch(()=>{});
+  await new Promise(r => setTimeout(r, 400));
+}
 
 await page.screenshot({ path: out, fullPage: false });
 if (errs.length) console.log('PAGE ERRORS:\n' + errs.join('\n'));
