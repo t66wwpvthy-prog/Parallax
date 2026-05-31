@@ -175,7 +175,7 @@ body{background:radial-gradient(1200px 600px at 85% -10%, rgba(108,197,211,.07),
     <div class="scn-chart">
       <div class="chart-head">
         <span class="chart-title">Portfolio Balance · Today's Dollars</span>
-        <span class="chart-sub" id="scn-chart-sub">Each line = one scenario, median engine path</span>
+        <span class="chart-sub" id="scn-chart-sub"></span>
         <div class="chart-legend" id="scn-legend"></div>
       </div>
       <div class="chart-body"><svg id="scn-svg" viewBox="0 0 1000 340" preserveAspectRatio="none"></svg></div>
@@ -493,7 +493,7 @@ const LEVCFG=[
   // shorthand. Step values stay round so the slider snaps cleanly.
   {key:'spend',     name:'Annual Spending',min:80000,max:300000,step:5000, fmt:v=>['$'+v.toLocaleString('en-US'),'']},
   {key:'eventAmt',  name:'One-Time Event', min:0,max:400000,step:10000, fmt:(v,L)=> v>0?['$'+v.toLocaleString('en-US'),'@ '+L.eventAge] : ['—','']},
-  {key:'risk',      name:'Allocation',     min:1,max:5,step:1, fmt:v=>[RISK_LABELS[v],'gr/df']},
+  {key:'risk',      name:'Allocation',     min:1,max:5,step:1, fmt:v=>[RISK_LABELS[v],'growth / defensive']},
   {key:'savings',   name:'Savings / yr',   min:0,max:120000,step:5000, fmt:v=>['$'+v.toLocaleString('en-US'),'']},
   // Pension snaps between the ages that actually have entered amounts (62, 65).
   // Label shows the dollar value the engine will pay for that age — if no entry
@@ -704,7 +704,10 @@ function drawScenarioChart(){
     h+=`<path d="${smoothPath(pts)}" fill="none" stroke="${COLHEX[i]}" stroke-width="${scenarios[i].base?3:2.2}" stroke-linejoin="round" stroke-linecap="round" opacity="${scenarios[i].base?1:.92}"/>`;
   });
   svg.innerHTML=h;
-  $('#scn-chart-sub').textContent=`Median simulated path · today's dollars · Age ${ageStart} → ${ageEnd}`;
+  // Honest label: the line is the median across simulations at each year (a
+  // slice through the percentile envelope), not a single coherent path. The
+  // cash-flow drawer is what shows a coherent year-by-year reality.
+  $('#scn-chart-sub').textContent=`Median wealth across simulations · today's dollars · Age ${ageStart} → ${ageEnd}`;
 }
 
 /* ── Cash-flow drawer ────────────────────────────────────────────────────
