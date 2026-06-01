@@ -1211,6 +1211,14 @@ function monoPath(pts){
   }
   return d;
 }
+// Round a raw max up to a clean axis ceiling whose quarter-steps are round
+// numbers (so ticks read $2M/$4M/… not $3.4M/$5.1M…).
+function niceCeil(v){
+  if(!(v>0)) return 1;
+  const step0=v/4, mag=Math.pow(10, Math.floor(Math.log10(step0))), n=step0/mag;
+  const niceN = n<=1?1 : n<=2?2 : n<=2.5?2.5 : n<=5?5 : 10;
+  return niceN*mag*4;
+}
 function smoothPath(pts){
   if(pts.length<2) return '';
   if(pts.length===2) return `M ${pts[0][0]} ${pts[0][1]} L ${pts[1][0]} ${pts[1][1]}`;
@@ -1313,18 +1321,19 @@ function renderCashflow(){
 // toggle on/off as lines (`on` = shown by default). Euphoric bulls (1982/85) are
 // deliberately omitted — a 10-20x winner crushes the scale and hides the
 // downside, which is the whole point of a sequence-risk view.
-// Desaturated, earthy palette tuned to the paper theme — distinguishable but
-// never candy-bright (the old saturated set read as childish on cream).
+// Deep, editorial ink tones on the cream paper — high-contrast and serious, not
+// the mid-tone pastels that read as crayon/cartoon. Each is a saturated, darkened
+// hue so lines look like a financial instrument, not a kids' app.
 const SEQ_YEARS=[
-  {y:1929, tag:'Great Depression',  c:'#c07a6e', on:false},  // terracotta
-  {y:1937, tag:'Depression relapse',c:'#ca9a5e', on:false},  // muted amber
-  {y:1966, tag:'the lost decade',   c:'#8aa6cf', on:true },  // dusty blue
-  {y:1968, tag:'the 60s top',       c:'#9aac82', on:false},  // sage
-  {y:1973, tag:'stagflation',       c:'#d6aa59', on:true },  // theme gold
-  {y:1987, tag:'Black Monday',      c:'#6fa68f', on:false},  // muted teal-green
-  {y:1995, tag:'the 90s boom',      c:'#84bdb6', on:true },  // muted teal
-  {y:2000, tag:'dot-com → GFC',     c:'#8f84ad', on:true },  // dusty violet
-  {y:2008, tag:'financial crisis',  c:'#b5859a', on:false},  // dusty rose
+  {y:1929, tag:'Great Depression',  c:'#9c4a2f', on:false},  // burnt rust
+  {y:1937, tag:'Depression relapse',c:'#bd7e26', on:false},  // ochre
+  {y:1966, tag:'the lost decade',   c:'#36567d', on:true },  // deep slate blue
+  {y:1968, tag:'the 60s top',       c:'#5f6e3b', on:false},  // deep olive
+  {y:1973, tag:'stagflation',       c:'#a0741c', on:true },  // antique brass
+  {y:1987, tag:'Black Monday',      c:'#3d6b4a', on:false},  // forest green
+  {y:1995, tag:'the 90s boom',      c:'#1f6f78', on:true },  // deep teal
+  {y:2000, tag:'dot-com → GFC',     c:'#5b4a86', on:true },  // indigo
+  {y:2008, tag:'financial crisis',  c:'#8c4159', on:false},  // claret
 ];
 
 function buildSeqSelect(){
@@ -1401,13 +1410,16 @@ function drawSeqChart(runs, retAge){
   // above the entry balance; any line that climbs past it rises off the top
   // (clipped) with its true ending still in its card. When nothing exceeds the
   // ceiling (e.g. all-stress markets) we use the real max, so no space is wasted.
+  // Decision-zone ceiling (entry → 0 is the readable region for sequence risk).
+  // Fit everything when it stays under ~2.2x entry; only a true runaway gets
+  // capped — and then values are CLAMPED to the ceiling so the line rides the top
+  // cleanly instead of fragmenting in and out of view. Axis rounded to nice ticks.
   const realMax=Math.max(...all.map(a=>Math.max(...a)));
-  const ceiling=entry*1.8;
-  const cap=(entry>0 && realMax>ceiling) ? ceiling : realMax;
-  const maxBal=Math.max(1, cap*1.05);
+  const ceiling=entry>0 ? entry*2.2 : realMax;
+  const maxBal=niceCeil(Math.min(realMax, ceiling));
   const x0=PADL, x1=W-PADR, y0=PADT, y1=H-PADB;
   const X=idx=> x0+(x1-x0)*(idx/(Math.max(1,n-1)));
-  const Y=v => y1-(Math.max(0,v)/maxBal)*(y1-y0);
+  const Y=v => y1-(Math.min(Math.max(0,v),maxBal)/maxBal)*(y1-y0);
   let h=axes(W,H,ageStart,ageEnd,maxBal);
   h+=`<defs><clipPath id="seqclip"><rect x="${x0}" y="${y0-2}" width="${x1-x0}" height="${y1-y0+2}"/></clipPath></defs><g clip-path="url(#seqclip)">`;
   // Per line: a paper-colored HALO underneath, then the colored line on top. The
@@ -1415,8 +1427,8 @@ function drawSeqChart(runs, retAge){
   // reads cleanly and the top line is unambiguous. Monotone curve = no overshoot.
   runs.forEach((r,i)=>{
     const d=monoPath(all[i].map((v,k)=>[X(k),Y(v)]));
-    h+=`<path d="${d}" fill="none" stroke="var(--surface)" stroke-width="5.5" stroke-linejoin="round" stroke-linecap="round"/>`;
-    h+=`<path d="${d}" fill="none" stroke="${r.m.c}" stroke-width="2.1" stroke-linejoin="round" stroke-linecap="round"/>`;
+    h+=`<path d="${d}" fill="none" stroke="var(--surface)" stroke-width="5.8" stroke-linejoin="round" stroke-linecap="round"/>`;
+    h+=`<path d="${d}" fill="none" stroke="${r.m.c}" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>`;
   });
   // Shared launch node — one plan, all markets start here, then diverge.
   h+=`<circle cx="${X(0).toFixed(1)}" cy="${Y(entry).toFixed(1)}" r="3.4" fill="var(--surface)" stroke="${AXIS_INK}" stroke-width="1.6"/>`;
