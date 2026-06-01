@@ -123,12 +123,11 @@ The toggle (Nathan wants it slick/clever, easy to find, neat transition):
   opposite order" → 8/8. No new math in the UI; every number is an engine read.
 - Scale problem from the old multi-year chart is GONE: one plan's own path
   forward vs reversed lives in the same magnitude band, fully legible.
-- OPEN — withdrawal-drag toggle (built, off by default) is MUDDY: the
-  no-withdrawal ghost compounds to ~$18M over 37yr and that gap is mostly
-  intended spending, not sequence damage — and it re-bloats the scale. The real
-  "selling into a decline" insight is already in the fingerprint contrast
-  (drawdown / lowest balance differ by order). DECIDE: pull the drag toggle, or
-  rework it as the comparative (drag in bad order vs good order), own session.
+- Withdrawal-drag toggle PULLED (Nathan's call): the no-withdrawal ghost
+  conflated intended spending with sequence damage and re-bloated the scale. The
+  "selling into a decline" insight already lives in the fingerprint contrast
+  (drawdown / lowest balance differ by order). If revisited, rework as the
+  comparative drag (bad order vs good order), own session.
 
 ## Design — done
 - **Inputs tab — escaped the boxes-in-boxes grid.** Killed the bordered nested

@@ -145,16 +145,10 @@ body{background:radial-gradient(1200px 600px at 88% -12%, var(--gold-glow), tran
 .seq-pick{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--rule);border-radius:3px;padding:8px 14px}
 .seq-pick .k{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-mute);font-weight:500}
 .seq-pick select{background:var(--surface-2);border:1px solid var(--rule-bright);color:var(--ink-bright);font-family:'Sora';font-size:12px;font-weight:500;letter-spacing:.04em;padding:6px 30px 6px 12px;border-radius:3px;outline:none;appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M0 0 L5 6 L10 0' fill='%239aa6b9'/></svg>");background-repeat:no-repeat;background-position:right 11px center;cursor:pointer}
-/* Withdrawal-drag toggle: adds the no-withdrawal ghost lines that explain WHY
-   order matters (selling into declines). Off by default to keep the hero clean. */
-.seq-toggle{background:transparent;border:1px solid var(--rule-bright);color:var(--ink-mute);font-family:'Sora';font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;padding:7px 13px;border-radius:4px;cursor:pointer}
-.seq-toggle:hover{border-color:var(--gold);color:var(--gold)}
-.seq-toggle.on{border-color:var(--gold);color:var(--gold);background:rgba(154,115,34,.06)}
 .seq-legend{margin-left:auto;display:flex;gap:16px;flex-wrap:wrap}
 .seq-legend .lg{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--ink-mute);font-family:'Sora';letter-spacing:.03em}
 .seq-legend .sw{display:inline-block;width:22px;border-top:3px solid;border-radius:2px}
 .seq-legend .sw.dash{border-top-style:dashed}
-.seq-legend .sw.dot{border-top-style:dotted;opacity:.55}
 .seq-chart{flex:0 0 auto;border:1px solid var(--rule);border-radius:4px;background:var(--surface);padding:16px 22px 12px;display:flex;flex-direction:column}
 .seq-chart .chart-body{flex:1 1 auto;min-height:300px}
 /* Two path FINGERPRINTS, side by side: forward vs reversed. Each line is a
@@ -333,7 +327,6 @@ body{background:radial-gradient(1200px 600px at 88% -12%, var(--gold-glow), tran
         <span class="k">Retire into</span>
         <select id="seq-year"></select>
       </div>
-      <button id="seq-drag" class="seq-toggle" title="Show what the same returns do with nothing withdrawn">Show withdrawal drag</button>
       <div class="seq-legend" id="seq-legend"></div>
     </div>
     <div class="seq-chart">
@@ -2323,10 +2316,8 @@ function renderCashflow(){
    The tab's single job: isolate the ORDER of returns. We take one REAL
    historical return stream and run the SAME plan through it forward vs exactly
    reversed (identical returns, opposite sequence). Any difference is pure
-   sequence-of-returns risk. The withdrawal-drag toggle adds "no-withdrawal"
-   ghost lines (the engine run on a zero-spend plan clone) to show WHY order
-   matters — selling into declines. Every number on this tab is a direct read
-   of the engine's single-path result; the UI computes no balances or metrics. */
+   sequence-of-returns risk. Every number on this tab is a direct read of the
+   engine's single-path result; the UI computes no balances or metrics. */
 const SEQ_STARTS=[
   {y:1973, tag:'stagflation'}, {y:2000, tag:'dot-com bust'},
   {y:1929, tag:'the Crash'},   {y:1982, tag:'bull run'},
@@ -2334,7 +2325,6 @@ const SEQ_STARTS=[
 // Forward = the order history actually delivered (solid, slate). Reversed = the
 // same returns backwards (dashed = a counterfactual, not a real timeline).
 const SEQ_FWD='#2c4d57', SEQ_REV='#9a7322';
-let seqDrag=false;
 
 function buildSeqSelect(){
   const sel=$('#seq-select'), cur=sel.value;
@@ -2347,15 +2337,6 @@ function buildSeqSelect(){
     ys.onchange=runSeq;
   }
 }
-// Zero-spend clone: drives the after-tax gap to <=0 so the engine withdraws
-// nothing and the portfolio simply compounds at the path's own returns. This is
-// the engine's own no-withdrawal answer — NOT a UI compounding formula.
-function zeroSpendPlan(p){
-  const c=JSON.parse(JSON.stringify(p));
-  if(c.expenses){ c.expenses.living=0; c.expenses.housing=0; c.expenses.debt=0; c.expenses.healthcare=0; }
-  if(c.goals){ c.goals.vacation=0; c.goals.property=0; c.goals.gifts=0; }
-  return c;
-}
 function runSeq(){
   const sel=$('#seq-select'); const s=scenarios.find(x=>x.name===sel.value)||scenarios[0];
   const startYear=+($('#seq-year').value||SEQ_STARTS[0].y);
@@ -2363,51 +2344,33 @@ function runSeq(){
   // tab varies ORDER, not the levers (that's the Scenarios tab's job).
   const p=planForScenario(s.lev);
   const strat=p.portfolio.withdrawalStrategy||'taxable-first';
-  const rev=a=>a.slice().reverse();
   const fwd=runHistoricalPath(p, startYear, strat);
-  const rvs=runHistoricalPath(p, startYear, strat, rev);
+  const rvs=runHistoricalPath(p, startYear, strat, a=>a.slice().reverse());
   if(!fwd || !rvs){ $('#seq-svg').innerHTML=''; $('#seq-prints').innerHTML=''; return; }
-  const lines=[
-    {res:fwd, color:SEQ_FWD, dash:false, ghost:false},
-    {res:rvs, color:SEQ_REV, dash:true,  ghost:false},
-  ];
-  if(seqDrag){
-    // Drag is explained on the FORWARD (as-it-happened) order only: the gap
-    // between it and its no-withdrawal twin IS the damage from selling into the
-    // decline. (The reversed no-withdrawal twin would just blow out the scale.)
-    const zp=zeroSpendPlan(p);
-    lines.push({res:runHistoricalPath(zp, startYear, strat), color:SEQ_FWD, dash:false, ghost:true});
-  }
-  drawSeqChart(lines, fwd);
+  drawSeqChart(fwd, rvs);
   renderPrints(fwd, rvs);
   const tag=(SEQ_STARTS.find(o=>o.y===startYear)||{}).tag||'';
   $('#seq-sub').textContent=`Retire into ${startYear} (${tag}) · same yearly returns · only the order differs · today's dollars`;
   $('#seq-legend').innerHTML=
     `<span class="lg"><span class="sw" style="border-color:${SEQ_FWD}"></span>Forward (as it happened)</span>`+
-    `<span class="lg"><span class="sw dash" style="border-color:${SEQ_REV}"></span>Reversed (same returns)</span>`+
-    (seqDrag?`<span class="lg"><span class="sw dot" style="border-color:${SEQ_FWD}"></span>Forward · no withdrawals</span>`:'');
+    `<span class="lg"><span class="sw dash" style="border-color:${SEQ_REV}"></span>Reversed (same returns)</span>`;
 }
-function drawSeqChart(lines, fwd){
+function drawSeqChart(fwd, rvs){
   const svg=$('#seq-svg'),W=1000,H=320;
   const ageStart=plan.household.primary.currentAge;
   const n=fwd.rows.length;
   const ageEnd=ageStart+n-1;
   let maxBal=1;
-  lines.forEach(L=>L.res.rows.forEach(x=>{ if(x.balance>maxBal) maxBal=x.balance; }));
+  [fwd,rvs].forEach(r=>r.rows.forEach(x=>{ if(x.balance>maxBal) maxBal=x.balance; }));
   maxBal*=1.05;
   const x0=PADL, x1=W-PADR, y0=PADT, y1=H-PADB;
   const X=idx=> x0+(x1-x0)*(idx/(Math.max(1,n-1)));
   const Y=v => y1-(Math.max(0,v)/maxBal)*(y1-y0);
   let h=axes(W,H,ageStart,ageEnd,maxBal);
-  // Ghost (no-withdrawal) lines first so the real paths sit on top.
-  lines.filter(L=>L.ghost).forEach(L=>{
-    const pts=L.res.rows.map((x,i)=>[X(i),Y(x.balance)]);
-    h+=`<path d="${smoothPath(pts)}" fill="none" stroke="${L.color}" stroke-width="1.4" stroke-dasharray="1.5 4" stroke-linecap="round" opacity="0.5"/>`;
-  });
-  lines.filter(L=>!L.ghost).forEach(L=>{
+  [{res:fwd,dash:false},{res:rvs,dash:true}].forEach(L=>{
     const pts=L.res.rows.map((x,i)=>[X(i),Y(x.balance)]);
     const da=L.dash?' stroke-dasharray="7 5"':'';
-    h+=`<path d="${smoothPath(pts)}" fill="none" stroke="${L.color}" stroke-width="2.4"${da} stroke-linejoin="round" stroke-linecap="round"/>`;
+    h+=`<path d="${smoothPath(pts)}" fill="none" stroke="${L.dash?SEQ_REV:SEQ_FWD}" stroke-width="2.4"${da} stroke-linejoin="round" stroke-linecap="round"/>`;
   });
   svg.innerHTML=h;
 }
@@ -2451,13 +2414,6 @@ $('#cf-btn').onclick=()=>{
   d.hidden = !d.hidden;
   $('#cf-btn').textContent = d.hidden ? 'Show year-by-year cash flow ▾' : 'Hide cash flow ▴';
   if(!d.hidden) renderCashflow();
-};
-// Withdrawal-drag toggle on the Sequencing tab.
-$('#seq-drag').onclick=()=>{
-  seqDrag=!seqDrag;
-  $('#seq-drag').classList.toggle('on', seqDrag);
-  $('#seq-drag').textContent = seqDrag ? 'Hide withdrawal drag' : 'Show withdrawal drag';
-  runSeq();
 };
 
 buildLevers();
