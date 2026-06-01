@@ -19,11 +19,33 @@ CODING: how you ARM the float lever (tap a lever to select it as the unknown?).
 That interaction is the whole feature — nail it on paper first.
 
 
-## Big feature — SOLVE FOR mode (the thing that makes Parallax different)
+## Big feature — SOLVE FOR mode (NEXT — sharpened spec)
 The "so what, everyone has scenarios" problem. Every tool runs FORWARD: move
 levers → watch the %. That's a toy. The advisor's real job is BACKWARD:
 "retire at 62 at 90% confidence — what spending does that take?" = SOLVE-FOR.
 Client states the GOAL, engine finds the LEVER.
+
+### Sharpened scope (revised 2026-06 after Nathan's eMoney + beach-house catch)
+- NOT a generic "solve any lever" feature. That's a tech demo. The value is
+  answering the 2-3 questions clients actually ask, and making the trade-off
+  between them visible (Nathan's example: client wanted early retirement AND a
+  $1M beach house — can't have both; advisor's job is showing why).
+- Solve-For = a small palette of NAMED LIFE QUESTIONS:
+  1. "Can I retire earlier?"  ← build FIRST
+  2. "Can we afford this big goal?" (one-time event: house, college, wedding)
+  3. (later) "Can we spend more in retirement?"
+- ON-DEMAND, never precompute. Each solver is one engine job per click (eMoney
+  pattern, ~3s with a spinner). Scales — adding solvers doesn't slow the page.
+  Kills Nathan's "all those calcs at once makes me nervous" concern.
+- OUTPUT = a new scenario column. Solver = scenario generator. "Solve early
+  retirement" creates a column "Retire at 62" with solved levers filled in,
+  sitting next to Baseline. Trade-off IS the comparison. No new viz/tab/mode.
+  Fits the saveable-scenarios foundation we just built.
+- TERSE output (Nathan's rule): if a lever can't reach the target alone, the
+  row just shows the highest % it CAN reach (e.g. "79%"). No explanatory
+  sentence — the advisor narrates, the program shows truth (doctrine #2).
+- ONE WISH at a time first; layering multiple wishes ("early retire AND beach
+  house") is a v2 feature once v1 proves the pattern.
 
 Why it's on-doctrine, not bolt-on:
 - Most tools can't do solve-for credibly — their engine is too weak to trust the
