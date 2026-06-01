@@ -70,7 +70,7 @@ body{background:radial-gradient(1200px 600px at 88% -12%, var(--gold-glow), tran
 .lev-name{display:flex;align-items:center;border-right:1px solid var(--rule-faint);border-bottom:1px solid var(--rule-faint);padding:0 14px;min-height:74px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-mute);font-weight:500;line-height:1.3}
 .lev-cell{display:flex;flex-direction:column;justify-content:center;gap:10px;border-right:1px solid var(--rule-faint);border-bottom:1px solid var(--rule-faint);padding:0 14px;min-height:74px}
 .lev-cell.base{background:rgba(63,107,120,.04)}
-.scn-levers > :nth-child(4n){border-right:none}
+.scn-levers .lev-cell.col-last{border-right:none}
 .lev-val{font-family:'Inter';font-size:17px;font-weight:600;color:var(--ink-bright);display:flex;align-items:baseline;gap:6px}
 .lev-val.base{color:var(--teal-bright)}
 .lev-val .unit{font-size:10px;color:var(--ink-faint);font-weight:500;letter-spacing:.04em}
@@ -160,7 +160,9 @@ body{background:radial-gradient(1200px 600px at 88% -12%, var(--gold-glow), tran
 .cf-table th.age, .cf-table td.age{position:sticky;left:0;background:var(--surface);text-align:left;color:var(--ink);font-weight:600;z-index:1}
 .cf-table thead th.age{background:var(--surface-2)}
 .cf-table td.dim{color:var(--ink-faint)}
-.cf-ga{background:rgba(169,213,207,.05)} .cf-gb{background:rgba(240,199,115,.05)} .cf-gc{background:rgba(157,180,224,.05)}
+/* Alternating per-scenario column tint in the cash-flow table — two faint
+   washes that cycle regardless of how many scenarios there are. */
+.cf-g0{background:rgba(63,107,120,.045)} .cf-g1{background:rgba(154,115,34,.05)}
 .cf-table tr.retire td{border-top:1px dashed var(--gold);}
 .cf-table tr.retire td.age::after{content:'  retire';color:var(--gold);font-size:10px;font-weight:500;letter-spacing:.1em}
 
@@ -1354,9 +1356,15 @@ plan.income.pension = { benefitByAge: { 62: 36000, 63: 38160, 64: 40320, 65: 424
 plan.savings.annual      = 30000;
 plan.simulation.iterations = 1000;
 
-// Scenario line trio — brass / steel-teal / dusty mauve. Matches --s1/2/3.
-// No green: the old mint/sage read as "Tron" on some displays.
-const COLHEX=['#9a7322','#3f6b78','#7d5a82'];
+// Scenario accent palette. Brass / steel-teal / dusty mauve are the core trio
+// (matches --s1/2/3); two more earthy tones extend it when the advisor adds a
+// 4th/5th scenario. colorFor() cycles the palette so any count gets a color.
+// No green here (reserved for the success language) and no mint.
+const SCEN_PALETTE=['#9a7322','#3f6b78','#7d5a82','#6f7a52','#9a5a3f'];
+const colorFor=i=>SCEN_PALETTE[i % SCEN_PALETTE.length];
+const MAX_SCENARIOS=5;
+// Back-compat alias for code that still reads COLHEX by index.
+const COLHEX=SCEN_PALETTE;
 
 /* The three scenario columns. Each holds lever values + its last engine result.
    lever values are the ACTUAL planning values (age, $, etc.), not slider ticks. */
@@ -1703,7 +1711,17 @@ function ring(pct){
     <circle cx="50" cy="50" r="${r}" fill="none" stroke="${col}" stroke-width="4" stroke-linecap="round"
       stroke-dasharray="${c}" stroke-dashoffset="${off}" transform="rotate(-90 50 50)" style="transition:stroke-dashoffset .7s cubic-bezier(.4,0,.2,1)"/></svg>`;
 }
+// The band / levers / foot are CSS grids whose column count must match the
+// number of scenarios. One place sets it (label gutter + N equal columns) so
+// adding/removing a scenario reflows all three rows together.
+function syncGridCols(){
+  const tpl=`148px repeat(${scenarios.length},1fr)`;
+  ['#scn-band','#scn-levers','#scn-foot'].forEach(sel=>{
+    const el=$(sel); if(el) el.style.gridTemplateColumns=tpl;
+  });
+}
 function renderBand(){
+  syncGridCols();
   let h=`<div class="band-cell label"><span>Scenario</span></div>`;
   scenarios.forEach(s=>{
     const sr=s.res?s.res.successRate:0;
@@ -1747,12 +1765,14 @@ function renderLevValue(cfg, lev){
   return `${val}${unit?` <span class="unit">${unit}</span>`:''}`;
 }
 function buildLevers(){
+  syncGridCols();
   let h='';
   LEVCFG.forEach(cfg=>{
     h+=`<div class="lev-name">${cfg.name}</div>`;
     const r=levRange(cfg);
     scenarios.forEach((s,ci)=>{
-      h+=`<div class="lev-cell ${s.base?'base':''}">
+      const last=ci===scenarios.length-1?'col-last':'';
+      h+=`<div class="lev-cell ${s.base?'base':''} ${last}">
         <span class="lev-val ${s.base?'base':''}" id="lv-${ci}-${cfg.key}">${renderLevValue(cfg,s.lev)}</span>
         <input class="lev-slider ${s.base?'base-lock':''}" type="range" min="${r.min}" max="${r.max}" step="${r.step}"
                value="${Math.max(r.min,Math.min(r.max,s.lev[cfg.key]))}" data-col="${ci}" data-key="${cfg.key}">
@@ -1841,6 +1861,7 @@ $('#scn-levers').addEventListener('change', e=>{
   $('#status').textContent='Adjusted · Run to update';
 });
 function renderFoot(){
+  syncGridCols();
   let h=`<div class="foot-cell" style="color:var(--ink-faint)">Median end</div>`;
   scenarios.forEach(s=>{
     // Match the LINE: this is where the drawn median path actually ends.
@@ -1906,10 +1927,10 @@ function renderCashflow(){
   const drawer = $('#cf-drawer');
   if(drawer.hidden) return;   // only render when open; runAll re-renders if so
   const rowsByScen = scenarios.map(s => (s.res && s.res.paths && s.res.paths.p50) ? s.res.paths.p50.rows : []);
-  const gcls = ['cf-ga','cf-gb','cf-gc'];
+  const gcls = scenarios.map((_,i)=>`cf-g${i%2}`);
   let h = '<table class="cf-table"><thead><tr><th class="age" rowspan="2">Age</th>';
   scenarios.forEach((s,i)=>{
-    h += `<th class="scen ${gcls[i]}" colspan="3" style="color:${COLHEX[i]}">${s.name}</th>`;
+    h += `<th class="scen ${gcls[i]}" colspan="3" style="color:${colorFor(i)}">${s.name}</th>`;
   });
   h += '</tr><tr>';
   scenarios.forEach((s,i)=>{
