@@ -2532,18 +2532,25 @@ function drawSeqChart(runs, retAge){
   // Endpoint treatment (outside the clip so labels are never cut): a ✕ where a
   // line runs dry, a dot where it survives — each tagged with its market year so
   // the eye never has to leave the chart for the legend.
+  // Markers first: ✕ where a line runs dry, a dot where it survives.
   ends.forEach(e=>{
-    const px=e.px.toFixed(1);
     if(e.dep){
       const s=3.6;
       h+=`<path d="M ${(e.px-s).toFixed(1)} ${(e.py-s).toFixed(1)} L ${(e.px+s).toFixed(1)} ${(e.py+s).toFixed(1)} M ${(e.px-s).toFixed(1)} ${(e.py+s).toFixed(1)} L ${(e.px+s).toFixed(1)} ${(e.py-s).toFixed(1)}" stroke="${e.c}" stroke-width="1.8" stroke-linecap="round"/>`;
-      h+=`<text x="${px}" y="${(e.py-11).toFixed(1)}" fill="${e.c}" font-size="12" font-family="Sora" font-weight="600" text-anchor="middle">${e.y}</text>`;
     } else {
-      h+=`<circle cx="${px}" cy="${e.py.toFixed(1)}" r="2.6" fill="${e.c}" stroke="var(--surface)" stroke-width="1.3"/>`;
-      const ly = e.py>y0+22 ? e.py-9 : e.py+18;
-      h+=`<text x="${(e.px-7).toFixed(1)}" y="${ly.toFixed(1)}" fill="${e.c}" font-size="12" font-family="Sora" font-weight="600" text-anchor="end">${e.y}</text>`;
+      h+=`<circle cx="${e.px.toFixed(1)}" cy="${e.py.toFixed(1)}" r="2.6" fill="${e.c}" stroke="var(--surface)" stroke-width="1.3"/>`;
     }
   });
+  // Survivor labels bunch at the right edge — de-collide them vertically so the
+  // years never stack into a jumble. Sort by y, then push any that are too close.
+  const GAP=14;
+  const surv=ends.filter(e=>!e.dep)
+    .map(e=>({e, ly:(e.py>y0+22 ? e.py-9 : e.py+18)}))
+    .sort((a,b)=>a.ly-b.ly);
+  for(let i=1;i<surv.length;i++) if(surv[i].ly-surv[i-1].ly<GAP) surv[i].ly=surv[i-1].ly+GAP;
+  surv.forEach(({e,ly})=>{ h+=`<text x="${(e.px-7).toFixed(1)}" y="${Math.min(y1,ly).toFixed(1)}" fill="${e.c}" font-size="12" font-family="Sora" font-weight="600" text-anchor="end">${e.y}</text>`; });
+  // Depleted labels sit above their ✕ (spread along the floor, rarely collide).
+  ends.filter(e=>e.dep).forEach(e=>{ h+=`<text x="${e.px.toFixed(1)}" y="${(e.py-11).toFixed(1)}" fill="${e.c}" font-size="12" font-family="Sora" font-weight="600" text-anchor="middle">${e.y}</text>`; });
   svg.innerHTML=h;
 }
 // Path fingerprint — facts read straight off the engine result. One card per real
