@@ -59,8 +59,19 @@ body{background:radial-gradient(1200px 600px at 88% -12%, var(--gold-glow), tran
 .band-cell.base{background:rgba(63,107,120,.05)}
 .band-cell.label{align-items:flex-start;justify-content:flex-end}
 .band-cell.label span{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-mute);font-weight:500}
-.col-name{font-size:11.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-bright);font-weight:600;text-align:center}
+.col-name{font-size:11.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-bright);font-weight:600;text-align:center;display:flex;align-items:center;justify-content:center;gap:7px}
 .col-name.base-tag{color:var(--teal-bright)}
+.col-dot{width:8px;height:8px;border-radius:50%;flex:0 0 auto}
+/* Inline rename field — looks like the label until focused, then shows it's
+   editable. Sized to content via a generous max so longer names fit. */
+.col-rename{font-family:'Sora';font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;font-weight:600;color:var(--ink-bright);background:transparent;border:none;border-bottom:1px dashed transparent;text-align:center;width:128px;padding:1px 2px;outline:none}
+.col-rename:hover{border-bottom-color:var(--rule-bright)}
+.col-rename:focus{border-bottom-color:var(--gold)}
+.col-x{background:none;border:none;color:var(--ink-faint);font-size:11px;cursor:pointer;padding:0 2px;line-height:1;opacity:0;transition:opacity .15s,color .15s}
+.band-cell:hover .col-x{opacity:1}
+.col-x:hover{color:var(--negative-bright)}
+.add-scen{margin-top:8px;background:none;border:1px dashed var(--rule-bright);color:var(--ink-mute);font-family:'Sora';font-size:10px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;padding:5px 10px;border-radius:4px;cursor:pointer;display:block}
+.add-scen:hover{border-color:var(--gold);color:var(--gold)}
 .circle-wrap{position:relative;width:118px;height:118px}
 .circle-val{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
 .circle-val .big{font-size:28px;font-weight:400;line-height:1;font-family:'Inter';letter-spacing:-.01em}
@@ -1396,20 +1407,68 @@ function syncPension(L){
   const lo = a.length ? a[0] : 62, hi = a.length ? a[a.length-1] : 65;
   L.pensionAge = Math.max(lo, Math.min(hi, L.retireAge));
 }
-// All three scenarios start identical — same levers, same results.
-// The advisor moves levers to show the effect of each decision.
-// Allocation is just one of the levers (risk slider), not the column identity.
-const scenarios=[
-  {name:'Baseline',   base:true, lev:defaultLevers(), res:null},
-  {name:'Scenario B', base:false, lev:defaultLevers(), res:null},
-  {name:'Scenario C', base:false, lev:defaultLevers(), res:null},
-];
-// Demo deltas so the tool opens telling a story (advisor adjusts from here):
-//  B = retire 2 years later  -> security clearly improves (higher success).
-//  C = aggressive allocation -> wealth line jumps, but success does NOT improve
-//      (volatility drag). The teaching moment: more return != more safety.
-scenarios[1].lev.retireAge = 67;
-scenarios[2].lev.risk      = 5;
+// ── Scenario persistence (browser localStorage) ──────────────────────────
+// We save only the durable parts (name/base/lev) — never res (recomputed on
+// Run). Wrapped in try/catch so a corrupt/blocked store never breaks the app.
+const SCEN_KEY='parallax.scenarios.v1';
+function saveScenarios(){
+  try{
+    const slim=scenarios.map(s=>({name:s.name, base:!!s.base, lev:s.lev}));
+    localStorage.setItem(SCEN_KEY, JSON.stringify(slim));
+  }catch(e){/* storage full/blocked — stay in-memory, no crash */}
+}
+function loadScenarios(){
+  try{
+    const raw=localStorage.getItem(SCEN_KEY);
+    if(!raw) return null;
+    const arr=JSON.parse(raw);
+    if(!Array.isArray(arr) || !arr.length || !arr[0].base) return null;  // sanity
+    // Backfill any lever keys added since the save (forward-compat) so old saves
+    // don't break when defaultLevers() grows new fields.
+    const proto=defaultLevers();
+    return arr.map(s=>({ name:String(s.name||'Scenario'), base:!!s.base,
+                         lev:{...proto, ...s.lev}, res:null }));
+  }catch(e){ return null; }
+}
+// Wipe saved state and return to the first-run demo (escape hatch).
+function resetScenarios(){
+  try{ localStorage.removeItem(SCEN_KEY); }catch(e){}
+  scenarios=demoScenarios(); baseSnapshot=defaultLevers();
+  buildLevers(); plansDirty=true; runAll();
+}
+// Add a new scenario (clones the current baseline's levers so it starts as a
+// neutral copy the advisor then adjusts). Capped at MAX_SCENARIOS.
+function addScenario(){
+  if(scenarios.length>=MAX_SCENARIOS) return;
+  const baseLev=scenarios.find(s=>s.base)?.lev || defaultLevers();
+  const n=scenarios.filter(s=>!s.base).length;
+  scenarios.push({ name:`Scenario ${String.fromCharCode(66+n)}`, base:false,
+                   lev:JSON.parse(JSON.stringify(baseLev)), res:null });
+  saveScenarios(); buildLevers(); plansDirty=true; runAll();
+}
+// Remove a non-baseline scenario by index.
+function removeScenario(ci){
+  if(ci<=0 || ci>=scenarios.length || scenarios[ci].base) return;
+  scenarios.splice(ci,1);
+  saveScenarios(); buildLevers(); plansDirty=true; runAll();
+}
+
+// Scenarios are NAMED, SAVEABLE objects (the household-centric data root). They
+// start identical; the advisor moves levers to show each decision's effect, and
+// can rename / add / remove them. Both tabs read this shared set.
+// The first-run demo set tells a story: B retires 2yr later (security improves),
+// C goes aggressive (wealth line jumps, success does NOT — volatility drag).
+function demoScenarios(){
+  const s=[
+    {name:'Baseline',   base:true,  lev:defaultLevers(), res:null},
+    {name:'Scenario B', base:false, lev:defaultLevers(), res:null},
+    {name:'Scenario C', base:false, lev:defaultLevers(), res:null},
+  ];
+  s[1].lev.retireAge = 67;
+  s[2].lev.risk      = 5;
+  return s;
+}
+let scenarios = loadScenarios() || demoScenarios();
 
 /* Map a scenario's levers -> engine override object. */
 function leversToOverrides(L){
@@ -1723,17 +1782,27 @@ function syncGridCols(){
 function renderBand(){
   syncGridCols();
   let h=`<div class="band-cell label"><span>Scenario</span></div>`;
-  scenarios.forEach(s=>{
+  scenarios.forEach((s,ci)=>{
     const sr=s.res?s.res.successRate:0;
     const col= sr>=85?'var(--positive-bright)':sr>=70?'var(--gold-bright)':'var(--negative-bright)';
-    // No "+x pts vs base" line — the deltas between circles are obvious math the
-    // advisor and client can read off the % themselves; the label was clutter.
+    // Header: a small identity dot (column color) + the name. Baseline's name is
+    // locked (the anchor); other scenarios render an inline editable field so the
+    // advisor can label them ("Retire at 62"). A ✕ removes non-baseline columns.
+    const dot=`<span class="col-dot" style="background:${colorFor(ci)}"></span>`;
+    const nameEl = s.base
+      ? `<span class="col-name base-tag">${dot}${s.name}</span>`
+      : `<span class="col-name">${dot}<input class="col-rename" data-col="${ci}" value="${s.name.replace(/"/g,'&quot;')}" maxlength="28" aria-label="Scenario name"><button class="col-x" data-col="${ci}" title="Remove scenario">✕</button></span>`;
     h+=`<div class="band-cell ${s.base?'base':''}">
-      <span class="col-name ${s.base?'base-tag':''}">${s.name}</span>
+      ${nameEl}
       <div class="circle-wrap">${ring(sr)}
         <div class="circle-val"><span class="big" style="color:${col}">${sr.toFixed(1)}%</span><span class="lbl">Success</span></div></div>
     </div>`;
   });
+  // The "+ Add scenario" affordance lives in the label gutter cell when there's
+  // room (under the cap). Kept compact so it doesn't compete with the columns.
+  if(scenarios.length<MAX_SCENARIOS){
+    h=h.replace('<span>Scenario</span>',`<span>Scenario</span><button class="add-scen" title="Add scenario">+ Add</button>`);
+  }
   $('#scn-band').innerHTML=h;
 }
 
@@ -1801,6 +1870,9 @@ function buildLevers(){
       $(`#lv-${ci}-${key}`).innerHTML=renderLevValue(cfg, L);
       $('#status').textContent='Adjusted · Run to update';
     });
+    // Persist on drag-end (change), not on every input tick, to avoid thrashing
+    // localStorage during a slider drag.
+    sl.addEventListener('change', saveScenarios);
   });
 }
 // Inline pension-amount inputs are inserted dynamically when a slider lands on
@@ -1809,6 +1881,29 @@ function buildLevers(){
 // Typed value writes into the plan's benefit-by-age map for that exact age,
 // then every column refreshes (the amount is reference data shared across
 // scenarios — the DECISION is the age, not the amount).
+// ── Scenario header: rename / add / remove (delegated on #scn-band) ──
+$('#scn-band').addEventListener('input', e=>{
+  if(e.target.classList && e.target.classList.contains('col-rename')){
+    const ci=+e.target.dataset.col;
+    if(scenarios[ci]) scenarios[ci].name=e.target.value;   // live; persisted on change
+  }
+});
+$('#scn-band').addEventListener('change', e=>{
+  if(e.target.classList && e.target.classList.contains('col-rename')){
+    const ci=+e.target.dataset.col;
+    let nm=e.target.value.trim();
+    if(!nm){ nm=`Scenario ${String.fromCharCode(65+ci)}`; e.target.value=nm; }  // never blank
+    if(scenarios[ci]) scenarios[ci].name=nm;
+    saveScenarios();
+    // Cash-flow header + Sequencing selector read names — refresh those.
+    renderCashflow(); buildSeqSelect();
+  }
+});
+$('#scn-band').addEventListener('click', e=>{
+  const x=e.target.closest('.col-x');
+  if(x){ removeScenario(+x.dataset.col); return; }
+  if(e.target.closest('.add-scen')){ addScenario(); return; }
+});
 // Live commas while typing into any inline numeric input (pension + lever boxes).
 $('#scn-levers').addEventListener('input', e=>{
   const t=e.target;
@@ -1848,6 +1943,7 @@ $('#scn-levers').addEventListener('change', e=>{
   const sl=$(`#scn-levers .lev-slider[data-col="${ci}"][data-key="${dispCfg.key}"]`);
   if(sl){ const r=levRange(dispCfg); sl.value=Math.max(r.min,Math.min(r.max,L[dispCfg.key])); }
   $('#status').textContent='Adjusted · Run to update';
+  saveScenarios();
 });
 $('#scn-levers').addEventListener('change', e=>{
   if(!e.target.classList || !e.target.classList.contains('pen-in')) return;
