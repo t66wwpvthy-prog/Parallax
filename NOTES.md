@@ -112,6 +112,15 @@ The toggle (Nathan wants it slick/clever, easy to find, neat transition):
   drawer shows a plain empty-state message instead of a headers-only blank table.
 
 ## Sequencing tab — v1 built (same returns, different order)
+- Polish (mobile + trust): (a) Sequencing page now scrolls (overflow-y:auto) so
+  the fingerprint cards aren't cut off; (b) "Retire into" expanded from 4 to 10
+  curated real start years (1929–2009, bad+good), default 1973; (c) PULLED the
+  "Deepest drawdown" fingerprint stat — it read as a crash but is really
+  peak-to-final-low erosion over ~37yr (no single dip), and the shared y-axis
+  (scaled to the reversed line's peak) hides it, so the number didn't match the
+  picture = trust killer. Kept the 3 stats that DO line up: first-10yr return
+  (cause), lowest balance (visible floor), outcome. Recoverable if relabeled later.
+
 - Plan selector now HONORS THE FULL SCENARIO (was allocation-only = silently
   fake). Allocation via the plan clone + every other lever via the same
   leversToOverrides mapping the Scenarios tab uses, threaded through a second

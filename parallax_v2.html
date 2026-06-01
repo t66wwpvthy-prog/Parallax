@@ -140,7 +140,7 @@ body{background:radial-gradient(1200px 600px at 88% -12%, var(--gold-glow), tran
 .chart-body svg{width:100%;height:100%;display:block}
 
 /* SEQUENCING */
-.page[data-page="sequencing"]{padding-top:20px}
+.page[data-page="sequencing"]{padding-top:20px;overflow-y:auto}
 .seq-bar{flex:0 0 auto;display:flex;align-items:center;gap:14px;margin:14px 0}
 .seq-pick{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--rule);border-radius:3px;padding:8px 14px}
 .seq-pick .k{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-mute);font-weight:500}
@@ -1280,9 +1280,15 @@ function renderCashflow(){
    reversed (identical returns, opposite sequence). Any difference is pure
    sequence-of-returns risk. Every number on this tab is a direct read of the
    engine's single-path result; the UI computes no balances or metrics. */
+// Curated REAL retirement start years — a mix of brutal and kind markets so the
+// advisor can sequence many real histories, not just four. (Reverse of each is
+// the same returns backwards.) Chronological; default lands on 1973.
 const SEQ_STARTS=[
-  {y:1973, tag:'stagflation'}, {y:2000, tag:'dot-com bust'},
-  {y:1929, tag:'the Crash'},   {y:1982, tag:'bull run'},
+  {y:1929, tag:'the Crash'},      {y:1937, tag:'1937 relapse'},
+  {y:1950, tag:'post-war boom'},  {y:1966, tag:'stagnation'},
+  {y:1973, tag:'stagflation'},    {y:1982, tag:'bull run'},
+  {y:1995, tag:'tech boom'},      {y:2000, tag:'dot-com bust'},
+  {y:2008, tag:'financial crisis'},{y:2009, tag:'recovery'},
 ];
 // Forward = the order history actually delivered (solid, slate). Reversed = the
 // same returns backwards (dashed = a counterfactual, not a real timeline).
@@ -1296,6 +1302,7 @@ function buildSeqSelect(){
   const ys=$('#seq-year');
   if(ys && !ys.options.length){
     ys.innerHTML=SEQ_STARTS.map(o=>`<option value="${o.y}">${o.y} · ${o.tag}</option>`).join('');
+    ys.value='1973';   // canonical bad-sequence default
     ys.onchange=runSeq;
   }
 }
@@ -1351,7 +1358,6 @@ function renderPrints(fwd, rev){
     return `<div class="seq-print">
       <h4><span class="dot${dash?' dash':''}" style="border-color:${color}"></span>${label}</h4>
       <div class="pr-row"><span class="pr-k">First 10 yrs (real, annualized)</span><span class="pr-v">${pct(r.first10Cagr)}</span></div>
-      <div class="pr-row"><span class="pr-k">Deepest drawdown</span><span class="pr-v">-${(r.maxDrawdown*100).toFixed(1)}%</span></div>
       <div class="pr-row"><span class="pr-k">Lowest balance</span><span class="pr-v">${fmtM(r.minBalance)}</span></div>
       <div class="pr-row"><span class="pr-k">Outcome</span><span class="pr-v" style="color:${o.c}">${o.t}</span></div>
     </div>`;
