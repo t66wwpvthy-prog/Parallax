@@ -7,3 +7,4 @@ _*.mjs
 # Reference screenshots (inspiration / competitor UI) are deliberately tracked.
 !reference/
 !reference/**
+verify-out/

@@ -143,6 +143,14 @@ this shared set. This is the long-planned "household-centric data root."
 - Charts: lines must be smooth and trackable. Earlier attempts were too wide /
   jagged ("looks like a toddler drew it"). Tight spacing, smooth curves.
 - No monospace/code fonts anywhere — theme text only.
+- The cash-flow drawer once shipped at 2-pixel height for ~10 messages because
+  the DOM said "rendered" and nobody looked at the rendered layout. **Logic
+  checks lie; pixels don't.** Before claiming any UI/visual task is done, run
+  `node scripts/verify.mjs` and look at the screenshots in `verify-out/`. This
+  is the verify-before-claim rule — non-negotiable for visual work.
+- GitHub Pages serves `main`, but feature work happens on a `claude/*` branch.
+  Push to BOTH every time, or the live site goes stale and the next session
+  spends an hour fighting a ghost. Use the `/ship` skill.
 
 ## Theme tokens (dark "Sage-Brass")
 Background `#0b1118` / deep `#070b10`; surfaces `#101820`/`#151f2a`; rules `#26313d`.
@@ -158,3 +166,13 @@ gold `#f0c773`, blue `#9db4e0`.
 - Current working prototype: `parallax_v2.html` (single-file; engine is currently
   inlined there). A near-term task is splitting that file so it imports `engine.js`
   and adding `engine.test.js` so the engine can never silently break.
+
+## Skills (slash commands in this repo)
+Three skills live in `.claude/skills/` — invoke them by name:
+- `/verify` — build + engine tests + headless screenshot of every page. Run this
+  before claiming a visual change is done. Screenshots land in `verify-out/`.
+- `/ship` — verify, commit, push to working branch AND main (Pages serves main).
+- `/engine-guard` — run engine.test.js. Use after touching `engine.js`.
+
+The verify probe lives at `scripts/verify.mjs` — runnable directly with
+`node scripts/verify.mjs` from your laptop too.
