@@ -1358,12 +1358,19 @@ function runHistoricalPath(plan, startYear, strategy, transform, overrides){
   // Override strategy for this run
   rawInputs.withdrawalStrategy = strategy;
 
-  // Build deterministic path from startYear forward
+  // Build the path from startYear forward. When we reach the end of the real
+  // record (2025) we WRAP back to its start rather than truncate — the same
+  // cyclic treatment the block-bootstrap Monte Carlo uses, so a recent
+  // retirement year (2000, 2008) still gets a FULL real-return horizon instead
+  // of a stub that ends mid-retirement. Every return remains a real historical
+  // year; only the calendar contiguity breaks at the wrap (invisible on an
+  // age-based axis). The first decade — where sequence risk lives — is always
+  // pre-wrap and fully real.
+  const startIdx = RETURN_DATA.findIndex(r => r.y === startYear);
+  if(startIdx < 0) return null;
   const path = [];
   for(let i = 0; i < rawInputs.horizonYears; i++){
-    const targetYear = startYear + i;
-    const row = RETURN_DATA.find(r => r.y === targetYear);
-    if(!row) break;
+    const row = RETURN_DATA[(startIdx + i) % RETURN_DATA.length];
     const proxy = historicalProxyComponents(row, plan.portfolio.riskProfile);
     path.push({
       ...row,
