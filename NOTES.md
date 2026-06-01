@@ -19,6 +19,39 @@ CODING: how you ARM the float lever (tap a lever to select it as the unknown?).
 That interaction is the whole feature — nail it on paper first.
 
 
+## Screenshot bank — reference & reactions (2026-06, Nathan's idea dump)
+Not building now; captured so the ideas aren't lost. Verdicts are doctrine-first.
+
+1. eMONEY Decision Center (Longevity Risk). STRONGEST signal — it's our parked
+   SOLVE-FOR, already shipping elsewhere: "Run Solver" on Earliest Retirement Age,
+   Maximum Retirement Spending, Minimum Additional Savings. Validates our spec
+   (on-demand, one engine job per click, output = a scenario). STEAL: the solver
+   palette framing. Also the green/yellow/red CONFIDENCE-BY-YEAR bars + a single
+   "Confidence Age (95/94)" — an honest probability-over-time read IF it's real
+   per-year success (no invented score). Could live near Sequencing.
+2. RIGHTCAPITAL Retirement Analysis. The Scenarios/Play-Zone reference we already
+   draw from: Proposed vs Current, % circles + wealth bars, goal sliders,
+   strategy dropdowns. New bits worth noting: LIFESTYLE-GOALS slider (matches the
+   banked lifestyle-goals input) and a DEBT-STRATEGY dropdown (pairs with the new
+   liabilities engine — a future "how to fund/pay down" lever).
+3. FINANCIALALPHA Retirement Planning. Tile dashboard. Worth stealing the HONEST
+   tiles: "Portfolio lasts YES/NO", "Max sustainable withdrawal %", "Longevity
+   buffer +14 yrs", "Could retire at 58" (= a solver output). AVOID the rule-of-
+   thumb gimmicks ("25x target", canned "All scenarios pass"). Its multi-line
+   "Portfolio Balance Over Retirement" (Conservative/Base/Optimistic + "Bridge
+   before Pension") ~ our Sequencing shell; the BRIDGE-YEARS concept (the gap
+   before SS/pension starts) is a real, showable truth worth a view someday.
+4. WEALTHCARE "Ultimate Retirement Checklist" (Russ Thornton; staged 5yr→annual,
+   age-tagged). A client-facing CONTENT/action-items artifact, not a sim feature.
+   Bank under the parked narrative/action-items layer — the advisor's deliverable,
+   not the engine's. Type style there: Playfair Display + DM Sans (we stay Sora/
+   Inter). Low priority for the engine-driven core.
+
+Cross-cutting takeaways: (a) Solve-For keeps showing up — it's the real
+differentiator, build it well when we get there. (b) "Honest derived tiles"
+(buffer, max withdrawal, could-retire-at) are cheap reads off existing engine
+output and on-doctrine. (c) Bridge-years (pre-SS/pension gap) is a latent view.
+
 ## Banked — bigger build-outs (Nathan's running list, 2026-06)
 - REAL ASSETS in the engine (homes, property, business). Unlocks "sell asset X to
   fund goal Y" — deliberately NOT built yet (the engine only knows taxable/
