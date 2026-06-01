@@ -19,6 +19,36 @@ CODING: how you ARM the float lever (tap a lever to select it as the unknown?).
 That interaction is the whole feature — nail it on paper first.
 
 
+## Banked — bigger build-outs (Nathan's running list, 2026-06)
+- REAL ASSETS in the engine (homes, property, business). Unlocks "sell asset X to
+  fund goal Y" — deliberately NOT built yet (the engine only knows taxable/
+  traditional/Roth; funding from the portfolio already works via lump sum). Pairs
+  with the parked Net Worth input (Money Pro balance-details layout).
+- LIFESTYLE GOALS inputs (dedicated goal entry beyond the flat goals bucket).
+- SOPHISTICATED TAX-PLANNING ENGINE (Roth conversions, bracket management, RMDs,
+  IRMAA, etc.) — its own engine, big.
+- Map out what OTHER engines we'll eventually need (tax, estate, ...?) before
+  building piecemeal.
+- Nathan to send a LIBRARY OF SCREENSHOTS (reference material — incoming).
+
+## DONE — recurring liabilities (engine, 2026-06)
+- New plan field `liabilities: [{label, amount, startAge, endAge, colaPct}]`. A
+  fixed mortgage = 0% COLA, which the real-dollar engine erodes at
+  −LONGRUN_INFLATION (gets cheaper in real terms), eroded from its OWN start age.
+  Not scaled by the spend lever (fixed obligation). Charged in the retirement
+  loop like other expenses (working years covered by income, per engine design).
+- Also fixed: a pre-retirement lumpSum was IGNORED in accumulation — now a
+  purchase-now debits the portfolio (taxable→trad→Roth, principal only).
+- Vacation-home test case (correct model): $200k now + $48k/mo*... $48k/yr
+  mortgage → Baseline survives 7/9 markets, with the home only 3/9. The drag is
+  the retirement withdrawal, not the entry balance.
+- NOT yet wired into the UI. OPEN: liability as a BASE-PLAN input (Inputs tab) or
+  a PER-SCENARIO construct (so Baseline-vs-Vacation compares cleanly)? Use-case
+  says per-scenario, but the slider lever-table is awkward for a 4-field item.
+- Engine verified: 13/13 tests; all risk profiles + all 98 historical start years
+  (incl. wrap) clean, no NaN/negative; liability edge cases safe; seeded
+  determinism holds; app builds + loads with zero JS errors.
+
 ## Big feature — SOLVE FOR mode (NEXT — sharpened spec)
 The "so what, everyone has scenarios" problem. Every tool runs FORWARD: move
 levers → watch the %. That's a toy. The advisor's real job is BACKWARD:

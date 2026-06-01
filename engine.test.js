@@ -6,7 +6,7 @@ import { test } from 'node:test';
 import assert from 'node:assert';
 import {
   RETURN_DATA, RISK_PROFILES, generateReturnPath, runSimulation,
-  runHistoricalPath, resolveInputs, defaultPlan
+  runHistoricalPath, resolveInputs, defaultPlan, LONGRUN_INFLATION
 } from './engine.js';
 
 test('return data spans the full history', () => {
@@ -96,4 +96,53 @@ test('pension uses discrete benefit-by-age map', () => {
   assert.strictEqual(at62.pension.amount, 36000, 'age 62 → entered $36k');
   assert.strictEqual(at64.pension.amount, 0,     'age 64 has no entry → 0, never invented');
   assert.strictEqual(at62.pension.startAge, 62,  'pensionStartAge override sets start age');
+});
+
+// ── Recurring liabilities (e.g. a mortgage) ─────────────────────────────────
+// A time-bounded fixed obligation must (1) reduce the portfolio while active,
+// (2) erode in real terms when colaPct=0 (a fixed-nominal payment gets cheaper),
+// and (3) stop at endAge. Modeled like the pension's nominal→real conversion.
+test('resolveInputs converts a 0%-COLA liability to a real-eroding stream', () => {
+  const p = JSON.parse(JSON.stringify(defaultPlan));
+  p.liabilities = [{ label:'mortgage', amount:48000, startAge:65, endAge:94, colaPct:0 }];
+  const r = resolveInputs(p, {});
+  assert.strictEqual(r.liabilities.length, 1, 'liability resolved');
+  assert.ok(Math.abs(r.liabilities[0].colaReal - (-LONGRUN_INFLATION)) < 1e-9,
+    '0% COLA → colaReal = −LONGRUN_INFLATION (erodes in real terms)');
+  assert.strictEqual(r.liabilities[0].amount, 48000, 'amount preserved');
+});
+
+test('a recurring liability lowers retirement wealth and stops at endAge', () => {
+  const base = JSON.parse(JSON.stringify(defaultPlan));   // retire-now (65), funded
+  const mort = JSON.parse(JSON.stringify(defaultPlan));
+  mort.liabilities = [{ label:'mortgage', amount:48000, startAge:65, endAge:80, colaPct:0 }];
+  const b = runHistoricalPath(base, 1995, 'taxable-first');
+  const m = runHistoricalPath(mort, 1995, 'taxable-first');
+  assert.ok(m.terminalBalance < b.terminalBalance - 1, 'mortgage must lower ending wealth');
+  // the liability appears in active years and is gone after endAge
+  const active = m.rows.find(r => r.age === 70);
+  const after  = m.rows.find(r => r.age === 85);
+  assert.ok(active && active.liabilities > 0, 'liability charged while active (age 70)');
+  assert.ok(after && (after.liabilities || 0) === 0, 'liability gone after endAge (age 85)');
+  // real erosion: the charge at 75 is smaller than at 65 (fixed nominal shrinks)
+  const at65 = m.rows.find(r => r.age === 65).liabilities;
+  const at75 = m.rows.find(r => r.age === 75).liabilities;
+  assert.ok(at75 < at65, 'a fixed-nominal liability erodes in real terms over time');
+});
+
+test('a pre-retirement lump sum debits the portfolio (no longer ignored in accumulation)', () => {
+  const p = JSON.parse(JSON.stringify(defaultPlan));
+  p.household.primary = { currentAge: 58, retirementAge: 65, planEndAge: 95 };
+  const base = runHistoricalPath(p, 1995, 'taxable-first');
+  const buy  = runHistoricalPath(p, 1995, 'taxable-first', undefined, { lumpSum: 200000, lumpSumYear: 0 });
+  assert.ok(buy.terminalBalance < base.terminalBalance - 1,
+    'a $200k purchase at current age (accumulation) must reduce ending wealth');
+});
+
+test('empty liabilities = byte-identical to before (no regression)', () => {
+  const p = JSON.parse(JSON.stringify(defaultPlan));
+  const withEmpty = runHistoricalPath(p, 1973, 'taxable-first');
+  p.liabilities = [];
+  const explicit = runHistoricalPath(p, 1973, 'taxable-first');
+  assert.strictEqual(withEmpty.terminalBalance, explicit.terminalBalance, 'no liabilities → unchanged');
 });

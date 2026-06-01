@@ -419,6 +419,12 @@ const plan = {
     pension:        { benefitByAge: {}, base: 0, startAge: 65, colaPct: 0 }
   },
   expenses:   { living: 188000, housing: 0, debt: 0, healthcare: 12000 },
+  // Recurring time-bounded obligations (a mortgage, a car loan, a tuition plan).
+  // Each: { label, amount ($/yr, today's dollars), startAge, endAge, colaPct }.
+  // colaPct is the NOMINAL annual escalator like the pension: 0 = a fixed-nominal
+  // payment, which the real-dollar engine erodes at −LONGRUN_INFLATION (a fixed
+  // mortgage gets cheaper in real terms over its term). Empty by default.
+  liabilities: [],
   ltc:        { amount: 0, onsetAge: 85 },   // flat long-term-care cost ($/yr) from onsetAge onward
   goals:      { vacation: 15000, property: 10000, gifts: 5000 },
   taxes:      { ordinary: 22, capitalGains: 15 },
@@ -624,6 +630,15 @@ function resolveInputs(plan, ov){
       debt:       plan.expenses.debt       * spendMult,
       healthcare: plan.expenses.healthcare * spendMult
     },
+    // Recurring liabilities (e.g. a mortgage). NOT scaled by spendMult — a fixed
+    // obligation isn't discretionary spending. colaReal mirrors the pension:
+    // nominal escalator − inflation, so a 0%-COLA debt erodes in real terms.
+    liabilities: (plan.liabilities || []).map(L => ({
+      amount:   Math.max(0, L.amount || 0),
+      startAge: (L.startAge != null ? L.startAge : 0),
+      endAge:   (L.endAge   != null ? L.endAge   : 999),
+      colaReal: ((L.colaPct || 0) / 100) - LONGRUN_INFLATION
+    })),
     healthcareMult: 1 + (ov.healthcareAdj || 0),
     goals:          { ...plan.goals },
     // Tax rates split: ordinary income (for traditional withdrawals and SS),
@@ -684,6 +699,22 @@ function runSinglePath(p, returnPath){
       accounts.taxable.balance     *= (1 + r);
       accounts.roth.balance        *= (1 + r);
       accounts.traditional.balance  = accounts.traditional.balance * (1 + r) + (p.savingsAnnual / 12) * accFactor;
+      // One-time capital outlay (e.g. a home purchase) during working years. The
+      // engine assumes salary covers recurring costs while working, but a large
+      // purchase is funded by liquidating investments — taxable first, then
+      // traditional, then Roth. (Simplification: principal only, no cap-gains tax
+      // on the sale — small vs the outlay and consistent with the accum model.)
+      const lumpA = (p.lumpSum > 0 && y === p.lumpSumYear) ? p.lumpSum : 0;
+      if(lumpA > 0){
+        let rem = lumpA;
+        if(rem > 0 && accounts.taxable.balance > 0){
+          const take = Math.min(accounts.taxable.balance, rem);
+          accounts.taxable.basis *= (accounts.taxable.balance - take) / accounts.taxable.balance;
+          accounts.taxable.balance -= take; rem -= take;
+        }
+        if(rem > 0){ const take = Math.min(accounts.traditional.balance, rem); accounts.traditional.balance -= take; rem -= take; }
+        if(rem > 0){ const take = Math.min(accounts.roth.balance, rem);        accounts.roth.balance        -= take; rem -= take; }
+      }
       const endBalanceA = totalBalance();
       if(y === 9) balanceAt10 = endBalanceA;
       if(endBalanceA < minBalance) minBalance = endBalanceA;
@@ -692,9 +723,9 @@ function runSinglePath(p, returnPath){
       rows.push({
         year: y+1, age, source: rp.y, returnRate: r, phase: 'accum',
         socialSecurity: 0, otherIncome: 0, pension: 0, withdrawal: 0,
-        expenses: 0, goals: 0, taxes: 0, savings: p.savingsAnnual,
+        expenses: 0, goals: 0, liabilities: 0, taxes: 0, savings: p.savingsAnnual,
         startBalance: startBalanceA, wdRate: 0,
-        netCashflow: p.savingsAnnual,
+        netCashflow: p.savingsAnnual - lumpA,
         balance: endBalanceA, failed: false,
         accountBreakdown: { taxable: 0, traditional: 0, roth: 0 },
         accountBalances: { taxable: accounts.taxable.balance, traditional: accounts.traditional.balance, roth: accounts.roth.balance },
@@ -715,6 +746,12 @@ function runSinglePath(p, returnPath){
     const expenses = p.expenses.living + p.expenses.housing + p.expenses.debt
                      + p.expenses.healthcare * p.healthcareMult + ltcCost;
     const goalsY   = p.goals.vacation + p.goals.property + p.goals.gifts;
+    // Recurring liabilities active at this age, each eroded in real terms from
+    // its OWN start age (a fixed mortgage started years ago is already cheaper).
+    const liabCost = p.liabilities.reduce((s, L) =>
+      (age >= L.startAge && age <= L.endAge)
+        ? s + L.amount * Math.pow(1 + L.colaReal, age - L.startAge)
+        : s, 0);
 
     // Tax on external income: 85% of SS, 100% of OI, 100% of pension, at the ordinary rate.
     const taxOnSS    = ssInc * 0.85 * p.taxRates.ordinary;
@@ -727,7 +764,7 @@ function runSinglePath(p, returnPath){
     const lumpY = (p.lumpSum > 0 && y === p.lumpSumYear) ? p.lumpSum : 0;
 
     // After-tax gap the portfolio must cover.
-    const gap = (expenses + goalsY + lumpY) - netInc;
+    const gap = (expenses + goalsY + liabCost + lumpY) - netInc;
 
     const startBalance = totalBalance();
 
@@ -804,9 +841,9 @@ function runSinglePath(p, returnPath){
       inflationRate: (rp && rp.proxyInflationRate != null) ? rp.proxyInflationRate : null,
       realReturnUsed: r,
       socialSecurity: ssInc, otherIncome: oiInc, pension: penInc, withdrawal,
-      expenses, goals: goalsY, taxes: totalTax,
+      expenses, goals: goalsY, liabilities: liabCost, taxes: totalTax,
       startBalance, wdRate,
-      netCashflow: (ssInc + oiInc + penInc) - (expenses + goalsY + totalTax),
+      netCashflow: (ssInc + oiInc + penInc) - (expenses + goalsY + liabCost + totalTax),
       balance: endBalance, failed,
       accountBreakdown: { ...funding.breakdown },
       accountBalances: {
