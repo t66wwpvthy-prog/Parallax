@@ -153,21 +153,37 @@ body{background:radial-gradient(1200px 600px at 88% -12%, var(--gold-glow), tran
 .seq-stat:last-child{border-right:none}
 .seq-stat .k{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-mute);font-weight:500}
 .seq-stat .v{font-family:'Inter';font-size:16px;font-weight:600}
-/* Inputs (base plan / household data root). Sized for client-facing review:
-   labels and numbers comfortably readable from across a desk; group titles
-   in gold so the household structure scans at a glance. */
+/* Inputs — the HOUSEHOLD SHEET. Not a grid of boxed cards (that read as a tax
+   form); an open financial statement. Sections are separated by hairline
+   eyebrow rules, fields are boxless (a dashed baseline that lights gold on
+   focus — the same edit language as the Scenarios levers), and each money
+   section closes with a live running subtotal so the page reads like a real
+   statement you'd hand across the desk. */
 .page[data-page="inputs"]{padding-top:24px;overflow-y:auto}
-.inp-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px 32px;max-width:980px}
-.inp-group{border:1px solid var(--rule);border-radius:8px;background:var(--surface);overflow:hidden}
-.inp-group h3{margin:0;padding:14px 20px;font-family:'Sora';font-size:12px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);background:var(--surface-2);border-bottom:1px solid var(--rule)}
-.inp-row{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:13px 20px;border-bottom:1px solid var(--rule-faint)}
+/* One-line living recap of the plan's shape — updates as inputs change. */
+.inp-recap{max-width:980px;margin:4px 0 26px;font-family:'Inter';font-size:13.5px;color:var(--ink-mute);display:flex;flex-wrap:wrap;align-items:baseline;gap:5px 16px;line-height:1.5}
+.inp-recap b{font-weight:600;color:var(--ink-bright)}
+.inp-recap .sep{color:var(--ink-ghost)}
+/* Sections flow organically down two balanced columns — no card chrome. */
+.inp-sheet{column-count:2;column-gap:56px;max-width:980px}
+.inp-group{break-inside:avoid;margin-bottom:28px}
+.inp-group h3{display:flex;align-items:center;gap:12px;margin:0 0 3px;font-family:'Sora';font-size:11px;font-weight:600;letter-spacing:.22em;text-transform:uppercase;color:var(--gold)}
+.inp-group h3::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,var(--rule-bright),transparent)}
+.inp-row{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:9px 2px;border-bottom:1px solid var(--rule-faint)}
 .inp-row:last-child{border-bottom:none}
-.inp-row label{font-size:14px;color:var(--ink);font-family:'Sora'}
-.inp-row .field{display:flex;align-items:center;gap:6px}
-.inp-row .pre{color:var(--ink-faint);font-size:14px}
-.inp-row input,.inp-row select{font-family:'Inter';font-size:16px;font-weight:600;color:var(--ink-bright);background:var(--surface-2);border:1px solid var(--rule);border-radius:5px;padding:7px 10px;width:148px;text-align:right}
-.inp-row select{text-align:left;width:auto;min-width:148px;font-size:15px}
-.inp-row input:focus,.inp-row select:focus{outline:none;border-color:var(--gold);background:var(--bg-deep)}
+.inp-row label{font-size:13.5px;color:var(--ink-mute);font-family:'Sora';font-weight:400}
+.inp-row .field{display:flex;align-items:baseline;gap:4px}
+.inp-row .pre{color:var(--ink-faint);font-size:13px;font-family:'Inter'}
+/* Boxless inputs: transparent, dashed baseline → solid gold on focus. */
+.inp-row input,.inp-row select{font-family:'Inter';font-size:16px;font-weight:600;color:var(--ink-bright);background:transparent;border:none;border-bottom:1px dashed var(--rule-bright);border-radius:0;padding:2px 1px;width:116px;text-align:right;outline:none;transition:border-color .15s,background .15s}
+.inp-row input:hover,.inp-row select:hover{border-bottom-color:var(--gold)}
+.inp-row input:focus,.inp-row select:focus{border-bottom:1px solid var(--gold);background:rgba(154,115,34,.05)}
+.inp-row select{text-align:left;width:auto;min-width:150px;font-size:14px;font-weight:500;appearance:none;cursor:pointer;padding-right:20px;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M0 0 L5 6 L10 0' fill='%238a93a0'/></svg>");background-repeat:no-repeat;background-position:right 2px center}
+/* Section subtotal — the statement's running truth. Slate, not an input. */
+.inp-total{display:flex;align-items:baseline;justify-content:space-between;gap:18px;padding:10px 2px 0;margin-top:3px;border-top:1px solid var(--rule)}
+.inp-total .t-label{font-family:'Sora';font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-faint);font-weight:600}
+.inp-total .t-val{font-family:'Inter';font-size:16px;font-weight:600;color:var(--teal-deep)}
+.inp-total .t-val small{font-weight:500;color:var(--ink-mute);font-size:12.5px;margin-left:7px}
 /* Quiet "remove this row" affordance for dynamic groups like Pension. Lives in
    the row, muted; turns negative red on hover so the destructive action reads
    clearly only when the advisor reaches for it. */
@@ -237,10 +253,10 @@ body{background:radial-gradient(1200px 600px at 88% -12%, var(--gold-glow), tran
 
   .chart-head{flex-wrap:wrap;gap:6px 14px}
 
-  /* Inputs: single column, full-width fields. */
-  .inp-grid{grid-template-columns:1fr;max-width:none;gap:16px}
-  .inp-row{padding:14px 16px}
-  .inp-row input,.inp-row select{font-size:16px;width:130px} /* 16px avoids iOS zoom-on-focus */
+  /* Inputs: single column. */
+  .inp-sheet{column-count:1;max-width:none}
+  .inp-recap{max-width:none}
+  .inp-row input,.inp-row select{font-size:16px;width:120px} /* 16px avoids iOS zoom-on-focus */
 
   /* Sequencing: selector + stats stack. */
   .seq-bar{flex-wrap:wrap}
@@ -311,7 +327,8 @@ body{background:radial-gradient(1200px 600px at 88% -12%, var(--gold-glow), tran
 
   <section class="page" data-page="inputs">
     <div class="eyebrow"><span>Inputs · Base Plan</span></div>
-    <div class="inp-grid" id="inp-grid"></div>
+    <div class="inp-recap" id="inp-recap"></div>
+    <div class="inp-sheet" id="inp-grid"></div>
   </section>
 </div>
 
@@ -613,7 +630,7 @@ const INPUT_GROUPS=[
     {path:'household.primary.retirementAge', label:'Retirement age', type:'age'},
     {path:'household.primary.planEndAge',    label:'Plan end age',   type:'age'},
   ]},
-  {title:'Portfolio', fields:[
+  {title:'Portfolio', subtotal:'invest', fields:[
     {path:'portfolio.accounts.taxable.balance',     label:'Taxable',            type:'money'},
     {path:'portfolio.accounts.taxable.basisPct',    label:'Taxable cost basis', type:'pct'},
     {path:'portfolio.accounts.traditional.balance', label:'Traditional / IRA',  type:'money'},
@@ -626,7 +643,7 @@ const INPUT_GROUPS=[
     {path:'income.socialSecurity.spouse.pia',       label:'Spouse · benefit @ FRA',  type:'money'},
     {path:'income.socialSecurity.spouse.claimAge',  label:'Spouse · claim age',      type:'age'},
   ]},
-  {title:'Spending & Goals', fields:[
+  {title:'Spending & Goals', subtotal:'spend', fields:[
     {path:'expenses.living',     label:'Annual living',   type:'money'},
     {path:'expenses.healthcare', label:'Healthcare / yr', type:'money'},
     {path:'goals.vacation',      label:'Travel / yr',     type:'money'},
@@ -727,9 +744,13 @@ function renderInputs(){
         }
       }
     });
+    // Money sections close with a live running subtotal — the statement's truth.
+    if(g.subtotal==='invest') h+=`<div class="inp-total"><span class="t-label">Investable total</span><span class="t-val" id="tot-invest"></span></div>`;
+    if(g.subtotal==='spend')  h+=`<div class="inp-total"><span class="t-label">Total spending</span><span class="t-val" id="tot-spend"></span></div>`;
     h+=`</div>`;
   });
   $('#inp-grid').innerHTML=h;
+  refreshDerived();
   // Row delete (×): delete the last key along the path and re-render. Pension
   // path looks like income.pension.benefitByAge.67 — we strip the trailing
   // "67" off the parent object. Invalidates the cached market bundle since
@@ -767,11 +788,33 @@ function renderInputs(){
       setPath(plan,path,v);
       reseedScenarios();
       buildLevers();              // Scenarios sliders reflect the new base
+      refreshDerived();           // recap line + section subtotals follow the edit
       sharedPaths=null;           // plan changed → re-roll markets next Run
       plansDirty=true;
       $('#status').textContent='Plan edited · open Scenarios';
     });
   });
+}
+
+// Derived statement figures — pure aggregation of the raw inputs (NOT engine
+// projections): investable total, total spending, and the one-line plan recap.
+// These are a VIEW of what's typed, so the sheet reads like a real statement.
+function inputTotals(){
+  const a=plan.portfolio.accounts;
+  const invest=(a.taxable.balance||0)+(a.traditional.balance||0)+(a.roth.balance||0);
+  const e=plan.expenses, g=plan.goals;
+  const spend=(e.living||0)+(e.healthcare||0)+(g.vacation||0)+(g.property||0)+(g.gifts||0);
+  return {invest,spend};
+}
+function refreshDerived(){
+  const t=inputTotals(), p=plan.household.primary, n=v=>'$'+(v||0).toLocaleString('en-US');
+  const recap=$('#inp-recap');
+  if(recap) recap.innerHTML=
+    `Age <b>${p.currentAge}</b> <span class="sep">→</span> retire <b>${p.retirementAge}</b> <span class="sep">→</span> plan to <b>${p.planEndAge}</b>`+
+    `<span class="sep">·</span> Investable <b>${n(t.invest)}</b>`+
+    `<span class="sep">·</span> Spending <b>${n(t.spend)}/yr</b>`;
+  const iv=$('#tot-invest'); if(iv) iv.textContent=n(t.invest);
+  const sv=$('#tot-spend');  if(sv) sv.innerHTML=`${n(t.spend)} /yr <small>· ${n(Math.round(t.spend/12))}/mo</small>`;
 }
 
 // Pension slider range is PER-HOUSEHOLD: it spans only the ages the advisor has

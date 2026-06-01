@@ -75,9 +75,6 @@ The toggle (Nathan wants it slick/clever, easy to find, neat transition):
 - NOT built — spec only, parked 2026-05. Real feature, own session.
 
 ## Design — deferred
-- **Inputs tab — escape the boxes-in-boxes grid.** Every planning tool uses the
-  same rigid nested-card layout — clean but boring. Explore a freestyle / open
-  input layout that doesn't feel like a tax form. (Idea, not yet specced.)
 - **Scenarios "shared-track" redesign (BIG — own session).** Kill the 3-column
   boxes-in-boxes repetition. One shared horizontal track per lever: when all
   scenarios AGREE, show a single calm value; when one DIVERGES, it splits into
@@ -90,6 +87,13 @@ The toggle (Nathan wants it slick/clever, easy to find, neat transition):
   pension's @age sub-label.
 
 ## Design — done
+- **Inputs tab — escaped the boxes-in-boxes grid.** Killed the bordered nested
+  cards (tax-form feel). Now an open "household sheet": hairline eyebrow section
+  headers, boxless fields (dashed baseline → gold on focus, same edit language as
+  the Scenarios levers), two balanced flow-columns. Added a live one-line plan
+  recap (age→retire→plan-end · investable · spending) and per-section running
+  subtotals (Investable total; Total spending /yr + /mo). Totals are pure
+  aggregation of the typed inputs — a VIEW, no engine math added (doctrine #5).
 - Top banner height reduced (ring 148→118px, smaller %, tighter min-height) so
   it no longer crowds the Retirement Age row.
 - Scenarios block capped + centered (max-width 790px) so columns don't stretch
