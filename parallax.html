@@ -153,8 +153,8 @@ body{background:radial-gradient(1200px 600px at 88% -12%, var(--gold-glow), tran
 .seq-chart .chart-body{flex:1 1 auto;min-height:300px}
 /* Two path FINGERPRINTS, side by side: forward vs reversed. Each line is a
    direct read of the engine's single-path result — no UI-computed metrics. */
-.seq-prints{flex:0 0 auto;display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:16px}
-.seq-print{border:1px solid var(--rule);border-radius:6px;background:var(--surface);padding:13px 18px 6px}
+.seq-prints{flex:0 0 auto;display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:16px}
+.seq-print{border:1px solid var(--rule);border-radius:6px;background:var(--surface);padding:13px 15px 6px}
 .seq-print h4{display:flex;align-items:center;gap:9px;margin:0 0 8px;font-family:'Sora';font-size:11px;letter-spacing:.16em;text-transform:uppercase;font-weight:600;color:var(--ink-bright)}
 .seq-print h4 .dot{display:inline-block;width:20px;border-top:3px solid;border-radius:2px}
 .seq-print h4 .dot.dash{border-top-style:dashed}
@@ -317,22 +317,18 @@ body{background:radial-gradient(1200px 600px at 88% -12%, var(--gold-glow), tran
   </section>
 
   <section class="page" data-page="sequencing">
-    <div class="eyebrow"><span>Sequencing · Same Returns, Different Order</span></div>
+    <div class="eyebrow"><span>Sequencing · Same Plan, Real Markets</span></div>
     <div class="seq-bar">
       <div class="seq-pick">
         <span class="k">Plan</span>
         <select id="seq-select"></select>
       </div>
-      <div class="seq-pick">
-        <span class="k">Retire into</span>
-        <select id="seq-year"></select>
-      </div>
       <div class="seq-legend" id="seq-legend"></div>
     </div>
     <div class="seq-chart">
       <div class="chart-head">
-        <span class="chart-title">Same Returns, Reversed Order</span>
-        <span class="chart-sub" id="seq-sub">Same plan · same yearly returns · only the order differs · today's dollars</span>
+        <span class="chart-title">Same Plan, Real Markets</span>
+        <span class="chart-sub" id="seq-sub">One plan held fixed · retiring into four real markets · today's dollars</span>
       </div>
       <div class="chart-body"><svg id="seq-svg" viewBox="0 0 1000 320" preserveAspectRatio="none"></svg></div>
     </div>
@@ -2329,120 +2325,122 @@ function renderCashflow(){
    reversed (identical returns, opposite sequence). Any difference is pure
    sequence-of-returns risk. Every number on this tab is a direct read of the
    engine's single-path result; the UI computes no balances or metrics. */
-// Curated REAL retirement start years — the year the household RETIRES (not its
-// current age). The working years before it use the real years just prior, so a
-// crash lands in early retirement where sequence risk actually lives. Needs ~7
-// prior years of data, so the earliest offered is 1937. Default 1973.
-const SEQ_STARTS=[
-  {y:1937, tag:'Depression relapse'}, {y:1950, tag:'post-war boom'},
-  {y:1966, tag:'the lost decade'},    {y:1973, tag:'stagflation'},
-  {y:1982, tag:'bull run'},           {y:1995, tag:'90s boom'},
-  {y:2000, tag:'dot-com bust'},       {y:2008, tag:'financial crisis'},
+// The Sequencing tab holds ONE plan fixed and runs it through several REAL
+// retirement markets — never a reversed/counterfactual timeline. The lesson is
+// the truth a client actually faces: retire into a brutal market vs a kind one,
+// same plan, and watch the spread. Two canonical retiree-killers (1966, 1973),
+// one modern crash (2000), one kind run (1995). The euphoric bulls (1982/85)
+// are deliberately avoided — a 10-20x winner crushes the scale and hides the
+// downside, which is the whole point of a sequence-risk view.
+const SEQ_YEARS=[
+  {y:1966, tag:'the lost decade', c:'#9db4e0'},
+  {y:1973, tag:'stagflation',     c:'#f0c773'},
+  {y:1995, tag:'the 90s boom',    c:'#a9d5cf'},
+  {y:2000, tag:'dot-com → GFC',   c:'#d98c93'},
 ];
-// Forward = the order history actually delivered (solid, slate). Reversed = the
-// same returns backwards (dashed = a counterfactual, not a real timeline).
-const SEQ_FWD='#2c4d57', SEQ_REV='#9a7322';
 
 function buildSeqSelect(){
   const sel=$('#seq-select'), cur=sel.value;
   sel.innerHTML=scenarios.map(s=>`<option>${s.name}</option>`).join('');
   if(cur && scenarios.some(s=>s.name===cur)) sel.value=cur;
   sel.onchange=runSeq;
-  const ys=$('#seq-year');
-  if(ys && !ys.options.length){
-    ys.innerHTML=SEQ_STARTS.map(o=>`<option value="${o.y}">${o.y} · ${o.tag}</option>`).join('');
-    ys.value='1973';   // canonical bad-sequence default
-    ys.onchange=runSeq;
-  }
+}
+// Build a "retire-now" clone: the household standing at its retirement age with
+// the plan's MEDIAN projected balance (read from the engine envelope, not
+// invented). Every real market then runs from this ONE shared starting point, so
+// the only thing differing between lines is the market — not the entry balance.
+function retireNowClone(p, ov, curAge, retAge, accumYears){
+  const base=runSimulation(p, ov);
+  const env=base && base.envelope;
+  const accs=p.portfolio.accounts;
+  const tot=accs.taxable.balance+accs.traditional.balance+accs.roth.balance;
+  const entry=(env && env[accumYears] && env[accumYears].p50!=null) ? env[accumYears].p50 : tot;
+  const rp=JSON.parse(JSON.stringify(p));
+  const ra=rp.portfolio.accounts;
+  if(tot>0){ const f=entry/tot; ra.taxable.balance*=f; ra.traditional.balance*=f; ra.roth.balance*=f; }
+  else { ra.taxable.balance=entry; }
+  rp.household.primary.currentAge=retAge;          // standing at retirement → no accumulation phase
+  rp.household.primary.retirementAge=retAge;
+  if(rp.household.spouse && rp.household.spouse.currentAge!=null)
+    rp.household.spouse.currentAge += (retAge-curAge);
+  return rp;
 }
 function runSeq(){
   const sel=$('#seq-select'); const s=scenarios.find(x=>x.name===sel.value)||scenarios[0];
-  const retireYear=+($('#seq-year').value||SEQ_STARTS[3].y);
   // Sequence the chosen scenario FAITHFULLY: allocation via the plan clone, every
   // other lever via the same overrides mapping the Scenarios tab uses.
   const p=planForScenario(s.lev);
   const ov=leversToOverrides(s.lev);
   const strat=p.portfolio.withdrawalStrategy||'taxable-first';
-  // The chosen year is the RETIREMENT year, not current age. Working years use
-  // the real years just before it (so savings/accumulation tie in with real
-  // context), and the path's RETIREMENT portion is what we reverse — so the
-  // market sequence is tested where sequence risk lives. Working years are
-  // identical in both orders ⇒ the two lines overlap until retirement, then fan.
   const curAge=plan.household.primary.currentAge;
-  const accumYears=Math.max(0, (s.lev.retireAge!=null?s.lev.retireAge:p.household.primary.retirementAge) - curAge);
-  const buildStart=Math.max(1928, retireYear-accumYears);
-  const revRetire=path=>{
-    if(accumYears<=0 || accumYears>=path.length) return path.slice().reverse();
-    return path.slice(0,accumYears).concat(path.slice(accumYears).reverse());
-  };
-  const fwd=runHistoricalPath(p, buildStart, strat, undefined, ov);
-  const rvs=runHistoricalPath(p, buildStart, strat, revRetire, ov);
-  if(!fwd || !rvs){ $('#seq-svg').innerHTML=''; $('#seq-prints').innerHTML=''; return; }
-  drawSeqChart(fwd, rvs, accumYears);
-  renderPrints(fwd, rvs, accumYears);
-  const tag=(SEQ_STARTS.find(o=>o.y===retireYear)||{}).tag||'';
-  $('#seq-sub').textContent=`Retire in ${retireYear} (${tag}) · same retirement returns · only the order differs · today's dollars`;
-  $('#seq-legend').innerHTML=
-    `<span class="lg"><span class="sw" style="border-color:${SEQ_FWD}"></span>Forward (as it happened)</span>`+
-    `<span class="lg"><span class="sw dash" style="border-color:${SEQ_REV}"></span>Reversed (same returns)</span>`;
+  const retAge=(s.lev.retireAge!=null?s.lev.retireAge:p.household.primary.retirementAge);
+  const accumYears=Math.max(0, retAge-curAge);
+  const rp=retireNowClone(p, ov, curAge, retAge, accumYears);
+  const ov2={...ov, retireDelay:0};                // retirement age is baked into the clone now
+  const runs=SEQ_YEARS.map(m=>({m, res:runHistoricalPath(rp, m.y, strat, undefined, ov2)}))
+                      .filter(r=>r.res && r.res.rows.length);
+  if(!runs.length){ $('#seq-svg').innerHTML=''; $('#seq-prints').innerHTML=''; return; }
+  drawSeqChart(runs, retAge);
+  renderPrints(runs);
+  $('#seq-sub').textContent=`${s.name} held fixed · retiring into four real markets · same plan, same dollars · today's dollars`;
+  $('#seq-legend').innerHTML=runs.map(r=>
+    `<span class="lg"><span class="sw" style="border-color:${r.m.c}"></span>${r.m.y} · ${r.m.tag}</span>`).join('');
 }
-function drawSeqChart(fwd, rvs, retIdx){
+function drawSeqChart(runs, retAge){
   const svg=$('#seq-svg'),W=1000,H=320;
-  // RETIREMENT only — the working years are identical in both orders (no analytic
-  // value), so both lines begin at the shared retirement balance and the
-  // retirement story gets the full width.
-  const retAge=plan.household.primary.currentAge+retIdx;
-  const entry=(fwd.rows[retIdx]&&fwd.rows[retIdx].startBalance)||0;   // shared start
-  const series=r=>[entry, ...r.rows.slice(retIdx).map(x=>x.balance)];
-  const fs=series(fwd), rs=series(rvs);
-  const n=fs.length;
+  // All lines share the retirement-entry balance (same plan), then diverge purely
+  // by the market they retired into. Full width = the retirement years.
+  const entry=runs[0].res.rows[0].startBalance||0;
+  const series=res=>[entry, ...res.rows.map(x=>x.balance)];
+  const all=runs.map(r=>series(r.res));
+  const n=Math.max(...all.map(a=>a.length));
   const ageStart=retAge, ageEnd=retAge+n-1;
-  let maxBal=1; [fs,rs].forEach(a=>a.forEach(v=>{ if(v>maxBal) maxBal=v; })); maxBal*=1.05;
+  // Adaptive cap: a well-funded plan in a kind market can compound to 10x the
+  // others, flattening the downside (the whole point) into an unreadable band.
+  // If the tallest line runs away from the pack (>2x the 2nd), cap the axis just
+  // above the 2nd so the decision zone stays legible; the runaway line rises off
+  // the top (clipped) and its true ending still shows in its card.
+  const peaks=all.map(a=>Math.max(...a)).sort((p,q)=>q-p);
+  let cap=peaks[0];
+  if(peaks.length>1 && peaks[0] > 2*peaks[1]) cap=peaks[1]*1.15;
+  const maxBal=Math.max(1, cap*1.05);
   const x0=PADL, x1=W-PADR, y0=PADT, y1=H-PADB;
   const X=idx=> x0+(x1-x0)*(idx/(Math.max(1,n-1)));
   const Y=v => y1-(Math.max(0,v)/maxBal)*(y1-y0);
   let h=axes(W,H,ageStart,ageEnd,maxBal);
-  [{a:fs,dash:false,c:SEQ_FWD},{a:rs,dash:true,c:SEQ_REV}].forEach(L=>{
-    const pts=L.a.map((v,i)=>[X(i),Y(v)]);
-    const da=L.dash?' stroke-dasharray="7 5"':'';
-    h+=`<path d="${smoothPath(pts)}" fill="none" stroke="${L.c}" stroke-width="2.4"${da} stroke-linejoin="round" stroke-linecap="round"/>`;
+  h+=`<defs><clipPath id="seqclip"><rect x="${x0}" y="${y0-2}" width="${x1-x0}" height="${y1-y0+2}"/></clipPath></defs><g clip-path="url(#seqclip)">`;
+  runs.forEach((r,i)=>{
+    const pts=all[i].map((v,k)=>[X(k),Y(v)]);
+    h+=`<path d="${smoothPath(pts)}" fill="none" stroke="${r.m.c}" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>`;
   });
+  h+=`</g>`;
   svg.innerHTML=h;
 }
-// Path fingerprint — facts read straight off the engine result, scoped to the
-// RETIREMENT phase (the working years are identical in both orders, so they'd
-// wash out the contrast). No invented composite "score".
-function renderPrints(fwd, rev, accumYears){
-  const curAge=plan.household.primary.currentAge;
-  const retRows=r=>r.rows.filter(x=>x.phase!=='accum');          // retirement only
-  // First decade OF RETIREMENT, real annualized — the sequence-risk cause.
+// Path fingerprint — facts read straight off the engine result. One card per real
+// market: the first-decade return (the sequence-risk cause), the lowest the
+// portfolio fell, and the outcome. No invented composite "score".
+function renderPrints(runs){
   const firstDecade=r=>{
-    const rr=retRows(r).filter(x=>x.source!=null).slice(0,10);
+    const rr=r.rows.filter(x=>x.source!=null).slice(0,10);
     if(!rr.length) return 0;
     const prod=rr.reduce((a,x)=>a*(1+x.returnRate),1);
     return Math.pow(prod,1/rr.length)-1;
   };
-  const lowest=r=>{ const b=retRows(r).map(x=>x.balance); return b.length?Math.min(...b):0; };
+  const lowest=r=>{ const b=r.rows.map(x=>x.balance); return b.length?Math.min(...b):0; };
   const pct=v=>(v>=0?'+':'')+(v*100).toFixed(1)+'%';
-  const outcome=r=>{
-    if(r.depletionAge!=null) return {t:`Ran dry @ ${r.depletionAge}`, c:'var(--negative-bright)'};
-    const lastAge=curAge+r.rows.length-1;
-    if(r.actualYears!=null && r.actualYears<r.requestedYrs)        // data ran out, not a real finish
-      return {t:`${fmtM(r.terminalBalance)} at ${lastAge} (data ends)`, c:'var(--ink-mute)'};
-    return {t:`Survived · ${fmtM(r.terminalBalance)}`, c:'var(--positive-bright)'};
-  };
-  const card=(label,dash,color,r)=>{
-    const o=outcome(r);
+  const outcome=r=> r.depletionAge!=null
+    ? {t:`Ran dry @ ${r.depletionAge}`, c:'var(--negative-bright)'}
+    : {t:`Survived · ${fmtM(r.terminalBalance)}`, c:'var(--positive-bright)'};
+  const card=(m,res)=>{
+    const o=outcome(res);
     return `<div class="seq-print">
-      <h4><span class="dot${dash?' dash':''}" style="border-color:${color}"></span>${label}</h4>
-      <div class="pr-row"><span class="pr-k">First 10 retirement yrs (real)</span><span class="pr-v">${pct(firstDecade(r))}</span></div>
-      <div class="pr-row"><span class="pr-k">Lowest in retirement</span><span class="pr-v">${fmtM(lowest(r))}</span></div>
+      <h4><span class="dot" style="border-color:${m.c}"></span>${m.y} · ${m.tag}</h4>
+      <div class="pr-row"><span class="pr-k">First decade</span><span class="pr-v">${pct(firstDecade(res))}</span></div>
+      <div class="pr-row"><span class="pr-k">Lowest</span><span class="pr-v">${fmtM(lowest(res))}</span></div>
       <div class="pr-row"><span class="pr-k">Outcome</span><span class="pr-v" style="color:${o.c}">${o.t}</span></div>
     </div>`;
   };
-  $('#seq-prints').innerHTML=
-    card('Forward', false, SEQ_FWD, fwd)+
-    card('Reversed', true, SEQ_REV, rev);
+  $('#seq-prints').innerHTML=runs.map(r=>card(r.m, r.res)).join('');
 }
 
 /* ── tab switch + boot ── */

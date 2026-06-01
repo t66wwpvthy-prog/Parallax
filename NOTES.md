@@ -111,7 +111,22 @@ The toggle (Nathan wants it slick/clever, easy to find, neat transition):
   blank the others (status notes "N scenarios could not run"); (3) cash-flow
   drawer shows a plain empty-state message instead of a headers-only blank table.
 
-## Sequencing tab — v1 built (same returns, different order)
+## Sequencing tab — REBUILT (same plan, real markets)
+- REVERSED ORDER SCRAPPED (Nathan): a reversed sequence is a timeline that never
+  happened — proves a mechanism to a scientist, not the truth a client faces.
+  Replaced with the ORIGINAL spec: hold ONE plan fixed, run it through several
+  REAL retirement markets (1966 lost decade / 1973 stagflation / 1995 90s boom /
+  2000 dot-com→GFC). Each line = same plan, different real market.
+- Shared entry balance: all lines start at the plan's MEDIAN projected balance at
+  retirement (read from engine envelope p50 — not invented), via a "retire-now"
+  clone, so the ONLY thing differing between lines is the market.
+- Adaptive y-cap: a well-funded plan in a kind market compounds 10x and flattens
+  the downside; if the top line runs away (>2x the 2nd) the axis caps just above
+  the 2nd and the runaway rises off the top (clipped), true terminal still in its
+  card. Keeps the sequence-risk downside legible for any selected scenario.
+- Year picker removed (set is curated); euphoric bulls (1982/85) deliberately
+  excluded — they crush the scale. Scenario selector still picks WHICH plan.
+
 - FIX (Nathan caught it): the chosen year is now the RETIREMENT year, not
   current age. Before, "retire into 2008" started the sequence at age 58, so the
   crash landed in the WORKING years (where it helps) and never tested retirement
