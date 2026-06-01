@@ -126,6 +126,15 @@ The toggle (Nathan wants it slick/clever, easy to find, neat transition):
   card. Keeps the sequence-risk downside legible for any selected scenario.
 - Year picker removed (set is curated); euphoric bulls (1982/85) deliberately
   excluded — they crush the scale. Scenario selector still picks WHICH plan.
+- MARKET LIBRARY: 9 selectable real markets as toggle chips (chips double as the
+  legend; lit = drawn). Defaults to 4 (1966/1973/1995/2000); also available:
+  1929 Great Depression, 1937 relapse, 1968 the 60s top, 1987 Black Monday,
+  2008 financial crisis. At least one stays on. Euphoric pure bulls still omitted.
+- Cap rule changed to a DECISION-ZONE ceiling (entry balance × 1.8): for sequence
+  risk the readable region is entry→0, so kind markets that compound past it clip
+  off the top (true terminal in their card) and the downside fan stays legible;
+  when nothing exceeds the ceiling (all-stress sets) the real max is used.
+
 
 - FIX (Nathan caught it): the chosen year is now the RETIREMENT year, not
   current age. Before, "retire into 2008" started the sequence at age 58, so the

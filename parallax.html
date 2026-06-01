@@ -149,11 +149,16 @@ body{background:radial-gradient(1200px 600px at 88% -12%, var(--gold-glow), tran
 .seq-legend .lg{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--ink-mute);font-family:'Sora';letter-spacing:.03em}
 .seq-legend .sw{display:inline-block;width:22px;border-top:3px solid;border-radius:2px}
 .seq-legend .sw.dash{border-top-style:dashed}
+.seq-chips{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-left:6px}
+.seq-chip{display:inline-flex;align-items:center;gap:7px;background:var(--surface);border:1px solid var(--rule);color:var(--ink-mute);font-family:'Sora';font-size:11px;letter-spacing:.03em;padding:6px 11px;border-radius:14px;cursor:pointer;transition:opacity .12s,border-color .12s;opacity:.45}
+.seq-chip .cdot{width:9px;height:9px;border-radius:50%;flex:none}
+.seq-chip.on{opacity:1;border-color:var(--rule-bright);color:var(--ink-bright)}
+.seq-chip:hover{opacity:.85}
 .seq-chart{flex:0 0 auto;border:1px solid var(--rule);border-radius:4px;background:var(--surface);padding:16px 22px 12px;display:flex;flex-direction:column}
 .seq-chart .chart-body{flex:1 1 auto;min-height:300px}
 /* Two path FINGERPRINTS, side by side: forward vs reversed. Each line is a
    direct read of the engine's single-path result — no UI-computed metrics. */
-.seq-prints{flex:0 0 auto;display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:16px}
+.seq-prints{flex:0 0 auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:12px;margin-top:16px}
 .seq-print{border:1px solid var(--rule);border-radius:6px;background:var(--surface);padding:13px 15px 6px}
 .seq-print h4{display:flex;align-items:center;gap:9px;margin:0 0 8px;font-family:'Sora';font-size:11px;letter-spacing:.16em;text-transform:uppercase;font-weight:600;color:var(--ink-bright)}
 .seq-print h4 .dot{display:inline-block;width:20px;border-top:3px solid;border-radius:2px}
@@ -323,7 +328,7 @@ body{background:radial-gradient(1200px 600px at 88% -12%, var(--gold-glow), tran
         <span class="k">Plan</span>
         <select id="seq-select"></select>
       </div>
-      <div class="seq-legend" id="seq-legend"></div>
+      <div class="seq-chips" id="seq-chips"></div>
     </div>
     <div class="seq-chart">
       <div class="chart-head">
@@ -2328,15 +2333,20 @@ function renderCashflow(){
 // The Sequencing tab holds ONE plan fixed and runs it through several REAL
 // retirement markets — never a reversed/counterfactual timeline. The lesson is
 // the truth a client actually faces: retire into a brutal market vs a kind one,
-// same plan, and watch the spread. Two canonical retiree-killers (1966, 1973),
-// one modern crash (2000), one kind run (1995). The euphoric bulls (1982/85)
-// are deliberately avoided — a 10-20x winner crushes the scale and hides the
+// same plan, and watch the spread. A LIBRARY of real markets the advisor can
+// toggle on/off as lines (`on` = shown by default). Euphoric bulls (1982/85) are
+// deliberately omitted — a 10-20x winner crushes the scale and hides the
 // downside, which is the whole point of a sequence-risk view.
 const SEQ_YEARS=[
-  {y:1966, tag:'the lost decade', c:'#9db4e0'},
-  {y:1973, tag:'stagflation',     c:'#f0c773'},
-  {y:1995, tag:'the 90s boom',    c:'#a9d5cf'},
-  {y:2000, tag:'dot-com → GFC',   c:'#d98c93'},
+  {y:1929, tag:'Great Depression',  c:'#e0918d', on:false},
+  {y:1937, tag:'Depression relapse',c:'#e8a86a', on:false},
+  {y:1966, tag:'the lost decade',   c:'#9db4e0', on:true },
+  {y:1968, tag:'the 60s top',       c:'#b9c97a', on:false},
+  {y:1973, tag:'stagflation',       c:'#f0c773', on:true },
+  {y:1987, tag:'Black Monday',      c:'#7faf8a', on:false},
+  {y:1995, tag:'the 90s boom',      c:'#a9d5cf', on:true },
+  {y:2000, tag:'dot-com → GFC',     c:'#9d92d0', on:true },
+  {y:2008, tag:'financial crisis',  c:'#c98fb4', on:false},
 ];
 
 function buildSeqSelect(){
@@ -2344,6 +2354,18 @@ function buildSeqSelect(){
   sel.innerHTML=scenarios.map(s=>`<option>${s.name}</option>`).join('');
   if(cur && scenarios.some(s=>s.name===cur)) sel.value=cur;
   sel.onchange=runSeq;
+  buildSeqChips();
+}
+// Market chips double as the selector AND the legend: lit = shown as a line.
+function buildSeqChips(){
+  const box=$('#seq-chips'); if(!box) return;
+  box.innerHTML=SEQ_YEARS.map((m,i)=>
+    `<button class="seq-chip${m.on?' on':''}" data-i="${i}"><span class="cdot" style="background:${m.c}"></span>${m.y} · ${m.tag}</button>`).join('');
+  box.querySelectorAll('.seq-chip').forEach(btn=>btn.onclick=()=>{
+    const m=SEQ_YEARS[+btn.dataset.i];
+    if(m.on && SEQ_YEARS.filter(x=>x.on).length<=1) return;   // keep at least one line
+    m.on=!m.on; buildSeqChips(); runSeq();
+  });
 }
 // Build a "retire-now" clone: the household standing at its retirement age with
 // the plan's MEDIAN projected balance (read from the engine envelope, not
@@ -2377,14 +2399,14 @@ function runSeq(){
   const accumYears=Math.max(0, retAge-curAge);
   const rp=retireNowClone(p, ov, curAge, retAge, accumYears);
   const ov2={...ov, retireDelay:0};                // retirement age is baked into the clone now
-  const runs=SEQ_YEARS.map(m=>({m, res:runHistoricalPath(rp, m.y, strat, undefined, ov2)}))
+  const runs=SEQ_YEARS.filter(m=>m.on)
+                      .map(m=>({m, res:runHistoricalPath(rp, m.y, strat, undefined, ov2)}))
                       .filter(r=>r.res && r.res.rows.length);
   if(!runs.length){ $('#seq-svg').innerHTML=''; $('#seq-prints').innerHTML=''; return; }
   drawSeqChart(runs, retAge);
   renderPrints(runs);
-  $('#seq-sub').textContent=`${s.name} held fixed · retiring into four real markets · same plan, same dollars · today's dollars`;
-  $('#seq-legend').innerHTML=runs.map(r=>
-    `<span class="lg"><span class="sw" style="border-color:${r.m.c}"></span>${r.m.y} · ${r.m.tag}</span>`).join('');
+  const n=runs.length;
+  $('#seq-sub').textContent=`${s.name} held fixed · retiring into ${n} real market${n>1?'s':''} · same plan, same dollars · today's dollars`;
 }
 function drawSeqChart(runs, retAge){
   const svg=$('#seq-svg'),W=1000,H=320;
@@ -2395,14 +2417,15 @@ function drawSeqChart(runs, retAge){
   const all=runs.map(r=>series(r.res));
   const n=Math.max(...all.map(a=>a.length));
   const ageStart=retAge, ageEnd=retAge+n-1;
-  // Adaptive cap: a well-funded plan in a kind market can compound to 10x the
-  // others, flattening the downside (the whole point) into an unreadable band.
-  // If the tallest line runs away from the pack (>2x the 2nd), cap the axis just
-  // above the 2nd so the decision zone stays legible; the runaway line rises off
-  // the top (clipped) and its true ending still shows in its card.
-  const peaks=all.map(a=>Math.max(...a)).sort((p,q)=>q-p);
-  let cap=peaks[0];
-  if(peaks.length>1 && peaks[0] > 2*peaks[1]) cap=peaks[1]*1.15;
+  // Decision-zone cap: for sequence risk the readable region is the entry balance
+  // DOWN to zero (will the money last?). A kind market can compound well above
+  // that and flatten the downside into an unreadable band. So cap the axis a bit
+  // above the entry balance; any line that climbs past it rises off the top
+  // (clipped) with its true ending still in its card. When nothing exceeds the
+  // ceiling (e.g. all-stress markets) we use the real max, so no space is wasted.
+  const realMax=Math.max(...all.map(a=>Math.max(...a)));
+  const ceiling=entry*1.8;
+  const cap=(entry>0 && realMax>ceiling) ? ceiling : realMax;
   const maxBal=Math.max(1, cap*1.05);
   const x0=PADL, x1=W-PADR, y0=PADT, y1=H-PADB;
   const X=idx=> x0+(x1-x0)*(idx/(Math.max(1,n-1)));
