@@ -70,8 +70,30 @@ body{background:radial-gradient(1200px 600px at 88% -12%, var(--gold-glow), tran
 .col-x{background:none;border:none;color:var(--ink-faint);font-size:11px;cursor:pointer;padding:0 2px;line-height:1;opacity:0;transition:opacity .15s,color .15s}
 .band-cell:hover .col-x{opacity:1}
 .col-x:hover{color:var(--negative-bright)}
-.add-scen{margin-top:8px;background:none;border:1px dashed var(--rule-bright);color:var(--ink-mute);font-family:'Sora';font-size:10px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;padding:5px 10px;border-radius:4px;cursor:pointer;display:block}
-.add-scen:hover{border-color:var(--gold);color:var(--gold)}
+.add-scen,.solve-btn{margin-top:8px;background:none;border:1px dashed var(--rule-bright);color:var(--ink-mute);font-family:'Sora';font-size:10px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;padding:5px 10px;border-radius:4px;cursor:pointer;display:block}
+.add-scen:hover,.solve-btn:hover{border-color:var(--gold);color:var(--gold)}
+/* Solver inline form (replaces the +Add / Solve buttons when armed). Tight,
+   single-column, lives in the band gutter so it doesn't disturb layout. */
+.solver-form{margin-top:8px;display:flex;flex-direction:column;gap:6px;font-family:'Sora';font-size:11px;color:var(--ink-mute);letter-spacing:.04em;text-align:left}
+.sf-q{display:flex;align-items:baseline;gap:4px}
+.sf-in{font-family:'Inter';font-size:13px;font-weight:600;color:var(--ink-bright);background:transparent;border:none;border-bottom:1px dashed var(--rule-bright);padding:0 2px;outline:none;text-align:right;-moz-appearance:textfield;width:40px}
+.sf-in::-webkit-outer-spin-button,.sf-in::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.sf-in:focus{border-bottom-color:var(--gold)}
+.sf-actions{display:flex;gap:6px;margin-top:4px}
+.sf-go,.sf-cancel{font-family:'Sora';font-size:10px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;padding:5px 9px;border-radius:4px;cursor:pointer;border:1px solid var(--rule-bright);background:none}
+.sf-go{color:var(--gold-bright);border-color:var(--gold)}
+.sf-go:hover{background:var(--gold);color:#fff}
+.sf-cancel{color:var(--ink-faint)}
+.sf-cancel:hover{color:var(--ink)}
+/* Per-row loading spinner during a solve. Sits in place of the lever value
+   until that row resolves; tiny pulse so it reads as work in progress. */
+.lev-val.solving{color:var(--ink-faint);font-style:italic;opacity:.7}
+.lev-val.solving::after{content:'';display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--gold);margin-left:6px;animation:pulse 1.1s infinite}
+@keyframes pulse{0%,100%{opacity:.3}50%{opacity:1}}
+/* When a lever value was set by the solver, mark it subtly so the advisor knows
+   it came from a solve (not their drag). Underline in brass; removed on edit. */
+.lev-val.solved{border-bottom:1px dotted var(--gold);padding-bottom:1px}
+.lev-val.solved-capped{color:var(--negative-bright)}
 .circle-wrap{position:relative;width:118px;height:118px}
 .circle-val{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
 .circle-val .big{font-size:28px;font-weight:400;line-height:1;font-family:'Inter';letter-spacing:-.01em}
@@ -421,6 +443,118 @@ function removeScenario(ci){
   saveScenarios(); buildLevers(); plansDirty=true; runAll();
 }
 
+// ── Solver ──────────────────────────────────────────────────────────────
+// Run the engine for one trial set of levers and return the success %.
+// Reuses sharedPaths (the cached return-path bundle) so every trial sees the
+// same markets — apples-to-apples, deterministic with our seeded RNG.
+function trySuccess(L){
+  const p = planForScenario(L);
+  const ov = leversToOverrides(L);
+  return runSimulation(p, ov, sharedPaths).successRate;
+}
+// Solve ONE lever: holding all others at `baseLev`, find the value of `key`
+// closest to its baseline that achieves >= targetPct. Returns { value,
+// reachedPct, capped }. capped=true means even the lever's most-aggressive
+// extreme can't reach the target — we return that extreme + the % it hit.
+// We detect monotonicity by sampling the two ends rather than hard-coding
+// per-lever direction, so future levers don't need special wiring.
+function solveLeverFor(baseLev, key, targetPct){
+  const cfg = LEVCFG.find(c=>c.key===key);
+  if(!cfg) return null;
+  const r = levRange(cfg);
+  const lo = r.min, hi = r.max, step = r.step;
+  if(lo === hi) return { value: lo, reachedPct: trySuccess({...baseLev,[key]:lo}), capped:false };
+  const pctAt = v => trySuccess({...baseLev, [key]: v});
+  const pctLo = pctAt(lo), pctHi = pctAt(hi);
+  const increases = pctHi >= pctLo;                  // success rises with higher value?
+  const best      = Math.max(pctLo, pctHi);
+  const bestVal   = (pctHi >= pctLo) ? hi : lo;
+  if(best < targetPct){ return { value: bestVal, reachedPct: best, capped: true }; }
+  // Bisect for the value closest to baseline that meets target. We track the
+  // smallest "passing" value on the side of monotonicity.
+  let a = lo, b = hi;
+  for(let i = 0; i < 9; i++){
+    const mid = Math.max(lo, Math.min(hi, Math.round(((a+b)/2) / step) * step));
+    if(mid === a || mid === b) break;
+    const pct = pctAt(mid);
+    const meets = pct >= targetPct;
+    // For positive direction (success rises with value): we want SMALLEST value
+    // that meets. For inverse: we want LARGEST value that meets.
+    if(increases){ if(meets) b = mid; else a = mid; }
+    else         { if(meets) a = mid; else b = mid; }
+  }
+  const value = increases ? b : a;
+  return { value, reachedPct: pctAt(value), capped: false };
+}
+// Orchestrate the "Can I retire earlier?" solve. Creates a new scenario at
+// target age + baseline levers, then sequentially fills each non-wish lever
+// with its solo answer, updating the UI between solves so the advisor sees
+// progress. Each solo answer ignores the others (truth: "this lever ALONE
+// would need to be X").
+async function runSolveEarlyRetirement(targetAge, targetPct){
+  if(solving || scenarios.length >= MAX_SCENARIOS) return;
+  solving = true; solverFormOpen = false;
+  const baseLev = JSON.parse(JSON.stringify(scenarios.find(s=>s.base)?.lev || defaultLevers()));
+  // soloBase = baseline + the wish applied (retire at target age). FROZEN —
+  // every lever's solo answer is computed against this same starting point so
+  // each result truly is "this lever ALONE could close the gap" (not "given
+  // the previous solves"). Without freezing, solves would cascade and order
+  // would matter — bad.
+  const soloBase = JSON.parse(JSON.stringify(baseLev));
+  soloBase.retireAge = targetAge;
+  syncPension(soloBase);
+  // wishLev = the display state for the new column. Starts identical to
+  // soloBase; gets each solo answer filled in as it resolves.
+  const wishLev = JSON.parse(JSON.stringify(soloBase));
+  const newScen = { name:`Retire at ${targetAge}`, base:false, lev:wishLev, res:null,
+                    solving:true, solvedKeys:{} };
+  scenarios.push(newScen);
+  const ci = scenarios.length - 1;
+  // Make sure sharedPaths exists (first run might not have it yet).
+  if(!sharedPaths){
+    resetSeed();
+    const horizon = plan.household.primary.planEndAge - plan.household.primary.currentAge;
+    sharedPaths = [];
+    for(let i=0;i<plan.simulation.iterations;i++) sharedPaths.push(generateReturnPath(horizon));
+  }
+  // Render the new column immediately with placeholders.
+  buildLevers(); renderBand(); renderFoot();
+  // Levers we solve for "Can I retire earlier?" — everything that can plausibly
+  // close the gap. Retirement-age is the wish (fixed). One-time event + pension
+  // are out of scope for this question.
+  const targets = ['spend','savings','ssAge','risk'];
+  // Mark each as "solving" in the UI so the rows show the pulse.
+  targets.forEach(k => $(`#lv-${ci}-${k}`)?.classList.add('solving'));
+  // Solve sequentially. yield to the event loop between levers so the spinner
+  // actually paints (otherwise the bisection blocks the main thread).
+  for(const k of targets){
+    // eslint-disable-next-line no-await-in-loop
+    await new Promise(r => setTimeout(r, 16));
+    // SOLO: solve against the frozen soloBase (not the mutating wishLev), so
+    // each lever's answer is truly "this lever alone, others at baseline."
+    const res = solveLeverFor(soloBase, k, targetPct);
+    wishLev[k] = res.value;
+    newScen.solvedKeys[k] = { reachedPct: res.reachedPct, capped: res.capped };
+    const cell = $(`#lv-${ci}-${k}`);
+    if(cell){
+      const cfg = LEVCFG.find(c=>c.key===k);
+      cell.classList.remove('solving');
+      cell.classList.add('solved');
+      if(res.capped) cell.classList.add('solved-capped');
+      cell.innerHTML = renderLevValue(cfg, wishLev);
+      // Sync the slider position too.
+      const sl = $(`#scn-levers .lev-slider[data-col="${ci}"][data-key="${k}"]`);
+      if(sl){ const rng = levRange(cfg); sl.value = Math.max(rng.min, Math.min(rng.max, res.value)); }
+    }
+  }
+  newScen.solving = false;
+  saveScenarios();
+  plansDirty = true;
+  // Final Run computes the new column's actual composed %.
+  solving = false;
+  runAll();
+}
+
 // Scenarios are NAMED, SAVEABLE objects (the household-centric data root). They
 // start identical; the advisor moves levers to show each decision's effect, and
 // can rename / add / remove them. Both tabs read this shared set.
@@ -437,6 +571,9 @@ function demoScenarios(){
   return s;
 }
 let scenarios = loadScenarios() || demoScenarios();
+// Solver UI state. solverFormOpen toggles the inline "Solve…" form in the band
+// gutter; solving guards against re-entry while a solve is in flight.
+let solverFormOpen = false, solving = false;
 
 /* Map a scenario's levers -> engine override object. */
 function leversToOverrides(L){
@@ -766,10 +903,30 @@ function renderBand(){
         <div class="circle-val"><span class="big" style="color:${col}">${sr.toFixed(1)}%</span><span class="lbl">Success</span></div></div>
     </div>`;
   });
-  // The "+ Add scenario" affordance lives in the label gutter cell when there's
-  // room (under the cap). Kept compact so it doesn't compete with the columns.
+  // Label gutter cell content: blank scenario "+ Add", solver "✦ Solve…", and
+  // when the solver form is open, replace the buttons with the inline form
+  // ("retire at AGE with %... [Solve]"). Capped at MAX_SCENARIOS for both adds.
   if(scenarios.length<MAX_SCENARIOS){
-    h=h.replace('<span>Scenario</span>',`<span>Scenario</span><button class="add-scen" title="Add scenario">+ Add</button>`);
+    const baseLev = scenarios.find(s=>s.base)?.lev || defaultLevers();
+    const defaultTargetAge = Math.max(55, baseLev.retireAge - 3);
+    const defaultPct = Math.round((scenarios.find(s=>s.base)?.res?.successRate) || 85);
+    let gut;
+    if(solverFormOpen){
+      gut = `<span>Scenario</span>
+        <form class="solver-form" id="solver-form">
+          <div class="sf-q">Retire at <input class="sf-in age" id="sf-age" type="number" min="55" max="72" value="${defaultTargetAge}"></div>
+          <div class="sf-q">with <input class="sf-in pct" id="sf-pct" type="number" min="50" max="99" value="${defaultPct}">% confidence</div>
+          <div class="sf-actions">
+            <button type="button" class="sf-cancel" id="sf-cancel">Cancel</button>
+            <button type="submit" class="sf-go">Solve →</button>
+          </div>
+        </form>`;
+    } else {
+      gut = `<span>Scenario</span>
+        <button class="add-scen" title="Add scenario">+ Add</button>
+        <button class="solve-btn" title="Solve a life question">✦ Solve…</button>`;
+    }
+    h=h.replace('<span>Scenario</span>', gut);
   }
   $('#scn-band').innerHTML=h;
 }
@@ -871,6 +1028,19 @@ $('#scn-band').addEventListener('click', e=>{
   const x=e.target.closest('.col-x');
   if(x){ removeScenario(+x.dataset.col); return; }
   if(e.target.closest('.add-scen')){ addScenario(); return; }
+  if(e.target.closest('.solve-btn')){ solverFormOpen = true; renderBand(); return; }
+  if(e.target.closest('.sf-cancel')){ solverFormOpen = false; renderBand(); return; }
+});
+// Solver form submit: read target age + % and kick off the early-retirement solve.
+$('#scn-band').addEventListener('submit', e=>{
+  const f = e.target.closest('#solver-form');
+  if(!f) return;
+  e.preventDefault();
+  const age = parseInt($('#sf-age')?.value, 10);
+  const pct = parseFloat($('#sf-pct')?.value);
+  if(!isFinite(age) || age<55 || age>72) return;
+  if(!isFinite(pct) || pct<50 || pct>99) return;
+  runSolveEarlyRetirement(age, pct);
 });
 // Live commas while typing into any inline numeric input (pension + lever boxes).
 $('#scn-levers').addEventListener('input', e=>{
