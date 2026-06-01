@@ -2511,14 +2511,36 @@ function drawSeqChart(runs, retAge){
   // Per line: a paper-colored HALO underneath, then the colored line on top. The
   // halo knocks out the lines below at every crossing, so the crowded middle
   // reads cleanly and the top line is unambiguous. Monotone curve = no overshoot.
+  // A depleted line STOPS at $0 (no crawl along the floor) — the ✕ marks the end.
+  const ends=[];
   runs.forEach((r,i)=>{
-    const d=monoPath(all[i].map((v,k)=>[X(k),Y(v)]));
+    const full=all[i];
+    const dep=r.res.depletionAge!=null;
+    let ei=full.length-1;
+    if(dep){ const k=full.findIndex((v,idx)=>idx>0 && v<=0.01); if(k>0) ei=k; }
+    const d=monoPath(full.slice(0,ei+1).map((v,k)=>[X(k),Y(v)]));
     h+=`<path d="${d}" fill="none" stroke="var(--surface)" stroke-width="5.8" stroke-linejoin="round" stroke-linecap="round"/>`;
     h+=`<path d="${d}" fill="none" stroke="${r.m.c}" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>`;
+    ends.push({c:r.m.c, y:r.m.y, dep, px:X(ei), py:Y(full[ei])});
   });
   // Shared launch node — one plan, all markets start here, then diverge.
   h+=`<circle cx="${X(0).toFixed(1)}" cy="${Y(entry).toFixed(1)}" r="3.4" fill="var(--surface)" stroke="${AXIS_INK}" stroke-width="1.6"/>`;
   h+=`</g>`;
+  // Endpoint treatment (outside the clip so labels are never cut): a ✕ where a
+  // line runs dry, a dot where it survives — each tagged with its market year so
+  // the eye never has to leave the chart for the legend.
+  ends.forEach(e=>{
+    const px=e.px.toFixed(1);
+    if(e.dep){
+      const s=4.3;
+      h+=`<path d="M ${(e.px-s).toFixed(1)} ${(e.py-s).toFixed(1)} L ${(e.px+s).toFixed(1)} ${(e.py+s).toFixed(1)} M ${(e.px-s).toFixed(1)} ${(e.py+s).toFixed(1)} L ${(e.px+s).toFixed(1)} ${(e.py-s).toFixed(1)}" stroke="${e.c}" stroke-width="2.2" stroke-linecap="round"/>`;
+      h+=`<text x="${px}" y="${(e.py-11).toFixed(1)}" fill="${e.c}" font-size="12" font-family="Sora" font-weight="600" text-anchor="middle">${e.y}</text>`;
+    } else {
+      h+=`<circle cx="${px}" cy="${e.py.toFixed(1)}" r="3.2" fill="${e.c}" stroke="var(--surface)" stroke-width="1.5"/>`;
+      const ly = e.py>y0+22 ? e.py-9 : e.py+18;
+      h+=`<text x="${(e.px-7).toFixed(1)}" y="${ly.toFixed(1)}" fill="${e.c}" font-size="12" font-family="Sora" font-weight="600" text-anchor="end">${e.y}</text>`;
+    }
+  });
   svg.innerHTML=h;
 }
 // Path fingerprint — facts read straight off the engine result. One card per real
