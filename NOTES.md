@@ -74,6 +74,21 @@ The toggle (Nathan wants it slick/clever, easy to find, neat transition):
   or baseline-only first.
 - NOT built — spec only, parked 2026-05. Real feature, own session.
 
+## Idea bank — Sequencing (parked, not building)
+- **Strategy Fork on one path.** Pick ONE fixed market path, then compare
+  strategies on that exact same path (lower spend / delay SS / allocation /
+  Roth conversion / guardrail spending). Isolates the planning DECISION from
+  market luck. Nathan rated it his #1 advisor-use function. Parked because it
+  OVERLAPS the Scenarios tab (which already runs every column through the same
+  draws, only levers differ) — decide before building whether it's a Sequencing
+  feature or really belongs in Scenarios, so the two tabs don't blur. Powerful
+  either way; do it its own session once the order lesson is nailed.
+- **Recovery Tunnel.** A "valley" view of years spent UNDERWATER — below the
+  starting real balance. A plan can survive and still spend ~12 years beneath
+  where it started, which matters emotionally/behaviorally even when it never
+  fails. Honest factual metric (years-under-high-water), no invented score. Good
+  secondary visual once the spine exists.
+
 ## Design — deferred
 - **Scenarios "shared-track" redesign (BIG — own session).** Kill the 3-column
   boxes-in-boxes repetition. One shared horizontal track per lever: when all
