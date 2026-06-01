@@ -1321,19 +1321,19 @@ function renderCashflow(){
 // toggle on/off as lines (`on` = shown by default). Euphoric bulls (1982/85) are
 // deliberately omitted — a 10-20x winner crushes the scale and hides the
 // downside, which is the whole point of a sequence-risk view.
-// Deep, editorial ink tones on the cream paper — high-contrast and serious, not
-// the mid-tone pastels that read as crayon/cartoon. Each is a saturated, darkened
-// hue so lines look like a financial instrument, not a kids' app.
+// Low-chroma, harmonious ink tones — all grayed and close in value so the set
+// reads as one sophisticated family on the cream paper, never "candy". Lines are
+// distinguished by the endpoint labels, so colors don't need to shout.
 const SEQ_YEARS=[
-  {y:1929, tag:'Great Depression',  c:'#9c4a2f', on:false},  // burnt rust
-  {y:1937, tag:'Depression relapse',c:'#bd7e26', on:false},  // ochre
-  {y:1966, tag:'the lost decade',   c:'#36567d', on:true },  // deep slate blue
-  {y:1968, tag:'the 60s top',       c:'#5f6e3b', on:false},  // deep olive
-  {y:1973, tag:'stagflation',       c:'#a0741c', on:true },  // antique brass
-  {y:1987, tag:'Black Monday',      c:'#3d6b4a', on:false},  // forest green
-  {y:1995, tag:'the 90s boom',      c:'#1f6f78', on:true },  // deep teal
-  {y:2000, tag:'dot-com → GFC',     c:'#5b4a86', on:true },  // indigo
-  {y:2008, tag:'financial crisis',  c:'#8c4159', on:false},  // claret
+  {y:1929, tag:'Great Depression',  c:'#9a5e4c', on:false},  // muted brick
+  {y:1937, tag:'Depression relapse',c:'#a3853f', on:false},  // grayed bronze
+  {y:1966, tag:'the lost decade',   c:'#476074', on:true },  // muted steel blue
+  {y:1968, tag:'the 60s top',       c:'#6a7152', on:false},  // grayed olive
+  {y:1973, tag:'stagflation',       c:'#937b41', on:true },  // grayed gold
+  {y:1987, tag:'Black Monday',      c:'#4c7064', on:false},  // muted pine
+  {y:1995, tag:'the 90s boom',      c:'#367277', on:true },  // grayed teal
+  {y:2000, tag:'dot-com → GFC',     c:'#5e5575', on:true },  // muted slate-violet
+  {y:2008, tag:'financial crisis',  c:'#875563', on:false},  // muted mauve
 ];
 
 function buildSeqSelect(){
@@ -1433,12 +1433,12 @@ function drawSeqChart(runs, retAge){
     let ei=full.length-1;
     if(dep){ const k=full.findIndex((v,idx)=>idx>0 && v<=0.01); if(k>0) ei=k; }
     const d=monoPath(full.slice(0,ei+1).map((v,k)=>[X(k),Y(v)]));
-    h+=`<path d="${d}" fill="none" stroke="var(--surface)" stroke-width="5.8" stroke-linejoin="round" stroke-linecap="round"/>`;
-    h+=`<path d="${d}" fill="none" stroke="${r.m.c}" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>`;
+    h+=`<path d="${d}" fill="none" stroke="var(--surface)" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>`;
+    h+=`<path d="${d}" fill="none" stroke="${r.m.c}" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"/>`;
     ends.push({c:r.m.c, y:r.m.y, dep, px:X(ei), py:Y(full[ei])});
   });
   // Shared launch node — one plan, all markets start here, then diverge.
-  h+=`<circle cx="${X(0).toFixed(1)}" cy="${Y(entry).toFixed(1)}" r="3.4" fill="var(--surface)" stroke="${AXIS_INK}" stroke-width="1.6"/>`;
+  h+=`<circle cx="${X(0).toFixed(1)}" cy="${Y(entry).toFixed(1)}" r="2.6" fill="var(--surface)" stroke="${AXIS_INK}" stroke-width="1.3"/>`;
   h+=`</g>`;
   // Endpoint treatment (outside the clip so labels are never cut): a ✕ where a
   // line runs dry, a dot where it survives — each tagged with its market year so
@@ -1446,11 +1446,11 @@ function drawSeqChart(runs, retAge){
   ends.forEach(e=>{
     const px=e.px.toFixed(1);
     if(e.dep){
-      const s=4.3;
-      h+=`<path d="M ${(e.px-s).toFixed(1)} ${(e.py-s).toFixed(1)} L ${(e.px+s).toFixed(1)} ${(e.py+s).toFixed(1)} M ${(e.px-s).toFixed(1)} ${(e.py+s).toFixed(1)} L ${(e.px+s).toFixed(1)} ${(e.py-s).toFixed(1)}" stroke="${e.c}" stroke-width="2.2" stroke-linecap="round"/>`;
+      const s=3.6;
+      h+=`<path d="M ${(e.px-s).toFixed(1)} ${(e.py-s).toFixed(1)} L ${(e.px+s).toFixed(1)} ${(e.py+s).toFixed(1)} M ${(e.px-s).toFixed(1)} ${(e.py+s).toFixed(1)} L ${(e.px+s).toFixed(1)} ${(e.py-s).toFixed(1)}" stroke="${e.c}" stroke-width="1.8" stroke-linecap="round"/>`;
       h+=`<text x="${px}" y="${(e.py-11).toFixed(1)}" fill="${e.c}" font-size="12" font-family="Sora" font-weight="600" text-anchor="middle">${e.y}</text>`;
     } else {
-      h+=`<circle cx="${px}" cy="${e.py.toFixed(1)}" r="3.2" fill="${e.c}" stroke="var(--surface)" stroke-width="1.5"/>`;
+      h+=`<circle cx="${px}" cy="${e.py.toFixed(1)}" r="2.6" fill="${e.c}" stroke="var(--surface)" stroke-width="1.3"/>`;
       const ly = e.py>y0+22 ? e.py-9 : e.py+18;
       h+=`<text x="${(e.px-7).toFixed(1)}" y="${ly.toFixed(1)}" fill="${e.c}" font-size="12" font-family="Sora" font-weight="600" text-anchor="end">${e.y}</text>`;
     }
