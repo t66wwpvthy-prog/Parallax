@@ -86,6 +86,16 @@ The toggle (Nathan wants it slick/clever, easy to find, neat transition):
   merged value (click to expand all three?), how dots behave on tap/drag,
   pension's @age sub-label.
 
+## Bug fixes
+- **Cash-flow drawer "not loading" → runAll made resilient.** Root cause: any
+  single throw (a degenerate plan input like plan-end ≤ current age, or an
+  out-of-range saved scenario lever) aborted the WHOLE Run, leaving every res
+  null so the circles + cash-flow drawer silently went blank. Fix: (1) guard the
+  non-positive-horizon case with a clear status message and keep the last good
+  results; (2) isolate each scenario in its own try/catch so one bad column can't
+  blank the others (status notes "N scenarios could not run"); (3) cash-flow
+  drawer shows a plain empty-state message instead of a headers-only blank table.
+
 ## Design — done
 - **Inputs tab — escaped the boxes-in-boxes grid.** Killed the bordered nested
   cards (tax-form feel). Now an open "household sheet": hairline eyebrow section

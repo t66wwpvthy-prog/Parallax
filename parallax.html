@@ -201,6 +201,7 @@ body{background:radial-gradient(1200px 600px at 88% -12%, var(--gold-glow), tran
 .cf-drawer-head{padding:12px 18px;border-bottom:1px solid var(--rule);font-family:'Sora';font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);display:flex;justify-content:space-between;align-items:center}
 .cf-drawer-head .sub{color:var(--ink-faint);font-family:'Sora';font-weight:400;letter-spacing:.04em;text-transform:none;font-size:11px}
 .cf-scroll{max-height:460px;overflow:auto}
+.cf-empty{padding:26px 18px;color:var(--ink-mute);font-family:'Sora';font-size:13px;text-align:center}
 .cf-table{width:100%;border-collapse:collapse;font-family:'Inter';font-size:12px;font-variant-numeric:tabular-nums}
 .cf-table thead{position:sticky;top:0;background:var(--surface-2);z-index:2}
 .cf-table th,.cf-table td{padding:7px 10px;text-align:right;border-bottom:1px solid var(--rule-faint);white-space:nowrap}
@@ -1918,18 +1919,31 @@ function runAll(){
       // is cached so identical inputs give an identical % — no noise drift.
       const horizon = plan.household.primary.planEndAge - plan.household.primary.currentAge;
       const iters = plan.simulation.iterations;
+      // Degenerate plan guard: a non-positive horizon (plan-end age at/below
+      // current age) can't be simulated. Surface a clear reason and bail
+      // WITHOUT nuking the last good results, so the views don't go blank.
+      if(!(horizon > 0)){
+        $('#status').textContent='Check plan: end age must be after current age';
+        btn.disabled=false; running=false; return;
+      }
       if(!sharedPaths || sharedPaths.length !== iters || sharedPaths[0].length !== horizon){
         resetSeed();              // fixed seed → identical bundle every load, no % drift
         sharedPaths = [];
         for(let i=0;i<iters;i++) sharedPaths.push(generateReturnPath(horizon));
       }
+      // Isolate each scenario: one bad column (e.g. an out-of-range saved lever)
+      // must not abort the whole Run and blank every other column + the cash
+      // flow drawer. Failed scenarios get res=null and are skipped downstream.
+      let failed=0;
       scenarios.forEach(s=>{
-        const p=planForScenario(s.lev);
-        const ov=leversToOverrides(s.lev);
-        s.res=runSimulation(p, ov, sharedPaths);
+        try{
+          const p=planForScenario(s.lev);
+          const ov=leversToOverrides(s.lev);
+          s.res=runSimulation(p, ov, sharedPaths);
+        }catch(err){ s.res=null; failed++; console.error('Scenario failed:', s.name, err); }
       });
       renderBand(); renderFoot(); renderCashflow(); buildSeqSelect(); runSeq();
-      $('#status').textContent='Complete';
+      $('#status').textContent = failed ? `Complete · ${failed} scenario${failed>1?'s':''} could not run` : 'Complete';
     }catch(e){ $('#status').textContent='Error'; console.error(e); }
     btn.disabled=false; running=false;
   },20);
@@ -2236,6 +2250,14 @@ function renderCashflow(){
   const drawer = $('#cf-drawer');
   if(drawer.hidden) return;   // only render when open; runAll re-renders if so
   const rowsByScen = scenarios.map(s => (s.res && s.res.paths && s.res.paths.p50) ? s.res.paths.p50.rows : []);
+  // No data anywhere (e.g. a failed/degenerate Run) → say so plainly instead of
+  // rendering an empty headers-only table that looks like it "didn't load".
+  if(!rowsByScen.some(r => r.length)){
+    drawer.innerHTML =
+      `<div class="cf-drawer-head"><span>Annual Cash Flow</span></div>` +
+      `<div class="cf-empty">No cash-flow data yet. Press Run — or check the plan inputs if the status bar shows a warning.</div>`;
+    return;
+  }
   const gcls = scenarios.map((_,i)=>`cf-g${i%2}`);
   let h = '<table class="cf-table"><thead><tr><th class="age" rowspan="2">Age</th>';
   scenarios.forEach((s,i)=>{
