@@ -122,6 +122,9 @@ The toggle (Nathan wants it slick/clever, easy to find, neat transition):
   Fingerprints rescoped to the retirement phase; truncated recent years (2000/
   2008) labelled honestly "$X at age Y (data ends)" instead of "Survived".
   Year list = retirement years 1937-2008 (need ~7 prior yrs of data). No engine
+  change. Working years DROPPED from the chart (Nathan: no analytic value since
+  identical in both orders) — chart starts at retirement (age 65), both lines
+  begin at the shared retirement balance; accumulation still sets that balance.
   change (reuses the transform param). OPEN: whether to keep showing working
   years on the chart at all (they're identical in both orders = no analytic value).
 
