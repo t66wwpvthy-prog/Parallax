@@ -3,3 +3,7 @@ node_modules/
 variant-*.html
 _*.mjs
 .cache/
+
+# Reference screenshots (inspiration / competitor UI) are deliberately tracked.
+!reference/
+!reference/**
