@@ -111,6 +111,25 @@ The toggle (Nathan wants it slick/clever, easy to find, neat transition):
   blank the others (status notes "N scenarios could not run"); (3) cash-flow
   drawer shows a plain empty-state message instead of a headers-only blank table.
 
+## Sequencing tab — v1 built (same returns, different order)
+- Spine: pick a real historical start (1973/2000/1929/1982) + a scenario's plan;
+  run the SAME plan forward vs EXACTLY reversed (identical returns, opposite
+  order). Hero chart = 2 lines (forward solid, reversed dashed=counterfactual).
+  Two Path Fingerprints below (Forward vs Reversed): first-10yr real return,
+  deepest drawdown, lowest balance, outcome (ran-dry age / survived terminal).
+- Engine touch: ONE additive optional param `transform` on runHistoricalPath
+  (reorders the built real-return rows before the single-path runner; default =
+  byte-identical forward run). engine.test.js locks "reversed = same returns,
+  opposite order" → 8/8. No new math in the UI; every number is an engine read.
+- Scale problem from the old multi-year chart is GONE: one plan's own path
+  forward vs reversed lives in the same magnitude band, fully legible.
+- OPEN — withdrawal-drag toggle (built, off by default) is MUDDY: the
+  no-withdrawal ghost compounds to ~$18M over 37yr and that gap is mostly
+  intended spending, not sequence damage — and it re-bloats the scale. The real
+  "selling into a decline" insight is already in the fingerprint contrast
+  (drawdown / lowest balance differ by order). DECIDE: pull the drag toggle, or
+  rework it as the comparative (drag in bad order vs good order), own session.
+
 ## Design — done
 - **Inputs tab — escaped the boxes-in-boxes grid.** Killed the bordered nested
   cards (tax-form feel). Now an open "household sheet": hairline eyebrow section

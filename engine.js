@@ -997,7 +997,7 @@ function analyzeResults(sims, p){
 }
 
 
-function runHistoricalPath(plan, startYear, strategy){
+function runHistoricalPath(plan, startYear, strategy, transform){
   const rawInputs = resolveInputs(plan, {});
   // Override strategy for this run
   rawInputs.withdrawalStrategy = strategy;
@@ -1020,13 +1020,19 @@ function runHistoricalPath(plan, startYear, strategy){
   }
   if(path.length === 0) return null;
 
+  // Optional ORDER transform (e.g. reverse): reorders the SAME real return
+  // rows before the single-path runner walks them. The returns are unchanged —
+  // only their sequence is. Used by the Sequencing tab to isolate order. When
+  // omitted, behavior is byte-identical to the original forward run.
+  const ordered = typeof transform === 'function' ? transform(path.slice()) : path;
+
   // Adjust horizon to actual data available
-  const inputs = { ...rawInputs, horizonYears: path.length };
-  const result = runSinglePath(inputs, path);
-  result.actualYears  = path.length;
+  const inputs = { ...rawInputs, horizonYears: ordered.length };
+  const result = runSinglePath(inputs, ordered);
+  result.actualYears  = ordered.length;
   result.requestedYrs = rawInputs.horizonYears;
   result.startYear    = startYear;
-  result.endYear      = startYear + path.length - 1;
+  result.endYear      = startYear + ordered.length - 1;
   return result;
 }
 

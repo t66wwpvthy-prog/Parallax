@@ -44,6 +44,28 @@ test('a known bad sequence (retire into 1973) is materially worse than average',
   assert.ok(hist && (hist.rows || hist).length > 0, 'historical path should produce rows');
 });
 
+// Sequencing tab relies on this: reversing a real path must reuse the SAME
+// returns in the opposite order — never invent or drop any. We check the
+// multiset of source years is identical (same returns) but the sequence differs.
+test('reversed historical path = same returns, opposite order', () => {
+  // Use a richly funded plan so BOTH orders survive the full horizon — then the
+  // sequence of return-years is directly comparable (depletion would truncate
+  // one and confound the multiset check; that survival flips with order is the
+  // feature itself, tested implicitly by the lean-plan 1973 test above).
+  const rich = JSON.parse(JSON.stringify(defaultPlan));
+  rich.portfolio.accounts.taxable.balance     = 20e6;
+  rich.portfolio.accounts.traditional.balance = 0;
+  rich.portfolio.accounts.roth.balance        = 0;
+  const fwd = runHistoricalPath(rich, 1973, 'taxable-first');
+  const rev = runHistoricalPath(rich, 1973, 'taxable-first', p => p.slice().reverse());
+  assert.ok(rev && rev.rows.length > 0, 'reversed path should produce rows');
+  const fy = fwd.rows.filter(r => r.source != null).map(r => r.source);
+  const ry = rev.rows.filter(r => r.source != null).map(r => r.source);
+  assert.deepStrictEqual([...fy].sort((a,b)=>a-b), [...ry].sort((a,b)=>a-b), 'identical set of return years');
+  assert.notDeepStrictEqual(fy, ry, 'order must actually differ');
+  assert.deepStrictEqual(ry, [...fy].reverse(), 'reversed = forward backwards');
+});
+
 // Pension benefit-by-age: discrete lookup, no interpolation, no extrapolation.
 // The engine only pays the amount entered for the EXACT chosen age — a missing
 // age pays 0, never an inferred number. This is the truth-source rule for
