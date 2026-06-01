@@ -66,6 +66,22 @@ test('reversed historical path = same returns, opposite order', () => {
   assert.deepStrictEqual(ry, [...fy].reverse(), 'reversed = forward backwards');
 });
 
+// Sequencing honors a chosen scenario, not just its allocation: overrides must
+// flow through runHistoricalPath the same way they do for the Monte Carlo path.
+test('historical path honors overrides (e.g. a spending bump)', () => {
+  // Rich plan so both runs survive (a depleted plan floors at $0 either way and
+  // wouldn't reveal whether the override flowed through).
+  const rich = JSON.parse(JSON.stringify(defaultPlan));
+  rich.portfolio.accounts.taxable.balance     = 20e6;
+  rich.portfolio.accounts.traditional.balance = 0;
+  rich.portfolio.accounts.roth.balance        = 0;
+  const base   = runHistoricalPath(rich, 1973, 'taxable-first');
+  const spendy = runHistoricalPath(rich, 1973, 'taxable-first', undefined, { spendBump: 0.5 });
+  assert.ok(base && spendy, 'both runs produce a result');
+  assert.ok(spendy.terminalBalance < base.terminalBalance - 1,
+    'a +50% spend override must lower the historical ending balance');
+});
+
 // Pension benefit-by-age: discrete lookup, no interpolation, no extrapolation.
 // The engine only pays the amount entered for the EXACT chosen age — a missing
 // age pays 0, never an inferred number. This is the truth-source rule for

@@ -112,6 +112,15 @@ The toggle (Nathan wants it slick/clever, easy to find, neat transition):
   drawer shows a plain empty-state message instead of a headers-only blank table.
 
 ## Sequencing tab — v1 built (same returns, different order)
+- Plan selector now HONORS THE FULL SCENARIO (was allocation-only = silently
+  fake). Allocation via the plan clone + every other lever via the same
+  leversToOverrides mapping the Scenarios tab uses, threaded through a second
+  additive optional param `overrides` on runHistoricalPath (default {} =
+  identical). engine.test.js locks overrides flow → 9/9. Verified: Baseline
+  1973 fwd $691K, Scenario B (retire +2yr) fwd $4.2M — the selector is real.
+- Withdrawal-drag toggle PULLED entirely (Nathan's call). Tab stays lean:
+  hero (forward vs reversed) + two fingerprints. No drawer (decided: keep lean).
+
 - Spine: pick a real historical start (1973/2000/1929/1982) + a scenario's plan;
   run the SAME plan forward vs EXACTLY reversed (identical returns, opposite
   order). Hero chart = 2 lines (forward solid, reversed dashed=counterfactual).

@@ -997,8 +997,12 @@ function analyzeResults(sims, p){
 }
 
 
-function runHistoricalPath(plan, startYear, strategy, transform){
-  const rawInputs = resolveInputs(plan, {});
+function runHistoricalPath(plan, startYear, strategy, transform, overrides){
+  // `overrides` flows through the SAME resolveInputs lever mapping the Monte
+  // Carlo path uses (retireDelay, ssDelayYears, spendBump, lumpSum, savingsBump,
+  // pensionStartAge, …) so a chosen scenario is sequenced faithfully, not just
+  // its allocation. Defaults to {} → behavior identical to the original.
+  const rawInputs = resolveInputs(plan, overrides || {});
   // Override strategy for this run
   rawInputs.withdrawalStrategy = strategy;
 

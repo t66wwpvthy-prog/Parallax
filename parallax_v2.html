@@ -1302,12 +1302,15 @@ function buildSeqSelect(){
 function runSeq(){
   const sel=$('#seq-select'); const s=scenarios.find(x=>x.name===sel.value)||scenarios[0];
   const startYear=+($('#seq-year').value||SEQ_STARTS[0].y);
-  // Only ALLOCATION carries from the chosen scenario into the plan clone — this
-  // tab varies ORDER, not the levers (that's the Scenarios tab's job).
+  // Sequence the chosen scenario FAITHFULLY: allocation via the plan clone,
+  // every other lever via the same overrides mapping the Scenarios tab uses.
+  // The tab still varies only ORDER between the two lines — the scenario is the
+  // fixed plan both orders run through.
   const p=planForScenario(s.lev);
+  const ov=leversToOverrides(s.lev);
   const strat=p.portfolio.withdrawalStrategy||'taxable-first';
-  const fwd=runHistoricalPath(p, startYear, strat);
-  const rvs=runHistoricalPath(p, startYear, strat, a=>a.slice().reverse());
+  const fwd=runHistoricalPath(p, startYear, strat, undefined, ov);
+  const rvs=runHistoricalPath(p, startYear, strat, a=>a.slice().reverse(), ov);
   if(!fwd || !rvs){ $('#seq-svg').innerHTML=''; $('#seq-prints').innerHTML=''; return; }
   drawSeqChart(fwd, rvs);
   renderPrints(fwd, rvs);
