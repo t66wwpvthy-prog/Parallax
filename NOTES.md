@@ -112,6 +112,19 @@ The toggle (Nathan wants it slick/clever, easy to find, neat transition):
   drawer shows a plain empty-state message instead of a headers-only blank table.
 
 ## Sequencing tab — v1 built (same returns, different order)
+- FIX (Nathan caught it): the chosen year is now the RETIREMENT year, not
+  current age. Before, "retire into 2008" started the sequence at age 58, so the
+  crash landed in the WORKING years (where it helps) and never tested retirement
+  sequence risk; recent years also truncated. Now: working years use the real
+  years just before retirement, and the path's RETIREMENT portion is what gets
+  reversed — crash lands at age 65 where sequence risk lives. 1973 now shows the
+  real lesson: forward ran dry @ 81 vs reversed survived $2.8M (same returns).
+  Fingerprints rescoped to the retirement phase; truncated recent years (2000/
+  2008) labelled honestly "$X at age Y (data ends)" instead of "Survived".
+  Year list = retirement years 1937-2008 (need ~7 prior yrs of data). No engine
+  change (reuses the transform param). OPEN: whether to keep showing working
+  years on the chart at all (they're identical in both orders = no analytic value).
+
 - Polish (mobile + trust): (a) Sequencing page now scrolls (overflow-y:auto) so
   the fingerprint cards aren't cut off; (b) "Retire into" expanded from 4 to 10
   curated real start years (1929–2009, bad+good), default 1973; (c) PULLED the
