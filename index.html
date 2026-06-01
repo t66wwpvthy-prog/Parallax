@@ -2272,6 +2272,31 @@ const PADL=78, PADR=14, PADT=12, PADB=30;
 const GRID='#e8e2d5', AXIS_INK='#8a93a0';
 // Smooth a series of [x,y] points into a path using Catmull-Rom -> bezier.
 // Tension kept low so the line stays trackable, not wavy ("toddler-drawn").
+// Monotone cubic interpolation (Fritsch–Carlson). Unlike Catmull-Rom it CANNOT
+// overshoot the data, so the curve stays smooth without inventing humps/dips
+// between points — the difference between a grown-up chart and a wobbly one.
+function monoPath(pts){
+  const n=pts.length;
+  if(n<2) return '';
+  if(n===2) return `M ${pts[0][0]} ${pts[0][1]} L ${pts[1][0]} ${pts[1][1]}`;
+  const xs=pts.map(p=>p[0]), ys=pts.map(p=>p[1]);
+  const dx=[], dy=[], m=[];
+  for(let i=0;i<n-1;i++){ dx[i]=xs[i+1]-xs[i]; dy[i]=ys[i+1]-ys[i]; m[i]=dy[i]/(dx[i]||1e-9); }
+  const t=new Array(n);
+  t[0]=m[0]; t[n-1]=m[n-2];
+  for(let i=1;i<n-1;i++) t[i] = (m[i-1]*m[i]<=0) ? 0 : (m[i-1]+m[i])/2;
+  for(let i=0;i<n-1;i++){
+    if(m[i]===0){ t[i]=0; t[i+1]=0; continue; }
+    const a=t[i]/m[i], b=t[i+1]/m[i], s=a*a+b*b;
+    if(s>9){ const tau=3/Math.sqrt(s); t[i]=tau*a*m[i]; t[i+1]=tau*b*m[i]; }
+  }
+  let d=`M ${xs[0].toFixed(1)} ${ys[0].toFixed(1)}`;
+  for(let i=0;i<n-1;i++){
+    const h=dx[i];
+    d+=` C ${(xs[i]+h/3).toFixed(1)} ${(ys[i]+t[i]*h/3).toFixed(1)}, ${(xs[i+1]-h/3).toFixed(1)} ${(ys[i+1]-t[i+1]*h/3).toFixed(1)}, ${xs[i+1].toFixed(1)} ${ys[i+1].toFixed(1)}`;
+  }
+  return d;
+}
 function smoothPath(pts){
   if(pts.length<2) return '';
   if(pts.length===2) return `M ${pts[0][0]} ${pts[0][1]} L ${pts[1][0]} ${pts[1][1]}`;
@@ -2374,16 +2399,18 @@ function renderCashflow(){
 // toggle on/off as lines (`on` = shown by default). Euphoric bulls (1982/85) are
 // deliberately omitted — a 10-20x winner crushes the scale and hides the
 // downside, which is the whole point of a sequence-risk view.
+// Desaturated, earthy palette tuned to the paper theme — distinguishable but
+// never candy-bright (the old saturated set read as childish on cream).
 const SEQ_YEARS=[
-  {y:1929, tag:'Great Depression',  c:'#e0918d', on:false},
-  {y:1937, tag:'Depression relapse',c:'#e8a86a', on:false},
-  {y:1966, tag:'the lost decade',   c:'#9db4e0', on:true },
-  {y:1968, tag:'the 60s top',       c:'#b9c97a', on:false},
-  {y:1973, tag:'stagflation',       c:'#f0c773', on:true },
-  {y:1987, tag:'Black Monday',      c:'#7faf8a', on:false},
-  {y:1995, tag:'the 90s boom',      c:'#a9d5cf', on:true },
-  {y:2000, tag:'dot-com → GFC',     c:'#9d92d0', on:true },
-  {y:2008, tag:'financial crisis',  c:'#c98fb4', on:false},
+  {y:1929, tag:'Great Depression',  c:'#c07a6e', on:false},  // terracotta
+  {y:1937, tag:'Depression relapse',c:'#ca9a5e', on:false},  // muted amber
+  {y:1966, tag:'the lost decade',   c:'#8aa6cf', on:true },  // dusty blue
+  {y:1968, tag:'the 60s top',       c:'#9aac82', on:false},  // sage
+  {y:1973, tag:'stagflation',       c:'#d6aa59', on:true },  // theme gold
+  {y:1987, tag:'Black Monday',      c:'#6fa68f', on:false},  // muted teal-green
+  {y:1995, tag:'the 90s boom',      c:'#84bdb6', on:true },  // muted teal
+  {y:2000, tag:'dot-com → GFC',     c:'#8f84ad', on:true },  // dusty violet
+  {y:2008, tag:'financial crisis',  c:'#b5859a', on:false},  // dusty rose
 ];
 
 function buildSeqSelect(){
@@ -2469,10 +2496,16 @@ function drawSeqChart(runs, retAge){
   const Y=v => y1-(Math.max(0,v)/maxBal)*(y1-y0);
   let h=axes(W,H,ageStart,ageEnd,maxBal);
   h+=`<defs><clipPath id="seqclip"><rect x="${x0}" y="${y0-2}" width="${x1-x0}" height="${y1-y0+2}"/></clipPath></defs><g clip-path="url(#seqclip)">`;
+  // Per line: a paper-colored HALO underneath, then the colored line on top. The
+  // halo knocks out the lines below at every crossing, so the crowded middle
+  // reads cleanly and the top line is unambiguous. Monotone curve = no overshoot.
   runs.forEach((r,i)=>{
-    const pts=all[i].map((v,k)=>[X(k),Y(v)]);
-    h+=`<path d="${smoothPath(pts)}" fill="none" stroke="${r.m.c}" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>`;
+    const d=monoPath(all[i].map((v,k)=>[X(k),Y(v)]));
+    h+=`<path d="${d}" fill="none" stroke="var(--surface)" stroke-width="5.5" stroke-linejoin="round" stroke-linecap="round"/>`;
+    h+=`<path d="${d}" fill="none" stroke="${r.m.c}" stroke-width="2.1" stroke-linejoin="round" stroke-linecap="round"/>`;
   });
+  // Shared launch node — one plan, all markets start here, then diverge.
+  h+=`<circle cx="${X(0).toFixed(1)}" cy="${Y(entry).toFixed(1)}" r="3.4" fill="var(--surface)" stroke="${AXIS_INK}" stroke-width="1.6"/>`;
   h+=`</g>`;
   svg.innerHTML=h;
 }
