@@ -1321,21 +1321,19 @@ function renderCashflow(){
 // toggle on/off as lines (`on` = shown by default). Euphoric bulls (1982/85) are
 // deliberately omitted — a 10-20x winner crushes the scale and hides the
 // downside, which is the whole point of a sequence-risk view.
-// Color carries MEANING, not identity: one deep ink for plans that last, one
-// muted warning tone for plans that run dry. The endpoint year-labels name the
-// lines, so we don't need a rainbow — two restrained tones read as an instrument.
-const SEQ_INK='#3c4a57';   // survived — deep slate ink
-const SEQ_WARN='#a8513f';  // ran dry — muted brick
+// Distinct but DEEP, desaturated editorial tones — each line identifiable, none
+// candy-bright. Default four (slate-blue / teal-green / brass / rust) are picked
+// to be maximally distinct from each other on the cream paper.
 const SEQ_YEARS=[
-  {y:1929, tag:'Great Depression',  on:false},
-  {y:1937, tag:'Depression relapse',on:false},
-  {y:1966, tag:'the lost decade',   on:true },
-  {y:1968, tag:'the 60s top',       on:false},
-  {y:1973, tag:'stagflation',       on:true },
-  {y:1987, tag:'Black Monday',      on:false},
-  {y:1995, tag:'the 90s boom',      on:true },
-  {y:2000, tag:'dot-com → GFC',     on:true },
-  {y:2008, tag:'financial crisis',  on:false},
+  {y:1929, tag:'Great Depression',  c:'#7d4a6b', on:false},  // plum
+  {y:1937, tag:'Depression relapse',c:'#b0863a', on:false},  // amber
+  {y:1966, tag:'the lost decade',   c:'#3f566b', on:true },  // deep slate blue
+  {y:1968, tag:'the 60s top',       c:'#5f6b3a', on:false},  // olive
+  {y:1973, tag:'stagflation',       c:'#357a5e', on:true },  // deep teal-green
+  {y:1987, tag:'Black Monday',      c:'#4a6f7a', on:false},  // steel
+  {y:1995, tag:'the 90s boom',      c:'#a8742a', on:true },  // antique brass
+  {y:2000, tag:'dot-com → GFC',     c:'#99513f', on:true },  // deep rust
+  {y:2008, tag:'financial crisis',  c:'#8c4a5a', on:false},  // claret
 ];
 
 function buildSeqSelect(){
@@ -1349,7 +1347,7 @@ function buildSeqSelect(){
 function buildSeqChips(){
   const box=$('#seq-chips'); if(!box) return;
   box.innerHTML=SEQ_YEARS.map((m,i)=>
-    `<button class="seq-chip${m.on?' on':''}" data-i="${i}">${m.y} · ${m.tag}</button>`).join('');
+    `<button class="seq-chip${m.on?' on':''}" data-i="${i}"><span class="cdot" style="background:${m.c}"></span>${m.y} · ${m.tag}</button>`).join('');
   box.querySelectorAll('.seq-chip').forEach(btn=>btn.onclick=()=>{
     const m=SEQ_YEARS[+btn.dataset.i];
     if(m.on && SEQ_YEARS.filter(x=>x.on).length<=1) return;   // keep at least one line
@@ -1434,7 +1432,7 @@ function drawSeqChart(runs, retAge){
     const dep=r.res.depletionAge!=null;
     let ei=full.length-1;
     if(dep){ const k=full.findIndex((v,idx)=>idx>0 && v<=0.01); if(k>0) ei=k; }
-    const col=dep?SEQ_WARN:SEQ_INK;
+    const col=r.m.c;
     const d=monoPath(full.slice(0,ei+1).map((v,k)=>[X(k),Y(v)]));
     h+=`<path d="${d}" fill="none" stroke="var(--surface)" stroke-width="3.4" stroke-linejoin="round" stroke-linecap="round"/>`;
     h+=`<path d="${d}" fill="none" stroke="${col}" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"/>`;
@@ -1463,8 +1461,17 @@ function drawSeqChart(runs, retAge){
     .sort((a,b)=>a.ly-b.ly);
   for(let i=1;i<surv.length;i++) if(surv[i].ly-surv[i-1].ly<GAP) surv[i].ly=surv[i-1].ly+GAP;
   surv.forEach(({e,ly})=>{ h+=`<text x="${(e.px-7).toFixed(1)}" y="${Math.min(y1,ly).toFixed(1)}" fill="${e.c}" font-size="12" font-family="Sora" font-weight="600" text-anchor="end">${e.y}</text>`; });
-  // Depleted labels sit above their ✕ (spread along the floor, rarely collide).
-  ends.filter(e=>e.dep).forEach(e=>{ h+=`<text x="${e.px.toFixed(1)}" y="${(e.py-11).toFixed(1)}" fill="${e.c}" font-size="12" font-family="Sora" font-weight="600" text-anchor="middle">${e.y}</text>`; });
+  // Depleted labels sit above their ✕. Two markets that run dry a year apart
+  // (e.g. 1973 @ 78, 1966 @ 79) would print "19731966" on top of each other, so
+  // we stack any that are horizontally close into separate rows above the floor.
+  const dep=ends.filter(e=>e.dep).sort((a,b)=>a.px-b.px);
+  const placed=[];
+  dep.forEach(e=>{
+    let ly=e.py-11, guard=0;
+    while(guard++<8 && placed.some(p=>Math.abs(p.x-e.px)<34 && Math.abs(p.y-ly)<13)) ly-=14;
+    placed.push({x:e.px, y:ly});
+    h+=`<text x="${e.px.toFixed(1)}" y="${ly.toFixed(1)}" fill="${e.c}" font-size="12" font-family="Sora" font-weight="600" text-anchor="middle">${e.y}</text>`;
+  });
   svg.innerHTML=h;
 }
 // Path fingerprint — facts read straight off the engine result. One card per real
@@ -1484,9 +1491,8 @@ function renderPrints(runs){
     : {t:`Survived · ${fmtM(r.terminalBalance)}`, c:'var(--positive-bright)'};
   const card=(m,res)=>{
     const o=outcome(res);
-    const col=res.depletionAge!=null?SEQ_WARN:SEQ_INK;
     return `<div class="seq-print">
-      <h4><span class="dot" style="border-color:${col}"></span>${m.y} · ${m.tag}</h4>
+      <h4><span class="dot" style="border-color:${m.c}"></span>${m.y} · ${m.tag}</h4>
       <div class="pr-row"><span class="pr-k">First decade</span><span class="pr-v">${pct(firstDecade(res))}</span></div>
       <div class="pr-row"><span class="pr-k">Lowest</span><span class="pr-v">${fmtM(lowest(res))}</span></div>
       <div class="pr-row"><span class="pr-k">Outcome</span><span class="pr-v" style="color:${o.c}">${o.t}</span></div>
