@@ -208,10 +208,10 @@ body{background:radial-gradient(1200px 600px at 88% -12%, var(--gold-glow), tran
    by side; each scenario's columns are softly tinted in its line color so the
    eye groups them without needing dividers. The Age column is sticky so the
    advisor can scroll into late years and still know which row they're reading. */
-.cf-toggle{margin:18px 0 12px;display:flex;justify-content:flex-end}
+.cf-toggle{margin:18px 0 12px;display:flex;justify-content:flex-end;flex-shrink:0}
 .cf-toggle button{background:transparent;border:1px solid var(--rule);color:var(--ink-mute);font-family:'Sora';font-size:11px;letter-spacing:.16em;text-transform:uppercase;padding:8px 16px;border-radius:5px;cursor:pointer}
 .cf-toggle button:hover{color:var(--gold);border-color:var(--gold)}
-.cf-drawer{border:1px solid var(--rule);border-radius:8px;background:var(--surface);overflow:hidden;margin-bottom:18px}
+.cf-drawer{border:1px solid var(--rule);border-radius:8px;background:var(--surface);overflow:hidden;margin-bottom:18px;flex-shrink:0}
 .cf-drawer-head{padding:12px 18px;border-bottom:1px solid var(--rule);font-family:'Sora';font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);display:flex;justify-content:space-between;align-items:center}
 .cf-drawer-head .sub{color:var(--ink-faint);font-family:'Sora';font-weight:400;letter-spacing:.04em;text-transform:none;font-size:11px}
 .cf-scroll{max-height:460px;overflow:auto}
@@ -1453,24 +1453,52 @@ function drawSeqChart(runs, retAge){
       h+=`<circle cx="${e.px.toFixed(1)}" cy="${e.py.toFixed(1)}" r="2.2" fill="${e.c}" stroke="var(--surface)" stroke-width="1.1"/>`;
     }
   });
-  // Survivor labels bunch at the right edge — de-collide them vertically so the
-  // years never stack into a jumble. Sort by y, then push any that are too close.
-  const GAP=12;
-  const surv=ends.filter(e=>!e.dep)
-    .map(e=>({e, ly:(e.py>y0+18 ? e.py-7 : e.py+15)}))
-    .sort((a,b)=>a.ly-b.ly);
-  for(let i=1;i<surv.length;i++) if(surv[i].ly-surv[i-1].ly<GAP) surv[i].ly=surv[i-1].ly+GAP;
-  surv.forEach(({e,ly})=>{ h+=`<text x="${(e.px-6).toFixed(1)}" y="${Math.min(y1,ly).toFixed(1)}" fill="${e.c}" font-size="10" font-family="Sora" font-weight="500" text-anchor="end">${e.y}</text>`; });
-  // Depleted labels sit above their ✕. Two markets that run dry a year apart
-  // (e.g. 1973 @ 78, 1966 @ 79) would print "19731966" on top of each other, so
-  // we stack any that are horizontally close into separate rows above the floor.
-  const dep=ends.filter(e=>e.dep).sort((a,b)=>a.px-b.px);
-  const placed=[];
-  dep.forEach(e=>{
-    let ly=e.py-10, guard=0;
-    while(guard++<8 && placed.some(p=>Math.abs(p.x-e.px)<30 && Math.abs(p.y-ly)<12)) ly-=12;
-    placed.push({x:e.px, y:ly});
-    h+=`<text x="${e.px.toFixed(1)}" y="${ly.toFixed(1)}" fill="${e.c}" font-size="10" font-family="Sora" font-weight="500" text-anchor="middle">${e.y}</text>`;
+  // Inline year labels: place each line's label at the point ALONG ITS OWN CURVE
+  // where it is most vertically separated from every other line. The right edge
+  // is where survivors converge into a jumble — putting labels there guarantees
+  // collisions. Putting them at each line's "loneliest" x mid-flight naturally
+  // spaces them out and ties each year visually to its own line. A faint paper
+  // halo behind the digits keeps them readable when they sit over a crossing.
+  const visible=runs.map((r,i)=>{
+    const full=all[i];
+    const dep=r.res.depletionAge!=null;
+    let ei=full.length-1;
+    if(dep){ const k=full.findIndex((v,idx)=>idx>0 && v<=0.01); if(k>0) ei=k; }
+    return { ys:full.slice(0,ei+1), col:r.m.c, year:r.m.y, dep };
+  });
+  const labels=visible.map((L,li)=>{
+    // Search the middle ~85% of the line's visible run (avoid hugging either edge).
+    const lo=Math.max(2, Math.floor(L.ys.length*0.08));
+    const hi=Math.min(L.ys.length-2, Math.floor(L.ys.length*0.92));
+    let bestX=Math.floor((lo+hi)/2), bestSep=-1;
+    for(let xi=lo; xi<=hi; xi++){
+      const yL=Y(L.ys[xi]);
+      let minDist=Infinity;
+      for(let oi=0; oi<visible.length; oi++){
+        if(oi===li) continue;
+        const O=visible[oi];
+        if(xi>=O.ys.length) continue;
+        const d=Math.abs(Y(O.ys[xi])-yL);
+        if(d<minDist) minDist=d;
+      }
+      if(minDist>bestSep){ bestSep=minDist; bestX=xi; }
+    }
+    return { L, px:X(bestX), py:Y(L.ys[bestX]) };
+  });
+  // Final pass: if any two labels still land too close, nudge them apart vertically.
+  labels.sort((a,b)=>a.px-b.px);
+  for(let i=0;i<labels.length;i++){
+    for(let j=0;j<i;j++){
+      const a=labels[j], b=labels[i];
+      if(Math.abs(a.px-b.px)<28 && Math.abs(a.py-b.py)<14){
+        b.py = a.py + (b.py>=a.py?14:-14);
+      }
+    }
+  }
+  labels.forEach(({L,px,py})=>{
+    const ty=Math.max(y0+9, Math.min(y1-3, py-8));
+    h+=`<rect x="${(px-13).toFixed(1)}" y="${(ty-9).toFixed(1)}" rx="2" ry="2" width="26" height="12" fill="var(--surface)" opacity="0.82"/>`;
+    h+=`<text x="${px.toFixed(1)}" y="${ty.toFixed(1)}" fill="${L.col}" font-size="10" font-family="Sora" font-weight="600" text-anchor="middle">${L.year}</text>`;
   });
   svg.innerHTML=h;
 }
