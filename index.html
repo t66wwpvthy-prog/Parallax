@@ -284,16 +284,6 @@ body{background:radial-gradient(1200px 600px at 88% -12%, var(--gold-glow), tran
 .seg .s-tax{background:linear-gradient(180deg,#6f8a93,var(--teal))}
 .seg .s-def{background:linear-gradient(180deg,var(--gold-bright),var(--gold))}
 .seg .s-roth{background:linear-gradient(180deg,#4f9d72,#3c7d59)}
-/* replacement-ratio bar (NEUTRAL — no safety zones; higher isn't "worse", it's
-   a choice). A teal fill to the ratio on a quiet track, with reference ticks
-   at the "typical ~75%" heuristic and at 100% = your full working income. */
-.rep-wrap{position:relative;padding-bottom:26px}
-.rep{position:relative;height:18px;border-radius:9px;background:#ece3d2;box-shadow:inset 0 0 0 1px var(--rule);overflow:hidden}
-.rep .fill{height:100%;background:linear-gradient(180deg,var(--teal-bright),var(--teal))}
-.rep-tick{position:absolute;top:0;bottom:0;width:1.5px;background:var(--ink-faint)}
-.rep-tick.solid{background:var(--ink-bright);width:2px}
-.rep-lab{position:absolute;top:24px;transform:translateX(-50%);font-family:'Sora';font-size:10px;letter-spacing:.04em;color:var(--ink-mute);font-weight:600;white-space:nowrap}
-.rep-lab::before{content:'';position:absolute;left:50%;top:-12px;width:1px;height:9px;background:var(--ink-faint)}
 
 /* Year-by-year cash-flow drawer on the Scenarios page. Three scenarios side
    by side; each scenario's columns are softly tinted in its line color so the
@@ -2252,9 +2242,11 @@ function renderSnapshot(){
         <div></div>
       </div>`;
   } else {
-    const SCALE = 1.2;                                   // bar tops out at 120%
-    const fillPct = Math.min(100, (m.replacement/SCALE)*100);
-    const tick = v => ((v/SCALE)*100).toFixed(1);
+    // Coverage bar — same language as the income floor. The full track = working
+    // income; the teal fill = the share retirement income replaces. No vertical
+    // ticks cutting through text. Caps at the track; over-100% (spending more in
+    // retirement) shows full + the true % in the hero.
+    const fillPct = Math.min(100, m.replacement*100);
     replacement = `
       <div class="metric">
         <div>
@@ -2263,14 +2255,11 @@ function renderSnapshot(){
           <div class="m-sub">of working income, replaced by retirement income</div>
         </div>
         <div>
-          <div class="rep-wrap">
-            <div class="rep"><div class="fill" style="width:${fillPct.toFixed(1)}%"></div></div>
-            <div class="rep-tick" style="left:${tick(0.75)}%"></div>
-            <div class="rep-lab" style="left:${tick(0.75)}%">typical ~75%</div>
-            <div class="rep-tick solid" style="left:${tick(1.0)}%"></div>
-            <div class="rep-lab" style="left:${tick(1.0)}%">working income</div>
+          <div class="cov"><div class="fill" style="width:${fillPct.toFixed(1)}%">Retirement&nbsp;·&nbsp;${fmtMoney(m.totalSpend)}</div></div>
+          <div class="cov-legend">
+            <span class="k"><span class="sw" style="background:var(--teal)"></span>Retirement income<b>${fmtMoney(m.totalSpend)}</b></span>
+            <span class="k"><span class="sw" style="background:#e3d9c5"></span>Working income<b>${fmtMoney(m.workingIncome)}</b></span>
           </div>
-          <div class="g-note"><b>${fmtMoney(m.totalSpend)}</b> retirement income vs. <b>${fmtMoney(m.workingIncome)}</b> earned today.</div>
         </div>
       </div>`;
   }

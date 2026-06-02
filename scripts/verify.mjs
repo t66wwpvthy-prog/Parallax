@@ -117,8 +117,9 @@ try {
     if(!m.gauge) throw new Error('snapshot withdrawal-rate gauge marker missing');
     if(m.seg !== 3) throw new Error(`snapshot tax bar expected 3 segments, got ${m.seg}`);
     if(!m.heroes.every(h => /%$/.test(h))) throw new Error(`snapshot hero numbers not all %: ${JSON.stringify(m.heroes)}`);
-    const rep = await page.evaluate(() => !!document.querySelector('.rep .fill') && document.querySelectorAll('.rep-tick').length===2);
-    if(!rep) throw new Error('snapshot replacement-ratio bar missing fill or its two reference ticks');
+    // Snapshot has two coverage bars: income floor + replacement ratio.
+    const covBars = await page.evaluate(() => document.querySelectorAll('.snap .cov .fill').length);
+    if(covBars !== 2) throw new Error(`snapshot expected 2 coverage bars (floor + replacement), got ${covBars}`);
     await page.screenshot({ path: `${OUT}/02-snapshot.png`, fullPage: true });
   });
 
