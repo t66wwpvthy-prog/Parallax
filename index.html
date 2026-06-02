@@ -140,7 +140,7 @@ body{background:radial-gradient(1200px 600px at 88% -12%, var(--gold-glow), tran
 .lev-cell{display:flex;flex-direction:column;justify-content:center;gap:7px;border-right:1px solid var(--rule-faint);border-bottom:1px solid var(--rule-faint);padding:0 16px;min-height:62px}
 .lev-cell.base{background:rgba(63,107,120,.04)}
 .scn-levers .lev-cell.col-last{border-right:none}
-.lev-val{font-family:'Inter';font-size:17px;font-weight:600;color:var(--ink-bright);display:flex;align-items:baseline;gap:6px}
+.lev-val{font-family:'Inter';font-size:17px;font-weight:600;color:var(--ink-bright);display:flex;align-items:center;gap:6px}
 .lev-val.base{color:var(--teal-bright)}
 .lev-val .unit{font-size:10px;color:var(--ink-faint);font-weight:500;letter-spacing:.04em}
 /* Baseline-delta chip — right-aligned so the deltas form a clean comparison
@@ -161,12 +161,24 @@ body{background:radial-gradient(1200px 600px at 88% -12%, var(--gold-glow), tran
 /* Resting state = clean numbers + deltas (no bar clutter). The slider fades in
    when you hover/focus the cell, so drag-to-explore stays for live demos but the
    grid reads as a comparison table at a glance. Touch (no hover) keeps it shown. */
-.lev-slider{-webkit-appearance:none;width:100%;height:12px;background:transparent;cursor:pointer;opacity:0;transition:opacity .15s}
-.lev-cell:hover .lev-slider,.lev-slider:focus{opacity:1}
-.lev-slider::-webkit-slider-runnable-track{height:2px;background:var(--rule);border-radius:2px}
-.lev-slider::-webkit-slider-thumb{-webkit-appearance:none;height:9px;width:9px;border-radius:50%;background:var(--gold);margin-top:-3.5px;border:2px solid var(--surface)}
-.lev-slider:disabled{opacity:.4;cursor:default}
-.lev-slider.base-lock::-webkit-slider-thumb{background:var(--teal)}
+/* Dollar levers (spend / savings / one-time event) keep a slider, styled as a
+   fill-bar: filled to the value via --fill (set per element), small dot thumb. */
+.lev-slider{-webkit-appearance:none;width:100%;height:11px;background:transparent;cursor:pointer;margin:3px 0}
+.lev-slider::-webkit-slider-runnable-track{height:3px;border-radius:2px;background:linear-gradient(90deg,var(--gold) 0 var(--fill,0%),var(--rule-faint) var(--fill,0%))}
+.lev-slider.base-lock::-webkit-slider-runnable-track{background:linear-gradient(90deg,var(--teal) 0 var(--fill,0%),var(--rule-faint) var(--fill,0%))}
+.lev-slider::-webkit-slider-thumb{-webkit-appearance:none;height:9px;width:9px;border-radius:50%;background:var(--gold);margin-top:-3px;border:2px solid var(--surface);box-shadow:0 1px 2px rgba(0,0,0,.15)}
+.lev-slider.base-lock::-webkit-slider-thumb{background:var(--teal-deep)}
+.lev-slider:disabled{opacity:.5;cursor:default}
+/* Discrete levers (ages / allocation / pension) get a STATIC position bar +
+   stepper buttons — no slider feel. */
+.lev-bar{position:relative;height:3px;border-radius:2px;background:var(--rule-faint);margin:6px 0 4px}
+.lev-fill{position:absolute;left:0;top:0;height:3px;border-radius:2px;background:var(--gold)}
+.lev-cell.base .lev-fill,.rec-card.base .lev-fill{background:var(--teal)}
+.lev-bar .lev-dot{position:absolute;top:50%;width:8px;height:8px;border-radius:50%;background:var(--gold);transform:translate(-50%,-50%);box-shadow:0 1px 2px rgba(0,0,0,.15)}
+.lev-cell.base .lev-bar .lev-dot{background:var(--teal-deep)}
+.lev-step{display:inline-flex;align-items:center;gap:7px;margin-left:auto}
+.step-btn{width:20px;height:20px;border-radius:5px;border:1px solid var(--rule-bright);background:var(--surface);color:var(--ink-mute);font-family:'Inter';font-size:14px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0}
+.step-btn:hover{border-color:var(--gold);color:var(--gold)}
 .scn-foot{display:grid;grid-template-columns:148px repeat(3,1fr);border:1px solid var(--rule);border-top:none;border-radius:0 0 4px 4px}
 .foot-cell{border-right:1px solid var(--rule-faint);padding:12px 14px;font-family:'Inter';font-size:12.5px;color:var(--ink-mute)}
 .foot-cell:last-child{border-right:none}
@@ -2695,10 +2707,19 @@ function levDelta(cfg, lev){
   else /* ages */                       txt = `${sign}${a} yr`;
   return `<span class="lev-delta">${txt}</span>`;
 }
+// Stepper buttons for the discrete levers (ages / allocation / pension). The
+// click handler derives the column from the enclosing #lv-… span, so the
+// buttons only carry key + direction. ml:auto pins them right when there's no
+// delta chip to do it.
+function stepper(cfg, pinRight){
+  return `<span class="lev-step"${pinRight?' style="margin-left:auto"':''}>`
+       + `<button class="step-btn" data-dir="-1" data-key="${cfg.key}" tabindex="-1">−</button>`
+       + `<button class="step-btn" data-dir="1" data-key="${cfg.key}" tabindex="-1">+</button></span>`;
+}
 function renderLevValue(cfg, lev){
   const [val,unit]=cfg.fmt(lev[cfg.key], lev);
   if(val==='__needs__'){
-    return `$<input class="pen-in" type="text" inputmode="numeric" data-pen-age="${unit}"> <span class="unit">@ ${unit}</span>`;
+    return `$<input class="pen-in" type="text" inputmode="numeric" data-pen-age="${unit}"> <span class="unit">@ ${unit}</span>${stepper(cfg,true)}`;
   }
   const d = levDelta(cfg, lev);
   // Type-in boxes for the dollar/age levers. The box edits the same value the
@@ -2716,7 +2737,35 @@ function renderLevValue(cfg, lev){
          + ` <span class="unit">@ age</span> `
          + `<input class="lev-in age-in" type="text" inputmode="numeric" data-edit="eventAge" data-key="eventAge" value="${lev.eventAge}">${d}`;
   }
-  return `${val}${unit?` <span class="unit">${unit}</span>`:''}${d}`;
+  // Discrete levers (ages / allocation): value + delta + stepper buttons.
+  return `${val}${unit?` <span class="unit">${unit}</span>`:''}${d}${stepper(cfg, !d)}`;
+}
+// A lever is "dollar" (keeps a draggable slider) when it has an edit type;
+// the discrete levers (ages / allocation / pension) use steppers + a static bar.
+const isDollarLever = cfg => !!cfg.edit;
+// Where the value sits inside its range, 0–100% — drives both the slider fill
+// and the static bar fill/dot so every bar reads the same way down a row.
+function barFillPct(cfg, L){
+  const r=levRange(cfg), v=Math.max(r.min,Math.min(r.max,L[cfg.key]||r.min));
+  return r.max>r.min ? ((v-r.min)/(r.max-r.min))*100 : 0;
+}
+// Refresh one cell in place after its value changed: value text + the bar
+// (slider position+fill for dollar levers, fill+dot for discrete ones).
+function updateCell(ci, cfg){
+  const L=scenarios[ci].lev, span=$(`#lv-${ci}-${cfg.key}`); if(!span) return;
+  span.innerHTML=renderLevValue(cfg, L);
+  const pct=barFillPct(cfg,L), cell=span.parentElement;
+  const sl=cell.querySelector('.lev-slider');
+  if(sl){ const r=levRange(cfg); sl.value=Math.max(r.min,Math.min(r.max,L[cfg.key])); sl.style.setProperty('--fill',pct+'%'); }
+  const fill=cell.querySelector('.lev-fill'); if(fill) fill.style.width=pct+'%';
+  const dot=cell.querySelector('.lev-dot');  if(dot)  dot.style.left=pct+'%';
+}
+// Commit a lever change: editing the baseline shifts every other column's
+// delta, so rebuild the whole grid then; otherwise just refresh the one cell.
+function commitLever(ci, cfg){
+  if(scenarios[ci].base) buildLevers(); else updateCell(ci, cfg);
+  $('#status').textContent='Adjusted · Run to update';
+  saveScenarios();
 }
 function buildLevers(){
   syncGridCols();
@@ -2726,40 +2775,48 @@ function buildLevers(){
     const r=levRange(cfg);
     scenarios.forEach((s,ci)=>{
       const last=ci===scenarios.length-1?'col-last':'';
+      const pct=barFillPct(cfg,s.lev);
+      // Dollar levers → slider; discrete levers → static fill+dot bar.
+      const bar = isDollarLever(cfg)
+        ? `<input class="lev-slider ${s.base?'base-lock':''}" type="range" min="${r.min}" max="${r.max}" step="${r.step}"
+                 value="${Math.max(r.min,Math.min(r.max,s.lev[cfg.key]))}" data-col="${ci}" data-key="${cfg.key}" style="--fill:${pct}%">`
+        : `<div class="lev-bar"><div class="lev-fill" style="width:${pct}%"></div><div class="lev-dot" style="left:${pct}%"></div></div>`;
       h+=`<div class="lev-cell ${s.base?'base':''} ${last}">
         <span class="lev-val ${s.base?'base':''}" id="lv-${ci}-${cfg.key}">${renderLevValue(cfg,s.lev)}</span>
-        <input class="lev-slider ${s.base?'base-lock':''}" type="range" min="${r.min}" max="${r.max}" step="${r.step}"
-               value="${Math.max(r.min,Math.min(r.max,s.lev[cfg.key]))}" data-col="${ci}" data-key="${cfg.key}">
+        ${bar}
       </div>`;
     });
   });
   $('#scn-levers').innerHTML=h;
-  // wire sliders
+  // Dollar-lever sliders: live value on input (own cell only — drag stays fast),
+  // commit on drag-end (persist + refresh deltas if it was the baseline).
   $$('.lev-slider').forEach(sl=>{
     sl.addEventListener('input',e=>{
-      const ci=+e.target.dataset.col, key=e.target.dataset.key;
-      const L=scenarios[ci].lev;
-      L[key]=+e.target.value;
-      // Grabbing the pension slider frees it from the retirement-age link.
-      if(key==='pensionAge') L.pensionAuto=false;
-      // Moving retirement age re-syncs an auto-linked pension and refreshes its
-      // slider + value in place.
-      if(key==='retireAge' && L.pensionAuto){
-        syncPension(L);
-        const pcfg=LEVCFG.find(c=>c.key==='pensionAge');
-        const psl=$(`#scn-levers .lev-slider[data-col="${ci}"][data-key="pensionAge"]`);
-        if(psl) psl.value=L.pensionAge;
-        $(`#lv-${ci}-pensionAge`).innerHTML=renderLevValue(pcfg, L);
-      }
-      const cfg=LEVCFG.find(c=>c.key===key);
-      $(`#lv-${ci}-${key}`).innerHTML=renderLevValue(cfg, L);
+      const ci=+e.target.dataset.col, cfg=LEVCFG.find(c=>c.key===e.target.dataset.key);
+      scenarios[ci].lev[cfg.key]=+e.target.value;
+      e.target.style.setProperty('--fill', barFillPct(cfg,scenarios[ci].lev)+'%');
+      updateCell(ci, cfg);
       $('#status').textContent='Adjusted · Run to update';
     });
-    // Persist on drag-end (change), not on every input tick, to avoid thrashing
-    // localStorage during a slider drag.
-    sl.addEventListener('change', saveScenarios);
+    sl.addEventListener('change',e=>{
+      if(scenarios[+e.target.dataset.col].base) buildLevers();
+      saveScenarios();
+    });
   });
 }
+// Stepper buttons for the discrete levers (delegated — survives rebuilds).
+$('#scn-levers').addEventListener('click', e=>{
+  const btn=e.target.closest('.step-btn'); if(!btn) return;
+  const span=btn.closest('[id^="lv-"]'); if(!span) return;
+  const ci=+span.id.split('-')[1], cfg=LEVCFG.find(c=>c.key===btn.dataset.key);
+  const r=levRange(cfg), L=scenarios[ci].lev;
+  L[cfg.key]=Math.max(r.min, Math.min(r.max, (L[cfg.key]||r.min) + (+btn.dataset.dir)*r.step));
+  // Grabbing the pension age unlinks it; moving retirement age re-syncs an
+  // auto-linked pension and refreshes that cell too.
+  if(cfg.key==='pensionAge') L.pensionAuto=false;
+  if(cfg.key==='retireAge' && L.pensionAuto){ syncPension(L); if(!scenarios[ci].base) updateCell(ci, LEVCFG.find(c=>c.key==='pensionAge')); }
+  commitLever(ci, cfg);
+});
 // Inline pension-amount inputs are inserted dynamically when a slider lands on
 // an age with no entered benefit, so a direct per-element listener (re-bound
 // only at buildLevers time) would miss them. Delegate from #scn-levers once.
@@ -2876,13 +2933,9 @@ $('#scn-levers').addEventListener('change', e=>{
     const lo=plan.household.primary.currentAge, hi=plan.household.primary.planEndAge;
     if(isFinite(a)) L.eventAge=Math.max(lo,Math.min(hi,a));
   }
-  // Refresh the cell (rebuilds box + repositions slider) and the value display.
+  // Refresh the cell (value + bar) — rebuilds the grid if the baseline moved.
   const dispCfg=LEVCFG.find(c=>c.key===span.id.split('-').slice(2).join('-'));
-  $(`#lv-${ci}-${dispCfg.key}`).innerHTML=renderLevValue(dispCfg, L);
-  const sl=$(`#scn-levers .lev-slider[data-col="${ci}"][data-key="${dispCfg.key}"]`);
-  if(sl){ const r=levRange(dispCfg); sl.value=Math.max(r.min,Math.min(r.max,L[dispCfg.key])); }
-  $('#status').textContent='Adjusted · Run to update';
-  saveScenarios();
+  commitLever(ci, dispCfg);
 });
 $('#scn-levers').addEventListener('change', e=>{
   if(!e.target.classList || !e.target.classList.contains('pen-in')) return;
