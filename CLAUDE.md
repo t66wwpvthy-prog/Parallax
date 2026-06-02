@@ -114,8 +114,9 @@ Mirrors MoneyGuidePro "Play Zone" (reference image in /reference if provided).
 - A small lightweight selector (dropdown — NOT a big column) picks WHICH named
   scenario is run through the sequences.
 - Each line = the same plan living through a different market order. Shows
-  sequence-of-returns risk directly. (This is the honest cousin of an old
-  "two retirees, same returns, opposite order" idea — that idea is BANKED.)
+  sequence-of-returns risk directly. (A prior "two retirees, same returns,
+  opposite order" idea was killed for good — the real-markets view replaces it.
+  Do not resurface it.)
 
 ## Input model (decided, for later)
 RightCapital-style: inputs are a data-entry workflow on dedicated pages
@@ -131,8 +132,6 @@ the Sequencing selector can point at them. Baseline = anchor. Both tabs read fro
 this shared set. This is the long-planned "household-centric data root."
 
 ## Idea bank (NOT building now — keep parked)
-- Two Retirees (same returns, reversed order). Must use REAL sequences if ever
-  built, never sorted mathematical extremes (true-but-absurd, destroys trust).
 - RightCapital two-tier nav (domains row + sections row) for when Parallax grows.
 - Historical-context / narrative layer.
 - **Seamless Scenarios → Sequencing flow + per-scenario annual cash-flow view**
