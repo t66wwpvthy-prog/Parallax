@@ -111,17 +111,17 @@ try {
       metrics: document.querySelectorAll('.snap .metric').length,
       heroes:  [...document.querySelectorAll('.snap .m-hero')].map(e=>e.textContent),
       cov:     !!document.querySelector('.cov .fill'),
-      wrZone:  document.querySelectorAll('.wr-zones .wr-zone').length,
+      wrStats: document.querySelectorAll('.snap .metric:nth-child(2) .stat-item').length,
       seg:     document.querySelectorAll('.seg div').length,
     }));
     if(m.metrics !== 4) throw new Error(`snapshot expected 4 metrics, got ${m.metrics}`);
-    if(!m.cov)        throw new Error('snapshot income-floor coverage bar missing');
-    if(m.wrZone !== 3) throw new Error(`snapshot withdrawal-rate zones expected 3, got ${m.wrZone}`);
+    if(!m.cov)         throw new Error('snapshot income-floor coverage bar missing');
+    if(m.wrStats < 2)  throw new Error(`snapshot withdrawal-rate stat items expected ≥2, got ${m.wrStats}`);
     if(m.seg !== 3) throw new Error(`snapshot tax bar expected 3 segments, got ${m.seg}`);
     if(!m.heroes.every(h => /%$/.test(h))) throw new Error(`snapshot hero numbers not all %: ${JSON.stringify(m.heroes)}`);
-    // Snapshot has two coverage bars: income floor + replacement ratio.
+    // Income floor uses stat-row now; only replacement ratio keeps the coverage bar.
     const covBars = await page.evaluate(() => document.querySelectorAll('.snap .cov .fill').length);
-    if(covBars !== 2) throw new Error(`snapshot expected 2 coverage bars (floor + replacement), got ${covBars}`);
+    if(covBars !== 1) throw new Error(`snapshot expected 1 coverage bar (replacement ratio), got ${covBars}`);
     await page.screenshot({ path: `${OUT}/02-snapshot.png`, fullPage: true });
   });
 
