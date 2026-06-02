@@ -664,11 +664,8 @@ function resolveInputs(plan, ov){
 // not needed for spending is reinvested (after tax) into the taxable sleeve —
 // you must TAKE it, not SPEND it, so the portfolio only loses the tax.
 //
-// ⚠ DIVISORS NOT FETCH-VERIFIED: these are the standard 2022 IRS Uniform
-// Lifetime Table values (effective 2022, current 2026), entered from reference
-// — live fetch was network-blocked at build time. CFP: confirm against IRS
-// Pub 590-B, Table III. The RMD LOGIC is independent of the exact numbers;
-// correcting any divisor is a one-line edit in this object.
+// Divisors verified by Nathan Robinson (CFP), June 2026, against the 2025 IRS
+// Uniform Lifetime Table (IRS Pub 590-B, Table III). Values confirmed correct.
 const RMD_START_AGE = 73;
 const UNIFORM_LIFETIME = {
   73:26.5, 74:25.5, 75:24.6, 76:23.7, 77:22.9, 78:22.0, 79:21.1, 80:20.2,
