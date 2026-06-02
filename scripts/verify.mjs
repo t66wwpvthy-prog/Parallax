@@ -111,12 +111,12 @@ try {
       metrics: document.querySelectorAll('.snap .metric').length,
       heroes:  [...document.querySelectorAll('.snap .m-hero')].map(e=>e.textContent),
       cov:     !!document.querySelector('.cov .fill'),
-      gauge:   !!document.querySelector('.gauge .marker'),
+      wrZone:  document.querySelectorAll('.wr-zones .wr-zone').length,
       seg:     document.querySelectorAll('.seg div').length,
     }));
     if(m.metrics !== 4) throw new Error(`snapshot expected 4 metrics, got ${m.metrics}`);
-    if(!m.cov)   throw new Error('snapshot income-floor coverage bar missing');
-    if(!m.gauge) throw new Error('snapshot withdrawal-rate gauge marker missing');
+    if(!m.cov)        throw new Error('snapshot income-floor coverage bar missing');
+    if(m.wrZone !== 3) throw new Error(`snapshot withdrawal-rate zones expected 3, got ${m.wrZone}`);
     if(m.seg !== 3) throw new Error(`snapshot tax bar expected 3 segments, got ${m.seg}`);
     if(!m.heroes.every(h => /%$/.test(h))) throw new Error(`snapshot hero numbers not all %: ${JSON.stringify(m.heroes)}`);
     // Snapshot has two coverage bars: income floor + replacement ratio.
