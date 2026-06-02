@@ -74,19 +74,18 @@ body{background:radial-gradient(1200px 600px at 88% -12%, var(--gold-glow), tran
 .col-x:hover{color:var(--negative-bright)}
 .add-scen,.solve-btn{margin-top:8px;background:none;border:1px dashed var(--rule-bright);color:var(--ink-mute);font-family:'Sora';font-size:10px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;padding:5px 10px;border-radius:4px;cursor:pointer;display:block}
 .add-scen:hover,.solve-btn:hover{border-color:var(--gold);color:var(--gold)}
-/* Solver inline form (replaces the +Add / Solve buttons when armed). Tight,
-   single-column, lives in the band gutter so it doesn't disturb layout. */
-.solver-form{margin-top:8px;display:flex;flex-direction:column;gap:6px;font-family:'Sora';font-size:11px;color:var(--ink-mute);letter-spacing:.04em;text-align:left}
-.sf-q{display:flex;align-items:baseline;gap:4px}
-.sf-in{font-family:'Inter';font-size:13px;font-weight:600;color:var(--ink-bright);background:transparent;border:none;border-bottom:1px dashed var(--rule-bright);padding:0 2px;outline:none;text-align:right;-moz-appearance:textfield;width:40px}
-.sf-in::-webkit-outer-spin-button,.sf-in::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
-.sf-in:focus{border-bottom-color:var(--gold)}
-.sf-actions{display:flex;gap:6px;margin-top:4px}
-.sf-go,.sf-cancel{font-family:'Sora';font-size:10px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;padding:5px 9px;border-radius:4px;cursor:pointer;border:1px solid var(--rule-bright);background:none}
-.sf-go{color:var(--gold-bright);border-color:var(--gold)}
-.sf-go:hover{background:var(--gold);color:#fff}
-.sf-cancel{color:var(--ink-faint)}
-.sf-cancel:hover{color:var(--ink)}
+/* Solver goal form — full-width card in #solve-panel (NOT the cramped gutter).
+   A row of labeled fields + the Find button, each field with room to breathe. */
+.sf-form{display:flex;flex-wrap:wrap;align-items:flex-end;gap:22px}
+.sf-field{display:flex;flex-direction:column;gap:7px}
+.sf-lbl{font-family:'Sora';font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--ink-faint);font-weight:600}
+.sf-box-wrap{display:flex;align-items:baseline;gap:3px}
+.sf-prefix,.sf-suffix{font-family:'Inter';font-size:17px;font-weight:600;color:var(--ink-mute)}
+.sf-box{font-family:'Inter';font-size:20px;font-weight:700;color:var(--ink-bright);background:var(--deep);border:1px solid var(--rule-bright);border-radius:6px;padding:7px 10px;outline:none;width:84px;text-align:center;-moz-appearance:textfield}
+.sf-box::-webkit-outer-spin-button,.sf-box::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.sf-box:focus{border-color:var(--gold)}
+.sf-go{font-family:'Sora';font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;padding:11px 20px;border-radius:6px;cursor:pointer;border:1px solid var(--gold);background:var(--gold);color:#1a130a;margin-left:auto}
+.sf-go:hover{background:var(--gold-bright);border-color:var(--gold-bright)}
 /* Per-row loading spinner during a solve. Sits in place of the lever value
    until that row resolves; tiny pulse so it reads as work in progress. */
 .lev-val.solving{color:var(--ink-faint);font-style:italic;opacity:.7}
@@ -724,6 +723,29 @@ function solverDescribe(combo, goalAge, baseLev){
 function renderSolvePanel(){
   const el = $('#solve-panel');
   if(!el) return;
+  // The goal-entry FORM takes priority — full-width card so it has room to breathe.
+  if(solverFormOpen){
+    const baseLev = scenarios.find(s=>s.base)?.lev || defaultLevers();
+    const defAge = Math.max(55, baseLev.retireAge - 3);
+    const defPct = Math.round((scenarios.find(s=>s.base)?.res?.successRate) || 85);
+    el.innerHTML = `
+      <div class="solve-panel solve-form-panel">
+        <div class="solve-panel-head">
+          <span class="solve-panel-title">Find the least-disruptive path to a goal</span>
+          <button class="solve-clear" id="sf-cancel">✕ Cancel</button>
+        </div>
+        <form class="sf-form" id="solver-form">
+          <label class="sf-field"><span class="sf-lbl">Retire by age</span>
+            <input class="sf-box" id="sf-age" type="number" min="55" max="72" value="${defAge}"></label>
+          <label class="sf-field"><span class="sf-lbl">With confidence</span>
+            <span class="sf-box-wrap"><input class="sf-box" id="sf-pct" type="number" min="50" max="99" value="${defPct}"><span class="sf-suffix">%</span></span></label>
+          <label class="sf-field"><span class="sf-lbl">Preserve legacy</span>
+            <span class="sf-box-wrap"><span class="sf-prefix">$</span><input class="sf-box" id="sf-legacy" type="number" min="0" max="5000" step="100" value="0"><span class="sf-suffix">k</span></span></label>
+          <button type="submit" class="sf-go">Find Paths →</button>
+        </form>
+      </div>`;
+    return;
+  }
   if(!solverResults && !solverSearching){ el.innerHTML = ''; return; }
   if(solverSearching){
     el.innerHTML = `<div class="solve-panel"><div class="solve-searching">Searching combinations</div></div>`;
@@ -1514,29 +1536,12 @@ function renderBand(){
         <div class="circle-val"><span class="big" style="color:${col}">${sr.toFixed(1)}%</span><span class="lbl">Success</span></div></div>
     </div>`;
   });
-  // Label gutter: Solve… is always available (results go to a panel, not a column).
-  // + Add is capped at MAX_SCENARIOS.
-  const baseLev = scenarios.find(s=>s.base)?.lev || defaultLevers();
-  const defaultTargetAge = Math.max(55, baseLev.retireAge - 3);
-  const defaultPct = Math.round((scenarios.find(s=>s.base)?.res?.successRate) || 85);
-  let gut;
-  if(solverFormOpen){
-    gut = `<span>Scenario</span>
-      <form class="solver-form" id="solver-form">
-        <div class="sf-q">Retire at <input class="sf-in age" id="sf-age" type="number" min="55" max="72" value="${defaultTargetAge}"></div>
-        <div class="sf-q">with <input class="sf-in pct" id="sf-pct" type="number" min="50" max="99" value="${defaultPct}">% confidence</div>
-        <div class="sf-q">preserve $<input class="sf-in" id="sf-legacy" type="number" min="0" max="5000" step="100" value="0" style="width:52px">k legacy</div>
-        <div class="sf-actions">
-          <button type="button" class="sf-cancel" id="sf-cancel">Cancel</button>
-          <button type="submit" class="sf-go">Find Paths →</button>
-        </div>
-      </form>`;
-  } else {
-    const addBtn = scenarios.length < MAX_SCENARIOS
-      ? `<button class="add-scen" title="Add scenario">+ Add</button>` : '';
-    gut = `<span>Scenario</span>${addBtn}
-      <button class="solve-btn" title="Find the least-disruptive path to a goal">✦ Solve…</button>`;
-  }
+  // Label gutter: just buttons. The solver FORM renders in the full-width
+  // #solve-panel below the band (it needs room — the gutter is only ~148px).
+  const addBtn = scenarios.length < MAX_SCENARIOS
+    ? `<button class="add-scen" title="Add scenario">+ Add</button>` : '';
+  const gut = `<span>Scenario</span>${addBtn}
+    <button class="solve-btn" title="Find the least-disruptive path to a goal">✦ Solve…</button>`;
   h=h.replace('<span>Scenario</span>', gut);
   $('#scn-band').innerHTML=h;
 }
@@ -1638,11 +1643,11 @@ $('#scn-band').addEventListener('click', e=>{
   const x=e.target.closest('.col-x');
   if(x){ removeScenario(+x.dataset.col); return; }
   if(e.target.closest('.add-scen')){ addScenario(); return; }
-  if(e.target.closest('.solve-btn')){ solverFormOpen = true; renderBand(); return; }
-  if(e.target.closest('.sf-cancel')){ solverFormOpen = false; renderBand(); return; }
+  if(e.target.closest('.solve-btn')){ solverFormOpen = true; renderSolvePanel(); return; }
 });
 // Solver form submit — run the multi-lever constraint search.
-$('#scn-band').addEventListener('submit', e=>{
+// Solver goal form lives in #solve-panel now (full-width). Submit runs the search.
+$('#solve-panel').addEventListener('submit', e=>{
   const f = e.target.closest('#solver-form');
   if(!f) return;
   e.preventDefault();
@@ -1653,8 +1658,11 @@ $('#scn-band').addEventListener('submit', e=>{
   if(!isFinite(pct) || pct<50 || pct>99) return;
   runConstraintSolve(age, pct, legacyK * 1000);
 });
-// Solver results panel: "Load as Scenario" and "Clear" actions.
+// Solver panel: Cancel (form), Clear (results), and "Load as Scenario" actions.
 document.addEventListener('click', e=>{
+  if(e.target.closest('#sf-cancel')){
+    solverFormOpen = false; renderSolvePanel(); return;
+  }
   if(e.target.closest('#solve-clear-btn')){
     solverResults = null; solverSearching = false; renderSolvePanel(); return;
   }
