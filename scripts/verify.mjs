@@ -84,10 +84,10 @@ try {
       title:  document.querySelectorAll('.bs-title').length,
       heads:  document.querySelectorAll('.bs-head').length,
       inputs: document.querySelectorAll('.bs-row input').length,
-      gutter: document.querySelectorAll('.gut-f input').length,
+      hhbar: document.querySelectorAll('.hh-f input').length,
     }));
-    if(m.title < 1 || m.heads < 3 || m.inputs < 3 || m.gutter < 4)
-      throw new Error(`Balance Sheet did not render (title=${m.title}, heads=${m.heads}, inputs=${m.inputs}, gutter=${m.gutter})`);
+    if(m.title < 1 || m.heads < 3 || m.inputs < 3 || m.hhbar < 4)
+      throw new Error(`Balance Sheet did not render (title=${m.title}, heads=${m.heads}, inputs=${m.inputs}, hhbar=${m.hhbar})`);
     await page.screenshot({ path: `${OUT}/01-balance-sheet.png`, fullPage: true });
   });
 
