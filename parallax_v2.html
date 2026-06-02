@@ -540,8 +540,6 @@ plan.simulation.iterations = 1000;
 const SCEN_PALETTE=['#9a7322','#3f6b78','#7d5a82','#6f7a52','#9a5a3f'];
 const colorFor=i=>SCEN_PALETTE[i % SCEN_PALETTE.length];
 const MAX_SCENARIOS=5;
-// Back-compat alias for code that still reads COLHEX by index.
-const COLHEX=SCEN_PALETTE;
 
 /* The three scenario columns. Each holds lever values + its last engine result.
    lever values are the ACTUAL planning values (age, $, etc.), not slider ticks. */
@@ -955,7 +953,6 @@ const BALANCE_SHEET = [
 /* ── Hybrid columns: each sub-page has a LEFT and a RIGHT column.
    Each item carries name + path + type, and an optional meta() that draws
    from the live plan (e.g. "claim at 67" reads the actual claim age). */
-const meta = fn => fn;
 const HYBRID = {
   'inflows': {
     left:  { head:'Guaranteed for life', items:[
@@ -1810,18 +1807,6 @@ function niceCeil(v){
   const step0=v/4, mag=Math.pow(10, Math.floor(Math.log10(step0))), n=step0/mag;
   const niceN = n<=1?1 : n<=2?2 : n<=2.5?2.5 : n<=5?5 : 10;
   return niceN*mag*4;
-}
-function smoothPath(pts){
-  if(pts.length<2) return '';
-  if(pts.length===2) return `M ${pts[0][0]} ${pts[0][1]} L ${pts[1][0]} ${pts[1][1]}`;
-  let d=`M ${pts[0][0].toFixed(1)} ${pts[0][1].toFixed(1)}`;
-  for(let i=0;i<pts.length-1;i++){
-    const p0=pts[i-1]||pts[i], p1=pts[i], p2=pts[i+1], p3=pts[i+2]||pts[i+1];
-    const c1x=p1[0]+(p2[0]-p0[0])/6, c1y=p1[1]+(p2[1]-p0[1])/6;
-    const c2x=p2[0]-(p3[0]-p1[0])/6, c2y=p2[1]-(p3[1]-p1[1])/6;
-    d+=` C ${c1x.toFixed(1)} ${c1y.toFixed(1)}, ${c2x.toFixed(1)} ${c2y.toFixed(1)}, ${p2[0].toFixed(1)} ${p2[1].toFixed(1)}`;
-  }
-  return d;
 }
 function axes(W,H,ageStart,ageEnd,maxBal){
   const x0=PADL, x1=W-PADR, y0=PADT, y1=H-PADB;
