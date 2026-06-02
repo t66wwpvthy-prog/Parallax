@@ -268,11 +268,11 @@ body{background:radial-gradient(1200px 600px at 88% -12%, var(--gold-glow), tran
 .cov-legend .k,.seg-legend .k{display:flex;align-items:center;gap:8px}
 .cov-legend .sw,.seg-legend .sw{width:11px;height:11px;border-radius:2px;flex:none}
 .cov-legend b,.seg-legend b{font-family:'Inter';color:var(--ink-bright);font-weight:600;margin-left:3px}
-/* gauge (withdrawal rate). Zones on a 0–7% scale, soft/rule-of-thumb framing:
-   sustainable (green) 0–5%, elevated (amber) 5–6%, stretched (clay) 6%+.
-   The colour carries the meaning; words stay soft and non-definitive. */
+/* gauge (withdrawal rate). Zones on a 0–8% scale:
+   sustainable (green) 0–5.5%, elevated (amber) 5.5–7%, stretched (clay) 7%+.
+   4% reference tick is just a common anchor, not a verdict. */
 .gauge-wrap{position:relative;padding-bottom:26px}
-.gauge{position:relative;height:18px;border-radius:9px;background:linear-gradient(90deg,#5b9e74 0%,#5b9e74 71.4%,var(--gold-bright) 71.4%,var(--gold-bright) 85.7%,var(--clay) 85.7%,var(--clay) 100%);box-shadow:inset 0 0 0 1px rgba(0,0,0,.06)}
+.gauge{position:relative;height:18px;border-radius:9px;background:linear-gradient(90deg,#5b9e74 0%,#5b9e74 68.75%,var(--gold-bright) 68.75%,var(--gold-bright) 87.5%,var(--clay) 87.5%,var(--clay) 100%);box-shadow:inset 0 0 0 1px rgba(0,0,0,.06)}
 .gauge .marker{position:absolute;top:-7px;bottom:-7px;width:3px;background:var(--ink-bright);border-radius:2px;box-shadow:0 0 0 2px var(--surface)}
 .gauge-tick,.gauge-zone{position:absolute;top:24px;transform:translateX(-50%);font-family:'Sora';font-size:10px;letter-spacing:.06em;color:var(--ink-mute);font-weight:600;white-space:nowrap}
 .gauge-tick::before{content:'';position:absolute;left:50%;top:-12px;width:1px;height:9px;background:var(--ink-faint)}
@@ -2214,11 +2214,11 @@ function renderSnapshot(){
       </div>
     </div>`;
 
-  // 2 · Withdrawal rate — gauge on a 0–7% scale. Zones (rule-of-thumb, soft):
-  // sustainable <5% (green), elevated 5–6% (amber), stretched >6% (clay). Marker
+  // 2 · Withdrawal rate — gauge on a 0–8% scale. Zones (rule-of-thumb, soft):
+  // sustainable <5.5% (green), elevated 5.5–7% (amber), stretched >7% (clay). Marker
   // clamps to the bar. The 4% reference tick is just a common anchor, not a verdict.
-  const wrMarker = Math.min(100, (m.wr/0.07)*100);
-  const wrTone = m.wr<0.05 ? 'teal' : m.wr<=0.06 ? 'gold' : 'clay';
+  const wrMarker = Math.min(100, (m.wr/0.08)*100);
+  const wrTone = m.wr<0.055 ? 'teal' : m.wr<=0.07 ? 'gold' : 'clay';
   const withdrawal = `
     <div class="metric">
       <div>
@@ -2229,9 +2229,9 @@ function renderSnapshot(){
       <div>
         <div class="gauge-wrap">
           <div class="gauge"><div class="marker" style="left:${wrMarker.toFixed(1)}%"></div></div>
-          <div class="gauge-tick" style="left:${(4/7*100).toFixed(1)}%">4% reference</div>
-          <div class="gauge-zone" style="left:35%">sustainable</div>
-          <div class="gauge-zone" style="left:93%">stretched</div>
+          <div class="gauge-tick" style="left:${(4/8*100).toFixed(1)}%">4% rule</div>
+          <div class="gauge-zone" style="left:34%">sustainable</div>
+          <div class="gauge-zone" style="left:94%">stretched</div>
         </div>
         <div class="g-note">Portfolio must provide <b>${fmtMoney(m.gap)} / yr</b> of <b>${fmtMoney(m.totalSpend)}</b> total retirement spending, from <b>${fmtMoney(m.invest)}</b> invested.</div>
       </div>
