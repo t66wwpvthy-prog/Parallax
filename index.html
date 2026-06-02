@@ -1539,6 +1539,12 @@ function runHistoricalPath(plan, startYear, strategy, transform, overrides){
    ║  PARALLAX V2 — UI WIRING (calls the engine above)             ║
    ╚══════════════════════════════════════════════════════════════╝ */
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+// Escape user-entered text (scenario names) before it lands in innerHTML or an
+// attribute value. Names come from a free-text input and persist in
+// localStorage, so they're untrusted on reload — without this a name like
+// <img src=x onerror=…> would execute. Covers element content AND quoted attrs.
+const escHtml=s=>String(s).replace(/[&<>"']/g, c=>(
+  {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 /* Demo household — HNW, 58yo, retiring at 65. $2.8M total portfolio.
    $205k living + $12k healthcare; two-earner SS ($48k + $30k at 67); $30k/yr
@@ -1673,8 +1679,15 @@ function trySuccess(L){
 // closest to its baseline that achieves >= targetPct. Returns { value,
 // reachedPct, capped }. capped=true means even the lever's most-aggressive
 // extreme can't reach the target — we return that extreme + the % it hit.
-// We detect monotonicity by sampling the two ends rather than hard-coding
-// per-lever direction, so future levers don't need special wiring.
+//
+// Two strategies by range size:
+//  • SMALL range (≤12 steps, e.g. Allocation's 5 risk levels, SS age's 9): scan
+//    EVERY value. Allocation is NOT monotonic — more equity lifts expected
+//    return but adds volatility drag, so success can rise then fall. Bisection
+//    (which assumes monotonicity) would silently return a wrong level. An
+//    exhaustive scan is correct for any shape and cheap at this count.
+//  • LARGE range (spending, savings): bisect. These ARE monotonic in success
+//    and have hundreds of steps, so a full scan would be needlessly slow.
 function solveLeverFor(baseLev, key, targetPct){
   const cfg = LEVCFG.find(c=>c.key===key);
   if(!cfg) return null;
@@ -1682,6 +1695,29 @@ function solveLeverFor(baseLev, key, targetPct){
   const lo = r.min, hi = r.max, step = r.step;
   if(lo === hi) return { value: lo, reachedPct: trySuccess({...baseLev,[key]:lo}), capped:false };
   const pctAt = v => trySuccess({...baseLev, [key]: v});
+  const nSteps = Math.round((hi - lo) / step);
+
+  if(nSteps <= 12){
+    // Exhaustive scan. Pick the value closest to the lever's current (baseline)
+    // setting that meets target; if none meet, return the best-achievable value
+    // (capped). Direction-agnostic — works for non-monotonic levers.
+    const baseV = baseLev[key];
+    let passVal = null, passPct = -1, bestVal = lo, bestPct = -Infinity;
+    for(let i = 0; i <= nSteps; i++){
+      const v = lo + i * step;
+      const pct = pctAt(v);
+      if(pct > bestPct){ bestPct = pct; bestVal = v; }
+      if(pct >= targetPct &&
+         (passVal === null || Math.abs(v - baseV) < Math.abs(passVal - baseV))){
+        passVal = v; passPct = pct;
+      }
+    }
+    return passVal !== null
+      ? { value: passVal, reachedPct: passPct, capped: false }
+      : { value: bestVal, reachedPct: bestPct, capped: true };
+  }
+
+  // Large monotonic range → bisection (detect direction from the endpoints).
   const pctLo = pctAt(lo), pctHi = pctAt(hi);
   const increases = pctHi >= pctLo;                  // success rises with higher value?
   const best      = Math.max(pctLo, pctHi);
@@ -2460,8 +2496,8 @@ function renderBand(){
     // advisor can label them ("Retire at 62"). A ✕ removes non-baseline columns.
     const dot=`<span class="col-dot" style="background:${colorFor(ci)}"></span>`;
     const nameEl = s.base
-      ? `<span class="col-name base-tag">${dot}${s.name}</span>`
-      : `<span class="col-name">${dot}<input class="col-rename" data-col="${ci}" value="${s.name.replace(/"/g,'&quot;')}" maxlength="28" aria-label="Scenario name"><button class="col-x" data-col="${ci}" title="Remove scenario">✕</button></span>`;
+      ? `<span class="col-name base-tag">${dot}${escHtml(s.name)}</span>`
+      : `<span class="col-name">${dot}<input class="col-rename" data-col="${ci}" value="${escHtml(s.name)}" maxlength="28" aria-label="Scenario name"><button class="col-x" data-col="${ci}" title="Remove scenario">✕</button></span>`;
     h+=`<div class="band-cell ${s.base?'base':''}">
       ${nameEl}
       <div class="circle-wrap">${ring(sr)}
@@ -2770,7 +2806,7 @@ function renderCashflow(){
   const gcls = scenarios.map((_,i)=>`cf-g${i%2}`);
   let h = '<table class="cf-table"><thead><tr><th class="age" rowspan="2">Age</th>';
   scenarios.forEach((s,i)=>{
-    h += `<th class="scen ${gcls[i]}" colspan="3" style="color:${colorFor(i)}">${s.name}</th>`;
+    h += `<th class="scen ${gcls[i]}" colspan="3" style="color:${colorFor(i)}">${escHtml(s.name)}</th>`;
   });
   h += '</tr><tr>';
   scenarios.forEach((s,i)=>{
@@ -2831,7 +2867,7 @@ const SEQ_YEARS=[
 
 function buildSeqSelect(){
   const sel=$('#seq-select'), cur=sel.value;
-  sel.innerHTML=scenarios.map(s=>`<option>${s.name}</option>`).join('');
+  sel.innerHTML=scenarios.map(s=>`<option>${escHtml(s.name)}</option>`).join('');
   if(cur && scenarios.some(s=>s.name===cur)) sel.value=cur;
   sel.onchange=runSeq;
   buildSeqChips();
@@ -2851,9 +2887,13 @@ function buildSeqChips(){
 // the plan's MEDIAN projected balance (read from the engine envelope, not
 // invented). Every real market then runs from this ONE shared starting point, so
 // the only thing differing between lines is the market — not the entry balance.
-function retireNowClone(p, ov, curAge, retAge, accumYears){
-  const base=runSimulation(p, ov);
-  const env=base && base.envelope;
+function retireNowClone(p, ov, curAge, retAge, accumYears, envelope){
+  // `envelope` is the chosen scenario's already-computed envelope, passed in
+  // from runSeq. Reusing it (a) keeps the sequencing entry balance IDENTICAL to
+  // the Scenarios tab — both read the same shared-path run — and (b) avoids
+  // re-running a full Monte Carlo on every chip toggle. Fall back to a
+  // shared-path run only if the scenario hasn't been computed yet.
+  const env = envelope || (runSimulation(p, ov, sharedPaths) || {}).envelope;
   const accs=p.portfolio.accounts;
   const tot=accs.taxable.balance+accs.traditional.balance+accs.roth.balance;
   const entry=(env && env[accumYears] && env[accumYears].p50!=null) ? env[accumYears].p50 : tot;
@@ -2877,7 +2917,7 @@ function runSeq(){
   const curAge=plan.household.primary.currentAge;
   const retAge=(s.lev.retireAge!=null?s.lev.retireAge:p.household.primary.retirementAge);
   const accumYears=Math.max(0, retAge-curAge);
-  const rp=retireNowClone(p, ov, curAge, retAge, accumYears);
+  const rp=retireNowClone(p, ov, curAge, retAge, accumYears, s.res && s.res.envelope);
   const ov2={...ov, retireDelay:0};                // retirement age is baked into the clone now
   const runs=SEQ_YEARS.filter(m=>m.on)
                       .map(m=>({m, res:runHistoricalPath(rp, m.y, strat, undefined, ov2)}))
