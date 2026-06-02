@@ -630,6 +630,32 @@ function resolveInputs(plan, ov){
 }
 
 
+// ── RMDs (Required Minimum Distributions) ───────────────────────────────────
+// SECURE 2.0: the pre-tax (Traditional) sleeve must distribute a minimum each
+// year from age 73 = prior-year-end balance ÷ the IRS Uniform Lifetime divisor
+// for that age. Roth is exempt. The distribution is ordinary income; any part
+// not needed for spending is reinvested (after tax) into the taxable sleeve —
+// you must TAKE it, not SPEND it, so the portfolio only loses the tax.
+//
+// ⚠ DIVISORS NOT FETCH-VERIFIED: these are the standard 2022 IRS Uniform
+// Lifetime Table values (effective 2022, current 2026), entered from reference
+// — live fetch was network-blocked at build time. CFP: confirm against IRS
+// Pub 590-B, Table III. The RMD LOGIC is independent of the exact numbers;
+// correcting any divisor is a one-line edit in this object.
+const RMD_START_AGE = 73;
+const UNIFORM_LIFETIME = {
+  73:26.5, 74:25.5, 75:24.6, 76:23.7, 77:22.9, 78:22.0, 79:21.1, 80:20.2,
+  81:19.4, 82:18.5, 83:17.7, 84:16.8, 85:16.0, 86:15.2, 87:14.4, 88:13.7,
+  89:12.9, 90:12.2, 91:11.5, 92:10.8, 93:10.1, 94:9.5, 95:8.9, 96:8.4,
+  97:7.8, 98:7.3, 99:6.8, 100:6.4, 101:6.0, 102:5.6, 103:5.2, 104:4.9,
+  105:4.6, 106:4.3, 107:4.1, 108:3.9, 109:3.7, 110:3.5, 111:3.4, 112:3.3,
+  113:3.1, 114:3.0, 115:2.9, 116:2.8, 117:2.7, 118:2.5, 119:2.3, 120:2.0
+};
+function rmdDivisor(age){
+  if(age < RMD_START_AGE) return Infinity;          // no RMD → required = 0
+  return UNIFORM_LIFETIME[Math.min(age, 120)];      // table floors at 120+
+}
+
 function runSinglePath(p, returnPath){
   // Each path gets its own evolving account state — clone from inputs.
   const accounts = {
@@ -764,6 +790,8 @@ function runSinglePath(p, returnPath){
     // withdrawal's share of the starting balance — not the ending balance.
     const taxStartBal   = accounts.taxable.balance;
     const taxStartBasis = accounts.taxable.basis;
+    // Prior-year-end pre-tax balance — the base the RMD is computed against.
+    const tradStartBal  = accounts.traditional.balance;
 
     // Update each account's balance with mid-year math:
     //   end = start * (1+r) - (withdrawal / 12) * factor
@@ -780,6 +808,26 @@ function runSinglePath(p, returnPath){
       const basisFraction = taxStartBasis / taxStartBal;
       const basisConsumed = funding.breakdown.taxable * basisFraction;
       accounts.taxable.basis = Math.max(0, taxStartBasis - basisConsumed);
+    }
+
+    // ── RMD: force out any required distribution beyond what spending pulled ──
+    // Spending may already have drawn from Traditional (funding.breakdown). Only
+    // the shortfall to the required amount is forced. It's taxed as ordinary
+    // income; the after-tax remainder moves to the taxable sleeve (reinvested,
+    // already-taxed → pure basis). Net portfolio effect = just the tax.
+    let rmdForced = 0, rmdTax = 0;
+    if(age >= RMD_START_AGE && tradStartBal > 0.01){
+      const required = tradStartBal / rmdDivisor(age);
+      rmdForced = Math.max(0, required - funding.breakdown.traditional);   // beyond spending draw
+      rmdForced = Math.min(rmdForced, Math.max(0, accounts.traditional.balance));
+      if(rmdForced > 0.01){
+        accounts.traditional.balance -= rmdForced;
+        rmdTax = rmdForced * p.taxRates.ordinary;
+        const reinvest = rmdForced - rmdTax;
+        accounts.taxable.balance += reinvest;
+        accounts.taxable.basis   += reinvest;        // after-tax dollars carry full basis
+        lifetimeTax += rmdTax;
+      }
     }
 
     // Floor any depleted accounts at zero.
@@ -813,9 +861,10 @@ function runSinglePath(p, returnPath){
       inflationRate: (rp && rp.proxyInflationRate != null) ? rp.proxyInflationRate : null,
       realReturnUsed: r,
       socialSecurity: ssInc, otherIncome: oiInc, pension: penInc, withdrawal,
-      expenses, goals: goalsY, liabilities: liabCost, taxes: totalTax,
+      rmd: rmdForced,
+      expenses, goals: goalsY, liabilities: liabCost, taxes: totalTax + rmdTax,
       startBalance, wdRate,
-      netCashflow: (ssInc + oiInc + penInc) - (expenses + goalsY + liabCost + totalTax),
+      netCashflow: (ssInc + oiInc + penInc) - (expenses + goalsY + liabCost + totalTax + rmdTax),
       balance: endBalance, failed,
       accountBreakdown: { ...funding.breakdown },
       accountBalances: {

@@ -139,6 +139,32 @@ test('a pre-retirement lump sum debits the portfolio (no longer ignored in accum
     'a $200k purchase at current age (accumulation) must reduce ending wealth');
 });
 
+// ── RMDs (Required Minimum Distributions) ───────────────────────────────────
+// From age 73 the pre-tax sleeve must distribute a minimum even if spending
+// doesn't need it; the after-tax excess is reinvested into the taxable sleeve.
+// Roth / taxable-only plans have no RMD.
+test('RMDs force pre-tax distributions from 73 and reinvest the excess', () => {
+  const p = JSON.parse(JSON.stringify(defaultPlan));
+  p.portfolio.accounts.taxable.balance     = 0;     // starts empty…
+  p.portfolio.accounts.traditional.balance = 10e6;  // big pre-tax → RMD >> spending
+  p.portfolio.accounts.roth.balance        = 0;
+  const r = runHistoricalPath(p, 1995, 'taxable-first');
+  const at73 = r.rows.find(x => x.age === 73);
+  assert.ok(at73 && at73.rmd > 0, 'a required distribution fires at age 73');
+  // Taxable began at $0 and nothing else funds it in retirement, so any positive
+  // taxable balance can ONLY be reinvested RMD proceeds.
+  assert.ok(r.rows.some(x => x.age >= 73 && x.accountBalances.taxable > 1),
+    'excess RMD is reinvested into the taxable sleeve');
+
+  // No pre-tax balance → no RMD ever (Roth/taxable are exempt).
+  const q = JSON.parse(JSON.stringify(defaultPlan));
+  q.portfolio.accounts.taxable.balance     = 10e6;
+  q.portfolio.accounts.traditional.balance = 0;
+  q.portfolio.accounts.roth.balance        = 0;
+  const r2 = runHistoricalPath(q, 1995, 'taxable-first');
+  assert.ok(r2.rows.every(x => !(x.rmd > 0)), 'no Traditional balance → no RMD');
+});
+
 test('empty liabilities = byte-identical to before (no regression)', () => {
   const p = JSON.parse(JSON.stringify(defaultPlan));
   const withEmpty = runHistoricalPath(p, 1973, 'taxable-first');
