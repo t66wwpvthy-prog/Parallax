@@ -23,6 +23,8 @@
      via --gold) / deep burgundy (at-risk). Tuned dark enough to read on the
      off-white ground. */
   --positive:#16401f; --positive-bright:#194a2c;
+  /* Snapshot withdrawal gauge: green (safe) → gold (caution) → clay (strained). */
+  --clay:#a8593f;
   --negative:#7e2b38; --negative-bright:#8f3340;
   --s1:#9a7322; --s2:#3f6b78; --s3:#7d5a82;
 }
@@ -248,6 +250,41 @@ body{background:radial-gradient(1200px 600px at 88% -12%, var(--gold-glow), tran
 .hp-item .meta b{color:var(--ink);font-weight:500}
 .hp-add{margin-top:14px;font-size:12.5px;color:var(--gold);font-weight:500;font-style:italic;cursor:pointer}
 
+/* ─── Snapshot (the diagnosis) ─────────────────────────────────────
+   Not ledger rows — a small set of diagnostic GAUGES, each a relationship
+   between numbers the client already entered (income floor, withdrawal rate,
+   tax location). The visual tells the truth; no advisor-sentence narration.
+   Each metric is a band: name + hero number on the left, the picture right. */
+.snap{max-width:1100px}
+.metric{display:grid;grid-template-columns:300px 1fr;gap:48px;align-items:center;padding:34px 0;border-top:1px solid var(--rule-faint)}
+.metric:first-child{border-top:none;padding-top:6px}
+.m-eye{font-family:'Sora';font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-faint);font-weight:600;margin-bottom:10px}
+.m-hero{font-family:'Inter';font-size:46px;line-height:1;font-weight:700;color:var(--ink-bright);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.m-hero.teal{color:var(--teal-deep)} .m-hero.gold{color:var(--gold-deep)} .m-hero.clay{color:var(--negative)}
+.m-sub{font-family:'Sora';font-size:12.5px;color:var(--ink-mute);margin-top:8px;font-weight:500;line-height:1.45;max-width:250px}
+/* coverage bar (income floor): teal fill = guaranteed, hatched = portfolio-drawn */
+.cov{height:40px;border-radius:6px;overflow:hidden;display:flex;background:repeating-linear-gradient(135deg,#efe7d6,#efe7d6 7px,#e8dfcc 7px,#e8dfcc 14px);box-shadow:inset 0 0 0 1px var(--rule)}
+.cov .fill{background:linear-gradient(180deg,var(--teal-bright),var(--teal));display:flex;align-items:center;padding-left:14px;color:#fff;font-family:'Inter';font-size:13px;font-weight:600;white-space:nowrap;min-width:0;overflow:hidden}
+.cov-legend,.seg-legend{display:flex;flex-wrap:wrap;gap:14px 26px;margin-top:14px;font-family:'Sora';font-size:12px;color:var(--ink-mute);font-weight:500}
+.cov-legend .k,.seg-legend .k{display:flex;align-items:center;gap:8px}
+.cov-legend .sw,.seg-legend .sw{width:11px;height:11px;border-radius:2px;flex:none}
+.cov-legend b,.seg-legend b{font-family:'Inter';color:var(--ink-bright);font-weight:600;margin-left:3px}
+/* gauge (withdrawal rate): green→gold→clay zones, ink marker, 4%-rule tick */
+.gauge-wrap{position:relative;padding-bottom:26px}
+.gauge{position:relative;height:18px;border-radius:9px;background:linear-gradient(90deg,var(--positive-bright) 0%,var(--positive-bright) 42%,var(--gold-bright) 42%,var(--gold-bright) 71%,var(--clay) 71%,var(--clay) 100%);box-shadow:inset 0 0 0 1px rgba(0,0,0,.06)}
+.gauge .marker{position:absolute;top:-7px;bottom:-7px;width:3px;background:var(--ink-bright);border-radius:2px;box-shadow:0 0 0 2px var(--surface)}
+.gauge-scale{display:flex;justify-content:space-between;margin-top:12px;font-family:'Sora';font-size:11px;color:var(--ink-faint);font-weight:500}
+.gauge-tick{position:absolute;top:24px;transform:translateX(-50%);font-family:'Sora';font-size:10px;letter-spacing:.04em;color:var(--ink-mute);font-weight:600;white-space:nowrap}
+.gauge-tick::before{content:'';position:absolute;left:50%;top:-12px;width:1px;height:9px;background:var(--ink-faint)}
+.g-note{margin-top:30px;font-family:'Sora';font-size:12.5px;color:var(--ink-mute);font-weight:500;line-height:1.5}
+.g-note b{font-family:'Inter';color:var(--ink-bright);font-weight:600}
+/* segmented proportion bar (tax location) */
+.seg{height:40px;border-radius:6px;overflow:hidden;display:flex;box-shadow:inset 0 0 0 1px var(--rule)}
+.seg div{display:flex;align-items:center;justify-content:center;color:#fff;font-family:'Inter';font-size:13px;font-weight:600;min-width:0;overflow:hidden}
+.seg .s-tax{background:linear-gradient(180deg,#6f8a93,var(--teal))}
+.seg .s-def{background:linear-gradient(180deg,var(--gold-bright),var(--gold))}
+.seg .s-roth{background:linear-gradient(180deg,#4f9d72,#3c7d59)}
+
 /* Year-by-year cash-flow drawer on the Scenarios page. Three scenarios side
    by side; each scenario's columns are softly tinted in its line color so the
    eye groups them without needing dividers. The Age column is sticky so the
@@ -317,6 +354,7 @@ body{background:radial-gradient(1200px 600px at 88% -12%, var(--gold-glow), tran
   .np-gutter{position:static}
   .hp-body{grid-template-columns:1fr;gap:18px}
   .hp-rule{display:none}
+  .metric{grid-template-columns:1fr;gap:18px;padding:24px 0}
   .subnav{overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap}
   .stab,.subnav-title{white-space:nowrap}
   .subnav-title{border-right:none;padding-right:12px;margin-right:12px}
@@ -357,6 +395,7 @@ body{background:radial-gradient(1200px 600px at 88% -12%, var(--gold-glow), tran
       <button class="stab" data-sub="inflows">Inflows</button>
       <button class="stab" data-sub="outflows">Outflows</button>
       <button class="stab" data-sub="goals">Goals</button>
+      <button class="stab" data-sub="snapshot">Snapshot</button>
     </nav>
     <div id="np-content"></div>
   </section>
@@ -707,6 +746,7 @@ const SUB_PAGES = {
   'inflows':       { label:'Inflows',  layout:'hybrid', totLabel:'Total at retirement' },
   'outflows':      { label:'Outflows', layout:'hybrid', totLabel:'Annual baseline' },
   'goals':         { label:'Goals',    layout:'hybrid', totLabel:'Annual goal spend' },
+  'snapshot':      { label:'Snapshot', layout:'snapshot' },
 };
 
 /* ── Balance Sheet (Statement) sections ───────────────────────────
@@ -986,6 +1026,113 @@ function renderHybrid(pageKey){
   </div>`;
 }
 
+/* ── Snapshot (the diagnosis) ──────────────────────────────────────
+   Three diagnostic gauges, each a RELATIONSHIP between numbers already
+   entered — not engine projections. These are static rules-of-thumb (like a
+   balance-sheet ratio): the income floor, the year-one withdrawal rate, and
+   the tax-location mix. The engine still owns the real probability (Scenarios);
+   this page is the at-a-glance condition of the household TODAY. Neutrality:
+   the same gauges read green when the news is good and red when it isn't —
+   the tool has no thesis, it just shows what's there. */
+function snapshotMetrics(){
+  const a = plan.portfolio.accounts;
+  const taxable = a.taxable.balance||0, trad = a.traditional.balance||0, roth = a.roth.balance||0;
+  const invest = taxable + trad + roth;
+  // Guaranteed-for-life income at retirement: both SS benefits + pension at its
+  // chosen start age (today's-dollar values straight off the inputs).
+  const ssP = plan.income.socialSecurity.primary.pia||0;
+  const ssS = (plan.income.socialSecurity.spouse && plan.income.socialSecurity.spouse.pia)||0;
+  const pen = plan.income.pension||{};
+  const penAmt = (pen.benefitByAge && pen.startAge!=null) ? (pen.benefitByAge[pen.startAge]||0) : 0;
+  const guaranteed = ssP + ssS + penAmt;
+  const essentials = (plan.expenses.living||0) + (plan.expenses.healthcare||0);
+  const goals = (plan.goals.vacation||0) + (plan.goals.property||0) + (plan.goals.gifts||0);
+  const totalSpend = essentials + goals;
+  const floorPct = essentials>0 ? guaranteed/essentials : 0;
+  const fromPortfolioEssential = Math.max(0, essentials - guaranteed);
+  const gap = Math.max(0, totalSpend - guaranteed);
+  const wr = invest>0 ? gap/invest : 0;
+  return { taxable, trad, roth, invest, guaranteed, essentials, goals, totalSpend,
+           floorPct, fromPortfolioEssential, gap, wr };
+}
+function renderSnapshot(){
+  const m = snapshotMetrics();
+  const pct = v => (v*100);
+  const pct1 = v => (v*100).toFixed(1)+'%';
+  const pct0 = v => Math.round(v*100)+'%';
+
+  // 1 · Income floor — coverage bar. Fill clamps at 100% (over-covered shows
+  // "fully covered"); the hero number still reports the true ratio.
+  const floorClamped = Math.min(1, m.floorPct);
+  const floorTone = m.floorPct>=0.9 ? 'teal' : m.floorPct>=0.6 ? 'gold' : 'clay';
+  const incomeFloor = `
+    <div class="metric">
+      <div>
+        <div class="m-eye">Income Floor</div>
+        <div class="m-hero ${floorTone}">${pct0(m.floorPct)}</div>
+        <div class="m-sub">of essential spending is covered for life by guaranteed income</div>
+      </div>
+      <div>
+        <div class="cov"><div class="fill" style="width:${(floorClamped*100).toFixed(1)}%">Guaranteed&nbsp;·&nbsp;${fmtMoney(m.guaranteed)}</div></div>
+        <div class="cov-legend">
+          <span class="k"><span class="sw" style="background:var(--teal)"></span>Guaranteed for life<b>${fmtMoney(m.guaranteed)}</b></span>
+          <span class="k"><span class="sw" style="background:#e3d9c5"></span>Drawn from portfolio<b>${fmtMoney(m.fromPortfolioEssential)}</b></span>
+          <span class="k">Essential spending<b>${fmtMoney(m.essentials)}</b></span>
+        </div>
+      </div>
+    </div>`;
+
+  // 2 · Withdrawal rate — gauge on a 0–7% scale. Marker position clamps to the
+  // bar; 4% rule tick at 4/7. Zone thresholds: safe <3%, caution 3–5%, strained >5%.
+  const wrMarker = Math.min(100, (m.wr/0.07)*100);
+  const wrTone = m.wr<0.03 ? 'teal' : m.wr<=0.05 ? 'gold' : 'clay';
+  const withdrawal = `
+    <div class="metric">
+      <div>
+        <div class="m-eye">Withdrawal Rate · Year One</div>
+        <div class="m-hero ${wrTone}">${pct1(m.wr)}</div>
+        <div class="m-sub">of the portfolio drawn the first year of retirement</div>
+      </div>
+      <div>
+        <div class="gauge-wrap">
+          <div class="gauge"><div class="marker" style="left:${wrMarker.toFixed(1)}%"></div></div>
+          <div class="gauge-tick" style="left:${(4/7*100).toFixed(1)}%">4% rule</div>
+          <div class="gauge-scale"><span>0%</span><span>safe</span><span>caution</span><span>strained</span><span>7%</span></div>
+        </div>
+        <div class="g-note">Portfolio must provide <b>${fmtMoney(m.gap)} / yr</b> of <b>${fmtMoney(m.totalSpend)}</b> total retirement spending, from <b>${fmtMoney(m.invest)}</b> invested.</div>
+      </div>
+    </div>`;
+
+  // 3 · Tax location — segmented proportion bar. Hero = the tax-deferred share
+  // (the future-tax exposure). Labels hidden on slivers too thin to hold text.
+  const tP = m.invest>0 ? m.taxable/m.invest : 0;
+  const dP = m.invest>0 ? m.trad/m.invest : 0;
+  const rP = m.invest>0 ? m.roth/m.invest : 0;
+  const segLbl = (p) => pct(p)>=8 ? pct0(p) : '';
+  const taxLocation = `
+    <div class="metric">
+      <div>
+        <div class="m-eye">Tax Location</div>
+        <div class="m-hero">${pct0(dP)}</div>
+        <div class="m-sub">sits in tax-deferred accounts — taxed as income when withdrawn</div>
+      </div>
+      <div>
+        <div class="seg">
+          <div class="s-tax" style="width:${(tP*100).toFixed(1)}%">${segLbl(tP)}</div>
+          <div class="s-def" style="width:${(dP*100).toFixed(1)}%">${segLbl(dP)}</div>
+          <div class="s-roth" style="width:${(rP*100).toFixed(1)}%">${segLbl(rP)}</div>
+        </div>
+        <div class="seg-legend">
+          <span class="k"><span class="sw" style="background:var(--teal)"></span>Taxable<b>${fmtMoney(m.taxable)}</b></span>
+          <span class="k"><span class="sw" style="background:var(--gold)"></span>Tax-deferred<b>${fmtMoney(m.trad)}</b></span>
+          <span class="k"><span class="sw" style="background:#3c7d59"></span>Tax-free · Roth<b>${fmtMoney(m.roth)}</b></span>
+        </div>
+      </div>
+    </div>`;
+
+  return `<div class="snap">${incomeFloor}${withdrawal}${taxLocation}</div>`;
+}
+
 /* ── Sub-page render + wiring ─────────────────────────────────────
    One renderInputs() drives whichever sub-page is active. Re-renders on
    sub-nav click, on field change, and on row delete — same wiring pattern
@@ -994,10 +1141,14 @@ function renderHybrid(pageKey){
 function renderInputs(){
   // sub-nav active state
   $$('#np-subnav .stab').forEach(b => b.classList.toggle('on', b.dataset.sub===activeSub));
-  const html = SUB_PAGES[activeSub].layout==='statement'
-    ? renderStatement()
-    : renderHybrid(activeSub);
+  const layout = SUB_PAGES[activeSub].layout;
+  const html = layout==='statement' ? renderStatement()
+             : layout==='snapshot'  ? renderSnapshot()
+             :                        renderHybrid(activeSub);
   $('#np-content').innerHTML = html;
+  // Snapshot is read-only (diagnostic gauges) — no field wiring needed; bail
+  // after injecting so the input-binding code below doesn't run on it.
+  if(layout==='snapshot') return;
 
   // Row delete (×): drop the last key along the path, re-render.
   $$('#np-content .row-x').forEach(btn => {
