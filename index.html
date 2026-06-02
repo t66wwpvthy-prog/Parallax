@@ -282,6 +282,29 @@ body{background:radial-gradient(1200px 600px at 88% -12%, var(--gold-glow), tran
 .bs-sub-v{font-family:'Inter';font-size:14px;color:var(--teal-deep);font-weight:600;font-variant-numeric:tabular-nums}
 .bs-add{padding:14px 0 4px;font-size:12.5px;color:var(--gold);font-weight:500;font-style:italic;cursor:pointer}
 .bs-row .row-x{margin-left:8px;width:20px;height:20px;border:none;background:transparent;color:var(--ink-faint);font-size:16px;line-height:1;cursor:pointer;border-radius:4px;padding:0}
+/* Typed-account picker (Option A — bucket rows) + added-account rows + tags */
+.bs-row .acct-tag{font-family:'Sora';font-size:8.5px;letter-spacing:.06em;text-transform:uppercase;font-weight:600;padding:2px 6px;border-radius:20px;margin-left:9px}
+.acct-tag.traditional{color:var(--teal-deep);background:rgba(63,107,120,.10)}
+.acct-tag.roth{color:#4f7a3c;background:rgba(79,122,60,.12)}
+.acct-tag.taxable{color:var(--gold-deep);background:rgba(154,115,34,.10)}
+.acct-picker{margin:12px 0 4px;background:var(--surface);border:1px solid var(--rule);border-radius:10px;padding:14px 16px;box-shadow:0 6px 18px -12px rgba(60,50,30,.22)}
+.acct-picker h5{font-family:'Sora';font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-mute);font-weight:600;margin-bottom:11px}
+.acct-brow{display:flex;align-items:flex-start;gap:14px;padding:5px 0;border-bottom:1px solid var(--rule-faint)}
+.acct-brow:last-of-type{border-bottom:none}
+.acct-blabel{width:60px;font-family:'Sora';font-size:9px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;padding-top:6px;flex:none}
+.acct-blabel.traditional{color:var(--teal-deep)} .acct-blabel.roth{color:#4f7a3c} .acct-blabel.taxable{color:var(--gold-deep)}
+.acct-chips{display:flex;flex-wrap:wrap;gap:6px}
+.acct-chip{border:1px solid var(--rule-bright);border-radius:8px;padding:4px 9px;font-family:'Sora';font-size:11.5px;background:var(--surface-2);cursor:pointer;color:var(--ink)}
+.acct-chip:hover{border-color:var(--gold-bright)}
+.acct-chip.sel{border-color:var(--gold);background:rgba(154,115,34,.12);font-weight:600;color:var(--gold-deep)}
+.acct-foot{display:flex;align-items:flex-end;gap:11px;margin-top:11px;padding-top:11px;border-top:1px solid var(--rule-faint)}
+.acct-foot .lbl{font-size:10.5px;color:var(--ink-faint);display:block;margin-bottom:4px}
+.acct-amt{font-family:'Inter';font-size:14px;font-weight:600;color:var(--ink-bright);background:var(--surface-2);border:1px solid var(--rule-bright);border-radius:7px;padding:7px 10px;width:130px;text-align:right;outline:none}
+.acct-amt:focus{border-color:var(--gold)}
+.acct-add{font-family:'Sora';font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;padding:8px 15px;border-radius:7px;border:none;background:var(--gold);color:#1a130a;cursor:pointer;margin-left:auto}
+.acct-add:disabled{opacity:.45;cursor:default}
+.bs-row .acct-x{margin-left:8px;width:20px;height:20px;border:none;background:transparent;color:var(--ink-faint);font-size:16px;line-height:1;cursor:pointer;border-radius:4px;padding:0}
+.bs-row .acct-x:hover{color:var(--negative-bright)}
 .bs-row .row-x:hover{color:var(--negative-bright);background:rgba(240,145,141,.08)}
 
 /* ─── Hybrid body (Inflows / Outflows / Goals) ─────────────────────
@@ -881,7 +904,8 @@ const plan = {
       taxable:     { balance: 2000000, basisPct: 0.60 },  // 60% basis, 40% gain
       traditional: { balance: 2000000 },                   // pre-tax retirement
       roth:        { balance: 1000000 }                     // tax-free
-    }
+    },
+    extraAccounts: []   // typed accounts (401k, SEP, …) that fold into a tax sleeve
   },
   savings: { annual: 0, split: { traditional: 1, roth: 0, taxable: 0 } },   // pre-retirement contribution ($/yr) + sleeve split — only applies when retirementAge > currentAge
   income: {
@@ -1051,18 +1075,25 @@ function resolveInputs(plan, ov){
   // basis is the cost paid, not the current value, so a -20% market move
   // doesn't change what the client originally paid in.
   const shockMult = 1 - (ov.initialShock || 0) * equityShockShare;
+  // Typed accounts (401k, SEP, etc.) fold into their tax sleeve before shock/basis
+  // so the engine sees correct bucket totals. Default (no extras) is byte-identical.
+  const extras = plan.portfolio.extraAccounts || [];
+  const sumBucket = b => extras.reduce((s,a)=> s + (a.bucket===b ? Math.max(0, a.balance||0) : 0), 0);
+  const taxableRaw = (plan.portfolio.accounts.taxable.balance     || 0) + sumBucket('taxable');
+  const tradRaw    = (plan.portfolio.accounts.traditional.balance || 0) + sumBucket('traditional');
+  const rothRaw    = (plan.portfolio.accounts.roth.balance        || 0) + sumBucket('roth');
   const accounts = {
     taxable: {
-      balance: plan.portfolio.accounts.taxable.balance * shockMult,
+      balance: taxableRaw * shockMult,
       // Basis as absolute dollars (was stored as percent of original balance).
       // We convert here to make the engine math simpler downstream.
-      basis: plan.portfolio.accounts.taxable.balance * plan.portfolio.accounts.taxable.basisPct
+      basis: taxableRaw * plan.portfolio.accounts.taxable.basisPct
     },
     traditional: {
-      balance: plan.portfolio.accounts.traditional.balance * shockMult
+      balance: tradRaw * shockMult
     },
     roth: {
-      balance: plan.portfolio.accounts.roth.balance * shockMult
+      balance: rothRaw * shockMult
     }
   };
 
@@ -2248,7 +2279,40 @@ function pensionFields(){
    eye lands in the same place. Useful information, not descriptions. */
 function investableTotal(){
   const a=plan.portfolio.accounts;
-  return (a.taxable.balance||0)+(a.traditional.balance||0)+(a.roth.balance||0);
+  const extra=(plan.portfolio.extraAccounts||[]).reduce((s,x)=>s+Math.max(0,x.balance||0),0);
+  return (a.taxable.balance||0)+(a.traditional.balance||0)+(a.roth.balance||0)+extra;
+}
+// Typed investment accounts → tax sleeve. Workplace + IRA plans are pre-tax;
+// the bucket is what the engine consumes (extraAccounts fold into the totals).
+const ACCT_TYPES = [
+  {label:'Traditional IRA', bucket:'traditional'}, {label:'401(k)', bucket:'traditional'},
+  {label:'403(b)', bucket:'traditional'}, {label:'457', bucket:'traditional'},
+  {label:'401(a)', bucket:'traditional'}, {label:'SEP IRA', bucket:'traditional'},
+  {label:'SIMPLE IRA', bucket:'traditional'}, {label:'Solo 401(k)', bucket:'traditional'},
+  {label:'Roth IRA', bucket:'roth'}, {label:'Brokerage', bucket:'taxable'},
+];
+const BUCKET_TAG = { traditional:'pre-tax', roth:'Roth', taxable:'taxable' };
+let acctSel = null;   // type currently armed in the add picker
+function renderExtraAccounts(){
+  return (plan.portfolio.extraAccounts||[]).map((a,i)=>
+    `<div class="bs-row"><label>${a.type}<span class="acct-tag ${a.bucket}">${BUCKET_TAG[a.bucket]}</span></label><span class="bs-dots"></span>`
+   +`<span class="field"><input class="acct-bal" data-type="money" data-acctidx="${i}" value="${(a.balance||0).toLocaleString('en-US')}"><button class="acct-x" data-acctidx="${i}" title="Remove">×</button></span></div>`
+  ).join('');
+}
+function renderAcctPicker(){
+  const rows = [['traditional','Pre-tax'],['roth','Roth'],['taxable','Taxable']].map(([b,lbl])=>{
+    const chips = ACCT_TYPES.filter(t=>t.bucket===b).map(t=>
+      `<span class="acct-chip ${acctSel&&acctSel.label===t.label?'sel':''}" data-label="${t.label}" data-bucket="${t.bucket}">${t.label}</span>`).join('');
+    return `<div class="acct-brow"><span class="acct-blabel ${b}">${lbl}</span><div class="acct-chips">${chips}</div></div>`;
+  }).join('');
+  return `<div class="acct-picker"><h5>Add an investment account</h5>${rows}`
+       + `<div class="acct-foot"><div><span class="lbl">Balance</span><input class="acct-amt" data-type="money" placeholder="$0"></div>`
+       + `<button class="acct-add" ${acctSel?'':'disabled'}>${acctSel?('Add '+acctSel.label):'Add'}</button></div></div>`;
+}
+// Post-edit refresh (mirrors the balance-sheet field commit, minus setPath).
+function commitPlanEdit(){
+  reseedScenarios(); buildLevers(); sharedPaths=null; plansDirty=true; renderInputs();
+  $('#status').textContent='Plan edited · open Scenarios';
 }
 // Net worth = assets - liabilities. Real-asset and recurring-liability UI
 // surfaces ship empty for now (stubs), so until those are filled the gutter
@@ -2352,6 +2416,8 @@ function renderStatement(){
       h += `<div class="${rowCls}"><label>${f.label}</label><span class="bs-dots"></span><span class="field">${renderField(f)}</span></div>`;
     });
     if(sec.subtotal==='invest'){
+      h += renderExtraAccounts();        // added typed accounts (401k, SEP, …)
+      h += renderAcctPicker();           // Option-A bucket-rows add picker
       h += `<div class="bs-sub"><span class="bs-sub-l">Investable total</span><span class="bs-sub-d"></span><span class="bs-sub-v">${fmtMoney(investableTotal())}</span></div>`;
     }
     if(sec.add) h += `<div class="bs-add">${sec.add}</div>`;
@@ -2588,6 +2654,7 @@ function renderInputs(){
   $$('#np-content input, #np-content select').forEach(el => {
     el.addEventListener('change', e => {
       const path = e.target.dataset.path, type = e.target.dataset.type;
+      if(!path) return;                       // skip picker inputs (handled separately)
       const raw = e.target.value;
       let v;
       if(type==='money')      v = parseFloat(String(raw).replace(/[^0-9.]/g,''));
@@ -2606,6 +2673,45 @@ function renderInputs(){
     });
   });
 }
+
+// ── Typed-account picker — delegated once on the static #np-content ──────────
+$('#np-content').addEventListener('click', e => {
+  const chip = e.target.closest('.acct-chip');
+  if(chip){
+    acctSel = { label: chip.dataset.label, bucket: chip.dataset.bucket };
+    $$('#np-content .acct-chip').forEach(c => c.classList.toggle('sel', c === chip));
+    const btn = $('#np-content .acct-add');
+    if(btn){ btn.disabled = false; btn.textContent = 'Add ' + acctSel.label; }
+    return;
+  }
+  if(e.target.closest('.acct-add')){
+    if(!acctSel) return;
+    const amtEl = $('#np-content .acct-amt');
+    const bal = parseFloat(String(amtEl ? amtEl.value : '').replace(/[^0-9.]/g, ''));
+    if(!isFinite(bal) || bal <= 0){ if(amtEl) amtEl.focus(); return; }
+    if(!plan.portfolio.extraAccounts) plan.portfolio.extraAccounts = [];
+    plan.portfolio.extraAccounts.push({ type: acctSel.label, bucket: acctSel.bucket, balance: Math.round(bal) });
+    acctSel = null;
+    commitPlanEdit();
+    return;
+  }
+  const rm = e.target.closest('.acct-x');
+  if(rm){
+    const i = +rm.dataset.acctidx;
+    if(plan.portfolio.extraAccounts) plan.portfolio.extraAccounts.splice(i, 1);
+    commitPlanEdit();
+  }
+});
+$('#np-content').addEventListener('change', e => {
+  const bal = e.target.closest('.acct-bal');
+  if(!bal) return;
+  const i = +bal.dataset.acctidx;
+  const v = Math.max(0, Math.round(parseFloat(String(bal.value).replace(/[^0-9.]/g, '')) || 0));
+  if(plan.portfolio.extraAccounts && plan.portfolio.extraAccounts[i]){
+    plan.portfolio.extraAccounts[i].balance = v;
+    commitPlanEdit();
+  }
+});
 
 // Pension slider range is PER-HOUSEHOLD: it spans only the ages the advisor has
 // actually quoted a benefit for (the keys of benefitByAge). This means the

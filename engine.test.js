@@ -203,6 +203,28 @@ test('Roth contributions end higher than the same dollars pre-tax (split flows t
     'tax-free Roth (no RMD) must end higher than the same dollars in pre-tax');
 });
 
+// ── Typed accounts (401k, SEP, …) fold into their tax sleeve ────────────────
+test('extra typed accounts sum into their bucket; empty = unchanged', () => {
+  const base = JSON.parse(JSON.stringify(defaultPlan));
+  const baseR = resolveInputs(base, {});
+  base.portfolio.extraAccounts = [];                       // explicit empty = no change
+  assert.strictEqual(resolveInputs(base, {}).accounts.traditional.balance, baseR.accounts.traditional.balance,
+    'empty extras → identical resolved balances');
+  // a $500k 401(k) lands in the pre-tax (traditional) sleeve
+  const withAcct = JSON.parse(JSON.stringify(defaultPlan));
+  withAcct.portfolio.extraAccounts = [{ type:'401k', bucket:'traditional', balance:500000 }];
+  const r = resolveInputs(withAcct, {});
+  assert.strictEqual(r.accounts.traditional.balance, baseR.accounts.traditional.balance + 500000,
+    '401(k) adds to the pre-tax bucket');
+  assert.strictEqual(r.accounts.roth.balance, baseR.accounts.roth.balance, 'Roth untouched');
+  // a taxable add also lifts basis at the account basis %
+  const withTax = JSON.parse(JSON.stringify(defaultPlan));
+  withTax.portfolio.extraAccounts = [{ type:'brokerage', bucket:'taxable', balance:100000 }];
+  const rt = resolveInputs(withTax, {});
+  assert.strictEqual(rt.accounts.taxable.balance, baseR.accounts.taxable.balance + 100000, 'taxable add folds into taxable balance');
+  assert.ok(rt.accounts.taxable.basis > baseR.accounts.taxable.basis, 'taxable add lifts basis');
+});
+
 test('empty liabilities = byte-identical to before (no regression)', () => {
   const p = JSON.parse(JSON.stringify(defaultPlan));
   const withEmpty = runHistoricalPath(p, 1973, 'taxable-first');

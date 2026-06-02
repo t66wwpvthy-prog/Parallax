@@ -371,7 +371,8 @@ const plan = {
       taxable:     { balance: 2000000, basisPct: 0.60 },  // 60% basis, 40% gain
       traditional: { balance: 2000000 },                   // pre-tax retirement
       roth:        { balance: 1000000 }                     // tax-free
-    }
+    },
+    extraAccounts: []   // typed accounts (401k, SEP, …) that fold into a tax sleeve
   },
   savings: { annual: 0, split: { traditional: 1, roth: 0, taxable: 0 } },   // pre-retirement contribution ($/yr) + sleeve split — only applies when retirementAge > currentAge
   income: {
@@ -541,18 +542,25 @@ function resolveInputs(plan, ov){
   // basis is the cost paid, not the current value, so a -20% market move
   // doesn't change what the client originally paid in.
   const shockMult = 1 - (ov.initialShock || 0) * equityShockShare;
+  // Typed accounts (401k, SEP, etc.) fold into their tax sleeve before shock/basis
+  // so the engine sees correct bucket totals. Default (no extras) is byte-identical.
+  const extras = plan.portfolio.extraAccounts || [];
+  const sumBucket = b => extras.reduce((s,a)=> s + (a.bucket===b ? Math.max(0, a.balance||0) : 0), 0);
+  const taxableRaw = (plan.portfolio.accounts.taxable.balance     || 0) + sumBucket('taxable');
+  const tradRaw    = (plan.portfolio.accounts.traditional.balance || 0) + sumBucket('traditional');
+  const rothRaw    = (plan.portfolio.accounts.roth.balance        || 0) + sumBucket('roth');
   const accounts = {
     taxable: {
-      balance: plan.portfolio.accounts.taxable.balance * shockMult,
+      balance: taxableRaw * shockMult,
       // Basis as absolute dollars (was stored as percent of original balance).
       // We convert here to make the engine math simpler downstream.
-      basis: plan.portfolio.accounts.taxable.balance * plan.portfolio.accounts.taxable.basisPct
+      basis: taxableRaw * plan.portfolio.accounts.taxable.basisPct
     },
     traditional: {
-      balance: plan.portfolio.accounts.traditional.balance * shockMult
+      balance: tradRaw * shockMult
     },
     roth: {
-      balance: plan.portfolio.accounts.roth.balance * shockMult
+      balance: rothRaw * shockMult
     }
   };
 
