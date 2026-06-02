@@ -91,11 +91,13 @@ try {
       await page.click(`#np-subnav .stab[data-sub="${sub}"]`);
       await page.waitForTimeout(200);
       const m = await page.evaluate(() => ({
-        gutterTotal: document.querySelector('.hp-tot .v')?.textContent || '',
+        gutterBig: document.querySelector('.np-gutter .big-num')?.textContent || '',
+        gutterRows: document.querySelectorAll('.np-gutter .row').length,
         cols: document.querySelectorAll('.hp-col').length,
       }));
       if(m.cols !== 2) throw new Error(`${sub} hybrid did not render two columns (cols=${m.cols})`);
-      if(!m.gutterTotal.startsWith('$')) throw new Error(`${sub} gutter total missing (got "${m.gutterTotal}")`);
+      if(!m.gutterBig.startsWith('$')) throw new Error(`${sub} gutter big-number missing (got "${m.gutterBig}")`);
+      if(m.gutterRows < 2) throw new Error(`${sub} gutter breakdown rows missing (got ${m.gutterRows})`);
       await page.screenshot({ path: `${OUT}/02-${sub}.png`, fullPage: true });
     }
   });

@@ -175,18 +175,35 @@ body{background:radial-gradient(1200px 600px at 88% -12%, var(--gold-glow), tran
    split by a single vertical hairline. One visual family across the four. */
 .page[data-page="net-worth"]{padding-top:24px;overflow-y:auto}
 
-/* Sub-nav under the main tabs — same gold-underline language, smaller and quieter. */
-.subnav{display:flex;border-bottom:1px solid var(--rule);margin:-6px 0 24px;max-width:1020px}
-.stab{background:none;border:none;border-bottom:1px solid transparent;color:var(--ink-faint);font-family:'Sora';font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;padding:13px 4px 13px 0;margin-right:30px;font-weight:500;cursor:pointer;margin-bottom:-1px;transition:color .15s,border-color .15s}
+/* Sub-nav under the main tabs. NET WORTH sits left, bold and offset, separated
+   from the four sub-tabs by a fine vertical rule. Same gold-underline language
+   as the main tabs but smaller and quieter — the sub-nav is subordinate. */
+.subnav{display:flex;align-items:stretch;border-bottom:1px solid var(--rule);margin:-6px 0 28px;max-width:1100px}
+.subnav-title{font-family:'Sora';font-size:14px;letter-spacing:.26em;text-transform:uppercase;color:var(--ink-bright);font-weight:700;padding:14px 32px 14px 0;display:flex;align-items:center;border-right:1px solid var(--rule-bright);margin-right:28px}
+.stab{background:none;border:none;border-bottom:1px solid transparent;color:var(--ink-faint);font-family:'Sora';font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;padding:14px 4px 13px 0;margin-right:30px;font-weight:500;cursor:pointer;margin-bottom:-1px;transition:color .15s,border-color .15s}
 .stab:hover{color:var(--ink-mute)}
 .stab.on{color:var(--ink-bright);font-weight:600;border-bottom-color:var(--gold)}
 
-/* ─── Statement layout (Balance Sheet) ────────────────────────────
+/* ─── Net Worth page wrapper (shared by all four sub-pages) ───────
+   200px left gutter carries the page's summary (big number, breakdowns,
+   live totals) — the eye lands in the same place every time. Body to the
+   right holds the Statement ledger or the two-column Hybrid body. */
+.np-page{display:grid;grid-template-columns:200px 1fr;gap:54px;max-width:1100px;align-items:start}
+.np-gutter{position:sticky;top:0}
+.np-gutter .lbl{font-family:'Sora';font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-faint);font-weight:600;margin-bottom:4px}
+.np-gutter .big-num{font-family:'Inter';font-size:30px;line-height:1.05;font-weight:600;color:var(--ink-bright);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.np-gutter .big-num.teal{color:var(--teal-deep)}
+.np-gutter .big-sub{font-family:'Sora';font-size:11px;color:var(--ink-mute);margin-top:5px;font-weight:500;line-height:1.4}
+.np-gutter .gut-rule{border:none;border-top:1px solid var(--rule-faint);margin:20px 0 14px}
+.np-gutter .row{display:flex;justify-content:space-between;align-items:baseline;padding:5px 0;font-size:12.5px;color:var(--ink-mute);font-family:'Sora';font-weight:500}
+.np-gutter .row b{font-family:'Inter';font-weight:600;color:var(--ink-bright);font-variant-numeric:tabular-nums}
+
+/* ─── Statement layout (Balance Sheet body) ────────────────────────
    Each section is a small caps header with a gold underline; rows are
    "label … dotted leader … value", values are boxless inputs that go gold
    on focus (same edit language as the Scenarios levers). Subtotals close
    each money section in slate, the statement's running truth. */
-.bs-sheet{max-width:980px}
+.bs-sheet{max-width:none}
 .bs-head{font-family:'Sora';font-size:10.5px;letter-spacing:.26em;text-transform:uppercase;color:var(--ink-bright);font-weight:600;margin:38px 0 6px;padding-bottom:8px;border-bottom:1px solid var(--gold)}
 .bs-head:first-of-type{margin-top:4px}
 .bs-row{display:flex;align-items:baseline;padding:9px 0;font-size:14px}
@@ -209,17 +226,10 @@ body{background:radial-gradient(1200px 600px at 88% -12%, var(--gold-glow), tran
 .bs-row .row-x{margin-left:8px;width:20px;height:20px;border:none;background:transparent;color:var(--ink-faint);font-size:16px;line-height:1;cursor:pointer;border-radius:4px;padding:0}
 .bs-row .row-x:hover{color:var(--negative-bright);background:rgba(240,145,141,.08)}
 
-/* ─── Hybrid layout (Inflows / Outflows / Goals) ───────────────────
-   200px gutter (title + description + running total) + body split into two
-   facing columns by a single vertical hairline. Each item has a name+value
-   top line and a meta line below in ink-mute. */
-.hp{display:grid;grid-template-columns:200px 1fr;gap:54px;max-width:1080px;align-items:start}
-.hp-gutter h2{font-family:'Sora';font-size:20px;font-weight:500;color:var(--ink-bright);margin-bottom:8px;letter-spacing:.01em}
-.hp-gutter p{font-size:12.5px;color:var(--ink-mute);line-height:1.55;font-style:italic;margin-bottom:22px}
-.hp-tot{margin-top:14px;padding-top:14px;border-top:1px solid var(--rule-faint)}
-.hp-tot .l{font-family:'Sora';font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-faint);font-weight:600;margin-bottom:4px}
-.hp-tot .v{font-family:'Inter';font-size:17px;font-weight:600;color:var(--teal-deep);font-variant-numeric:tabular-nums}
-.hp-tot .v small{display:block;font-weight:500;color:var(--ink-mute);font-size:11.5px;margin-top:3px;font-family:'Sora'}
+/* ─── Hybrid body (Inflows / Outflows / Goals) ─────────────────────
+   Two facing columns split by a single vertical hairline. The gutter
+   (containing the page summary + column subtotals) is the shared np-gutter
+   one level up. */
 .hp-body{display:grid;grid-template-columns:1fr 1px 1fr;gap:0 36px}
 .hp-rule{background:var(--rule-bright);width:1px;align-self:stretch}
 .hp-col h4{font-family:'Sora';font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-mute);font-weight:600;margin-bottom:18px;padding-bottom:8px;border-bottom:1px solid var(--rule-faint)}
@@ -303,12 +313,13 @@ body{background:radial-gradient(1200px 600px at 88% -12%, var(--gold-glow), tran
   .chart-head{flex-wrap:wrap;gap:6px 14px}
 
   /* Inputs: single column. */
-  .bs-sheet{max-width:none}
-  .hp{grid-template-columns:1fr;gap:18px}
+  .np-page{grid-template-columns:1fr;gap:18px}
+  .np-gutter{position:static}
   .hp-body{grid-template-columns:1fr;gap:18px}
   .hp-rule{display:none}
   .subnav{overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap}
-  .stab{white-space:nowrap}
+  .stab,.subnav-title{white-space:nowrap}
+  .subnav-title{border-right:none;padding-right:12px;margin-right:12px}
   .inp-row input,.inp-row select{font-size:16px;width:120px} /* 16px avoids iOS zoom-on-focus */
 
   /* Sequencing: selector + stats stack. */
@@ -340,8 +351,8 @@ body{background:radial-gradient(1200px 600px at 88% -12%, var(--gold-glow), tran
   </header>
 
   <section class="page on" data-page="net-worth">
-    <div class="eyebrow"><span>Net Worth · The Household Base Plan</span></div>
     <nav class="subnav" id="np-subnav">
+      <span class="subnav-title">Net Worth</span>
       <button class="stab on" data-sub="balance-sheet">Balance Sheet</button>
       <button class="stab" data-sub="inflows">Inflows</button>
       <button class="stab" data-sub="outflows">Outflows</button>
@@ -693,18 +704,9 @@ const RISK_NAMES={1:'Conservative',2:'Mod-Cons',3:'Moderate',4:'Mod-Agg',5:'Aggr
    plan values — same place on every page so the eye knows where to land. */
 const SUB_PAGES = {
   'balance-sheet': { label:'Balance Sheet', layout:'statement' },
-  'inflows':       { label:'Inflows',  layout:'hybrid',
-                     gutter:'Money flowing into the household — for life on the left, for a while on the right.',
-                     totLabel:'Total at retirement',
-                     totFn:()=>inflowTotalAtRetire() },
-  'outflows':      { label:'Outflows', layout:'hybrid',
-                     gutter:'What the household spends to live. Essentials keep the lights on; the rest is the life around it.',
-                     totLabel:'Annual baseline',
-                     totFn:()=>outflowAnnualBaseline() },
-  'goals':         { label:'Goals',    layout:'hybrid',
-                     gutter:'What the household wants the money to do, beyond keeping the lights on.',
-                     totLabel:'Annual goals',
-                     totFn:()=>goalAnnualTotal() },
+  'inflows':       { label:'Inflows',  layout:'hybrid', totLabel:'Total at retirement' },
+  'outflows':      { label:'Outflows', layout:'hybrid', totLabel:'Annual baseline' },
+  'goals':         { label:'Goals',    layout:'hybrid', totLabel:'Annual goal spend' },
 };
 
 /* ── Balance Sheet (Statement) sections ───────────────────────────
@@ -816,30 +818,81 @@ function pensionFields(){
   ));
 }
 /* ── Derived totals (pure aggregation of typed inputs, NOT engine output) ──
-   These read the live plan and feed the gutter "running total" on each
-   hybrid sub-page + the Balance Sheet "Investable total" subtotal. */
+   These read the live plan and feed the gutter on each sub-page. The gutter
+   is the same shape on every page — a big number + breakdown rows — so the
+   eye lands in the same place. Useful information, not descriptions. */
 function investableTotal(){
   const a=plan.portfolio.accounts;
   return (a.taxable.balance||0)+(a.traditional.balance||0)+(a.roth.balance||0);
 }
-function inflowTotalAtRetire(){
-  const ss=(plan.income.socialSecurity.primary.pia||0)
-         +((plan.income.socialSecurity.spouse&&plan.income.socialSecurity.spouse.pia)||0);
-  const m=(plan.income.pension&&plan.income.pension.benefitByAge)||{};
-  const pAges=Object.keys(m).map(Number);
-  const pStart=(plan.income.pension&&plan.income.pension.startAge)||0;
-  const pen = m[pStart] || (pAges.length?m[pAges[0]]:0) || 0;
-  return ss + pen;
+// Net worth = assets - liabilities. Real-asset and recurring-liability UI
+// surfaces ship empty for now (stubs), so until those are filled the gutter
+// shows investable as net worth and zeroes for the empty buckets — never
+// invents numbers. When real assets and liabilities land, this fn picks
+// them up automatically from the plan.
+function realAssetsTotal(){ return (plan.realAssets||[]).reduce((s,a)=>s+(a.value||0),0); }
+function liabilitiesPVTotal(){
+  // Sum of liabilities' simple present value: amount/yr × years remaining.
+  // Honest crude estimate for the side-panel — the engine still does the
+  // proper time-erosion math during simulation.
+  const p=plan.household.primary;
+  return (plan.liabilities||[]).reduce((s,L)=>{
+    const yrs = Math.max(0, (L.endAge||p.planEndAge) - Math.max(L.startAge||p.currentAge, p.currentAge));
+    return s + (L.amount||0)*yrs;
+  },0);
 }
-function outflowAnnualBaseline(){
-  const e=plan.expenses;
-  return (e.living||0)+(e.healthcare||0);
+function netWorthTotal(){ return investableTotal() + realAssetsTotal() - liabilitiesPVTotal(); }
+
+// Column subtotals — sums the items defined in HYBRID[page].left / .right.
+// Dynamic-pension items (Inflows · Guaranteed) are included automatically.
+function colSum(page, side){
+  const col = HYBRID[page] && HYBRID[page][side];
+  if(!col) return 0;
+  let s = 0;
+  (col.items||[]).forEach(it => { s += (getPath(plan, it.path)||0); });
+  if(col.dynamic==='pension'){
+    const m=(plan.income.pension&&plan.income.pension.benefitByAge)||{};
+    // Pension pays ONE amount — at the chosen start age. Don't sum every age.
+    const pStart=(plan.income.pension&&plan.income.pension.startAge);
+    s += (pStart && m[pStart]) || 0;
+  }
+  return s;
 }
-function goalAnnualTotal(){
-  const g=plan.goals;
-  return (g.vacation||0)+(g.property||0)+(g.gifts||0);
-}
+function hybridTotal(page){ return colSum(page,'left') + colSum(page,'right'); }
+
 const fmtMoney = v => '$'+(v||0).toLocaleString('en-US');
+
+// Page-specific gutter HTML. Same shape on every page — title row + big
+// number + a breakdown of the parts. No descriptions; the structure IS the
+// description. Net Worth shows assets / liabilities / net; the three hybrid
+// pages show the left-column total / right-column total / overall.
+function renderGutter(pageKey){
+  const sp = SUB_PAGES[pageKey];
+  if(pageKey === 'balance-sheet'){
+    const assets = investableTotal() + realAssetsTotal();
+    const liab   = liabilitiesPVTotal();
+    const nw     = assets - liab;
+    return `<div class="np-gutter">
+      <div class="lbl">Net Worth</div>
+      <div class="big-num teal">${fmtMoney(nw)}</div>
+      <div class="big-sub">assets minus liabilities</div>
+      <hr class="gut-rule"/>
+      <div class="row"><span>Investable</span><b>${fmtMoney(investableTotal())}</b></div>
+      <div class="row"><span>Real assets</span><b>${fmtMoney(realAssetsTotal())}</b></div>
+      <div class="row"><span>Liabilities</span><b>${fmtMoney(liab)}</b></div>
+    </div>`;
+  }
+  const def = HYBRID[pageKey];
+  const total = hybridTotal(pageKey);
+  return `<div class="np-gutter">
+    <div class="lbl">${sp.totLabel}</div>
+    <div class="big-num teal">${fmtMoney(total)}</div>
+    <div class="big-sub">per year · today's dollars</div>
+    <hr class="gut-rule"/>
+    <div class="row"><span>${def.left.head}</span><b>${fmtMoney(colSum(pageKey,'left'))}</b></div>
+    <div class="row"><span>${def.right.head}</span><b>${fmtMoney(colSum(pageKey,'right'))}</b></div>
+  </div>`;
+}
 
 /* ── Field renderer — one input element, shared by both layouts ──── */
 function renderField(f, klass){
@@ -866,8 +919,7 @@ function renderField(f, klass){
    leader, boxless input. Subtotal closes a money section in slate. */
 function renderStatement(){
   // No per-section wrapper div — every element is a direct child of .bs-sheet
-  // so the .bs-head:first-of-type rule actually applies to the FIRST head on
-  // the page (not every head, which it was when each lived in its own wrapper).
+  // so the .bs-head:first-of-type rule applies to the FIRST head on the page.
   let h='';
   BALANCE_SHEET.forEach(sec => {
     h += `<div class="bs-head">${sec.head}</div>`;
@@ -880,7 +932,10 @@ function renderStatement(){
     }
     if(sec.add) h += `<div class="bs-add">${sec.add}</div>`;
   });
-  return `<div class="bs-sheet">${h}</div>`;
+  return `<div class="np-page">
+    ${renderGutter('balance-sheet')}
+    <div class="bs-sheet">${h}</div>
+  </div>`;
 }
 
 /* ── Hybrid layout (Inflows / Outflows / Goals) ───────────────────
@@ -888,7 +943,6 @@ function renderStatement(){
    split by a single vertical hairline. Each item: name on the left, boxless
    input on the right, meta line below the name in ink-mute. */
 function renderHybrid(pageKey){
-  const sp = SUB_PAGES[pageKey];
   const def = HYBRID[pageKey];
   const colHtml = colDef => {
     let h = `<h4>${colDef.head}</h4>`;
@@ -912,12 +966,8 @@ function renderHybrid(pageKey){
     if(colDef.add) h += `<div class="hp-add">${colDef.add}</div>`;
     return `<div class="hp-col">${h}</div>`;
   };
-  return `<div class="hp">
-    <div class="hp-gutter">
-      <h2>${sp.label}</h2>
-      <p>${sp.gutter}</p>
-      <div class="hp-tot"><div class="l">${sp.totLabel}</div><div class="v">${fmtMoney(sp.totFn())}<small>per year, today's dollars</small></div></div>
-    </div>
+  return `<div class="np-page">
+    ${renderGutter(pageKey)}
     <div class="hp-body">
       ${colHtml(def.left)}
       <div class="hp-rule"></div>
