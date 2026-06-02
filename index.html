@@ -79,11 +79,15 @@ body{background:radial-gradient(1200px 600px at 88% -12%, var(--gold-glow), tran
 .sf-form{display:flex;flex-wrap:wrap;align-items:flex-end;gap:22px}
 .sf-field{display:flex;flex-direction:column;gap:7px}
 .sf-lbl{font-family:'Sora';font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--ink-faint);font-weight:600}
-.sf-box-wrap{display:flex;align-items:baseline;gap:3px}
+.sf-box-wrap{display:flex;align-items:baseline;gap:4px}
 .sf-prefix,.sf-suffix{font-family:'Inter';font-size:17px;font-weight:600;color:var(--ink-mute)}
-.sf-box{font-family:'Inter';font-size:20px;font-weight:700;color:var(--ink-bright);background:var(--deep);border:1px solid var(--rule-bright);border-radius:6px;padding:7px 10px;outline:none;width:84px;text-align:center;-moz-appearance:textfield}
+/* Same idiom as every other input in the app: dashed underline, transparent,
+   gold on focus. Just bigger. */
+.sf-box{font-family:'Inter';font-size:19px;font-weight:600;color:var(--ink-bright);background:transparent;border:none;border-bottom:1px dashed var(--rule-bright);padding:2px 3px;outline:none;width:64px;text-align:right;-moz-appearance:textfield}
 .sf-box::-webkit-outer-spin-button,.sf-box::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
-.sf-box:focus{border-color:var(--gold)}
+.sf-box:hover{border-bottom-color:var(--gold)}
+.sf-box:focus{border-bottom:1px solid var(--gold)}
+.sf-money{width:150px}
 .sf-go{font-family:'Sora';font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;padding:11px 20px;border-radius:6px;cursor:pointer;border:1px solid var(--gold);background:var(--gold);color:#1a130a;margin-left:auto}
 .sf-go:hover{background:var(--gold-bright);border-color:var(--gold-bright)}
 /* Per-row loading spinner during a solve. Sits in place of the lever value
@@ -1826,7 +1830,7 @@ function renderSolvePanel(){
           <label class="sf-field"><span class="sf-lbl">With confidence</span>
             <span class="sf-box-wrap"><input class="sf-box" id="sf-pct" type="number" min="50" max="99" value="${defPct}"><span class="sf-suffix">%</span></span></label>
           <label class="sf-field"><span class="sf-lbl">Preserve legacy</span>
-            <span class="sf-box-wrap"><span class="sf-prefix">$</span><input class="sf-box sf-money" id="sf-legacy" type="text" inputmode="numeric" value="0" style="width:130px;text-align:right"></span></label>
+            <span class="sf-box-wrap"><span class="sf-prefix">$</span><input class="sf-box sf-money" id="sf-legacy" type="text" inputmode="numeric" value="0"></span></label>
           <button type="submit" class="sf-go">Find Paths →</button>
         </form>
       </div>`;
