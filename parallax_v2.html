@@ -135,6 +135,25 @@ body{background:radial-gradient(1200px 600px at 88% -12%, var(--gold-glow), tran
 .circle-val .big{font-size:28px;font-weight:400;line-height:1;font-family:'Inter';letter-spacing:-.01em}
 .circle-val .lbl{font-size:8.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-mute);margin-top:3px}
 
+/* Mode bar above the lever area: hint + Adjust/Done toggle. */
+.scn-modebar{display:flex;align-items:center;justify-content:flex-end;gap:14px;padding:9px 4px 11px}
+.mode-hint{font-family:'Sora';font-size:11px;color:var(--ink-faint);font-weight:500;letter-spacing:.02em}
+.mode-btn{font-family:'Sora';font-size:10px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;padding:6px 13px;border-radius:5px;cursor:pointer;border:1px solid var(--rule-bright);background:none;color:var(--ink-mute)}
+.mode-btn:hover{border-color:var(--gold);color:var(--gold)}
+/* Recipe cards (resting view) — each scenario shows only its changes. */
+.rec-gutter{display:flex;align-items:flex-start;padding:18px 14px;font-family:'Sora';font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-faint);font-weight:600;border-right:1px solid var(--rule-faint)}
+.rec-card{padding:16px 18px 18px;border-right:1px solid var(--rule-faint);display:flex;flex-direction:column;gap:9px;min-height:120px}
+.rec-card.base{background:rgba(63,107,120,.04)}
+.scn-levers .rec-card.col-last{border-right:none}
+.rec-tag{font-family:'Sora';font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);font-weight:600;margin-bottom:3px}
+.rec-line{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.rec-line-name{font-family:'Sora';font-size:12px;color:var(--ink-mute);font-weight:500}
+.rec-line-val{font-family:'Inter';font-size:16px;font-weight:600;color:var(--ink-bright);text-align:right;white-space:nowrap}
+.rec-line-val .unit{font-size:10px;color:var(--ink-faint);font-weight:500}
+.rec-delta{font-family:'Sora';font-size:11px;font-weight:600;color:var(--gold-deep);letter-spacing:.02em;margin-left:5px}
+.rec-card.base .rec-line-val{color:var(--teal-bright)}
+.rec-same{display:flex;flex-direction:column;gap:5px;font-family:'Sora';font-size:13px;color:var(--ink-mute);font-weight:600;padding-top:6px}
+.rec-same-sub{font-size:11px;color:var(--ink-faint);font-weight:500}
 .scn-levers{display:grid;grid-template-columns:148px repeat(3,1fr);border-left:1px solid var(--rule);border-right:1px solid var(--rule)}
 .lev-name{display:flex;align-items:center;border-right:1px solid var(--rule-faint);border-bottom:1px solid var(--rule-faint);padding:0 14px;min-height:62px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-mute);font-weight:500;line-height:1.3}
 .lev-cell{display:flex;flex-direction:column;justify-content:center;gap:7px;border-right:1px solid var(--rule-faint);border-bottom:1px solid var(--rule-faint);padding:0 16px;min-height:62px}
@@ -454,6 +473,7 @@ body{background:radial-gradient(1200px 600px at 88% -12%, var(--gold-glow), tran
     <div class="scn-scroll">
       <div class="scn-band" id="scn-band"></div>
       <div id="solve-panel"></div>
+      <div class="scn-modebar" id="scn-modebar"></div>
       <div class="scn-levers" id="scn-levers"></div>
       <div class="scn-foot" id="scn-foot"></div>
     </div>
@@ -926,6 +946,9 @@ let scenarios = loadScenarios() || demoScenarios();
 // Solver UI state. solverFormOpen toggles the inline "Solve…" form in the band
 // gutter; solving guards against re-entry while a solve is in flight.
 let solverFormOpen = false, solving = false;
+// Scenarios body view: false = recipe cards (changes vs Baseline), true = full
+// editable lever grid. Toggled by the Adjust/Done button in the mode bar.
+let editMode = false;
 
 /* Map a scenario's levers -> engine override object. */
 function leversToOverrides(L){
@@ -1625,18 +1648,72 @@ function renderBand(){
 // choices). No good/bad coloring: later retirement isn't "better," it's a
 // trade-off, so the chip stays a muted, opinion-free tone. Empty on the
 // baseline column and wherever a lever matches baseline.
-function levDelta(cfg, lev){
+function deltaText(cfg, lev){
   const baseLev = scenarios.find(s=>s.base)?.lev;
-  if(!baseLev || lev===baseLev) return '';
+  if(!baseLev) return '';
   const d = (lev[cfg.key]||0) - (baseLev[cfg.key]||0);
   if(!d) return '';
   const sign = d>0 ? '+' : '−', a = Math.abs(d);
-  let txt;
-  if(cfg.key==='spend')                 txt = `${sign}$${Math.round(a/12).toLocaleString('en-US')}/mo`;
-  else if(cfg.key==='savings' || cfg.key==='eventAmt') txt = `${sign}$${a.toLocaleString('en-US')}`;
-  else if(cfg.key==='risk')             txt = `${sign}${a} lvl`;
-  else /* ages */                       txt = `${sign}${a} yr`;
-  return `<span class="lev-delta">${txt}</span>`;
+  if(cfg.key==='spend')                 return `${sign}$${Math.round(a/12).toLocaleString('en-US')}/mo`;
+  if(cfg.key==='savings' || cfg.key==='eventAmt') return `${sign}$${a.toLocaleString('en-US')}`;
+  if(cfg.key==='risk')                  return `${sign}${a} lvl`;
+  return `${sign}${a} yr`;  // ages
+}
+function levDelta(cfg, lev){
+  const baseLev = scenarios.find(s=>s.base)?.lev;
+  if(!baseLev || lev===baseLev) return '';
+  const t = deltaText(cfg, lev);
+  return t ? `<span class="lev-delta">${t}</span>` : '';
+}
+// One value, formatted with its unit (skips the allocation's descriptive unit).
+function recValHtml(cfg, lev){
+  const [val,unit] = cfg.fmt(lev[cfg.key], lev);
+  const u = unit && unit!=='growth / defensive' ? ` <span class="unit">${unit}</span>` : '';
+  return `${val}${u}`;
+}
+// Recipe lines: only the levers a scenario MOVES off Baseline.
+function changeLines(lev, baseLev){
+  const out = [];
+  LEVCFG.forEach(cfg=>{
+    if((lev[cfg.key]||0) === (baseLev[cfg.key]||0)) return;
+    const [val] = cfg.fmt(lev[cfg.key], lev);
+    if(val === '__needs__') return;
+    const dt = deltaText(cfg, lev);
+    out.push(`<div class="rec-line"><span class="rec-line-name">${cfg.name}</span>`
+      + `<span class="rec-line-val">${recValHtml(cfg,lev)}${dt?` <span class="rec-delta">${dt}</span>`:''}</span></div>`);
+  });
+  return out;
+}
+// Baseline anchor: its defining levers as plain reference lines (no deltas).
+function anchorLines(lev){
+  return ['retireAge','spend','savings','ssAge','risk'].map(k=>{
+    const cfg = LEVCFG.find(c=>c.key===k);
+    return `<div class="rec-line"><span class="rec-line-name">${cfg.name}</span><span class="rec-line-val">${recValHtml(cfg,lev)}</span></div>`;
+  }).join('');
+}
+function renderModebar(){
+  const el = $('#scn-modebar'); if(!el) return;
+  el.innerHTML = editMode
+    ? `<span class="mode-hint">Adjusting every lever — set values, then</span><button class="mode-btn" id="mode-done">✓ Done</button>`
+    : `<span class="mode-hint">Each card shows only what it changes vs Baseline</span><button class="mode-btn" id="mode-adjust">✎ Adjust levers</button>`;
+}
+function buildRecipe(){
+  const baseLev = scenarios.find(s=>s.base)?.lev;
+  let h = `<div class="rec-gutter">Recipe</div>`;
+  scenarios.forEach((s,ci)=>{
+    const last = ci===scenarios.length-1 ? 'col-last' : '';
+    let body;
+    if(s.base){
+      body = `<div class="rec-tag">Anchor · plan as entered</div>${anchorLines(s.lev)}`;
+    } else {
+      const lines = changeLines(s.lev, baseLev);
+      body = lines.length
+        ? `<div class="rec-tag">${lines.length} change${lines.length>1?'s':''} vs Baseline</div>${lines.join('')}`
+        : `<div class="rec-same">Same as Baseline<span class="rec-same-sub">Adjust a lever to compare</span></div>`;
+    }
+    h += `<div class="rec-card ${s.base?'base':''} ${last}">${body}</div>`;
+  });
+  $('#scn-levers').innerHTML = h;
 }
 function renderLevValue(cfg, lev){
   const [val,unit]=cfg.fmt(lev[cfg.key], lev);
@@ -1661,8 +1738,12 @@ function renderLevValue(cfg, lev){
   }
   return `${val}${unit?` <span class="unit">${unit}</span>`:''}${d}`;
 }
+// Resting view = recipe cards (changes vs Baseline only). editMode swaps in the
+// full editable lever grid (the proven control surface) so editing is untouched.
 function buildLevers(){
   syncGridCols();
+  renderModebar();
+  if(!editMode){ buildRecipe(); return; }
   let h='';
   LEVCFG.forEach(cfg=>{
     h+=`<div class="lev-name">${cfg.name}</div>`;
@@ -1732,6 +1813,13 @@ $('#scn-band').addEventListener('click', e=>{
   if(x){ removeScenario(+x.dataset.col); return; }
   if(e.target.closest('.add-scen')){ addScenario(); return; }
   if(e.target.closest('.solve-btn')){ solverFormOpen = true; renderSolvePanel(); return; }
+});
+// Mode bar: toggle recipe-summary ↔ full editable lever grid.
+$('#scn-modebar').addEventListener('click', e=>{
+  if(e.target.closest('#mode-adjust') || e.target.closest('#mode-done')){
+    editMode = !editMode;
+    buildLevers();
+  }
 });
 // Solver goal form lives in #solve-panel (full-width). Live commas on $ boxes;
 // changing the pin dropdown re-renders its value input (age box vs $ box).
