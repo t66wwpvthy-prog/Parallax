@@ -72,6 +72,24 @@ Status tags: **NEXT** · **BIG** (own session) · **PARKED** · **SKIP** · ✅ 
 - [ ] **Pension** — placement (Scenarios sub-mode?), benefit schedule (explicit table vs base+deferral), COLA in a real-return engine.
 - [ ] **Strategy Fork** — Sequencing feature or Scenarios feature?
 
+## J. Future surfaces / views (parked 2026-06 — scope before building)
+- **Comprehensive plan view (read-only).** One tab presenting the WHOLE plan —
+  inputs, assumptions, results — as a consolidated, presentation-grade overview that
+  is NOT editable inline (edits stay on the input pages). The advisor's deliverable /
+  client summary. Strongest of the three; pairs with the parked Scenario Receipt
+  (export artifact) and the "Net Worth → Plan" rename. On-doctrine if it stays a VIEW
+  of existing truth — no new math, no narration.
+- **Prospect-level view.** A lighter "quick illustration" tier for prospects/sales:
+  minimal inputs, top-line projection to show value before a full plan is built. Real
+  advisor workflow (prospect quick-look vs full client plan). Future onboarding/sales
+  surface; keep it a REDUCED view of the same engine, never a second model.
+- **Investment comparisons.** Compare portfolios/allocations head-to-head (proposed vs
+  current, or the risk/return of allocation choices). Has legs but ⚠ OVERLAPS Scenarios
+  (already compares allocation choices through the same market paths) — pin the distinct
+  angle (proposed-vs-current · efficient-frontier · holdings-level) before building so
+  the two don't blur. Holdings-level (individual funds) is OUT of the current engine's
+  allocation-bucket model.
+
 ---
 
 ### Standing guidance / doctrine
