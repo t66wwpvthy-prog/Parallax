@@ -2600,32 +2600,30 @@ function renderBand(){
         <div class="circle-val"><span class="big" style="color:${col}">${sr.toFixed(1)}%</span><span class="lbl">Success</span></div></div>
     </div>`;
   });
-  // Label gutter cell content: blank scenario "+ Add", solver "✦ Solve…", and
-  // when the solver form is open, replace the buttons with the inline form
-  // ("retire at AGE with %... [Solve]"). Capped at MAX_SCENARIOS for both adds.
-  if(scenarios.length<MAX_SCENARIOS){
-    const baseLev = scenarios.find(s=>s.base)?.lev || defaultLevers();
-    const defaultTargetAge = Math.max(55, baseLev.retireAge - 3);
-    const defaultPct = Math.round((scenarios.find(s=>s.base)?.res?.successRate) || 85);
-    let gut;
-    if(solverFormOpen){
-      gut = `<span>Scenario</span>
-        <form class="solver-form" id="solver-form">
-          <div class="sf-q">Retire at <input class="sf-in age" id="sf-age" type="number" min="55" max="72" value="${defaultTargetAge}"></div>
-          <div class="sf-q">with <input class="sf-in pct" id="sf-pct" type="number" min="50" max="99" value="${defaultPct}">% confidence</div>
-          <div class="sf-q">preserve $<input class="sf-in" id="sf-legacy" type="number" min="0" max="5000" step="100" value="0" style="width:52px">k legacy</div>
-          <div class="sf-actions">
-            <button type="button" class="sf-cancel" id="sf-cancel">Cancel</button>
-            <button type="submit" class="sf-go">Find Paths →</button>
-          </div>
-        </form>`;
-    } else {
-      gut = `<span>Scenario</span>
-        <button class="add-scen" title="Add scenario">+ Add</button>
-        <button class="solve-btn" title="Solve a life question">✦ Solve…</button>`;
-    }
-    h=h.replace('<span>Scenario</span>', gut);
+  // Label gutter: Solve… is always available (results go to a panel, not a column).
+  // + Add is capped at MAX_SCENARIOS.
+  const baseLev = scenarios.find(s=>s.base)?.lev || defaultLevers();
+  const defaultTargetAge = Math.max(55, baseLev.retireAge - 3);
+  const defaultPct = Math.round((scenarios.find(s=>s.base)?.res?.successRate) || 85);
+  let gut;
+  if(solverFormOpen){
+    gut = `<span>Scenario</span>
+      <form class="solver-form" id="solver-form">
+        <div class="sf-q">Retire at <input class="sf-in age" id="sf-age" type="number" min="55" max="72" value="${defaultTargetAge}"></div>
+        <div class="sf-q">with <input class="sf-in pct" id="sf-pct" type="number" min="50" max="99" value="${defaultPct}">% confidence</div>
+        <div class="sf-q">preserve $<input class="sf-in" id="sf-legacy" type="number" min="0" max="5000" step="100" value="0" style="width:52px">k legacy</div>
+        <div class="sf-actions">
+          <button type="button" class="sf-cancel" id="sf-cancel">Cancel</button>
+          <button type="submit" class="sf-go">Find Paths →</button>
+        </div>
+      </form>`;
+  } else {
+    const addBtn = scenarios.length < MAX_SCENARIOS
+      ? `<button class="add-scen" title="Add scenario">+ Add</button>` : '';
+    gut = `<span>Scenario</span>${addBtn}
+      <button class="solve-btn" title="Find the least-disruptive path to a goal">✦ Solve…</button>`;
   }
+  h=h.replace('<span>Scenario</span>', gut);
   $('#scn-band').innerHTML=h;
 }
 
