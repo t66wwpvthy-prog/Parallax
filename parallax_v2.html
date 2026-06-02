@@ -99,23 +99,34 @@ body{background:radial-gradient(1200px 600px at 88% -12%, var(--gold-glow), tran
    it came from a solve (not their drag). Underline in brass; removed on edit. */
 .lev-val.solved{border-bottom:1px dotted var(--gold);padding-bottom:1px}
 .lev-val.solved-capped{color:var(--negative-bright)}
-/* Constraint solver results panel */
-.solve-panel{margin:0 0 20px;padding:18px 20px;background:var(--surface);border:1px solid var(--rule);border-radius:6px}
-.solve-panel-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:14px}
-.solve-panel-title{font-family:'Sora';font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-mute);font-weight:700}
-.solve-clear{font-family:'Sora';font-size:10px;color:var(--ink-faint);background:none;border:none;cursor:pointer;letter-spacing:.1em;text-transform:uppercase;font-weight:600;padding:0}
+/* Solver panel (form + solo-answer results) */
+.solve-panel{margin:0 0 20px;padding:18px 22px;background:var(--surface);border:1px solid var(--rule);border-radius:6px}
+.solve-panel-head{display:flex;align-items:baseline;justify-content:space-between;gap:18px;margin-bottom:14px}
+.solve-panel-title{font-family:'Sora';font-size:12.5px;letter-spacing:.02em;color:var(--ink-mute);font-weight:500;line-height:1.5}
+.solve-panel-title b{font-family:'Inter';color:var(--ink-bright);font-weight:700}
+.solve-clear{font-family:'Sora';font-size:10px;color:var(--ink-faint);background:none;border:none;cursor:pointer;letter-spacing:.1em;text-transform:uppercase;font-weight:600;padding:0;white-space:nowrap}
 .solve-clear:hover{color:var(--negative)}
-.solve-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
-.solve-card{background:var(--deep);border:1px solid var(--rule-faint);border-radius:8px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;cursor:default}
-.solve-card-rank{font-family:'Sora';font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-faint);font-weight:700}
-.solve-card-changes{font-family:'Sora';font-size:11.5px;color:var(--ink-mute);font-weight:500;line-height:1.55;display:flex;flex-direction:column;gap:2px}
-.solve-card-change::before{content:'· ';color:var(--gold)}
-.solve-card-metrics{display:flex;gap:14px;margin-top:2px}
-.solve-card-metric{display:flex;flex-direction:column;gap:2px}
-.solve-card-m-val{font-family:'Inter';font-size:22px;font-weight:700;color:var(--ink-bright);letter-spacing:-.02em}
-.solve-card-m-lbl{font-family:'Sora';font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);font-weight:600}
-.solve-load{margin-top:2px;font-family:'Sora';font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;padding:5px 10px;border-radius:4px;cursor:pointer;background:none;border:1px solid var(--rule-bright);color:var(--ink-faint);align-self:flex-start}
-.solve-load:hover{border-color:var(--gold);color:var(--gold)}
+.sf-select{font-family:'Inter';font-size:18px;font-weight:600;color:var(--ink-bright);background:transparent;border:none;border-bottom:1px dashed var(--rule-bright);padding:2px 18px 2px 3px;outline:none;cursor:pointer;-webkit-appearance:none;appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--ink-mute) 50%),linear-gradient(135deg,var(--ink-mute) 50%,transparent 50%);background-position:calc(100% - 9px) 11px,calc(100% - 4px) 11px;background-size:5px 5px,5px 5px;background-repeat:no-repeat}
+.sf-select:hover,.sf-select:focus{border-bottom-color:var(--gold)}
+.sf-hint{font-family:'Sora';font-size:12px;color:var(--ink-faint);font-style:italic;padding-bottom:3px}
+/* Solo-answer rows: one lever per row — name · was→needs · reached% · load */
+.solo-list{display:flex;flex-direction:column}
+.solo-row{display:grid;grid-template-columns:140px 1fr 150px 64px;align-items:center;gap:18px;padding:13px 0;border-top:1px solid var(--rule-faint)}
+.solo-row:first-child{border-top:none}
+.solo-name{font-family:'Sora';font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink);font-weight:600}
+.solo-move{display:flex;align-items:baseline;gap:10px;font-family:'Inter';font-variant-numeric:tabular-nums}
+.solo-from{font-size:14px;color:var(--ink-faint)}
+.solo-arrow{color:var(--ink-faint);font-size:13px}
+.solo-to{font-size:18px;font-weight:700;color:var(--ink-bright)}
+.solo-delta{font-family:'Sora';font-size:11px;font-weight:600;color:var(--gold-bright);letter-spacing:.02em}
+.solo-row.unchanged .solo-delta{color:var(--positive)}
+.solo-pct{font-family:'Sora';font-size:11px;font-weight:600;letter-spacing:.04em;color:var(--positive)}
+.solo-pct.capped{color:var(--negative)}
+.solo-row.capped .solo-to{color:var(--ink-mute)}
+.solve-load{font-family:'Sora';font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;padding:6px 0;border-radius:4px;cursor:pointer;background:none;border:1px solid var(--rule-bright);color:var(--ink-faint)}
+.solve-load:hover:not(:disabled){border-color:var(--gold);color:var(--gold)}
+.solve-load:disabled{opacity:.3;cursor:default}
+.solo-allcapped{margin-top:14px;font-family:'Sora';font-size:12px;color:var(--negative);font-weight:600;letter-spacing:.02em}
 .solve-searching,.solve-empty{font-family:'Sora';font-size:12px;color:var(--ink-mute);font-weight:500}
 .solve-searching::after{content:'';display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--gold);margin-left:8px;animation:pulse 1.1s infinite}
 .circle-wrap{position:relative;width:118px;height:118px}
@@ -696,32 +707,41 @@ function solveLeverFor(baseLev, key, targetPct){
 //   SS delay: 1 per year (often net-positive financially, so low weight)
 //   Risk step up: 3 per step
 
-let solverResults = null;  // null=no run yet, []=no feasible, array=results
+let solverResults = null;  // null=no run yet, else {targetPct, pinKey, pinVal, soloBase, rows}
 let solverSearching = false;
 
-function solverDisruption(combo){
-  return (1 - combo.sm) * 400
-       + combo.ro * 15
-       + (combo.sb / 1000) * 0.8
-       + combo.sd * 1
-       + combo.rs * 3;
+// Levers that get a solo answer (the controllable set). The pinned goal lever
+// is excluded at solve time. Order = how they read in the results list.
+const SOLVE_KEYS = ['retireAge','spend','savings','ssAge','risk','pensionAge'];
+// Levers offered as the pinnable GOAL (the wish you hold fixed).
+const PIN_KEYS   = ['retireAge','spend','ssAge'];
+
+// The pin-value input changes shape with the chosen lever (age box vs $ box).
+function pinValueHtml(pinKey, baseLev){
+  if(!pinKey) return `<span class="sf-lbl">&nbsp;</span><span class="sf-hint">solving from today's plan</span>`;
+  if(pinKey === 'spend'){
+    return `<span class="sf-lbl">Holding spend at</span>
+      <span class="sf-box-wrap"><span class="sf-prefix">$</span><input class="sf-box sf-money" id="sf-pinval" type="text" inputmode="numeric" value="${(baseLev.spend||0).toLocaleString('en-US')}"><span class="sf-suffix">/yr</span></span>`;
+  }
+  const cfg = LEVCFG.find(c=>c.key===pinKey);
+  const def = baseLev[pinKey];
+  const lbl = pinKey==='retireAge' ? 'Retiring by age' : 'SS starting at';
+  return `<span class="sf-lbl">${lbl}</span>
+    <span class="sf-box-wrap"><input class="sf-box" id="sf-pinval" type="number" min="${cfg.min}" max="${cfg.max}" value="${def}"></span>`;
 }
 
-function solverDescribe(combo, goalAge, baseLev){
-  const parts = [];
-  const retireAt = goalAge + combo.ro;
-  const delta = retireAt - baseLev.retireAge;
-  if(delta !== 0){
-    if(delta > 0) parts.push(`Work ${delta} more year${delta>1?'s':''} (retire at ${retireAt})`);
-    else          parts.push(`Retire ${Math.abs(delta)} year${Math.abs(delta)>1?'s':''} earlier — age ${retireAt}`);
-  }
-  const spendCutPct = Math.round((1 - combo.sm) * 100);
-  if(spendCutPct > 0) parts.push(`Reduce spending ${spendCutPct}%`);
-  if(combo.sb > 0)    parts.push(`Save $${(combo.sb/1000).toFixed(0)}k more / yr`);
-  if(combo.sd > 0)    parts.push(`Delay Social Security ${combo.sd} yr${combo.sd>1?'s':''}`);
-  if(combo.rs > 0)    parts.push(`Step up portfolio risk (→ level ${Math.min(5, baseLev.risk + combo.rs)})`);
-  if(!parts.length)   parts.push('No changes from baseline');
-  return parts;
+// One solved lever → a clean "was → needs to be (delta)" descriptor.
+function soloRowText(key, baseV, newV){
+  const cfg = LEVCFG.find(c=>c.key===key);
+  const fmt = v => { const [a,u]=cfg.fmt(v, {...defaultLevers(), [key]:v, eventAge:70}); return u && u!=='growth / defensive' ? `${a} ${u}` : a; };
+  const from = fmt(baseV), to = fmt(newV);
+  let delta = '';
+  if(newV === baseV)                 delta = 'no change needed';
+  else if(key==='spend')             delta = `${newV<baseV?'−':'+'}${Math.abs(Math.round((newV-baseV)/baseV*100))}%`;
+  else if(key==='savings')           delta = `${newV>baseV?'+':'−'}$${Math.abs(Math.round((newV-baseV)/1000))}k/yr`;
+  else if(key==='risk')              delta = `${newV>baseV?'+':''}${newV-baseV} level${Math.abs(newV-baseV)>1?'s':''}`;
+  else /* ages */                    delta = `${newV>baseV?'+':''}${newV-baseV} yr${Math.abs(newV-baseV)>1?'s':''}`;
+  return { name: cfg.name, from, to, delta, unchanged: newV===baseV };
 }
 
 function renderSolvePanel(){
@@ -730,68 +750,87 @@ function renderSolvePanel(){
   // The goal-entry FORM takes priority — full-width card so it has room to breathe.
   if(solverFormOpen){
     const baseLev = scenarios.find(s=>s.base)?.lev || defaultLevers();
-    const defAge = Math.max(55, baseLev.retireAge - 3);
-    const defPct = Math.round((scenarios.find(s=>s.base)?.res?.successRate) || 85);
+    // Gentle, reachable default: the next round-5 above today's success, pinned
+    // at the current retirement age. The advisor then dials the goal harder.
+    const baseSucc = scenarios.find(s=>s.base)?.res?.successRate || 85;
+    const defPct = Math.min(95, Math.ceil((baseSucc+1)/5)*5);
+    const pinOpts = `<option value="">— nothing —</option>` +
+      PIN_KEYS.map(k=>`<option value="${k}"${k==='retireAge'?' selected':''}>${LEVCFG.find(c=>c.key===k).name}</option>`).join('');
     el.innerHTML = `
       <div class="solve-panel solve-form-panel">
         <div class="solve-panel-head">
-          <span class="solve-panel-title">Find the least-disruptive path to a goal</span>
+          <span class="solve-panel-title">What would it take? — solve each lever to a confidence goal</span>
           <button class="solve-clear" id="sf-cancel">✕ Cancel</button>
         </div>
         <form class="sf-form" id="solver-form">
-          <label class="sf-field"><span class="sf-lbl">Retire by age</span>
-            <input class="sf-box" id="sf-age" type="number" min="55" max="72" value="${defAge}"></label>
-          <label class="sf-field"><span class="sf-lbl">With confidence</span>
+          <label class="sf-field"><span class="sf-lbl">Reach confidence</span>
             <span class="sf-box-wrap"><input class="sf-box" id="sf-pct" type="number" min="50" max="99" value="${defPct}"><span class="sf-suffix">%</span></span></label>
-          <label class="sf-field"><span class="sf-lbl">Preserve legacy</span>
-            <span class="sf-box-wrap"><span class="sf-prefix">$</span><input class="sf-box sf-money" id="sf-legacy" type="text" inputmode="numeric" value="0"></span></label>
-          <button type="submit" class="sf-go">Find Paths →</button>
+          <label class="sf-field"><span class="sf-lbl">While holding</span>
+            <select class="sf-select" id="sf-pin">${pinOpts}</select></label>
+          <span class="sf-field" id="sf-pinval-wrap">${pinValueHtml('retireAge', baseLev)}</span>
+          <button type="submit" class="sf-go">Solve →</button>
         </form>
       </div>`;
     return;
   }
   if(!solverResults && !solverSearching){ el.innerHTML = ''; return; }
   if(solverSearching){
-    el.innerHTML = `<div class="solve-panel"><div class="solve-searching">Searching combinations</div></div>`;
+    el.innerHTML = `<div class="solve-panel"><div class="solve-searching">Solving each lever</div></div>`;
     return;
   }
-  if(!solverResults.length){
-    el.innerHTML = `<div class="solve-panel"><div class="solve-empty">No feasible combinations found — try a lower confidence target or no legacy floor.</div></div>`;
-    return;
+  const R = solverResults;
+  // Goal sentence: "To reach 85% confidence retiring by 62, each lever on its own:"
+  let goal = `To reach <b>${R.targetPct}%</b> confidence`;
+  if(R.pinKey){
+    const pc = LEVCFG.find(c=>c.key===R.pinKey);
+    const [pv,pu] = pc.fmt(R.pinVal, {...R.soloBase});
+    goal += R.pinKey==='retireAge' ? ` retiring by <b>${R.pinVal}</b>`
+          : R.pinKey==='ssAge'     ? ` with SS at <b>${R.pinVal}</b>`
+          :                          ` spending <b>${pv}${pu?' '+pu:''}</b>`;
   }
-  const fmtLeg = v => v >= 1e6 ? `$${(v/1e6).toFixed(1)}M` : `$${Math.round(v/1000)}k`;
-  const cards = solverResults.map((r,i) => `
-    <div class="solve-card">
-      <div class="solve-card-rank">Path ${i+1}${i===0?' · least disruptive':''}</div>
-      <div class="solve-card-changes">${r.desc.map(c=>`<div class="solve-card-change">${c}</div>`).join('')}</div>
-      <div class="solve-card-metrics">
-        <div class="solve-card-metric">
-          <div class="solve-card-m-val">${r.successRate.toFixed(0)}%</div>
-          <div class="solve-card-m-lbl">Confidence</div>
-        </div>
-        ${r.legacy > 0 ? `<div class="solve-card-metric">
-          <div class="solve-card-m-val">${fmtLeg(r.legacy)}</div>
-          <div class="solve-card-m-lbl">P10 legacy</div>
-        </div>` : ''}
-      </div>
-      <button class="solve-load" data-solve-idx="${i}">Load as Scenario →</button>
-    </div>`).join('');
+  goal += `, here's what each lever would need to be on its own:`;
+  const allCapped = R.rows.length > 0 && R.rows.every(r => r.capped);
+  const rows = R.rows.map((row,i) => {
+    const t = soloRowText(row.key, R.soloBase[row.key], row.value);
+    const capped = row.capped;
+    // "Already meets it" only when NOT capped and no move needed. When capped,
+    // the lever can't get there at all — show the best it can do, never "meets it".
+    const justMeets = t.unchanged && !capped;
+    const move = justMeets
+      ? `<span class="solo-to">${t.to}</span><span class="solo-delta">already meets it</span>`
+      : t.unchanged   // capped but no useful move exists
+        ? `<span class="solo-to">${t.to}</span><span class="solo-delta">no setting reaches it</span>`
+        : `<span class="solo-from">${t.from}</span><span class="solo-arrow">→</span><span class="solo-to">${t.to}</span><span class="solo-delta">${t.delta}</span>`;
+    return `<div class="solo-row ${capped?'capped':''} ${justMeets?'unchanged':''}">
+      <div class="solo-name">${t.name}</div>
+      <div class="solo-move">${move}</div>
+      <div class="solo-pct ${capped?'capped':''}">${capped ? `best hits ${row.reachedPct.toFixed(0)}%` : `${row.reachedPct.toFixed(0)}% ✓`}</div>
+      <button class="solve-load" data-solo-idx="${i}" ${capped||justMeets?'disabled':''}>Load</button>
+    </div>`;
+  }).join('');
+  const allCappedNote = allCapped
+    ? `<div class="solo-allcapped">No single lever reaches ${R.targetPct}% — combine moves, or ease the goal.</div>` : '';
   el.innerHTML = `
     <div class="solve-panel">
       <div class="solve-panel-head">
-        <span class="solve-panel-title">${solverResults.length} path${solverResults.length!==1?'s':''} found · least disruptive first</span>
+        <span class="solve-panel-title">${goal}</span>
         <button class="solve-clear" id="solve-clear-btn">✕ Clear</button>
       </div>
-      <div class="solve-cards">${cards}</div>
+      <div class="solo-list">${rows}</div>
+      ${allCappedNote}
     </div>`;
 }
 
-async function runConstraintSolve(goalAge, minPct, legacyFloor){
+// Solve toward a confidence goal. Optionally PIN one lever to a wish value
+// (e.g. "retiring by 62"); then for every OTHER controllable lever, find the
+// value it alone would need — holding all else at today's plan (= soloBase).
+// Neutral: no weighting, no bundling. The advisor reads each lever's required
+// move and surmises any blend. Reuses solveLeverFor (scan / bisection).
+async function runSolve(targetPct, pinKey, pinVal){
   if(solving) return;
   solving = true; solverFormOpen = false; solverSearching = true; solverResults = null;
-  renderBand(); renderSolvePanel();
+  renderSolvePanel();
 
-  // Ensure shared paths for apples-to-apples comparison.
   if(!sharedPaths){
     resetSeed();
     const horizon = plan.household.primary.planEndAge - plan.household.primary.currentAge;
@@ -799,61 +838,23 @@ async function runConstraintSolve(goalAge, minPct, legacyFloor){
     for(let i=0; i<plan.simulation.iterations; i++) sharedPaths.push(generateReturnPath(horizon));
   }
 
-  const baseLev = JSON.parse(JSON.stringify(scenarios.find(s=>s.base)?.lev || defaultLevers()));
-  const curAge  = plan.household.primary.currentAge;
+  const baseLev  = JSON.parse(JSON.stringify(scenarios.find(s=>s.base)?.lev || defaultLevers()));
+  const soloBase = JSON.parse(JSON.stringify(baseLev));
+  if(pinKey){ soloBase[pinKey] = pinVal; }
+  syncPension(soloBase);
 
-  // Search grid: retire-offset × spend-mult × savings-bump × SS-delay × risk-step.
-  // Kept intentionally compact so the total search takes ~2-3 s in the browser.
-  const grid = [];
-  for(const ro of [0,1,2])
-  for(const sm of [1.0, 0.93, 0.87])
-  for(const sb of [0, 10000])
-  for(const sd of [0, 2])
-  for(const rs of [0, 1]) {
-    const retireAt = goalAge + ro;
-    if(retireAt <= curAge) continue;          // can't retire in the past
-    if(retireAt === baseLev.retireAge && sm === 1.0 && sb === 0 && sd === 0 && rs === 0) continue; // baseline
-    grid.push({ ro, sm, sb, sd, rs });
+  const keys = SOLVE_KEYS.filter(k => k !== pinKey);
+  const rows = [];
+  for(const k of keys){
+    await new Promise(r => setTimeout(r, 0));      // yield so the spinner paints
+    const res = solveLeverFor(soloBase, k, targetPct);
+    if(res) rows.push({ key:k, value:res.value, reachedPct:res.reachedPct, capped:res.capped });
   }
 
-  const feasible = [];
-  for(let i = 0; i < grid.length; i++){
-    if(i % 6 === 0) await new Promise(r => setTimeout(r, 0)); // yield to UI
-    const g = grid[i];
-    const L = JSON.parse(JSON.stringify(baseLev));
-    L.retireAge  = goalAge + g.ro;
-    L.spend      = Math.round(baseLev.spend * g.sm / 100) * 100;
-    L.savings    = baseLev.savings + g.sb;
-    L.ssAge      = Math.min(70, baseLev.ssAge + g.sd);
-    L.risk       = Math.min(5, baseLev.risk + g.rs);
-    syncPension(L);
-    const p   = planForScenario(L);
-    const ov  = leversToOverrides(L);
-    const res = runSimulation(p, ov, sharedPaths);
-    // p10 terminal wealth (10th-percentile legacy — conservative anchor).
-    const legacy = res.terminal ? res.terminal[Math.floor(res.terminal.length * 0.10)] : 0;
-    if(res.successRate < minPct) continue;
-    if(legacy < legacyFloor)    continue;
-    feasible.push({
-      levers: L,
-      successRate: res.successRate,
-      legacy,
-      disruption: solverDisruption(g),
-      desc: solverDescribe(g, goalAge, baseLev),
-    });
-  }
-
-  // Pareto filter: drop A if any B has ≤disruption AND ≥successRate.
-  const pareto = feasible.filter(a =>
-    !feasible.some(b => b !== a && b.disruption <= a.disruption && b.successRate >= a.successRate)
-  );
-  pareto.sort((a,b) => a.disruption - b.disruption);
-
-  solverResults  = pareto.slice(0, 6);
+  solverResults  = { targetPct, pinKey, pinVal, soloBase, rows };
   solverSearching = false;
   solving = false;
   renderSolvePanel();
-  renderBand();
 }
 
 // Scenarios are NAMED, SAVEABLE objects (the household-centric data root). They
@@ -883,9 +884,13 @@ function leversToOverrides(L){
   const baseSs     = plan.income.socialSecurity.primary.claimAge;
   if(L.retireAge !== baseRetire) ov.retireDelay = L.retireAge - baseRetire;
   if(L.ssAge !== baseSs)         ov.ssDelayYears = L.ssAge - baseSs;
-  // spend: express as bump fraction vs plan.expenses.living
+  // spend vs plan.expenses.living. The engine takes INCREASES via spendBump and
+  // CUTS via spendCut — a negative spendBump is ignored (engine clamps it to 0).
+  // So we MUST split by direction or lowering the spend lever silently no-ops.
   const baseSpend = plan.expenses.living;
-  if(L.spend !== baseSpend)      ov.spendBump = (L.spend - baseSpend)/baseSpend;
+  const spendFrac = (L.spend - baseSpend)/baseSpend;
+  if(spendFrac > 0)      ov.spendBump = spendFrac;
+  else if(spendFrac < 0) ov.spendCut  = -spendFrac;   // engine caps the cut at 50%
   if(L.eventAmt>0){ ov.lumpSum = L.eventAmt; ov.lumpSumYear = Math.max(0, L.eventAge - plan.household.primary.currentAge); }
   if(L.savings !== plan.savings.annual) ov.savingsBump = (L.savings - plan.savings.annual)/Math.max(1,plan.savings.annual);
   // Pension: always pass the chosen age as an absolute override so the engine
@@ -1649,23 +1654,34 @@ $('#scn-band').addEventListener('click', e=>{
   if(e.target.closest('.add-scen')){ addScenario(); return; }
   if(e.target.closest('.solve-btn')){ solverFormOpen = true; renderSolvePanel(); return; }
 });
-// Solver form submit — run the multi-lever constraint search.
-// Solver goal form lives in #solve-panel now (full-width). Submit runs the search.
+// Solver goal form lives in #solve-panel (full-width). Live commas on $ boxes;
+// changing the pin dropdown re-renders its value input (age box vs $ box).
 $('#solve-panel').addEventListener('input', e=>{
   if(e.target.classList?.contains('sf-money')) liveCommas(e.target);
+});
+$('#solve-panel').addEventListener('change', e=>{
+  if(e.target.id === 'sf-pin'){
+    const baseLev = scenarios.find(s=>s.base)?.lev || defaultLevers();
+    const wrap = $('#sf-pinval-wrap');
+    if(wrap) wrap.innerHTML = pinValueHtml(e.target.value, baseLev);
+  }
 });
 $('#solve-panel').addEventListener('submit', e=>{
   const f = e.target.closest('#solver-form');
   if(!f) return;
   e.preventDefault();
-  const age    = parseInt($('#sf-age')?.value, 10);
-  const pct    = parseFloat($('#sf-pct')?.value);
-  const legacy = parseInt(($('#sf-legacy')?.value || '0').replace(/[^0-9]/g,''), 10) || 0;
-  if(!isFinite(age) || age<55 || age>72) return;
+  const pct = parseFloat($('#sf-pct')?.value);
   if(!isFinite(pct) || pct<50 || pct>99) return;
-  runConstraintSolve(age, pct, legacy);
+  const pinKey = $('#sf-pin')?.value || '';
+  let pinVal = null;
+  if(pinKey){
+    const raw = $('#sf-pinval')?.value || '';
+    pinVal = parseInt(raw.replace(/[^0-9]/g,''), 10);
+    if(!isFinite(pinVal)) return;
+  }
+  runSolve(pct, pinKey, pinVal);
 });
-// Solver panel: Cancel (form), Clear (results), and "Load as Scenario" actions.
+// Solver panel: Cancel (form), Clear (results), and per-lever "Load" actions.
 document.addEventListener('click', e=>{
   if(e.target.closest('#sf-cancel')){
     solverFormOpen = false; renderSolvePanel(); return;
@@ -1674,13 +1690,17 @@ document.addEventListener('click', e=>{
     solverResults = null; solverSearching = false; renderSolvePanel(); return;
   }
   const loadBtn = e.target.closest('.solve-load');
-  if(loadBtn && solverResults){
-    const idx = +loadBtn.dataset.solveIdx;
-    const r = solverResults[idx];
-    if(!r || scenarios.length >= MAX_SCENARIOS) return;
-    const n = scenarios.filter(s=>!s.base).length;
-    scenarios.push({ name: r.desc[0] || `Solve ${n+1}`, base:false,
-                     lev: JSON.parse(JSON.stringify(r.levers)), res:null });
+  if(loadBtn && solverResults && solverResults.rows){
+    if(scenarios.length >= MAX_SCENARIOS) return;
+    const idx = +loadBtn.dataset.soloIdx;
+    const row = solverResults.rows[idx];
+    if(!row) return;
+    // Scenario = the pinned soloBase with this one lever set to its solo answer.
+    const lev = JSON.parse(JSON.stringify(solverResults.soloBase));
+    lev[row.key] = row.value;
+    syncPension(lev);
+    const cfg = LEVCFG.find(c=>c.key===row.key);
+    scenarios.push({ name: `${cfg.name} solve`, base:false, lev, res:null });
     solverResults = null; solverSearching = false;
     saveScenarios(); buildLevers(); renderBand(); renderSolvePanel(); plansDirty=true; runAll();
   }
