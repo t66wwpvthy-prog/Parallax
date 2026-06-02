@@ -948,13 +948,24 @@ function renderHybrid(pageKey){
     let h = `<h4>${colDef.head}</h4>`;
     const items = (colDef.items||[]).slice();
     if(colDef.dynamic==='pension'){
-      pensionFields().forEach(pf => items.push({
-        path: pf.path,
-        name: pf.label,
-        type: 'money',
-        meta: () => 'Pays only if claimed at this exact age',
-        removable: true,
-      }));
+      // ONE summary row — the benefit at the chosen start age. The full
+      // benefit-by-age schedule and which age to claim is decided at the
+      // Scenario level (the pension slider), not here. Inputs just shows the
+      // household's pension as it stands. Editing the amount writes back to
+      // the entry for the current start age.
+      const pen = plan.income.pension || {};
+      const pstart = pen.startAge;
+      const ages = Object.keys(pen.benefitByAge||{}).map(Number).sort((a,b)=>a-b);
+      const age = (pstart!=null && (pen.benefitByAge||{})[pstart]!=null) ? pstart
+                : (ages.length ? ages[0] : null);
+      if(age!=null){
+        items.push({
+          path: `income.pension.benefitByAge.${age}`,
+          name: 'Pension',
+          type: 'money',
+          meta: () => `Begins at age ${age}`,
+        });
+      }
     }
     items.forEach(it => {
       const xBtn = it.removable ? `<button class="row-x" title="Remove this row" data-rmpath="${it.path}">×</button>` : '';
