@@ -155,6 +155,18 @@ this shared set. This is the long-planned "household-centric data root."
   flat "token-swap on wireframes" — recolored tables, stock donut rings, raw polylines,
   multi-board palette suites. They read cheap. Depth, real type hierarchy, and
   chart-craft are what make it feel designed; go DEEP on one, not wide on five.
+- **Captured-hover chart interaction (theme-independent).** Even on the current paper
+  theme, the expected-wealth chart could carry a hover guide + value tooltip + end-of-
+  path value labels — makes it feel explorable, not static. Low-lift and reusable
+  (smoothing + area-gradient + tooltip already prototyped in the exp study).
+- **Delta pill "± pts vs baseline"** under each scenario's % the instant you Run —
+  a neutral, data-only comparison cue (no narration).
+- **Outcome-weighted Sequencing lines** — let the surviving path sit forward and the
+  ran-dry paths recede (weight/opacity, NOT new hues), so the story reads at a glance.
+  Balance against legend legibility; explore, don't assume.
+- **`/mock` skill (process).** Formalize the throwaway-mock harness (standalone
+  `_mock.html` + headless screenshot) so mock-first is one command and visual
+  exploration stays off the live app by default.
 
 ## Hard-won lessons (do not relearn the hard way)
 - Don't optimize CSS for elegance/line-count. A clever property-level style merge
@@ -181,6 +193,24 @@ this shared set. This is the long-planned "household-centric data root."
   source of truth). A dark theme ("Midnight Analyst" navy) was built and REJECTED —
   do NOT resurrect it unless Nathan explicitly asks. (The "Theme tokens" section
   below still describes the older dark palette; treat it as historical, not current.)
+
+## Future-session notes (state + decisions — read before building)
+- **Canonical branch is `claude/laughing-einstein-c6F33`** — all real work + the live
+  theme live here; `main` is the Pages deploy (push to BOTH). `test-coverage-analysis-*`
+  is a stale upload point 100+ commits behind; auto-mode blocks pushing to it — ignore it.
+- **Ship-reminder Stop hook** exists (`.claude/hooks/ship-reminder.sh` + `.claude/settings.json`):
+  it nudges you to ship to `main` when the branch is ahead. A freshly-created settings.json
+  only activates after `/hooks` is opened once (or a restart).
+- **DECISION — don't revert:** Scenarios levers use STEPPERS for the discrete levers
+  (retirement / SS / pension age, allocation) and SLIDERS for the dollar levers (spending,
+  savings, one-time event), each over a static fill+dot position bar. All-sliders read
+  "cheap/finicky" — the split was chosen deliberately.
+- **Sequencing is already built** — line chart + named real-market paths + outcome cards
+  (First decade / Lowest / Survived·$ or Ran dry @ age). The historical timeframes already
+  exist in `SEQ_YEARS` (parallax_v2.html): 1929 Depression, 1966 lost decade, 1973
+  stagflation, 1987 Black Monday, 1995 90s boom, 2000 dot-com, 2008 financial crisis,
+  2009 recovery bull — four on by default (1966/1973/1995/2000), the rest toggleable.
+  It's a restyle target at most, not a from-scratch build.
 
 ## Theme tokens (dark "Sage-Brass")
 Background `#0b1118` / deep `#070b10`; surfaces `#101820`/`#151f2a`; rules `#26313d`.
