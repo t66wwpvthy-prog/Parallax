@@ -1509,7 +1509,7 @@ const LEVCFG=[
   // One-time event carries BOTH an amount and an age; edit:'event' renders the
   // two type-in boxes (amount + age) alongside the amount slider.
   {key:'eventAmt',  name:'One-Time Event', min:0,max:500000,step:5000, edit:'event', fmt:(v,L)=>['$'+(v||0).toLocaleString('en-US'),'@ '+L.eventAge]},
-  {key:'risk',      name:'Allocation',     min:1,max:5,step:1, fmt:v=>[RISK_LABELS[v],'growth / defensive']},
+  {key:'risk',      name:'Allocation',     min:1,max:5,step:1, fmt:v=>[RISK_LABELS[v],'']},
   {key:'savings',   name:'Savings / yr',   min:0,max:200000,step:1000, edit:'money', fmt:v=>['$'+v.toLocaleString('en-US'),'/yr']},
   // Pension snaps between the ages that actually have entered amounts (62, 65).
   // Label shows the dollar value the engine will pay for that age — if no entry
