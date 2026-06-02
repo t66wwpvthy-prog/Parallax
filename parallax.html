@@ -222,6 +222,9 @@ body{background:radial-gradient(1200px 600px at 88% -12%, var(--gold-glow), tran
 .seq-print .pr-row:last-child{border-bottom:none}
 .seq-print .pr-k{color:var(--ink-mute);font-family:'Sora'}
 .seq-print .pr-v{font-family:'Inter';font-weight:600;color:var(--ink-bright);font-variant-numeric:tabular-nums}
+/* Damage window: how LONG the bad stretch lasts (short shock vs long grind). */
+.seq-print .dw-bar{height:4px;border-radius:3px;background:var(--rule-faint);margin:5px 0 9px;overflow:hidden}
+.seq-print .dw-fill{height:100%;border-radius:3px;min-width:2px}
 /* Net Worth — the household sheet, split into four sub-pages by a sub-nav
    beneath the main tabs. Balance Sheet uses the STATEMENT layout (leader-dotted
    rows under thin-gold section heads, like a printed financial statement).
@@ -2076,7 +2079,6 @@ const BALANCE_SHEET = [
     {path:'portfolio.accounts.taxable.basisPct',    label:'cost basis',        type:'pct',   sub:true},
     {path:'portfolio.accounts.traditional.balance', label:'Traditional / IRA', type:'money'},
     {path:'portfolio.accounts.roth.balance',        label:'Roth IRA',          type:'money'},
-    {path:'portfolio.riskProfile',                  label:'Allocation',        type:'risk'},
   ]},
   { head:'Real assets',  fields:[], add:'+ add a property or other real asset' },
   { head:'Liabilities',  fields:[], add:'+ add a loan or recurring obligation' },
@@ -2092,9 +2094,7 @@ const HYBRID = {
       {path:'income.socialSecurity.primary.pia', name:'Social Security · Primary', type:'money', meta:()=>`Claim at age ${plan.income.socialSecurity.primary.claimAge}`},
       {path:'income.socialSecurity.spouse.pia',  name:'Social Security · Spouse',  type:'money', meta:()=>plan.income.socialSecurity.spouse?`Claim at age ${plan.income.socialSecurity.spouse.claimAge}`:''},
     ], dynamic:'pension', add:'+ add a guaranteed income source' },
-    right: { head:'Variable or time-limited', items:[
-      {path:'savings.annual', name:'Annual savings (pre-retirement)', type:'money', meta:()=>`Until age ${plan.household.primary.retirementAge}`},
-    ], add:'+ add a variable income source' },
+    right: { head:'Variable or time-limited', items:[], add:'+ add a variable income source' },
   },
   'outflows': {
     left:  { head:'Essential', items:[
@@ -3255,16 +3255,31 @@ function renderPrints(runs){
     return Math.pow(prod,1/rr.length)-1;
   };
   const lowest=r=>{ const b=r.rows.map(x=>x.balance); return b.length?Math.min(...b):0; };
+  // Damage window — the longest run of years the market's cumulative return sat
+  // BELOW its retirement-day level (lost real ground). A short, V-shaped shock
+  // ('08–09) recovers in a couple of years; a long grind ('66/'73 — a decade of
+  // flat-real + inflation) stays underwater far longer and does more damage to a
+  // withdrawing portfolio. Pure VIEW of the path's per-year returns, no new math.
+  const damageWindow=r=>{
+    const rr=r.rows.filter(x=>x.source!=null);
+    let g=1, cur=0, max=0;
+    for(const x of rr){ g*=(1+x.returnRate); if(g<1){ cur++; if(cur>max) max=cur; } else cur=0; }
+    return max;
+  };
   const pct=v=>(v>=0?'+':'')+(v*100).toFixed(1)+'%';
   const outcome=r=> r.depletionAge!=null
     ? {t:`Ran dry @ ${r.depletionAge}`, c:'var(--negative-bright)'}
     : {t:`Survived · ${fmtM(r.terminalBalance)}`, c:'var(--positive-bright)'};
   const card=(m,res)=>{
     const o=outcome(res);
+    const dwYrs=damageWindow(res);
+    const dwLabel = dwYrs ? `${dwYrs} yr${dwYrs>1?'s':''}` : '—';
     return `<div class="seq-print">
       <h4><span class="dot" style="border-color:${m.c}"></span>${m.y} · ${m.tag}</h4>
       <div class="pr-row"><span class="pr-k">First decade</span><span class="pr-v">${pct(firstDecade(res))}</span></div>
       <div class="pr-row"><span class="pr-k">Lowest</span><span class="pr-v">${fmtM(lowest(res))}</span></div>
+      <div class="pr-row" style="border-bottom:none"><span class="pr-k">Damage window</span><span class="pr-v">${dwLabel}</span></div>
+      <div class="dw-bar"><div class="dw-fill" style="width:${Math.min(100,dwYrs/12*100).toFixed(0)}%;background:${m.c}"></div></div>
       <div class="pr-row"><span class="pr-k">Outcome</span><span class="pr-v" style="color:${o.c}">${o.t}</span></div>
     </div>`;
   };
