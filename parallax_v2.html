@@ -255,13 +255,12 @@ body{background:radial-gradient(1200px 600px at 88% -12%, var(--gold-glow), tran
    between numbers the client already entered (income floor, withdrawal rate,
    tax location). The visual tells the truth; no advisor-sentence narration.
    Each metric is a band: name + hero number on the left, the picture right. */
-.snap{max-width:1100px}
-.metric{display:grid;grid-template-columns:300px 1fr;gap:48px;align-items:center;padding:34px 0;border-top:1px solid var(--rule-faint)}
-.metric:first-child{border-top:none;padding-top:6px}
+.snap{max-width:1100px;display:grid;grid-template-columns:1fr 1fr;gap:28px;align-items:start}
+.metric{display:flex;flex-direction:column;gap:20px;padding:26px 28px 30px;border:1px solid var(--rule-faint);border-radius:10px}
 .m-eye{font-family:'Sora';font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-faint);font-weight:600;margin-bottom:10px}
 .m-hero{font-family:'Inter';font-size:46px;line-height:1;font-weight:700;color:var(--ink-bright);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
 .m-hero.teal{color:var(--teal-deep)} .m-hero.gold{color:var(--gold-deep)} .m-hero.clay{color:var(--negative)}
-.m-sub{font-family:'Sora';font-size:12.5px;color:var(--ink-mute);margin-top:8px;font-weight:500;line-height:1.45;max-width:250px}
+.m-sub{font-family:'Sora';font-size:12.5px;color:var(--ink-mute);margin-top:8px;font-weight:500;line-height:1.45}
 /* coverage bar (income floor): teal fill = guaranteed, hatched = portfolio-drawn */
 .cov{height:40px;border-radius:6px;overflow:hidden;display:flex;background:repeating-linear-gradient(135deg,#efe7d6,#efe7d6 7px,#e8dfcc 7px,#e8dfcc 14px);box-shadow:inset 0 0 0 1px var(--rule)}
 .cov .fill{background:linear-gradient(180deg,var(--teal-bright),var(--teal));display:flex;align-items:center;padding-left:14px;color:#fff;font-family:'Inter';font-size:13px;font-weight:600;white-space:nowrap;min-width:0;overflow:hidden}
@@ -355,7 +354,8 @@ body{background:radial-gradient(1200px 600px at 88% -12%, var(--gold-glow), tran
   .np-gutter{position:static}
   .hp-body{grid-template-columns:1fr;gap:18px}
   .hp-rule{display:none}
-  .metric{grid-template-columns:1fr;gap:18px;padding:24px 0}
+  .snap{grid-template-columns:1fr}
+  .metric{gap:14px;padding:20px 18px 22px}
   .subnav{overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap}
   .stab,.subnav-title{white-space:nowrap}
   .subnav-title{border-right:none;padding-right:12px;margin-right:12px}
