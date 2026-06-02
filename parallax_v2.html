@@ -8,28 +8,29 @@
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
 <style>
 :root{
-  /* MIDNIGHT ANALYST — dark navy research desk. Near-white ink on deep
-     blue-black; brass + cool-teal accents. Gold = emphasis (rings, active tab).
-     Result language reads green (strong) / brass (caution) / red (at-risk),
-     bright enough to carry on the dark ground. Fonts stay Sora (UI) / Inter
-     (numbers) — no mono. */
-  --bg-deep:#070b10; --bg:#0b1118;
-  --surface:#101820; --surface-2:#151f2a; --surface-3:#0d141c;
-  --rule:#26313d; --rule-bright:#37444f; --rule-faint:#1a232e;
-  --ink:#e8eef6; --ink-bright:#f8fbff; --ink-mute:#9aa7bb; --ink-faint:#6f7c8e; --ink-ghost:#3a4452;
-  --gold:#d6aa59; --gold-bright:#f0c773; --gold-deep:#a87f2e; --gold-glow:rgba(214,170,89,.12);
-  --teal:#7aa39e; --teal-bright:#a9d5cf; --teal-deep:#557f7a; --teal-glow:rgba(122,163,158,.12);
-  /* Strong/caution/at-risk, tuned to read on dark: mint-green / bright gold /
-     coral. */
-  --positive:#8fc7a6; --positive-bright:#a9d3bc;
+  /* LIGHT REPORT — warm "paper" financial document. Dark slate ink on
+     off-white; brass + slate accents. Gold is reserved for emphasis
+     (probability rings, the active-tab underline) — never header/body text
+     on beige, where its contrast is too weak. Results read as slate
+     (strong) / brass (caution) / clay (at-risk). */
+  --bg-deep:#e7e1d4; --bg:#f4efe6;
+  --surface:#fbf8f1; --surface-2:#ffffff; --surface-3:#f1ece1;
+  --rule:#d8d0bf; --rule-bright:#c2b8a2; --rule-faint:#e8e2d5;
+  --ink:#23282e; --ink-bright:#11151a; --ink-mute:#5d6671; --ink-faint:#8a93a0; --ink-ghost:#c2c8d0;
+  --gold:#9a7322; --gold-bright:#b88c30; --gold-deep:#6f521a; --gold-glow:rgba(154,115,34,.10);
+  --teal:#3f6b78; --teal-bright:#557f8c; --teal-deep:#2c4d57; --teal-glow:rgba(63,107,120,.10);
+  /* Result language on paper: deep green (strong) / bronze gold (caution,
+     via --gold) / deep burgundy (at-risk). Tuned dark enough to read on the
+     off-white ground. */
+  --positive:#16401f; --positive-bright:#194a2c;
   /* Snapshot withdrawal gauge: green (safe) → gold (caution) → clay (strained). */
-  --clay:#d98a6a;
-  --negative:#e08884; --negative-bright:#f0918d;
-  --s1:#f0c773; --s2:#a9d5cf; --s3:#9db4e0;
+  --clay:#a8593f;
+  --negative:#7e2b38; --negative-bright:#8f3340;
+  --s1:#9a7322; --s2:#3f6b78; --s3:#7d5a82;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;background:var(--bg);font-family:'Sora',sans-serif;color:var(--ink);font-size:14px;-webkit-font-smoothing:antialiased;overflow:hidden}
-body{background:radial-gradient(1200px 600px at 88% -12%, var(--gold-glow), transparent 60%),linear-gradient(180deg,#0d141d,var(--bg) 44%,#070b10);}
+body{background:radial-gradient(1200px 600px at 88% -12%, var(--gold-glow), transparent 60%),linear-gradient(180deg,#f6f2ea,var(--bg) 44%,#ece5d8);}
 .wrap{height:100vh;display:flex;flex-direction:column;overflow:hidden}
 
 .hdr{display:flex;align-items:center;gap:18px;padding:13px 28px;border-bottom:1px solid var(--rule);background:var(--bg-deep);flex:0 0 auto}
@@ -319,7 +320,7 @@ body{background:radial-gradient(1200px 600px at 88% -12%, var(--gold-glow), tran
 .stat-lbl{font-family:'Sora';font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--ink-faint);font-weight:600}
 .stat-val{font-family:'Inter';font-size:16px;font-weight:600;color:var(--ink-bright);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
 /* coverage bar (income floor): teal fill = guaranteed, hatched = portfolio-drawn */
-.cov{height:40px;border-radius:6px;overflow:hidden;display:flex;background:repeating-linear-gradient(135deg,#141d28,#141d28 7px,#0f1620 7px,#0f1620 14px);box-shadow:inset 0 0 0 1px var(--rule)}
+.cov{height:40px;border-radius:6px;overflow:hidden;display:flex;background:repeating-linear-gradient(135deg,#efe7d6,#efe7d6 7px,#e8dfcc 7px,#e8dfcc 14px);box-shadow:inset 0 0 0 1px var(--rule)}
 .cov .fill{background:linear-gradient(180deg,var(--teal-bright),var(--teal));display:flex;align-items:center;padding-left:14px;color:#fff;font-family:'Inter';font-size:13px;font-weight:600;white-space:nowrap;min-width:0;overflow:hidden}
 .cov-legend,.seg-legend{display:flex;flex-wrap:wrap;gap:14px 26px;margin-top:14px;font-family:'Sora';font-size:12px;color:var(--ink-mute);font-weight:500}
 .cov-legend .k,.seg-legend .k{display:flex;align-items:center;gap:8px}
@@ -340,7 +341,7 @@ body{background:radial-gradient(1200px 600px at 88% -12%, var(--gold-glow), tran
 .seg div{display:flex;align-items:center;justify-content:center;color:#fff;font-family:'Inter';font-size:13px;font-weight:600;min-width:0;overflow:hidden}
 .seg .s-tax{background:linear-gradient(180deg,#6f8a93,var(--teal))}
 .seg .s-def{background:linear-gradient(180deg,var(--gold-bright),var(--gold))}
-.seg .s-roth{background:linear-gradient(180deg,#7fce9f,#5fae87)}
+.seg .s-roth{background:linear-gradient(180deg,#4f9d72,#3c7d59)}
 
 /* Year-by-year cash-flow drawer on the Scenarios page. Three scenarios side
    by side; each scenario's columns are softly tinted in its line color so the
@@ -557,7 +558,7 @@ plan.simulation.iterations = 1000;
 // (matches --s1/2/3); two more earthy tones extend it when the advisor adds a
 // 4th/5th scenario. colorFor() cycles the palette so any count gets a color.
 // No green here (reserved for the success language) and no mint.
-const SCEN_PALETTE=['#f0c773','#a9d5cf','#9db4e0','#c3b27f','#e0a07f'];
+const SCEN_PALETTE=['#9a7322','#3f6b78','#7d5a82','#6f7a52','#9a5a3f'];
 const colorFor=i=>SCEN_PALETTE[i % SCEN_PALETTE.length];
 const MAX_SCENARIOS=5;
 // Back-compat alias for code that still reads COLHEX by index.
@@ -1372,7 +1373,7 @@ function renderSnapshot(){
         <div class="seg-legend">
           <span class="k"><span class="sw" style="background:var(--teal)"></span>Taxable<b>${fmtMoney(m.taxable)}</b></span>
           <span class="k"><span class="sw" style="background:var(--gold)"></span>Tax-deferred<b>${fmtMoney(m.trad)}</b></span>
-          <span class="k"><span class="sw" style="background:#6cc295"></span>Tax-free · Roth<b>${fmtMoney(m.roth)}</b></span>
+          <span class="k"><span class="sw" style="background:#3c7d59"></span>Tax-free · Roth<b>${fmtMoney(m.roth)}</b></span>
         </div>
       </div>
     </div>`;
@@ -1410,7 +1411,7 @@ function renderSnapshot(){
           <div class="cov"><div class="fill" style="width:${fillPct.toFixed(1)}%">Retirement&nbsp;·&nbsp;${fmtMoney(m.totalSpend)}</div></div>
           <div class="cov-legend">
             <span class="k"><span class="sw" style="background:var(--teal)"></span>Retirement income<b>${fmtMoney(m.totalSpend)}</b></span>
-            <span class="k"><span class="sw" style="background:#3a4452"></span>Working income<b>${fmtMoney(m.workingIncome)}</b></span>
+            <span class="k"><span class="sw" style="background:#e3d9c5"></span>Working income<b>${fmtMoney(m.workingIncome)}</b></span>
           </div>
         </div>
       </div>`;
@@ -1578,14 +1579,14 @@ function runAll(){
 // Success ring color band: steel-teal (strong) / brass (caution) /
 // clay (at risk). No green — matches the Obsidian Brass result tokens.
 // Ring band matches the % number: deep green / bronze gold / deep burgundy.
-function ringColor(pct){ return pct>=85?'#6cc295':pct>=70?'#f0c773':'#f0918d'; }
+function ringColor(pct){ return pct>=85?'#194a2c':pct>=70?'#9a7322':'#8f3340'; }
 function ring(pct){
   // SVG fills its .circle-wrap via viewBox, so the ring size is controlled by
   // CSS (one place). Thin stroke near the edge leaves room for the % number.
   const r=45,c=2*Math.PI*r,off=c*(1-pct/100);
   const col=ringColor(pct);
   return `<svg viewBox="0 0 100 100" width="100%" height="100%">
-    <circle cx="50" cy="50" r="${r}" fill="none" stroke="#26313d" stroke-width="4"/>
+    <circle cx="50" cy="50" r="${r}" fill="none" stroke="#e2dccd" stroke-width="4"/>
     <circle cx="50" cy="50" r="${r}" fill="none" stroke="${col}" stroke-width="4" stroke-linecap="round"
       stroke-dasharray="${c}" stroke-dashoffset="${off}" transform="rotate(-90 50 50)" style="transition:stroke-dashoffset .7s cubic-bezier(.4,0,.2,1)"/></svg>`;
 }
@@ -1907,8 +1908,8 @@ function renderFoot(){
 function fmtM(v){ if(!isFinite(v)||v<=0) return '$0'; if(v>=1e6) return '$'+(v/1e6).toFixed(1)+'M'; if(v>=1e3) return '$'+Math.round(v/1e3)+'K'; return '$'+Math.round(v); }
 // Plot margins inside the viewBox (leaves room for axis labels).
 const PADL=78, PADR=14, PADT=12, PADB=30;
-// Chart axis colors, matched to the dark-theme tokens (--rule / --ink-faint).
-const GRID='#26313d', AXIS_INK='#6f7c8e';
+// Chart axis colors, matched to the light-theme tokens (--rule-faint / --ink-faint).
+const GRID='#e8e2d5', AXIS_INK='#8a93a0';
 // Smooth a series of [x,y] points into a path using Catmull-Rom -> bezier.
 // Tension kept low so the line stays trackable, not wavy ("toddler-drawn").
 // Monotone cubic interpolation (Fritsch–Carlson). Unlike Catmull-Rom it CANNOT
@@ -2046,18 +2047,18 @@ function renderCashflow(){
 // toggle on/off as lines (`on` = shown by default). Euphoric bulls (1982/85) are
 // deliberately omitted — a 10-20x winner crushes the scale and hides the
 // downside, which is the whole point of a sequence-risk view.
-// Distinct, clearly identifiable tones — bright enough to read on the dark
-// ground without being candy-garish. Default four (slate-blue / teal-green /
-// brass / rust) are picked to be maximally distinct from each other.
+// Distinct but DEEP, desaturated editorial tones — each line identifiable, none
+// candy-bright. Default four (slate-blue / teal-green / brass / rust) are picked
+// to be maximally distinct from each other on the cream paper.
 const SEQ_YEARS=[
-  {y:1929, tag:'Great Depression',  c:'#c79bc2', on:false},  // plum
-  {y:1966, tag:'the lost decade',   c:'#9db4e0', on:true },  // slate blue
-  {y:1973, tag:'stagflation',       c:'#6fc0a0', on:true },  // teal-green
-  {y:1987, tag:'Black Monday',      c:'#8fb6c3', on:false},  // steel
-  {y:1995, tag:'the 90s boom',      c:'#f0c773', on:true },  // brass
-  {y:2000, tag:'dot-com crash',     c:'#e0916f', on:true },  // rust
-  {y:2008, tag:'financial crisis',  c:'#d98a9e', on:false},  // claret
-  {y:2009, tag:'the recovery bull', c:'#7fce9f', on:false},  // fresh green
+  {y:1929, tag:'Great Depression',  c:'#7d4a6b', on:false},  // plum
+  {y:1966, tag:'the lost decade',   c:'#3f566b', on:true },  // deep slate blue
+  {y:1973, tag:'stagflation',       c:'#357a5e', on:true },  // deep teal-green
+  {y:1987, tag:'Black Monday',      c:'#4a6f7a', on:false},  // steel
+  {y:1995, tag:'the 90s boom',      c:'#a8742a', on:true },  // antique brass
+  {y:2000, tag:'dot-com crash',     c:'#99513f', on:true },  // deep rust
+  {y:2008, tag:'financial crisis',  c:'#8c4a5a', on:false},  // claret
+  {y:2009, tag:'the recovery bull', c:'#4f9d72', on:false},  // fresh green
 ];
 
 function buildSeqSelect(){
