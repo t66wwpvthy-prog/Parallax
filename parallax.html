@@ -136,13 +136,16 @@ body{background:radial-gradient(1200px 600px at 88% -12%, var(--gold-glow), tran
 .circle-val .lbl{font-size:8.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-mute);margin-top:3px}
 
 .scn-levers{display:grid;grid-template-columns:148px repeat(3,1fr);border-left:1px solid var(--rule);border-right:1px solid var(--rule)}
-.lev-name{display:flex;align-items:center;border-right:1px solid var(--rule-faint);border-bottom:1px solid var(--rule-faint);padding:0 14px;min-height:74px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-mute);font-weight:500;line-height:1.3}
-.lev-cell{display:flex;flex-direction:column;justify-content:center;gap:10px;border-right:1px solid var(--rule-faint);border-bottom:1px solid var(--rule-faint);padding:0 14px;min-height:74px}
+.lev-name{display:flex;align-items:center;border-right:1px solid var(--rule-faint);border-bottom:1px solid var(--rule-faint);padding:0 14px;min-height:62px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-mute);font-weight:500;line-height:1.3}
+.lev-cell{display:flex;flex-direction:column;justify-content:center;gap:7px;border-right:1px solid var(--rule-faint);border-bottom:1px solid var(--rule-faint);padding:0 16px;min-height:62px}
 .lev-cell.base{background:rgba(63,107,120,.04)}
 .scn-levers .lev-cell.col-last{border-right:none}
 .lev-val{font-family:'Inter';font-size:17px;font-weight:600;color:var(--ink-bright);display:flex;align-items:baseline;gap:6px}
 .lev-val.base{color:var(--teal-bright)}
 .lev-val .unit{font-size:10px;color:var(--ink-faint);font-weight:500;letter-spacing:.04em}
+/* Baseline-delta chip — right-aligned so the deltas form a clean comparison
+   column down the right edge of each scenario. Muted/neutral (no good-bad hue). */
+.lev-delta{margin-left:auto;font-family:'Sora';font-size:10.5px;font-weight:600;letter-spacing:.02em;color:var(--ink-faint);font-variant-numeric:tabular-nums}
 /* Inline pension-amount input: appears when the lever lands on an age that has
    no entered benefit yet. Looks like part of the value display (not an error).
    The "$" prefix sits in the normal value color; the input is borderless and
@@ -155,9 +158,13 @@ body{background:radial-gradient(1200px 600px at 88% -12%, var(--gold-glow), tran
 .lev-val .lev-in{font-family:'Inter';font-size:17px;font-weight:600;color:var(--ink-bright);background:transparent;border:none;border-bottom:1px dashed var(--rule-bright);width:78px;padding:0 2px;outline:none;text-align:right}
 .lev-val .lev-in:focus{border-bottom-color:var(--gold)}
 .lev-val .lev-in.age-in{width:34px;text-align:center}
-.lev-slider{-webkit-appearance:none;width:100%;height:14px;background:transparent;cursor:pointer}
-.lev-slider::-webkit-slider-runnable-track{height:2px;background:var(--rule-bright);border-radius:2px}
-.lev-slider::-webkit-slider-thumb{-webkit-appearance:none;height:11px;width:11px;border-radius:50%;background:var(--gold);margin-top:-4.5px;border:2px solid var(--bg-deep)}
+/* Resting state = clean numbers + deltas (no bar clutter). The slider fades in
+   when you hover/focus the cell, so drag-to-explore stays for live demos but the
+   grid reads as a comparison table at a glance. Touch (no hover) keeps it shown. */
+.lev-slider{-webkit-appearance:none;width:100%;height:12px;background:transparent;cursor:pointer;opacity:0;transition:opacity .15s}
+.lev-cell:hover .lev-slider,.lev-slider:focus{opacity:1}
+.lev-slider::-webkit-slider-runnable-track{height:2px;background:var(--rule);border-radius:2px}
+.lev-slider::-webkit-slider-thumb{-webkit-appearance:none;height:9px;width:9px;border-radius:50%;background:var(--gold);margin-top:-3.5px;border:2px solid var(--surface)}
 .lev-slider:disabled{opacity:.4;cursor:default}
 .lev-slider.base-lock::-webkit-slider-thumb{background:var(--teal)}
 .scn-foot{display:grid;grid-template-columns:148px repeat(3,1fr);border:1px solid var(--rule);border-top:none;border-radius:0 0 4px 4px}
@@ -380,8 +387,8 @@ body{background:radial-gradient(1200px 600px at 88% -12%, var(--gold-glow), tran
   .scn-band{position:static;box-shadow:none}
   .scn-band::before{display:none}
 
-  /* Bigger touch targets on the sliders. */
-  .lev-slider{height:30px}
+  /* Bigger touch targets on the sliders; touch has no hover so keep them shown. */
+  .lev-slider{height:30px;opacity:1}
   .lev-slider::-webkit-slider-thumb{height:22px;width:22px;margin-top:-10px;border-width:3px}
   .lev-slider::-webkit-slider-runnable-track{height:3px}
   .lev-val{font-size:18px}
@@ -2671,27 +2678,45 @@ function renderBand(){
 // Special return ['__needs__', age] from a fmt() means "no entered amount for
 // this age yet" — render an inline input so the advisor can type one in
 // without leaving the lever. Plain numbers/strings render as before.
+// Neutral delta-vs-baseline chip — the COMPARISON cue (Scenarios = compare
+// choices). No good/bad coloring: later retirement isn't "better," it's a
+// trade-off, so the chip stays a muted, opinion-free tone. Empty on the
+// baseline column and wherever a lever matches baseline.
+function levDelta(cfg, lev){
+  const baseLev = scenarios.find(s=>s.base)?.lev;
+  if(!baseLev || lev===baseLev) return '';
+  const d = (lev[cfg.key]||0) - (baseLev[cfg.key]||0);
+  if(!d) return '';
+  const sign = d>0 ? '+' : '−', a = Math.abs(d);
+  let txt;
+  if(cfg.key==='spend')                 txt = `${sign}$${Math.round(a/12).toLocaleString('en-US')}/mo`;
+  else if(cfg.key==='savings' || cfg.key==='eventAmt') txt = `${sign}$${a.toLocaleString('en-US')}`;
+  else if(cfg.key==='risk')             txt = `${sign}${a} lvl`;
+  else /* ages */                       txt = `${sign}${a} yr`;
+  return `<span class="lev-delta">${txt}</span>`;
+}
 function renderLevValue(cfg, lev){
   const [val,unit]=cfg.fmt(lev[cfg.key], lev);
   if(val==='__needs__'){
     return `$<input class="pen-in" type="text" inputmode="numeric" data-pen-age="${unit}"> <span class="unit">@ ${unit}</span>`;
   }
+  const d = levDelta(cfg, lev);
   // Type-in boxes for the dollar/age levers. The box edits the same value the
   // slider drives — both stay in sync. data-edit tells the input handler how to
   // interpret the typed number (monthly→annual, plain money, or event age).
   if(cfg.edit==='monthly'){
     const mo=Math.round(lev[cfg.key]/12);
-    return `$<input class="lev-in" type="text" inputmode="numeric" data-edit="monthly" data-key="${cfg.key}" value="${mo.toLocaleString('en-US')}"> <span class="unit">/mo</span>`;
+    return `$<input class="lev-in" type="text" inputmode="numeric" data-edit="monthly" data-key="${cfg.key}" value="${mo.toLocaleString('en-US')}"> <span class="unit">/mo</span>${d}`;
   }
   if(cfg.edit==='money'){
-    return `$<input class="lev-in" type="text" inputmode="numeric" data-edit="money" data-key="${cfg.key}" value="${(lev[cfg.key]||0).toLocaleString('en-US')}"> <span class="unit">${unit}</span>`;
+    return `$<input class="lev-in" type="text" inputmode="numeric" data-edit="money" data-key="${cfg.key}" value="${(lev[cfg.key]||0).toLocaleString('en-US')}"> <span class="unit">${unit}</span>${d}`;
   }
   if(cfg.edit==='event'){
     return `$<input class="lev-in" type="text" inputmode="numeric" data-edit="eventAmt" data-key="eventAmt" value="${(lev.eventAmt||0).toLocaleString('en-US')}">`
          + ` <span class="unit">@ age</span> `
-         + `<input class="lev-in age-in" type="text" inputmode="numeric" data-edit="eventAge" data-key="eventAge" value="${lev.eventAge}">`;
+         + `<input class="lev-in age-in" type="text" inputmode="numeric" data-edit="eventAge" data-key="eventAge" value="${lev.eventAge}">${d}`;
   }
-  return `${val}${unit?` <span class="unit">${unit}</span>`:''}`;
+  return `${val}${unit?` <span class="unit">${unit}</span>`:''}${d}`;
 }
 function buildLevers(){
   syncGridCols();
