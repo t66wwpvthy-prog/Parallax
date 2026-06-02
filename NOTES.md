@@ -49,6 +49,74 @@ FUTURE SESSION (known, not next):
 - LTC cost escalation. Treated as flat real today; LTC historically grows ~3–5%/yr
   ABOVE CPI, so a real onset cost should escalate over the horizon.
 
+## >>> EXTERNAL REVIEW IDEA TRIAGE (2026-06, Codex review filtered through doctrine) <<<
+Reviewer pitched a product thesis + 8 views + naming/flow. Filtered HARD — adding all
+of it = re-bloat (the exact failure mode that killed the last build). Verdict per idea:
+
+PRODUCT THESIS (bank as our north star, not a feature):
+- The moat is NOT "Monte Carlo + sliders" (MoneyGuide PlayZone, RightCapital,
+  ProjectionLab, Income Lab, T. Rowe Income Solver all do that). The defensible layer
+  is DETERMINISTIC, EXPLAINABLE, MULTI-VARIABLE decision-solving: same market paths
+  across every comparison + a solver that answers a human question + auditable replay.
+  This reframes everything below. Keep it front of mind.
+
+ABSOLUTELY BANK (core differentiators):
+- EXPLAINABLE CONSTRAINT SOLVER (the big one). Evolve the solo-lever solver into a
+  multi-variable search that returns a SMALL set of viable paths (a Pareto frontier of
+  least-disruptive ways to hit a goal), e.g. "retire 62 @ 85%: A) spend -$850/mo;
+  B) save +$14k/yr & SS at 69; C) retire 63 & spend -$300/mo. Allocation alone can't.
+  1973/2000 still break it." Preserve deterministic replay so each rec is auditable.
+  ALSO resolves the logged solo-vs-combined display confusion (#4 engine bank).
+- DECISION SURFACE. Heatmap: retire age (x) × monthly spend (y), confidence as contour
+  bands; saved scenarios plotted as points; click a point = create a scenario. This is
+  the single BEST embodiment of "Parallax models interactions" — it shows the feasible/
+  fragile BOUNDARY, not isolated stats. Reuses shared paths (grid of engine runs, no
+  new math). Lives as an alternate view inside Scenarios.
+
+PRIORITY TO ADD (high value, mostly a VIEW of truth the engine already emits, low lift):
+- FAILURE ANATOMY. Click a scenario's % ring → what actually breaks: depletion-age
+  histogram, earliest pressure year, success-vs-depleted split, one representative
+  failed path that opens in the cash-flow drawer. Best ROI on the list — the sims
+  already carry this data. Turns an abstract 76% into "here's what fails and when."
+- SCENARIO RECEIPT. Baseline-delta summary drawer per scenario (levers moved +
+  confidence/median before→after + worst historical market). The client-meeting
+  takeaway / future export artifact. Mostly a view of already-computed deltas. Keep it
+  data, not prose (no editorial sentences).
+
+SMALLER BUT BENEFICIAL:
+- RENAME "Net Worth" tab → "Plan" or "Household" (now holds inflows/outflows/goals/
+  snapshot — current label undersells it). Quick win.
+- FUNDING BRIDGE (on Snapshot): stacked age timeline of income layers (work/savings →
+  portfolio bridge → pension → SS). Overlaps the already-banked bridge-years idea;
+  makes delayed-claim decisions legible. Medium lift.
+- SEQUENCE PRESSURE STRIP (under Sequencing): first ~10 retirement years as cells
+  (return / withdrawal / ending balance) with a cursor synced to chart + drawer.
+  Explains WHY 1973/2000 hurt (early drawdown × withdrawals) instead of just that they
+  do. Strong fit for Sequencing's whole purpose. Sync interaction is the fiddly part.
+- CODIFY VISUAL GRAMMAR (design-system hygiene): dashed underline = editable input;
+  solid slate = engine result; brass = selected/caution; clay = pressure/failure;
+  teal = baseline/stable; scenario accents = identity ONLY. Mostly already true — write
+  it down so it stays consistent.
+- ASSUMPTION LEDGER (light, passive): tag values Entered / Derived / Simulated /
+  Historical for auditability. Aligns with truth-source obsession. WATCH SCOPE — must
+  NOT become the "stale/needs-review status machinery" we already rejected.
+
+SKEPTICAL / DO NOT PRIORITIZE (bloat risk or redundant):
+- CASH-FLOW RIVER (Table|River toggle): a Sankey/river is decorative here — duplicates
+  the table without showing a new INTERACTION, and competitors already saturate Sankey
+  cash flows. Skip unless it reveals something the ledger can't.
+- RESILIENCE MATRIX as a NEW TAB: this is largely the old Stress Test reincarnated +
+  overlaps Sequencing (historical rows) and Scenarios (planning stressors). A whole new
+  tab is exactly the scope-add doctrine resists. SALVAGE only the linking idea (click a
+  stressor → clone into Scenarios / open in Sequencing); fold into existing surfaces.
+- REBRAND away from "Parallax": name is crowded in fintech (payments, resource-planning,
+  two wealth firms). This is a business/clearance decision for Nathan, not an eng task.
+  Keep "Parallax" as working name; park the descriptor idea ("Retirement decisions,
+  brought into focus"). Not now.
+
+FLOW (north-star nav, depends on building the above): Household → Snapshot →
+Scenarios → Sequencing → (Resilience, if ever) → Decision Receipt.
+
 
 ## Idea bank — Pension claim-age analysis (2026-06, from frozen chat)
 NOT building now. Captured before ideas were lost.
