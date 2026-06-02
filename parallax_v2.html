@@ -740,7 +740,7 @@ function renderSolvePanel(){
           <label class="sf-field"><span class="sf-lbl">With confidence</span>
             <span class="sf-box-wrap"><input class="sf-box" id="sf-pct" type="number" min="50" max="99" value="${defPct}"><span class="sf-suffix">%</span></span></label>
           <label class="sf-field"><span class="sf-lbl">Preserve legacy</span>
-            <span class="sf-box-wrap"><span class="sf-prefix">$</span><input class="sf-box" id="sf-legacy" type="number" min="0" max="5000" step="100" value="0"><span class="sf-suffix">k</span></span></label>
+            <span class="sf-box-wrap"><span class="sf-prefix">$</span><input class="sf-box sf-money" id="sf-legacy" type="text" inputmode="numeric" value="0" style="width:130px;text-align:right"></span></label>
           <button type="submit" class="sf-go">Find Paths →</button>
         </form>
       </div>`;
@@ -1647,16 +1647,19 @@ $('#scn-band').addEventListener('click', e=>{
 });
 // Solver form submit — run the multi-lever constraint search.
 // Solver goal form lives in #solve-panel now (full-width). Submit runs the search.
+$('#solve-panel').addEventListener('input', e=>{
+  if(e.target.classList?.contains('sf-money')) liveCommas(e.target);
+});
 $('#solve-panel').addEventListener('submit', e=>{
   const f = e.target.closest('#solver-form');
   if(!f) return;
   e.preventDefault();
   const age    = parseInt($('#sf-age')?.value, 10);
   const pct    = parseFloat($('#sf-pct')?.value);
-  const legacyK = parseFloat($('#sf-legacy')?.value) || 0;
+  const legacy = parseInt(($('#sf-legacy')?.value || '0').replace(/[^0-9]/g,''), 10) || 0;
   if(!isFinite(age) || age<55 || age>72) return;
   if(!isFinite(pct) || pct<50 || pct>99) return;
-  runConstraintSolve(age, pct, legacyK * 1000);
+  runConstraintSolve(age, pct, legacy);
 });
 // Solver panel: Cancel (form), Clear (results), and "Load as Scenario" actions.
 document.addEventListener('click', e=>{
