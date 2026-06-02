@@ -114,6 +114,14 @@ SMALLER BUT BENEFICIAL:
   (return / withdrawal / ending balance) with a cursor synced to chart + drawer.
   Explains WHY 1973/2000 hurt (early drawdown × withdrawals) instead of just that they
   do. Strong fit for Sequencing's whole purpose. Sync interaction is the fiddly part.
+- SEQUENCE DURATION / DAMAGE-WINDOW on each bottom card: show how LONG the bad
+  stretch lasts, not just that it happened. '08–09 is a sharp but short shock
+  (~1yr, V-shaped — recovers fast); '66 / '73 are long grinding stretches (a
+  decade of flat-real + inflation) that do far more damage to a withdrawing
+  portfolio. The card should label each sequence with its character/length
+  (e.g. "short shock" vs "long grind") so the advisor can explain WHY two equal-
+  depth crashes land so differently. Data's already in the historical path —
+  it's a label + maybe a small duration bar, not new math.
 - CODIFY VISUAL GRAMMAR (design-system hygiene): dashed underline = editable input;
   solid slate = engine result; brass = selected/caution; clay = pressure/failure;
   teal = baseline/stable; scenario accents = identity ONLY. Mostly already true — write
