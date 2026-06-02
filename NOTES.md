@@ -2,21 +2,52 @@
 
 Durable backlog so nothing gets lost between sessions. Newest on top.
 
-## >>> NEXT SESSION (tonight): build #5 then #1 <<<
-Order matters: saveable scenario objects first (clean foundation), then Solve-For
-writes its answer INTO a scenario.
+## >>> DONE (built in the frozen session) <<<
+- #5 NAME/SAVE SCENARIOS — done. Named, saveable scenario objects in `scenarios[]`,
+  auto-saved to localStorage (SCEN_KEY), inline rename, add/remove, baseline locked,
+  delta-preserving reseed, forward-compat backfill. Both tabs read the shared set.
+- #1 SOLVE-FOR ("Can I retire earlier?") — done. Inline solver form in the band
+  gutter, bisection over spend/savings/ssAge/risk against a frozen soloBase, per-lever
+  solve pulse, writes its answer into a new scenario column.
+- STILL TODO on Solve-For: the "Duplicate scenario" action (distinct from Add) was
+  never built. And see ENGINE BANK #4 below re: the combined-vs-solo display.
 
-#5 — NAME / SAVE SCENARIOS (do first):
-- Scenarios become named, saveable objects, not transient slider state. Baseline
-  = anchor. This is the long-planned "household-centric data root."
-- Both tabs read from this shared set; unlocks the Sequencing selector later.
-- Scope check before coding: where do saved scenarios live (in-memory array now,
-  localStorage later?), rename/duplicate/delete UI, how baseline stays special.
-  Keep it minimal — don't build persistence machinery we don't need yet.
+## >>> ENGINE IDEA BANK — prioritized (2026-06, Claude review) <<<
+Reviewed the engine. Below is the punch list, ordered by Nathan's calls.
 
-#1 — SOLVE FOR (do second): full spec below under "Big feature". DECIDE BEFORE
-CODING: how you ARM the float lever (tap a lever to select it as the unknown?).
-That interaction is the whole feature — nail it on paper first.
+UPCOMING SESSION:
+- RMDs (Required Minimum Distributions). Biggest material gap. A large traditional
+  balance forces taxable distributions from age 73 whether or not the client needs
+  the cash — pushes income, taxes, and depletion timing. Target client has big
+  pre-tax balances, so this materially moves results. (Was "just haven't modeled
+  them in yet.")
+- Roth / after-tax brokerage CONTRIBUTIONS in accumulation. Today accumulation
+  savings flow to TRADITIONAL only — no Roth or taxable-brokerage contribution path.
+  High earners (backdoor Roth, post-tax brokerage) can't be modeled. Engine already
+  HAS the three account types on the withdrawal side; this is the contribution side.
+
+RESOLVED (no action — already consistent):
+- "Same return calc across the board." Investigated: the old arithmetic-mean
+  deterministic expected-wealth LINE was REMOVED from this build (see comment in the
+  scenarios section of index.html). Every displayed number now derives from ONE
+  source — the block-bootstrap Monte Carlo on real historical returns (geometric).
+  Scenarios "Median end" reads envelope p50; cash-flow reads the central sim path;
+  Sequencing uses runHistoricalPath. No second/inconsistent return calc is in play.
+  Loose end (optional cleanup, not a bug): `ASSET_STATS[k].mean` is still COMPUTED
+  but consumed nowhere — could be deleted per doctrine #2 (delete before adding).
+
+FUTURE SESSION (known, not next):
+- Healthcare scales INDEPENDENTLY of lifestyle. Today spendMult scales everything
+  incl. healthcare — but you can cut lifestyle, not medical. Also skews Solve-For's
+  spending answer. (Not started; known.)
+- Solve-For display: each lever is solved SOLO ("this lever alone needs X"), but the
+  column's final % shows ALL solo answers applied at once (far exceeds target) — an
+  advisor could misread it. Clarify the solo-vs-combined story. (Function noted as
+  unused for now.)
+- Survivor benefits. Spousal/widow SS (survivor takes ~100% of deceased's) is a major
+  couples claiming lever; spouse SS amount is modeled but not the survivor step-up.
+- LTC cost escalation. Treated as flat real today; LTC historically grows ~3–5%/yr
+  ABOVE CPI, so a real onset cost should escalate over the horizon.
 
 
 ## Idea bank — Pension claim-age analysis (2026-06, from frozen chat)
