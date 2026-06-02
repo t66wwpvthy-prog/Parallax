@@ -1266,12 +1266,12 @@ function renderStatement(){
   let h='';
   BALANCE_SHEET.forEach(sec => {
     h += `<div class="bs-head">${sec.head}</div>`;
+    if(sec.subtotal==='invest') h += renderAcctPicker();  // picker above account rows
     (sec.fields||[]).forEach(f => {
       const rowCls = f.sub ? 'bs-row sub' : 'bs-row';
       h += `<div class="${rowCls}"><label>${f.label}</label><span class="bs-dots"></span><span class="field">${renderField(f)}</span></div>`;
     });
     if(sec.subtotal==='invest'){
-      h += renderAcctPicker();           // Option-A bucket-rows add picker (top)
       h += renderExtraAccounts();        // added typed accounts (401k, SEP, …)
       h += `<div class="bs-sub"><span class="bs-sub-l">Investable total</span><span class="bs-sub-d"></span><span class="bs-sub-v">${fmtMoney(investableTotal())}</span></div>`;
     }
