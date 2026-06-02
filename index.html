@@ -458,34 +458,6 @@ body{background:radial-gradient(1200px 600px at 88% -12%, var(--gold-glow), tran
    success, depletion, balances over time; the UI decides what to show.
    ============================================================================ */
 
-const drawFrom = (type, netNeeded) => {
-    if(workingBal[type] <= 0.01 || netNeeded <= 0.01) return;
-    const rate = effRateFor(type);
-    const grossNeeded = rate < 0.999 ? netNeeded / (1 - rate) : netNeeded;
-    const withdrawn   = Math.min(grossNeeded, workingBal[type]);
-    const tax         = withdrawn * rate;
-    breakdown[type]  += withdrawn;
-    totalTax         += tax;
-    if(type === 'taxable' || type === 'traditional') taxBySource[type] += tax;
-    workingBal[type] -= withdrawn;
-    remainingNeed    -= (withdrawn - tax);
-    if(type === 'taxable' && accounts.taxable.balance > 0){
-      const basisPortion = workingBasis / accounts.taxable.balance;
-      workingBasis = Math.max(0, workingBasis - withdrawn * basisPortion);
-    }
-  }
-
-const effRateFor = (type) => {
-    if(type === 'taxable'){
-      const gainPct = workingBal.taxable > 0
-        ? Math.max(0, (workingBal.taxable - workingBasis) / workingBal.taxable)
-        : 0;
-      return gainPct * taxRates.capitalGains;
-    }
-    if(type === 'traditional') return taxRates.ordinary;
-    return 0;
-  }
-
 function fundGap(accounts, gap, taxRates, strategy = 'taxable-first'){
   let remainingNeed = gap;
   const breakdown = { taxable: 0, traditional: 0, roth: 0 };
