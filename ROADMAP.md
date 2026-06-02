@@ -9,13 +9,13 @@ Status tags: **NEXT** · **BIG** (own session) · **PARKED** · **SKIP** · ✅ 
 ## A. Engine — material gaps (the truth source)
 - [x] ✅ **RMDs** — forced distributions from age 73 (Uniform Lifetime; excess reinvests to taxable; Roth exempt). ⚠ divisor table flagged for CFP verification in engine.js.
 - [x] ✅ **Roth / taxable-brokerage contributions in accumulation** — savings split across sleeves (default 100% pre-tax). Backdoor-Roth / post-tax brokerage now modelable.
-- [ ] **Refinement — contribution-side tax deduction.** Engine treats `savings` as post-decision cash flow; it does NOT model that pre-tax contributions lower current taxable income while Roth don't. Withdrawal-side treatment IS modeled. Add if the current-year deduction matters for a comparison.
+- [ ] **Contribution-side tax deduction → banked for the TAX ENGINE** (not now). Pre-tax contributions lower current taxable income; Roth don't. Engine currently treats `savings` as post-decision cash flow; withdrawal-side treatment IS modeled. Fold into the tax-planning engine when built.
 - [ ] **Healthcare scales independently of lifestyle** — spendMult currently scales medical too; skews Solve-For.
 - [ ] **Survivor SS benefits** — widow step-up (~100% of deceased's); major couples lever, unmodeled.
 - [ ] **LTC cost escalation** — ~3–5%/yr above CPI; currently flat real.
 - [ ] **One-time INFLOW support** — home relocation/downsizing; current lumpSum is outflow-only. (Engine change.)
 - [ ] **Real assets in engine** — homes/property/business → "sell X to fund Y." **BIG**
-- [ ] **Tax-planning engine** — Roth conversions, bracket mgmt, IRMAA, RMDs. Its own engine. **BIG**
+- [ ] **Tax-planning engine** — Roth conversions, bracket mgmt, IRMAA, RMDs, **contribution-side deduction** (pre-tax lowers current taxable income; Roth doesn't). Its own engine. **BIG**
 - [ ] **Map the other engines we'll need** (tax, estate, …) before building piecemeal.
 - [ ] Cleanup: `ASSET_STATS[k].mean` computed but unused — deletable (doctrine #2).
 
