@@ -3273,13 +3273,16 @@ function renderPrints(runs){
   const card=(m,res)=>{
     const o=outcome(res);
     const dwYrs=damageWindow(res);
-    const dwLabel = dwYrs ? `${dwYrs} yr${dwYrs>1?'s':''}` : '—';
+    // Only when there IS a drawdown — a good market never goes underwater, so the
+    // row would just read "—". Show it where it tells a story; omit it otherwise.
+    const dwBlock = dwYrs ? `
+      <div class="pr-row" style="border-bottom:none"><span class="pr-k">Years underwater</span><span class="pr-v">${dwYrs} yr${dwYrs>1?'s':''}</span></div>
+      <div class="dw-bar"><div class="dw-fill" style="width:${Math.min(100,dwYrs/12*100).toFixed(0)}%;background:${m.c}"></div></div>` : '';
     return `<div class="seq-print">
       <h4><span class="dot" style="border-color:${m.c}"></span>${m.y} · ${m.tag}</h4>
       <div class="pr-row"><span class="pr-k">First decade</span><span class="pr-v">${pct(firstDecade(res))}</span></div>
       <div class="pr-row"><span class="pr-k">Lowest</span><span class="pr-v">${fmtM(lowest(res))}</span></div>
-      <div class="pr-row" style="border-bottom:none"><span class="pr-k">Damage window</span><span class="pr-v">${dwLabel}</span></div>
-      <div class="dw-bar"><div class="dw-fill" style="width:${Math.min(100,dwYrs/12*100).toFixed(0)}%;background:${m.c}"></div></div>
+      ${dwBlock}
       <div class="pr-row"><span class="pr-k">Outcome</span><span class="pr-v" style="color:${o.c}">${o.t}</span></div>
     </div>`;
   };
