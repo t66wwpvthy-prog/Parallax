@@ -74,16 +74,41 @@ try {
     await page.waitForTimeout(1500); // runAll
   });
 
-  await step('scenarios renders', async () => {
-    // Module-scoped state isn't on window; check rendered DOM instead.
-    // A live render means SVG circles drawn in the scenario band.
+  await step('net worth · balance sheet renders', async () => {
+    // The new first tab is Net Worth, defaulting to the Balance Sheet sub-page.
+    // A live render means at least one gold-underlined section head + a money input.
+    const m = await page.evaluate(() => ({
+      heads: document.querySelectorAll('.bs-head').length,
+      inputs: document.querySelectorAll('.bs-row input').length,
+    }));
+    if(m.heads < 3 || m.inputs < 5)
+      throw new Error(`Balance Sheet did not render (heads=${m.heads}, inputs=${m.inputs})`);
+    await page.screenshot({ path: `${OUT}/01-balance-sheet.png`, fullPage: true });
+  });
+
+  await step('net worth sub-nav cycles through inflows / outflows / goals', async () => {
+    for(const sub of ['inflows','outflows','goals']){
+      await page.click(`#np-subnav .stab[data-sub="${sub}"]`);
+      await page.waitForTimeout(200);
+      const m = await page.evaluate(() => ({
+        gutterTotal: document.querySelector('.hp-tot .v')?.textContent || '',
+        cols: document.querySelectorAll('.hp-col').length,
+      }));
+      if(m.cols !== 2) throw new Error(`${sub} hybrid did not render two columns (cols=${m.cols})`);
+      if(!m.gutterTotal.startsWith('$')) throw new Error(`${sub} gutter total missing (got "${m.gutterTotal}")`);
+      await page.screenshot({ path: `${OUT}/02-${sub}.png`, fullPage: true });
+    }
+  });
+
+  await step('scenarios renders (after tab switch)', async () => {
+    await page.click('button[data-page="scenarios"]');
+    await page.waitForTimeout(800);
     const m = await page.evaluate(() => ({
       band: document.querySelectorAll('.scn-band svg circle').length,
-      levers: document.querySelectorAll('.scn-levers .lev-row, .scn-levers .lev').length,
       status: document.querySelector('#status')?.textContent || '',
     }));
-    if(m.band < 1) throw new Error(`scenarios did not render (band circles=${m.band}, levers=${m.levers}, status="${m.status}")`);
-    await page.screenshot({ path: `${OUT}/01-scenarios.png`, fullPage: true });
+    if(m.band < 1) throw new Error(`scenarios did not render (band circles=${m.band}, status="${m.status}")`);
+    await page.screenshot({ path: `${OUT}/03-scenarios.png`, fullPage: true });
   });
 
   await step('cash-flow drawer opens with real height + rows', async () => {
@@ -100,7 +125,7 @@ try {
     if(m.height < 100) throw new Error(`cash-flow height = ${m.height}px (expected ≥100 — flex-shrink regression?)`);
     await page.evaluate(() => document.querySelector('#cf-drawer').scrollIntoView());
     await page.waitForTimeout(200);
-    await page.screenshot({ path: `${OUT}/02-cashflow.png`, fullPage: true });
+    await page.screenshot({ path: `${OUT}/04-cashflow.png`, fullPage: true });
   });
 
   await step('sequencing renders all chips on', async () => {
@@ -111,7 +136,7 @@ try {
     const ok = await page.evaluate(() => document.querySelectorAll('#seq-svg path').length > 4);
     if(!ok) throw new Error('sequencing chart missing paths');
     const el = await page.$('.seq-chart');
-    await el.screenshot({ path: `${OUT}/03-sequencing.png` });
+    await el.screenshot({ path: `${OUT}/05-sequencing.png` });
   });
 
   if(errs.length){

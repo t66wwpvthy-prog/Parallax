@@ -167,42 +167,76 @@ body{background:radial-gradient(1200px 600px at 88% -12%, var(--gold-glow), tran
 .seq-print .pr-row:last-child{border-bottom:none}
 .seq-print .pr-k{color:var(--ink-mute);font-family:'Sora'}
 .seq-print .pr-v{font-family:'Inter';font-weight:600;color:var(--ink-bright);font-variant-numeric:tabular-nums}
-/* Inputs — the HOUSEHOLD SHEET. Not a grid of boxed cards (that read as a tax
-   form); an open financial statement. Sections are separated by hairline
-   eyebrow rules, fields are boxless (a dashed baseline that lights gold on
-   focus — the same edit language as the Scenarios levers), and each money
-   section closes with a live running subtotal so the page reads like a real
-   statement you'd hand across the desk. */
-.page[data-page="inputs"]{padding-top:24px;overflow-y:auto}
-/* One-line living recap of the plan's shape — updates as inputs change. */
-.inp-recap{max-width:980px;margin:4px 0 26px;font-family:'Inter';font-size:13.5px;color:var(--ink-mute);display:flex;flex-wrap:wrap;align-items:baseline;gap:5px 16px;line-height:1.5}
-.inp-recap b{font-weight:600;color:var(--ink-bright)}
-.inp-recap .sep{color:var(--ink-ghost)}
-/* Sections flow organically down two balanced columns — no card chrome. */
-.inp-sheet{column-count:2;column-gap:56px;max-width:980px}
-.inp-group{break-inside:avoid;margin-bottom:28px}
-.inp-group h3{display:flex;align-items:center;gap:12px;margin:0 0 3px;font-family:'Sora';font-size:11px;font-weight:600;letter-spacing:.22em;text-transform:uppercase;color:var(--gold)}
-.inp-group h3::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,var(--rule-bright),transparent)}
-.inp-row{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:9px 2px;border-bottom:1px solid var(--rule-faint)}
-.inp-row:last-child{border-bottom:none}
-.inp-row label{font-size:13.5px;color:var(--ink-mute);font-family:'Sora';font-weight:400}
-.inp-row .field{display:flex;align-items:baseline;gap:4px}
-.inp-row .pre{color:var(--ink-faint);font-size:13px;font-family:'Inter'}
-/* Boxless inputs: transparent, dashed baseline → solid gold on focus. */
-.inp-row input,.inp-row select{font-family:'Inter';font-size:16px;font-weight:600;color:var(--ink-bright);background:transparent;border:none;border-bottom:1px dashed var(--rule-bright);border-radius:0;padding:2px 1px;width:116px;text-align:right;outline:none;transition:border-color .15s,background .15s}
-.inp-row input:hover,.inp-row select:hover{border-bottom-color:var(--gold)}
-.inp-row input:focus,.inp-row select:focus{border-bottom:1px solid var(--gold);background:rgba(154,115,34,.05)}
-.inp-row select{text-align:left;width:auto;min-width:150px;font-size:14px;font-weight:500;appearance:none;cursor:pointer;padding-right:20px;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M0 0 L5 6 L10 0' fill='%238a93a0'/></svg>");background-repeat:no-repeat;background-position:right 2px center}
-/* Section subtotal — the statement's running truth. Slate, not an input. */
-.inp-total{display:flex;align-items:baseline;justify-content:space-between;gap:18px;padding:10px 2px 0;margin-top:3px;border-top:1px solid var(--rule)}
-.inp-total .t-label{font-family:'Sora';font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-faint);font-weight:600}
-.inp-total .t-val{font-family:'Inter';font-size:16px;font-weight:600;color:var(--teal-deep)}
-.inp-total .t-val small{font-weight:500;color:var(--ink-mute);font-size:12.5px;margin-left:7px}
-/* Quiet "remove this row" affordance for dynamic groups like Pension. Lives in
-   the row, muted; turns negative red on hover so the destructive action reads
-   clearly only when the advisor reaches for it. */
-.inp-row .row-x{margin-left:8px;width:22px;height:22px;border:none;background:transparent;color:var(--ink-faint);font-size:18px;line-height:1;cursor:pointer;border-radius:4px;padding:0}
-.inp-row .row-x:hover{color:var(--negative-bright);background:rgba(240,145,141,.08)}
+/* Net Worth — the household sheet, split into four sub-pages by a sub-nav
+   beneath the main tabs. Balance Sheet uses the STATEMENT layout (leader-dotted
+   rows under thin-gold section heads, like a printed financial statement).
+   Inflows / Outflows / Goals use the HYBRID layout: a left-gutter identity
+   block (title + description + running total) and a two-column facing body
+   split by a single vertical hairline. One visual family across the four. */
+.page[data-page="net-worth"]{padding-top:24px;overflow-y:auto}
+
+/* Sub-nav under the main tabs — same gold-underline language, smaller and quieter. */
+.subnav{display:flex;border-bottom:1px solid var(--rule);margin:-6px 0 24px;max-width:1020px}
+.stab{background:none;border:none;border-bottom:1px solid transparent;color:var(--ink-faint);font-family:'Sora';font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;padding:13px 4px 13px 0;margin-right:30px;font-weight:500;cursor:pointer;margin-bottom:-1px;transition:color .15s,border-color .15s}
+.stab:hover{color:var(--ink-mute)}
+.stab.on{color:var(--ink-bright);font-weight:600;border-bottom-color:var(--gold)}
+
+/* ─── Statement layout (Balance Sheet) ────────────────────────────
+   Each section is a small caps header with a gold underline; rows are
+   "label … dotted leader … value", values are boxless inputs that go gold
+   on focus (same edit language as the Scenarios levers). Subtotals close
+   each money section in slate, the statement's running truth. */
+.bs-sheet{max-width:980px}
+.bs-head{font-family:'Sora';font-size:10.5px;letter-spacing:.26em;text-transform:uppercase;color:var(--ink-bright);font-weight:600;margin:38px 0 6px;padding-bottom:8px;border-bottom:1px solid var(--gold)}
+.bs-head:first-of-type{margin-top:4px}
+.bs-row{display:flex;align-items:baseline;padding:9px 0;font-size:14px}
+.bs-row label{color:var(--ink-bright);font-weight:500;font-family:'Sora'}
+.bs-row.sub label{color:var(--ink-mute);font-size:13px;padding-left:18px;font-weight:400}
+.bs-dots{flex:1;border-bottom:1px dotted var(--rule-bright);margin:0 12px;transform:translateY(-3px)}
+.bs-row .field{display:flex;align-items:baseline;gap:3px}
+.bs-row .pre{color:var(--ink-faint);font-size:13px;font-family:'Inter'}
+.bs-row input{font-family:'Inter';font-size:14.5px;font-weight:600;color:var(--ink-bright);background:transparent;border:none;border-bottom:1px dashed var(--rule-bright);padding:1px 1px;width:110px;text-align:right;outline:none;font-variant-numeric:tabular-nums;transition:border-color .15s,background .15s}
+.bs-row input:hover{border-bottom-color:var(--gold)}
+.bs-row input:focus{border-bottom:1px solid var(--gold);background:rgba(154,115,34,.05)}
+.bs-row select{font-family:'Sora';font-size:13.5px;font-weight:500;color:var(--ink-bright);background:transparent;border:none;border-bottom:1px dashed var(--rule-bright);padding:1px 18px 1px 1px;outline:none;cursor:pointer;appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M0 0 L5 6 L10 0' fill='%238a93a0'/></svg>");background-repeat:no-repeat;background-position:right 2px center}
+.bs-row select:hover,.bs-row select:focus{border-bottom-color:var(--gold)}
+.bs-row.sub input{font-size:13px;font-weight:500;color:var(--ink-mute);width:90px}
+.bs-sub{display:flex;align-items:baseline;padding:13px 0 4px;border-top:1px solid var(--rule-faint);margin-top:8px}
+.bs-sub-l{font-family:'Sora';font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-faint);font-weight:600}
+.bs-sub-d{flex:1;border-bottom:1px dotted var(--rule-bright);margin:0 12px;transform:translateY(-3px)}
+.bs-sub-v{font-family:'Inter';font-size:14px;color:var(--teal-deep);font-weight:600;font-variant-numeric:tabular-nums}
+.bs-add{padding:14px 0 4px;font-size:12.5px;color:var(--gold);font-weight:500;font-style:italic;cursor:pointer}
+.bs-row .row-x{margin-left:8px;width:20px;height:20px;border:none;background:transparent;color:var(--ink-faint);font-size:16px;line-height:1;cursor:pointer;border-radius:4px;padding:0}
+.bs-row .row-x:hover{color:var(--negative-bright);background:rgba(240,145,141,.08)}
+
+/* ─── Hybrid layout (Inflows / Outflows / Goals) ───────────────────
+   200px gutter (title + description + running total) + body split into two
+   facing columns by a single vertical hairline. Each item has a name+value
+   top line and a meta line below in ink-mute. */
+.hp{display:grid;grid-template-columns:200px 1fr;gap:54px;max-width:1080px;align-items:start}
+.hp-gutter h2{font-family:'Sora';font-size:20px;font-weight:500;color:var(--ink-bright);margin-bottom:8px;letter-spacing:.01em}
+.hp-gutter p{font-size:12.5px;color:var(--ink-mute);line-height:1.55;font-style:italic;margin-bottom:22px}
+.hp-tot{margin-top:14px;padding-top:14px;border-top:1px solid var(--rule-faint)}
+.hp-tot .l{font-family:'Sora';font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-faint);font-weight:600;margin-bottom:4px}
+.hp-tot .v{font-family:'Inter';font-size:17px;font-weight:600;color:var(--teal-deep);font-variant-numeric:tabular-nums}
+.hp-tot .v small{display:block;font-weight:500;color:var(--ink-mute);font-size:11.5px;margin-top:3px;font-family:'Sora'}
+.hp-body{display:grid;grid-template-columns:1fr 1px 1fr;gap:0 36px}
+.hp-rule{background:var(--rule-bright);width:1px;align-self:stretch}
+.hp-col h4{font-family:'Sora';font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-mute);font-weight:600;margin-bottom:18px;padding-bottom:8px;border-bottom:1px solid var(--rule-faint)}
+.hp-item{padding:11px 0;border-bottom:1px solid var(--rule-faint)}
+.hp-item:last-of-type{border-bottom:none}
+.hp-item .ti{display:flex;align-items:baseline;justify-content:space-between;gap:14px}
+.hp-item .nm{font-size:14px;color:var(--ink-bright);font-weight:500;flex:1;font-family:'Sora'}
+.hp-item .field{display:flex;align-items:baseline;gap:3px}
+.hp-item .pre{color:var(--ink-faint);font-size:13px;font-family:'Inter'}
+.hp-item input{font-family:'Inter';font-size:14.5px;font-weight:600;color:var(--ink-bright);background:transparent;border:none;border-bottom:1px dashed var(--rule-bright);padding:1px 1px;width:96px;text-align:right;outline:none;font-variant-numeric:tabular-nums;transition:border-color .15s,background .15s}
+.hp-item input:hover{border-bottom-color:var(--gold)}
+.hp-item input:focus{border-bottom:1px solid var(--gold);background:rgba(154,115,34,.05)}
+.hp-item .row-x{margin-left:6px;width:18px;height:18px;border:none;background:transparent;color:var(--ink-faint);font-size:15px;line-height:1;cursor:pointer;border-radius:4px;padding:0}
+.hp-item .row-x:hover{color:var(--negative-bright);background:rgba(240,145,141,.08)}
+.hp-item .meta{margin-top:3px;font-size:11.5px;color:var(--ink-mute)}
+.hp-item .meta b{color:var(--ink);font-weight:500}
+.hp-add{margin-top:14px;font-size:12.5px;color:var(--gold);font-weight:500;font-style:italic;cursor:pointer}
 
 /* Year-by-year cash-flow drawer on the Scenarios page. Three scenarios side
    by side; each scenario's columns are softly tinted in its line color so the
@@ -269,8 +303,12 @@ body{background:radial-gradient(1200px 600px at 88% -12%, var(--gold-glow), tran
   .chart-head{flex-wrap:wrap;gap:6px 14px}
 
   /* Inputs: single column. */
-  .inp-sheet{column-count:1;max-width:none}
-  .inp-recap{max-width:none}
+  .bs-sheet{max-width:none}
+  .hp{grid-template-columns:1fr;gap:18px}
+  .hp-body{grid-template-columns:1fr;gap:18px}
+  .hp-rule{display:none}
+  .subnav{overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap}
+  .stab{white-space:nowrap}
   .inp-row input,.inp-row select{font-size:16px;width:120px} /* 16px avoids iOS zoom-on-focus */
 
   /* Sequencing: selector + stats stack. */
@@ -291,9 +329,9 @@ body{background:radial-gradient(1200px 600px at 88% -12%, var(--gold-glow), tran
   <header class="hdr">
     <span class="wordmark">Parallax</span>
     <div class="hdr-tabs">
-      <button class="htab on" data-page="scenarios">Scenarios</button>
+      <button class="htab on" data-page="net-worth">Net Worth</button>
+      <button class="htab" data-page="scenarios">Scenarios</button>
       <button class="htab" data-page="sequencing">Sequencing</button>
-      <button class="htab" data-page="inputs">Inputs</button>
     </div>
     <div class="hdr-right">
       <span class="status" id="status">Ready</span>
@@ -301,7 +339,18 @@ body{background:radial-gradient(1200px 600px at 88% -12%, var(--gold-glow), tran
     </div>
   </header>
 
-  <section class="page on" data-page="scenarios">
+  <section class="page on" data-page="net-worth">
+    <div class="eyebrow"><span>Net Worth · The Household Base Plan</span></div>
+    <nav class="subnav" id="np-subnav">
+      <button class="stab on" data-sub="balance-sheet">Balance Sheet</button>
+      <button class="stab" data-sub="inflows">Inflows</button>
+      <button class="stab" data-sub="outflows">Outflows</button>
+      <button class="stab" data-sub="goals">Goals</button>
+    </nav>
+    <div id="np-content"></div>
+  </section>
+
+  <section class="page" data-page="scenarios">
     <div class="eyebrow"><span>Scenarios · Compare Choices</span></div>
     <!-- band + levers + foot share one horizontally-scrollable wrapper so their
          three columns stay registered on narrow (phone) viewports. -->
@@ -340,11 +389,6 @@ body{background:radial-gradient(1200px 600px at 88% -12%, var(--gold-glow), tran
     <div class="seq-prints" id="seq-prints"></div>
   </section>
 
-  <section class="page" data-page="inputs">
-    <div class="eyebrow"><span>Inputs · Base Plan</span></div>
-    <div class="inp-recap" id="inp-recap"></div>
-    <div class="inp-sheet" id="inp-grid"></div>
-  </section>
 </div>
 
 
@@ -639,44 +683,87 @@ function planForScenario(L){
 if(!plan.income.socialSecurity.spouse) plan.income.socialSecurity.spouse={pia:0,claimAge:67};
 
 const RISK_NAMES={1:'Conservative',2:'Mod-Cons',3:'Moderate',4:'Mod-Agg',5:'Aggressive'};
-const INPUT_GROUPS=[
-  {title:'Household & Plan', fields:[
+
+/* ── Sub-page registry ─────────────────────────────────────────────
+   Four sub-pages live under the Net Worth tab. Balance Sheet uses the
+   STATEMENT layout (leader-dot rows under thin-gold section heads).
+   Inflows / Outflows / Goals use the HYBRID layout (left-gutter identity
+   block + two facing columns split by a single vertical hairline).
+   Each hybrid page's gutter computes its own running total from the live
+   plan values — same place on every page so the eye knows where to land. */
+const SUB_PAGES = {
+  'balance-sheet': { label:'Balance Sheet', layout:'statement' },
+  'inflows':       { label:'Inflows',  layout:'hybrid',
+                     gutter:'Money flowing into the household — for life on the left, for a while on the right.',
+                     totLabel:'Total at retirement',
+                     totFn:()=>inflowTotalAtRetire() },
+  'outflows':      { label:'Outflows', layout:'hybrid',
+                     gutter:'What the household spends to live. Essentials keep the lights on; the rest is the life around it.',
+                     totLabel:'Annual baseline',
+                     totFn:()=>outflowAnnualBaseline() },
+  'goals':         { label:'Goals',    layout:'hybrid',
+                     gutter:'What the household wants the money to do, beyond keeping the lights on.',
+                     totLabel:'Annual goals',
+                     totFn:()=>goalAnnualTotal() },
+};
+
+/* ── Balance Sheet (Statement) sections ───────────────────────────
+   Each section becomes a small-caps header with a thin gold underline,
+   then a list of leader-dot rows. `add:` becomes a quiet "+ add …" affordance
+   below empty sections (Real Assets, Liabilities are placeholders awaiting
+   the engine's real-assets layer — committed but unused inputs would lie). */
+const BALANCE_SHEET = [
+  { head:'Household & Plan', fields:[
     {path:'household.primary.currentAge',    label:'Current age',    type:'age'},
     {path:'household.primary.retirementAge', label:'Retirement age', type:'age'},
     {path:'household.primary.planEndAge',    label:'Plan end age',   type:'age'},
   ]},
-  {title:'Portfolio', subtotal:'invest', fields:[
-    {path:'portfolio.accounts.taxable.balance',     label:'Taxable',            type:'money'},
-    {path:'portfolio.accounts.taxable.basisPct',    label:'Taxable cost basis', type:'pct'},
-    {path:'portfolio.accounts.traditional.balance', label:'Traditional / IRA',  type:'money'},
-    {path:'portfolio.accounts.roth.balance',        label:'Roth',               type:'money'},
-    {path:'portfolio.riskProfile',                  label:'Allocation',         type:'risk'},
+  { head:'Investment accounts', subtotal:'invest', fields:[
+    {path:'portfolio.accounts.taxable.balance',     label:'Taxable brokerage', type:'money'},
+    {path:'portfolio.accounts.taxable.basisPct',    label:'cost basis',        type:'pct',   sub:true},
+    {path:'portfolio.accounts.traditional.balance', label:'Traditional / IRA', type:'money'},
+    {path:'portfolio.accounts.roth.balance',        label:'Roth IRA',          type:'money'},
+    {path:'portfolio.riskProfile',                  label:'Allocation',        type:'risk'},
   ]},
-  {title:'Social Security', fields:[
-    {path:'income.socialSecurity.primary.pia',      label:'Primary · benefit @ FRA', type:'money'},
-    {path:'income.socialSecurity.primary.claimAge', label:'Primary · claim age',     type:'age'},
-    {path:'income.socialSecurity.spouse.pia',       label:'Spouse · benefit @ FRA',  type:'money'},
-    {path:'income.socialSecurity.spouse.claimAge',  label:'Spouse · claim age',      type:'age'},
-  ]},
-  {title:'Spending & Goals', subtotal:'spend', fields:[
-    {path:'expenses.living',     label:'Annual living',   type:'money'},
-    {path:'expenses.healthcare', label:'Healthcare / yr', type:'money'},
-    {path:'goals.vacation',      label:'Travel / yr',     type:'money'},
-    {path:'goals.property',      label:'Property / yr',   type:'money'},
-    {path:'goals.gifts',         label:'Gifts / yr',      type:'money'},
-  ]},
-  {title:'Savings', fields:[
-    {path:'savings.annual', label:'Annual savings (pre-retire)', type:'money'},
-  ]},
-  // Pension: only the ages the actual statement quotes. Add rows here if the
-  // client's plan offers more (e.g. 60, 67). Missing ages pay 0 — by design.
-  // Pension is rendered DYNAMICALLY (see renderInputs): one row per age in
-  // plan.income.pension.benefitByAge, sorted ascending. New ages added via
-  // the Scenarios pension lever appear here automatically on next render —
-  // so Inputs stays the running record of every benefit the advisor has
-  // entered, in order.
-  {title:'Pension', dynamic:'pension'},
+  { head:'Real assets',  fields:[], add:'+ add a property or other real asset' },
+  { head:'Liabilities',  fields:[], add:'+ add a loan or recurring obligation' },
 ];
+
+/* ── Hybrid columns: each sub-page has a LEFT and a RIGHT column.
+   Each item carries name + path + type, and an optional meta() that draws
+   from the live plan (e.g. "claim at 67" reads the actual claim age). */
+const meta = fn => fn;
+const HYBRID = {
+  'inflows': {
+    left:  { head:'Guaranteed for life', items:[
+      {path:'income.socialSecurity.primary.pia', name:'Social Security · Primary', type:'money', meta:()=>`Claim at age ${plan.income.socialSecurity.primary.claimAge}`},
+      {path:'income.socialSecurity.spouse.pia',  name:'Social Security · Spouse',  type:'money', meta:()=>plan.income.socialSecurity.spouse?`Claim at age ${plan.income.socialSecurity.spouse.claimAge}`:''},
+    ], dynamic:'pension', add:'+ add a guaranteed income source' },
+    right: { head:'Variable or time-limited', items:[
+      {path:'savings.annual', name:'Annual savings (pre-retirement)', type:'money', meta:()=>`Until age ${plan.household.primary.retirementAge}`},
+    ], add:'+ add a variable income source' },
+  },
+  'outflows': {
+    left:  { head:'Essential', items:[
+      {path:'expenses.living',     name:'Living',     type:'money', meta:()=>'Housing, utilities, food, transport'},
+      {path:'expenses.healthcare', name:'Healthcare', type:'money', meta:()=>'Premiums + out-of-pocket'},
+    ], add:'+ add an essential expense' },
+    right: { head:'Discretionary', items:[], add:'+ add a discretionary expense' },
+  },
+  'goals': {
+    left:  { head:'Recurring', items:[
+      {path:'goals.vacation', name:'Travel',            type:'money', meta:()=>'Grows with inflation'},
+      {path:'goals.property', name:'Home improvements', type:'money', meta:()=>'Ongoing through plan'},
+      {path:'goals.gifts',    name:'Gifts',             type:'money', meta:()=>'Annual'},
+    ], add:'+ add a recurring goal' },
+    right: { head:'One-time', items:[], add:'+ add a one-time goal' },
+  },
+};
+
+/* Active sub-page persisted across sessions so the advisor returns to where
+   they were. Falls back to balance-sheet if the saved key is unknown. */
+const SUB_KEY = 'parallax.netWorth.sub';
+let activeSub = (()=>{ try{ const k=localStorage.getItem(SUB_KEY); return SUB_PAGES[k]?k:'balance-sheet'; }catch{ return 'balance-sheet'; } })();
 const getPath=(o,p)=>p.split('.').reduce((a,k)=>a&&a[k],o);
 const setPath=(o,p,v)=>{const ks=p.split('.');const last=ks.pop();let t=o;for(const k of ks)t=t[k];t[last]=v;};
 
@@ -728,108 +815,167 @@ function pensionFields(){
     {path:`income.pension.benefitByAge.${age}`, label:`Benefit if claimed @ ${age}`, type:'money'}
   ));
 }
-function renderInputs(){
+/* ── Derived totals (pure aggregation of typed inputs, NOT engine output) ──
+   These read the live plan and feed the gutter "running total" on each
+   hybrid sub-page + the Balance Sheet "Investable total" subtotal. */
+function investableTotal(){
+  const a=plan.portfolio.accounts;
+  return (a.taxable.balance||0)+(a.traditional.balance||0)+(a.roth.balance||0);
+}
+function inflowTotalAtRetire(){
+  const ss=(plan.income.socialSecurity.primary.pia||0)
+         +((plan.income.socialSecurity.spouse&&plan.income.socialSecurity.spouse.pia)||0);
+  const m=(plan.income.pension&&plan.income.pension.benefitByAge)||{};
+  const pAges=Object.keys(m).map(Number);
+  const pStart=(plan.income.pension&&plan.income.pension.startAge)||0;
+  const pen = m[pStart] || (pAges.length?m[pAges[0]]:0) || 0;
+  return ss + pen;
+}
+function outflowAnnualBaseline(){
+  const e=plan.expenses;
+  return (e.living||0)+(e.healthcare||0);
+}
+function goalAnnualTotal(){
+  const g=plan.goals;
+  return (g.vacation||0)+(g.property||0)+(g.gifts||0);
+}
+const fmtMoney = v => '$'+(v||0).toLocaleString('en-US');
+
+/* ── Field renderer — one input element, shared by both layouts ──── */
+function renderField(f, klass){
+  const v = getPath(plan, f.path);
+  if(f.type==='risk'){
+    const opts = Object.keys(RISK_NAMES).map(k =>
+      `<option value="${k}" ${+k===+v?'selected':''}>${RISK_NAMES[k]} · ${RISK_LABELS[k]}</option>`).join('');
+    return `<select data-path="${f.path}" data-type="risk">${opts}</select>`;
+  }
+  if(f.type==='money'){
+    const dv = (v||0).toLocaleString('en-US');
+    return `<span class="pre">$</span><input type="text" inputmode="numeric" data-path="${f.path}" data-type="money" value="${dv}">`;
+  }
+  if(f.type==='pct'){
+    const dv = Math.round((v||0)*100);
+    return `<input type="number" data-path="${f.path}" data-type="pct" value="${dv}" step="1"><span class="pre">%</span>`;
+  }
+  // age
+  return `<input type="number" data-path="${f.path}" data-type="${f.type}" value="${v}" step="1">`;
+}
+
+/* ── Statement layout (Balance Sheet) ─────────────────────────────
+   Section heads = small caps + thin gold underline. Rows = label, dotted
+   leader, boxless input. Subtotal closes a money section in slate. */
+function renderStatement(){
+  // No per-section wrapper div — every element is a direct child of .bs-sheet
+  // so the .bs-head:first-of-type rule actually applies to the FIRST head on
+  // the page (not every head, which it was when each lived in its own wrapper).
   let h='';
-  INPUT_GROUPS.forEach(g=>{
-    h+=`<div class="inp-group"><h3>${g.title}</h3>`;
-    const fields = g.dynamic==='pension' ? pensionFields() : g.fields;
-    fields.forEach(f=>{
-      const v=getPath(plan,f.path);
-      // Dynamic groups (currently Pension) get a small × to remove the row.
-      // Static rows don't — those keys are structural and live in the plan
-      // schema (current age, balances, etc.); zeroing them is the right
-      // way to "remove" a value.
-      const xBtn = g.dynamic ? `<button class="row-x" title="Remove this age" data-rmpath="${f.path}">×</button>` : '';
-      if(f.type==='risk'){
-        const opts=Object.keys(RISK_NAMES).map(k=>
-          `<option value="${k}" ${+k===+v?'selected':''}>${RISK_NAMES[k]} · ${RISK_LABELS[k]}</option>`).join('');
-        h+=`<div class="inp-row"><label>${f.label}</label><div class="field"><select data-path="${f.path}" data-type="risk">${opts}</select>${xBtn}</div></div>`;
-      }else{
-        const pre=f.type==='money'?'<span class="pre">$</span>':'';
-        const post=f.type==='pct'?'<span class="pre">%</span>':'';
-        // Money fields render as text with comma grouping (1,200,000) — number
-        // inputs can't show commas. Parsed on change by stripping non-digits.
-        // Age/pct stay numeric so the up/down arrows still work.
-        if(f.type==='money'){
-          const dv=(v||0).toLocaleString('en-US');
-          h+=`<div class="inp-row"><label>${f.label}</label><div class="field">${pre}<input type="text" inputmode="numeric" data-path="${f.path}" data-type="money" value="${dv}">${xBtn}</div></div>`;
-        }else{
-          const dv=f.type==='pct'?Math.round(v*100):v;
-          h+=`<div class="inp-row"><label>${f.label}</label><div class="field">${pre}<input type="number" data-path="${f.path}" data-type="${f.type}" value="${dv}" step="1">${post}${xBtn}</div></div>`;
-        }
-      }
+  BALANCE_SHEET.forEach(sec => {
+    h += `<div class="bs-head">${sec.head}</div>`;
+    (sec.fields||[]).forEach(f => {
+      const rowCls = f.sub ? 'bs-row sub' : 'bs-row';
+      h += `<div class="${rowCls}"><label>${f.label}</label><span class="bs-dots"></span><span class="field">${renderField(f)}</span></div>`;
     });
-    // Money sections close with a live running subtotal — the statement's truth.
-    if(g.subtotal==='invest') h+=`<div class="inp-total"><span class="t-label">Investable total</span><span class="t-val" id="tot-invest"></span></div>`;
-    if(g.subtotal==='spend')  h+=`<div class="inp-total"><span class="t-label">Total spending</span><span class="t-val" id="tot-spend"></span></div>`;
-    h+=`</div>`;
+    if(sec.subtotal==='invest'){
+      h += `<div class="bs-sub"><span class="bs-sub-l">Investable total</span><span class="bs-sub-d"></span><span class="bs-sub-v">${fmtMoney(investableTotal())}</span></div>`;
+    }
+    if(sec.add) h += `<div class="bs-add">${sec.add}</div>`;
   });
-  $('#inp-grid').innerHTML=h;
-  refreshDerived();
-  // Row delete (×): delete the last key along the path and re-render. Pension
-  // path looks like income.pension.benefitByAge.67 — we strip the trailing
-  // "67" off the parent object. Invalidates the cached market bundle since
-  // it changes a future cash flow.
-  $$('#inp-grid .row-x').forEach(btn=>{
-    btn.addEventListener('click', e=>{
-      const path=e.target.dataset.rmpath;
-      const ks=path.split('.'); const last=ks.pop();
-      let t=plan; for(const k of ks){ if(t==null) return; t=t[k]; }
+  return `<div class="bs-sheet">${h}</div>`;
+}
+
+/* ── Hybrid layout (Inflows / Outflows / Goals) ───────────────────
+   200px gutter (title + description + running total) + two facing columns
+   split by a single vertical hairline. Each item: name on the left, boxless
+   input on the right, meta line below the name in ink-mute. */
+function renderHybrid(pageKey){
+  const sp = SUB_PAGES[pageKey];
+  const def = HYBRID[pageKey];
+  const colHtml = colDef => {
+    let h = `<h4>${colDef.head}</h4>`;
+    const items = (colDef.items||[]).slice();
+    if(colDef.dynamic==='pension'){
+      pensionFields().forEach(pf => items.push({
+        path: pf.path,
+        name: pf.label,
+        type: 'money',
+        meta: () => 'Pays only if claimed at this exact age',
+        removable: true,
+      }));
+    }
+    items.forEach(it => {
+      const xBtn = it.removable ? `<button class="row-x" title="Remove this row" data-rmpath="${it.path}">×</button>` : '';
+      h += `<div class="hp-item"><div class="ti"><span class="nm">${it.name}</span><span class="field">${renderField(it)}${xBtn}</span></div>`;
+      const m = it.meta ? it.meta() : '';
+      if(m) h += `<div class="meta">${m}</div>`;
+      h += `</div>`;
+    });
+    if(colDef.add) h += `<div class="hp-add">${colDef.add}</div>`;
+    return `<div class="hp-col">${h}</div>`;
+  };
+  return `<div class="hp">
+    <div class="hp-gutter">
+      <h2>${sp.label}</h2>
+      <p>${sp.gutter}</p>
+      <div class="hp-tot"><div class="l">${sp.totLabel}</div><div class="v">${fmtMoney(sp.totFn())}<small>per year, today's dollars</small></div></div>
+    </div>
+    <div class="hp-body">
+      ${colHtml(def.left)}
+      <div class="hp-rule"></div>
+      ${colHtml(def.right)}
+    </div>
+  </div>`;
+}
+
+/* ── Sub-page render + wiring ─────────────────────────────────────
+   One renderInputs() drives whichever sub-page is active. Re-renders on
+   sub-nav click, on field change, and on row delete — same wiring pattern
+   as before so live-commas / scenario re-seeding / plansDirty all still
+   work without per-layout duplication. */
+function renderInputs(){
+  // sub-nav active state
+  $$('#np-subnav .stab').forEach(b => b.classList.toggle('on', b.dataset.sub===activeSub));
+  const html = SUB_PAGES[activeSub].layout==='statement'
+    ? renderStatement()
+    : renderHybrid(activeSub);
+  $('#np-content').innerHTML = html;
+
+  // Row delete (×): drop the last key along the path, re-render.
+  $$('#np-content .row-x').forEach(btn => {
+    btn.addEventListener('click', e => {
+      const path = e.target.dataset.rmpath;
+      const ks = path.split('.'); const last = ks.pop();
+      let t = plan; for(const k of ks){ if(t==null) return; t=t[k]; }
       if(t!=null) delete t[last];
-      sharedPaths=null; plansDirty=true;
+      sharedPaths = null; plansDirty = true;
       renderInputs();
       $('#status').textContent='Plan edited · open Scenarios';
     });
   });
-  // Live commas as the user types into any money field on the Inputs page.
-  $$('#inp-grid input[data-type="money"]').forEach(el=>{
+  // Live commas while typing into any money field.
+  $$('#np-content input[data-type="money"]').forEach(el => {
     el.addEventListener('input', e => liveCommas(e.target));
   });
-  $$('#inp-grid input,#inp-grid select').forEach(el=>{
-    el.addEventListener('change',e=>{
-      const path=e.target.dataset.path, type=e.target.dataset.type;
-      // Money fields are text — strip everything but digits before parsing.
-      const raw=e.target.value;
+  // Commit edits on change (blur / enter / select-change).
+  $$('#np-content input, #np-content select').forEach(el => {
+    el.addEventListener('change', e => {
+      const path = e.target.dataset.path, type = e.target.dataset.type;
+      const raw = e.target.value;
       let v;
-      if(type==='money')      v=parseFloat(String(raw).replace(/[^0-9.]/g,''));
-      else if(type==='risk')  v=+raw;
-      else                    v=parseFloat(raw);
+      if(type==='money')      v = parseFloat(String(raw).replace(/[^0-9.]/g,''));
+      else if(type==='risk')  v = +raw;
+      else                    v = parseFloat(raw);
       if(!isFinite(v)) return;
-      if(type==='pct')   v=Math.max(0,Math.min(100,v))/100;
-      if(type==='money'){
-        v=Math.max(0,Math.round(v));
-        e.target.value=v.toLocaleString('en-US');   // re-format with commas in place
-      }
-      setPath(plan,path,v);
+      if(type==='pct')   v = Math.max(0, Math.min(100, v))/100;
+      if(type==='money'){ v = Math.max(0, Math.round(v)); e.target.value = v.toLocaleString('en-US'); }
+      setPath(plan, path, v);
       reseedScenarios();
-      buildLevers();              // Scenarios sliders reflect the new base
-      refreshDerived();           // recap line + section subtotals follow the edit
-      sharedPaths=null;           // plan changed → re-roll markets next Run
-      plansDirty=true;
+      buildLevers();
+      sharedPaths = null;
+      plansDirty = true;
+      renderInputs();   // re-draw so totals + meta lines reflect the edit
       $('#status').textContent='Plan edited · open Scenarios';
     });
   });
-}
-
-// Derived statement figures — pure aggregation of the raw inputs (NOT engine
-// projections): investable total, total spending, and the one-line plan recap.
-// These are a VIEW of what's typed, so the sheet reads like a real statement.
-function inputTotals(){
-  const a=plan.portfolio.accounts;
-  const invest=(a.taxable.balance||0)+(a.traditional.balance||0)+(a.roth.balance||0);
-  const e=plan.expenses, g=plan.goals;
-  const spend=(e.living||0)+(e.healthcare||0)+(g.vacation||0)+(g.property||0)+(g.gifts||0);
-  return {invest,spend};
-}
-function refreshDerived(){
-  const t=inputTotals(), p=plan.household.primary, n=v=>'$'+(v||0).toLocaleString('en-US');
-  const recap=$('#inp-recap');
-  if(recap) recap.innerHTML=
-    `Age <b>${p.currentAge}</b> <span class="sep">→</span> retire <b>${p.retirementAge}</b> <span class="sep">→</span> plan to <b>${p.planEndAge}</b>`+
-    `<span class="sep">·</span> Investable <b>${n(t.invest)}</b>`+
-    `<span class="sep">·</span> Spending <b>${n(t.spend)}/yr</b>`;
-  const iv=$('#tot-invest'); if(iv) iv.textContent=n(t.invest);
-  const sv=$('#tot-spend');  if(sv) sv.innerHTML=`${n(t.spend)} /yr <small>· ${n(Math.round(t.spend/12))}/mo</small>`;
 }
 
 // Pension slider range is PER-HOUSEHOLD: it spans only the ages the advisor has
@@ -1494,7 +1640,13 @@ $$('.htab').forEach(t=>t.onclick=()=>{
   // columns reflect the new source; otherwise just redraw.
   if(t.dataset.page==='scenarios'){ if(plansDirty){ plansDirty=false; runAll(); } }
   if(t.dataset.page==='sequencing') runSeq();
-  if(t.dataset.page==='inputs') renderInputs();
+  if(t.dataset.page==='net-worth') renderInputs();
+});
+// Net Worth sub-nav: switch the active sub-page, persist, re-render.
+$$('#np-subnav .stab').forEach(b => b.onclick = () => {
+  activeSub = b.dataset.sub;
+  try { localStorage.setItem(SUB_KEY, activeSub); } catch {}
+  renderInputs();
 });
 $('#run-btn').onclick=runAll;
 // Cash-flow drawer toggle. We render on open (and every Run while open).
