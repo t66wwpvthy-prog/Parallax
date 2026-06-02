@@ -78,13 +78,16 @@ try {
 
   await step('net worth · balance sheet renders', async () => {
     // The new first tab is Net Worth, defaulting to the Balance Sheet sub-page.
-    // A live render means at least one gold-underlined section head + a money input.
+    // A live render means the "Assets" title, the section heads, the investment
+    // rows, and the Household & Plan inputs now sitting in the left gutter.
     const m = await page.evaluate(() => ({
-      heads: document.querySelectorAll('.bs-head').length,
+      title:  document.querySelectorAll('.bs-title').length,
+      heads:  document.querySelectorAll('.bs-head').length,
       inputs: document.querySelectorAll('.bs-row input').length,
+      gutter: document.querySelectorAll('.gut-f input').length,
     }));
-    if(m.heads < 3 || m.inputs < 5)
-      throw new Error(`Balance Sheet did not render (heads=${m.heads}, inputs=${m.inputs})`);
+    if(m.title < 1 || m.heads < 3 || m.inputs < 3 || m.gutter < 4)
+      throw new Error(`Balance Sheet did not render (title=${m.title}, heads=${m.heads}, inputs=${m.inputs}, gutter=${m.gutter})`);
     await page.screenshot({ path: `${OUT}/01-balance-sheet.png`, fullPage: true });
   });
 

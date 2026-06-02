@@ -256,8 +256,20 @@ body{background:radial-gradient(1200px 600px at 88% -12%, var(--gold-glow), tran
    on focus (same edit language as the Scenarios levers). Subtotals close
    each money section in slate, the statement's running truth. */
 .bs-sheet{max-width:none}
+/* "Assets" — stands above the section heads (bigger than a bs-head, smaller
+   than the page's big number); frames the right column. */
+.bs-title{font-family:'Sora';font-size:22px;font-weight:600;color:var(--ink-bright);letter-spacing:-.01em;margin:0 0 6px}
 .bs-head{font-family:'Sora';font-size:10.5px;letter-spacing:.26em;text-transform:uppercase;color:var(--ink-bright);font-weight:600;margin:38px 0 6px;padding-bottom:8px;border-bottom:1px solid var(--gold)}
-.bs-head:first-of-type{margin-top:4px}
+.bs-head:first-of-type{margin-top:18px}
+/* Household & Plan fields in the left gutter (above Net Worth). */
+.gut-hh{margin-bottom:4px}
+.gut-f{display:flex;justify-content:space-between;align-items:baseline;padding:5px 0}
+.gut-f label{font-family:'Sora';font-size:12.5px;color:var(--ink-mute);font-weight:500}
+.gut-f .field{display:flex;align-items:baseline;gap:3px}
+.gut-f .pre{color:var(--ink-faint);font-size:12px;font-family:'Inter'}
+.gut-f input{font-family:'Inter';font-size:14px;font-weight:600;color:var(--ink-bright);background:transparent;border:none;border-bottom:1px dashed var(--rule-bright);padding:1px;width:74px;text-align:right;outline:none;font-variant-numeric:tabular-nums;transition:border-color .15s,background .15s}
+.gut-f input:hover{border-bottom-color:var(--gold)}
+.gut-f input:focus{border-bottom:1px solid var(--gold);background:rgba(154,115,34,.05)}
 .bs-row{display:flex;align-items:baseline;padding:9px 0;font-size:14px}
 .bs-row label{color:var(--ink-bright);font-weight:500;font-family:'Sora'}
 .bs-row.sub label{color:var(--ink-mute);font-size:13px;padding-left:18px;font-weight:400}
@@ -2163,12 +2175,6 @@ const SUB_PAGES = {
    below empty sections (Real Assets, Liabilities are placeholders awaiting
    the engine's real-assets layer — committed but unused inputs would lie). */
 const BALANCE_SHEET = [
-  { head:'Household & Plan', fields:[
-    {path:'household.primary.currentAge',    label:'Current age',    type:'age'},
-    {path:'household.primary.retirementAge', label:'Retirement age', type:'age'},
-    {path:'household.primary.planEndAge',    label:'Plan end age',   type:'age'},
-    {path:'income.workingIncome',            label:'Working income / yr', type:'money'},
-  ]},
   { head:'Investment accounts', subtotal:'invest', fields:[
     {path:'portfolio.accounts.taxable.balance',     label:'Taxable brokerage', type:'money'},
     {path:'portfolio.accounts.taxable.basisPct',    label:'cost basis',        type:'pct',   sub:true},
@@ -2177,6 +2183,14 @@ const BALANCE_SHEET = [
   ]},
   { head:'Real assets',  fields:[], add:'+ add a property or other real asset' },
   { head:'Liabilities',  fields:[], add:'+ add a loan or recurring obligation' },
+];
+// Household & Plan inputs live in the left gutter on the Net Worth page (above
+// the Net Worth summary) — they frame the plan, they aren't balance-sheet lines.
+const GUTTER_HH = [
+  {path:'household.primary.currentAge',    label:'Current age',    type:'age'},
+  {path:'household.primary.retirementAge', label:'Retirement age', type:'age'},
+  {path:'household.primary.planEndAge',    label:'Plan end age',   type:'age'},
+  {path:'income.workingIncome',            label:'Income / yr',    type:'money'},
 ];
 
 /* ── Hybrid columns: each sub-page has a LEFT and a RIGHT column.
@@ -2351,7 +2365,12 @@ function renderGutter(pageKey){
     const assets = investableTotal() + realAssetsTotal();
     const liab   = liabilitiesPVTotal();
     const nw     = assets - liab;
+    const hh = GUTTER_HH.map(f =>
+      `<div class="gut-f"><label>${f.label}</label><span class="field">${renderField(f)}</span></div>`
+    ).join('');
     return `<div class="np-gutter">
+      <div class="gut-hh">${hh}</div>
+      <hr class="gut-rule"/>
       <div class="lbl">Net Worth</div>
       <div class="big-num teal">${fmtMoney(nw)}</div>
       <hr class="gut-rule"/>
@@ -2414,7 +2433,7 @@ function renderStatement(){
   });
   return `<div class="np-page">
     ${renderGutter('balance-sheet')}
-    <div class="bs-sheet">${h}</div>
+    <div class="bs-sheet"><div class="bs-title">Assets</div>${h}</div>
   </div>`;
 }
 
