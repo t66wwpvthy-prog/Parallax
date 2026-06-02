@@ -19,6 +19,40 @@ CODING: how you ARM the float lever (tap a lever to select it as the unknown?).
 That interaction is the whole feature — nail it on paper first.
 
 
+## Idea bank — Pension claim-age analysis (2026-06, from frozen chat)
+NOT building now. Captured before ideas were lost.
+
+Core question: where does sophisticated pension claim-age analysis live?
+Nathan's lean: a sub-mode inside the Scenarios tab — a toggle that carries the same sim over
+but constrains the levers to pension-specific controls (claim age sweep, benefit/COLA).
+
+Key modeling decisions still open (not resolved before chat froze):
+1. PLACEMENT: sub-mode in Scenarios vs own tab vs just a scenario template.
+   Nathan leaning toward Scenarios sub-mode. No final call.
+2. BENEFIT SCHEDULE: Current engine uses `benefitByAge` explicit table (advisor enters
+   amounts for the ages they have). Open question: do we also support a
+   "base + deferral schedule" model (base amount at reference age + per-year credit/
+   reduction rates) for pensions where the advisor only has the deferral rule, not a
+   full table? SS already uses SSA's actual actuarial schedule (ssAdjust fn in engine).
+   Most DB pensions have their own non-linear tables — a single flat rate is wrong.
+3. COLA vs REAL-RETURN ENGINES: The real-return engines discard the inflation path, so
+   a non-COLA pension can't properly erode — it looks identical to a fully CPI-indexed
+   pension. Three options discussed: (a) attach an assumed inflation rate to deflate
+   non-/partial-COLA streams in real terms [current engine already has LONGRUN_INFLATION
+   constant — could use that]; (b) run pension mode on the legacy nominal engines that
+   carry a CPI path; (c) accept the limitation and treat all pensions as real (wrong,
+   understates non-COLA cost). No final call. Option (a) is lowest-lift given engine shape.
+4. INCOME SOURCES: Engine already supports SS primary + spouse + pension + other income.
+   Future: generalize to a list of income sources, each with claim age, benefit schedule,
+   COLA rule, and taxable fraction. Not scoped yet.
+
+The natural output of pension mode: a claim-age sweep showing success rate + terminal
+distribution per age (e.g. 62→70), with a breakeven crossover. Decision-useful artifact.
+
+OPEN: SS claim-age lever in Scenarios already works (ssDelayYears override). Pension
+claim age also works (pensionStartAge override + benefitByAge lookup). The engine IS
+ready for a claim-age sweep — it's a UI/presentation question, not an engine question.
+
 ## Screenshot bank — reference & reactions (2026-06, Nathan's idea dump)
 Not building now; captured so the ideas aren't lost. Verdicts are doctrine-first.
 

@@ -7,7 +7,8 @@
    shipping at 2px-tall taught us that logic checks lie — pixels don't.
 
    Run:  node scripts/verify.mjs                                              */
-import { chromium } from 'playwright';
+import puppeteer from 'puppeteer';
+const chromium = { launch: (opts) => puppeteer.launch({ ...opts, executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined }) };
 import { existsSync, mkdirSync, rmSync } from 'node:fs';
 import { spawn, spawnSync } from 'node:child_process';
 import { setTimeout as wait } from 'node:timers/promises';
@@ -62,16 +63,17 @@ try {
     launchOpts.executablePath = CONTAINER_CHROME;
     launchOpts.args = ['--no-sandbox'];
   }
-  const b = await chromium.launch(launchOpts);
-  const ctx = await b.newContext({ viewport: { width: 1400, height: 900 } });
-  const page = await ctx.newPage();
+  launchOpts.args = [...(launchOpts.args || []), '--no-sandbox'];
+  const b = await chromium.launch({ ...launchOpts, headless: true });
+  const page = await b.newPage();
+  await page.setViewport({ width: 1400, height: 900 });
   const errs = [];
   page.on('pageerror', e => errs.push('PAGE: ' + e.message));
   page.on('console',  m => { if(m.type()==='error') errs.push('CON: ' + m.text()); });
 
   await step('load index.html', async () => {
-    await page.goto(`http://127.0.0.1:${PORT}/index.html`, { waitUntil: 'networkidle', timeout: 20000 });
-    await page.waitForTimeout(1500); // runAll
+    await page.goto(`http://127.0.0.1:${PORT}/index.html`, { waitUntil: 'networkidle2', timeout: 20000 });
+    await new Promise(r => setTimeout(r, 1500)); // runAll
   });
 
   await step('net worth · balance sheet renders', async () => {
@@ -89,7 +91,7 @@ try {
   await step('net worth sub-nav cycles through inflows / outflows / goals', async () => {
     for(const sub of ['inflows','outflows','goals']){
       await page.click(`#np-subnav .stab[data-sub="${sub}"]`);
-      await page.waitForTimeout(200);
+      await new Promise(r => setTimeout(r, 200));
       const m = await page.evaluate(() => ({
         gutterBig: document.querySelector('.np-gutter .big-num')?.textContent || '',
         gutterRows: document.querySelectorAll('.np-gutter .row').length,
@@ -104,7 +106,7 @@ try {
 
   await step('net worth · snapshot renders four diagnostic gauges', async () => {
     await page.click(`#np-subnav .stab[data-sub="snapshot"]`);
-    await page.waitForTimeout(200);
+    await new Promise(r => setTimeout(r, 200));
     const m = await page.evaluate(() => ({
       metrics: document.querySelectorAll('.snap .metric').length,
       heroes:  [...document.querySelectorAll('.snap .m-hero')].map(e=>e.textContent),
@@ -125,7 +127,7 @@ try {
 
   await step('scenarios renders (after tab switch)', async () => {
     await page.click('button[data-page="scenarios"]');
-    await page.waitForTimeout(800);
+    await new Promise(r => setTimeout(r, 800));
     const m = await page.evaluate(() => ({
       band: document.querySelectorAll('.scn-band svg circle').length,
       status: document.querySelector('#status')?.textContent || '',
@@ -136,7 +138,7 @@ try {
 
   await step('cash-flow drawer opens with real height + rows', async () => {
     await page.click('#cf-btn');
-    await page.waitForTimeout(400);
+    await new Promise(r => setTimeout(r, 400));
     const m = await page.evaluate(() => {
       const d = document.querySelector('#cf-drawer');
       return {
@@ -147,15 +149,15 @@ try {
     if(m.rows < 10)    throw new Error(`cash-flow rows = ${m.rows} (expected ≥10)`);
     if(m.height < 100) throw new Error(`cash-flow height = ${m.height}px (expected ≥100 — flex-shrink regression?)`);
     await page.evaluate(() => document.querySelector('#cf-drawer').scrollIntoView());
-    await page.waitForTimeout(200);
+    await new Promise(r => setTimeout(r, 200));
     await page.screenshot({ path: `${OUT}/04-cashflow.png`, fullPage: true });
   });
 
   await step('sequencing renders all chips on', async () => {
     await page.click('button[data-page="sequencing"]');
-    await page.waitForTimeout(600);
+    await new Promise(r => setTimeout(r, 600));
     await page.evaluate(() => document.querySelectorAll('.seq-chip').forEach(c => { if(!c.classList.contains('on')) c.click(); }));
-    await page.waitForTimeout(600);
+    await new Promise(r => setTimeout(r, 600));
     const ok = await page.evaluate(() => document.querySelectorAll('#seq-svg path').length > 4);
     if(!ok) throw new Error('sequencing chart missing paths');
     const el = await page.$('.seq-chart');
