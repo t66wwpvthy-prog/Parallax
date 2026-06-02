@@ -494,8 +494,8 @@ body{background:radial-gradient(1200px 600px at 88% -12%, var(--gold-glow), tran
     </div>
     <div class="seq-chart">
       <div class="chart-head">
-        <span class="chart-title">Same Plan, Real Markets</span>
-        <span class="chart-sub" id="seq-sub">One plan held fixed · retiring into four real markets · today's dollars</span>
+        <span class="chart-title">Resilience</span>
+        <span class="chart-sub" id="seq-sub">Same plan, real markets</span>
       </div>
       <div class="chart-body"><svg id="seq-svg" viewBox="0 0 1000 320" preserveAspectRatio="none"></svg></div>
     </div>
@@ -2122,7 +2122,7 @@ function runSeq(){
   drawSeqChart(runs, retAge);
   renderPrints(runs);
   const n=runs.length;
-  $('#seq-sub').textContent=`${s.name} held fixed · retiring into ${n} real market${n>1?'s':''} · same plan, same dollars · today's dollars`;
+  $('#seq-sub').textContent='Same plan, real markets';
 }
 function drawSeqChart(runs, retAge){
   const svg=$('#seq-svg'),W=1000,H=320;
