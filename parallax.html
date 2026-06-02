@@ -3277,7 +3277,7 @@ function renderPrints(runs){
     // row would just read "—". Show it where it tells a story; omit it otherwise.
     const dwBlock = dwYrs ? `
       <div class="pr-row" style="border-bottom:none"><span class="pr-k">Duration</span><span class="pr-v">${dwYrs} yr${dwYrs>1?'s':''}</span></div>
-      <div class="dw-bar"><div class="dw-fill" style="width:${Math.min(100,dwYrs/12*100).toFixed(0)}%;background:${m.c}"></div></div>` : '';
+      <div class="dw-bar"><div class="dw-fill" style="width:${Math.min(100,dwYrs/12*100).toFixed(0)}%;background:#34465c"></div></div>` : '';
     return `<div class="seq-print">
       <h4><span class="dot" style="border-color:${m.c}"></span>${m.y} · ${m.tag}</h4>
       <div class="pr-row"><span class="pr-k">First decade</span><span class="pr-v">${pct(firstDecade(res))}</span></div>
