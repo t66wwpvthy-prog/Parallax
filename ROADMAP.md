@@ -7,8 +7,9 @@ Status tags: **NEXT** · **BIG** (own session) · **PARKED** · **SKIP** · ✅ 
 ---
 
 ## A. Engine — material gaps (the truth source)
-- [ ] **RMDs** — forced distributions from age 73. Biggest material gap; target client has large pre-tax balances. **NEXT**
-- [ ] **Roth / taxable-brokerage contributions in accumulation** — today savings flow to Traditional only; can't model backdoor Roth / post-tax brokerage. **NEXT**
+- [x] ✅ **RMDs** — forced distributions from age 73 (Uniform Lifetime; excess reinvests to taxable; Roth exempt). ⚠ divisor table flagged for CFP verification in engine.js.
+- [x] ✅ **Roth / taxable-brokerage contributions in accumulation** — savings split across sleeves (default 100% pre-tax). Backdoor-Roth / post-tax brokerage now modelable.
+- [ ] **Refinement — contribution-side tax deduction.** Engine treats `savings` as post-decision cash flow; it does NOT model that pre-tax contributions lower current taxable income while Roth don't. Withdrawal-side treatment IS modeled. Add if the current-year deduction matters for a comparison.
 - [ ] **Healthcare scales independently of lifestyle** — spendMult currently scales medical too; skews Solve-For.
 - [ ] **Survivor SS benefits** — widow step-up (~100% of deceased's); major couples lever, unmodeled.
 - [ ] **LTC cost escalation** — ~3–5%/yr above CPI; currently flat real.
@@ -33,7 +34,7 @@ Status tags: **NEXT** · **BIG** (own session) · **PARKED** · **SKIP** · ✅ 
 - [ ] **Confidence-by-year bars** — green/yellow/red per-year success + a single "Confidence Age," only if it's real per-year data.
 
 ## D. Scenarios / input model
-- [ ] **Account types build** — add "+ add an investment account" with type picker (401k/403b/457/401a/SEP/SIMPLE/solo-401k → pre-tax bucket); HSA + 529 skipped. **Decided — NEXT build.**
+- [~] **Account types build** — "+ add an investment account" with type picker (401k/403b/457/401a/SEP/SIMPLE/solo-401k → pre-tax bucket); HSA + 529 skipped. **MOCK BUILT, awaiting Nathan's OK** (`verify-out/acct-types-mock.png`) — not shipped live (mock-first rule). Wire it once approved: added accounts sum into their tax sleeve, no double-count with base rows.
 - [ ] **Scenarios "shared-track" redesign** — kill the 3-column repetition; one shared track per lever, dots split only on divergence. Approved-in-spirit, not built. **BIG**
 - [ ] **Pension claim-age analysis** — sub-mode in Scenarios: claim-age sweep (62→70) + breakeven. Open Qs below.
 - [ ] **Recurring liabilities → UI** — engine DONE; not wired. Open: base-plan input vs per-scenario.
