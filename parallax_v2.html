@@ -109,6 +109,7 @@ body{background:radial-gradient(1200px 600px at 88% -12%, var(--gold-glow), tran
 .sf-select{font-family:'Inter';font-size:18px;font-weight:600;color:var(--ink-bright);background:transparent;border:none;border-bottom:1px dashed var(--rule-bright);padding:2px 18px 2px 3px;outline:none;cursor:pointer;-webkit-appearance:none;appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--ink-mute) 50%),linear-gradient(135deg,var(--ink-mute) 50%,transparent 50%);background-position:calc(100% - 9px) 11px,calc(100% - 4px) 11px;background-size:5px 5px,5px 5px;background-repeat:no-repeat}
 .sf-select:hover,.sf-select:focus{border-bottom-color:var(--gold)}
 .sf-hint{font-family:'Sora';font-size:12px;color:var(--ink-faint);font-style:italic;padding-bottom:3px}
+.sf-params{display:contents}
 /* Solo-answer rows: one lever per row — name · was→needs · reached% · load */
 .solo-list{display:flex;flex-direction:column}
 .solo-row{display:grid;grid-template-columns:140px 1fr 150px 64px;align-items:center;gap:18px;padding:13px 0;border-top:1px solid var(--rule-faint)}
@@ -486,6 +487,7 @@ body{background:radial-gradient(1200px 600px at 88% -12%, var(--gold-glow), tran
 <script type="module">
 import {
   runSimulation, runHistoricalPath, generateReturnPath, resetSeed,
+  LONGRUN_INFLATION,
   defaultPlan as plan
 } from "./engine.js";
 /* ╔══════════════════════════════════════════════════════════════╗
@@ -628,6 +630,14 @@ function trySuccess(L){
   const ov = leversToOverrides(L);
   return runSimulation(p, ov, sharedPaths).successRate;
 }
+// Probability (0–100) of ending with at least `goal` dollars — the legacy score.
+function tryLegacyProb(L, goal){
+  const p = planForScenario(L);
+  const ov = leversToOverrides(L);
+  const res = runSimulation(p, ov, sharedPaths);
+  const n = res.sims.length || 1;
+  return 100 * res.sims.filter(s => s.terminalBalance >= goal).length / n;
+}
 // Solve ONE lever: holding all others at `baseLev`, find the value of `key`
 // closest to its baseline that achieves >= targetPct. Returns { value,
 // reachedPct, capped }. capped=true means even the lever's most-aggressive
@@ -641,13 +651,16 @@ function trySuccess(L){
 //    exhaustive scan is correct for any shape and cheap at this count.
 //  • LARGE range (spending, savings): bisect. These ARE monotonic in success
 //    and have hundreds of steps, so a full scan would be needlessly slow.
-function solveLeverFor(baseLev, key, targetPct){
+// `score(L)` returns the metric to clear (0–100); defaults to plan success %,
+// but legacy goals pass a "% chance of leaving ≥ $X" scorer. Everything else
+// (closest-to-baseline, scan vs bisection, capped handling) is unchanged.
+function solveLeverFor(baseLev, key, targetPct, score = trySuccess, band = null){
   const cfg = LEVCFG.find(c=>c.key===key);
   if(!cfg) return null;
-  const r = levRange(cfg);
+  const r = band || levRange(cfg);
   const lo = r.min, hi = r.max, step = r.step;
-  if(lo === hi) return { value: lo, reachedPct: trySuccess({...baseLev,[key]:lo}), capped:false };
-  const pctAt = v => trySuccess({...baseLev, [key]: v});
+  if(lo === hi) return { value: lo, reachedPct: score({...baseLev,[key]:lo}), capped:false };
+  const pctAt = v => score({...baseLev, [key]: v});
   const nSteps = Math.round((hi - lo) / step);
 
   if(nSteps <= 12){
@@ -692,43 +705,47 @@ function solveLeverFor(baseLev, key, targetPct){
   const value = increases ? b : a;
   return { value, reachedPct: pctAt(value), capped: false };
 }
-// ── Constraint solver (multi-lever Pareto search) ───────────────────────────
-// Searches combinations of decisions to satisfy a goal constraint, then returns
-// a Pareto frontier — the least disruptive ways to get there. Two objectives:
-//   1. Minimize disruption to the client's life (weighted change score)
-//   2. Maximize confidence above the floor
-// A combination A dominates B if A is at least as low-disruption AND at least
-// as confident. We show the non-dominated set, sorted by disruption ascending.
-//
-// "Disruption" weights (larger = more felt by the client):
-//   Spending cut: 400 per unit fraction (20% cut → 80 pts — most impactful)
-//   Extra work years: 15 per year
-//   Extra savings: 0.8 per $k/yr
-//   SS delay: 1 per year (often net-positive financially, so low weight)
-//   Risk step up: 3 per step
-
-let solverResults = null;  // null=no run yet, else {targetPct, pinKey, pinVal, soloBase, rows}
+// ── Solver (selectable goal · solo per-lever answers) ───────────────────────
+// The advisor picks a GOAL the client actually wants (retire early, afford a big
+// purchase, gift to family, leave a legacy, or just hit a confidence bar), then
+// for every controllable lever we show what it ALONE would need to be to reach
+// that goal — holding all else at today's plan. Neutral: no weighting, no
+// bundling. The advisor reads each contribution and surmises any blend.
+let solverResults = null;  // null=no run yet, else {goal, params, targetPct, soloBase, rows}
 let solverSearching = false;
 
-// Levers that get a solo answer (the controllable set). The pinned goal lever
-// is excluded at solve time. Order = how they read in the results list.
-const SOLVE_KEYS = ['retireAge','spend','savings','ssAge','risk','pensionAge'];
-// Levers offered as the pinnable GOAL (the wish you hold fixed).
-const PIN_KEYS   = ['retireAge','spend','ssAge'];
+// Levers that get a solo answer. Some goals PIN one (excluded from the list).
+// Allocation/risk is intentionally OUT — "take more risk to hit a goal" isn't a
+// clean planning recommendation (parked in the idea bank). SS stays, though it's
+// a weak % mover for high-spend households (its value is lifetime dollars).
+const SOLVE_KEYS = ['retireAge','spend','savings','ssAge','pensionAge'];
 
-// The pin-value input changes shape with the chosen lever (age box vs $ box).
-function pinValueHtml(pinKey, baseLev){
-  if(!pinKey) return `<span class="sf-lbl">&nbsp;</span><span class="sf-hint">solving from today's plan</span>`;
-  if(pinKey === 'spend'){
-    return `<span class="sf-lbl">Holding spend at</span>
-      <span class="sf-box-wrap"><span class="sf-prefix">$</span><input class="sf-box sf-money" id="sf-pinval" type="text" inputmode="numeric" value="${(baseLev.spend||0).toLocaleString('en-US')}"><span class="sf-suffix">/yr</span></span>`;
-  }
-  const cfg = LEVCFG.find(c=>c.key===pinKey);
-  const def = baseLev[pinKey];
-  const lbl = pinKey==='retireAge' ? 'Retiring by age' : 'SS starting at';
-  return `<span class="sf-lbl">${lbl}</span>
-    <span class="sf-box-wrap"><input class="sf-box" id="sf-pinval" type="number" min="${cfg.min}" max="${cfg.max}" value="${def}"></span>`;
+// Realistic search band per lever (relative to baseline) so a solo answer can't
+// suggest something absurd ($73k/yr savings off a $30k base). Not limiting: if a
+// lever can't reach the goal within its band it truthfully reports "best hits X%".
+function solveBand(key, baseLev){
+  const cfg = LEVCFG.find(c=>c.key===key);
+  const r   = levRange(cfg);
+  const cur = plan.household.primary.currentAge;
+  let min = r.min, max = r.max;
+  if(key==='spend'){        min = Math.round(baseLev.spend*0.70/100)*100; max = Math.round(baseLev.spend*1.30/100)*100; }
+  else if(key==='savings'){ min = 0; max = Math.max(baseLev.savings*2, baseLev.savings+25000); }
+  else if(key==='retireAge'){ min = Math.max(cur+1, baseLev.retireAge-5); max = baseLev.retireAge+5; }
+  // ssAge (62–70) and pensionAge (quoted range) are already tight — leave full.
+  return { min: Math.max(r.min, min), max: Math.min(r.max, max), step: r.step };
 }
+
+// Goal registry. Each goal: how it reads, the param fields it needs, which lever
+// (if any) it pins, and (legacy) a custom scorer. `bar` = label for the % box.
+const GOALS = {
+  confidence: { label:'Reach a confidence level',          bar:'confidence', params:[] },
+  retire:     { label:'Retire by an age',                  bar:'confidence', params:['age'],          pin:'retireAge' },
+  purchase:   { label:'Afford a big one-time goal',        bar:'confidence', params:['amount','age'] },
+  gift:       { label:'Gift / fund education yearly',      bar:'confidence', params:['amount','toAge'] },
+  legacy:     { label:'Leave a legacy',                    bar:'chance',     params:['amount'] },
+};
+
+// One solved lever → a clean "was → needs to be (delta)" descriptor.
 
 // One solved lever → a clean "was → needs to be (delta)" descriptor.
 function soloRowText(key, baseV, newV){
@@ -744,30 +761,43 @@ function soloRowText(key, baseV, newV){
   return { name: cfg.name, from, to, delta, unchanged: newV===baseV };
 }
 
+// The goal-dependent parameter fields + the % bar, rendered together so the
+// whole strip swaps when the goal dropdown changes.
+function goalParamsHtml(goalType, baseLev, defPct){
+  const g = GOALS[goalType];
+  const cur = plan.household.primary.currentAge;
+  const money = (id,lbl,val,suf='') => `<label class="sf-field"><span class="sf-lbl">${lbl}</span><span class="sf-box-wrap"><span class="sf-prefix">$</span><input class="sf-box sf-money" id="${id}" type="text" inputmode="numeric" value="${val.toLocaleString('en-US')}">${suf?`<span class="sf-suffix">${suf}</span>`:''}</span></label>`;
+  const age = (id,lbl,val,min=55,max=99) => `<label class="sf-field"><span class="sf-lbl">${lbl}</span><span class="sf-box-wrap"><input class="sf-box" id="${id}" type="number" min="${min}" max="${max}" value="${val}"></span></label>`;
+  let h = '';
+  if(goalType==='retire')    h += age('sf-p-age','By age', baseLev.retireAge, 55, 72);
+  if(goalType==='purchase'){ h += money('sf-p-amount','Amount', 300000); h += age('sf-p-age','At age', Math.min(72, baseLev.retireAge+2), cur, 95); }
+  if(goalType==='gift'){     h += money('sf-p-amount','Each year', 25000, '/yr'); h += age('sf-p-toage','Through age', 85, cur, 99); }
+  if(goalType==='legacy')    h += money('sf-p-amount','At least', 1000000);
+  const barLbl = g.bar==='chance' ? 'Chance' : 'Confidence';
+  const barDef = g.bar==='chance' ? 85 : defPct;
+  h += `<label class="sf-field"><span class="sf-lbl">${barLbl}</span><span class="sf-box-wrap"><input class="sf-box" id="sf-pct" type="number" min="50" max="99" value="${barDef}"><span class="sf-suffix">%</span></span></label>`;
+  return h;
+}
+
 function renderSolvePanel(){
   const el = $('#solve-panel');
   if(!el) return;
   // The goal-entry FORM takes priority — full-width card so it has room to breathe.
   if(solverFormOpen){
     const baseLev = scenarios.find(s=>s.base)?.lev || defaultLevers();
-    // Gentle, reachable default: the next round-5 above today's success, pinned
-    // at the current retirement age. The advisor then dials the goal harder.
     const baseSucc = scenarios.find(s=>s.base)?.res?.successRate || 85;
     const defPct = Math.min(95, Math.ceil((baseSucc+1)/5)*5);
-    const pinOpts = `<option value="">— nothing —</option>` +
-      PIN_KEYS.map(k=>`<option value="${k}"${k==='retireAge'?' selected':''}>${LEVCFG.find(c=>c.key===k).name}</option>`).join('');
+    const goalOpts = Object.entries(GOALS).map(([k,g])=>`<option value="${k}"${k==='retire'?' selected':''}>${g.label}</option>`).join('');
     el.innerHTML = `
       <div class="solve-panel solve-form-panel">
         <div class="solve-panel-head">
-          <span class="solve-panel-title">What would it take? — solve each lever to a confidence goal</span>
+          <span class="solve-panel-title">What would it take? — solve each lever to a goal</span>
           <button class="solve-clear" id="sf-cancel">✕ Cancel</button>
         </div>
         <form class="sf-form" id="solver-form">
-          <label class="sf-field"><span class="sf-lbl">Reach confidence</span>
-            <span class="sf-box-wrap"><input class="sf-box" id="sf-pct" type="number" min="50" max="99" value="${defPct}"><span class="sf-suffix">%</span></span></label>
-          <label class="sf-field"><span class="sf-lbl">While holding</span>
-            <select class="sf-select" id="sf-pin">${pinOpts}</select></label>
-          <span class="sf-field" id="sf-pinval-wrap">${pinValueHtml('retireAge', baseLev)}</span>
+          <label class="sf-field"><span class="sf-lbl">Goal</span>
+            <select class="sf-select" id="sf-goal">${goalOpts}</select></label>
+          <span id="sf-params" class="sf-params">${goalParamsHtml('retire', baseLev, defPct)}</span>
           <button type="submit" class="sf-go">Solve →</button>
         </form>
       </div>`;
@@ -779,14 +809,20 @@ function renderSolvePanel(){
     return;
   }
   const R = solverResults;
-  // Goal sentence: "To reach 85% confidence retiring by 62, each lever on its own:"
-  let goal = `To reach <b>${R.targetPct}%</b> confidence`;
-  if(R.pinKey){
-    const pc = LEVCFG.find(c=>c.key===R.pinKey);
-    const [pv,pu] = pc.fmt(R.pinVal, {...R.soloBase});
-    goal += R.pinKey==='retireAge' ? ` retiring by <b>${R.pinVal}</b>`
-          : R.pinKey==='ssAge'     ? ` with SS at <b>${R.pinVal}</b>`
-          :                          ` spending <b>${pv}${pu?' '+pu:''}</b>`;
+  const P = R.params;
+  const money = v => '$' + Math.round(v).toLocaleString('en-US');
+  // Goal sentence reads the client's wish back, then the bar.
+  let goal;
+  if(R.goalType==='legacy'){
+    goal = `For a <b>${R.targetPct}%</b> chance of leaving at least <b>${money(P.amount)}</b>`;
+  } else if(R.goalType==='retire'){
+    goal = `To retire by <b>${P.age}</b> at <b>${R.targetPct}%</b> confidence`;
+  } else if(R.goalType==='purchase'){
+    goal = `To afford <b>${money(P.amount)}</b> at age <b>${P.age}</b> and stay at <b>${R.targetPct}%</b> confidence`;
+  } else if(R.goalType==='gift'){
+    goal = `To gift <b>${money(P.amount)}/yr</b> through age <b>${P.toAge}</b> and stay at <b>${R.targetPct}%</b> confidence`;
+  } else {
+    goal = `To reach <b>${R.targetPct}%</b> confidence`;
   }
   goal += `, here's what each lever would need to be on its own:`;
   const allCapped = R.rows.length > 0 && R.rows.every(r => r.capped);
@@ -805,7 +841,7 @@ function renderSolvePanel(){
       <div class="solo-name">${t.name}</div>
       <div class="solo-move">${move}</div>
       <div class="solo-pct ${capped?'capped':''}">${capped ? `best hits ${row.reachedPct.toFixed(0)}%` : `${row.reachedPct.toFixed(0)}% ✓`}</div>
-      <button class="solve-load" data-solo-idx="${i}" ${capped||justMeets?'disabled':''}>Load</button>
+      <button class="solve-load" data-solo-idx="${i}" ${capped||justMeets||!R.canLoad?'disabled':''}>Load</button>
     </div>`;
   }).join('');
   const allCappedNote = allCapped
@@ -821,12 +857,12 @@ function renderSolvePanel(){
     </div>`;
 }
 
-// Solve toward a confidence goal. Optionally PIN one lever to a wish value
-// (e.g. "retiring by 62"); then for every OTHER controllable lever, find the
-// value it alone would need — holding all else at today's plan (= soloBase).
-// Neutral: no weighting, no bundling. The advisor reads each lever's required
-// move and surmises any blend. Reuses solveLeverFor (scan / bisection).
-async function runSolve(targetPct, pinKey, pinVal){
+// Solve toward a chosen GOAL. Build soloBase = today's plan + the wish applied,
+// pick the scorer (success %, or legacy "% chance of ≥ $X"), then for each
+// controllable lever find what it ALONE would need within a realistic band —
+// holding all else at soloBase. Neutral: no weighting, no bundling. The advisor
+// reads each lever's required move and surmises any blend.
+async function runSolve(goalType, params){
   if(solving) return;
   solving = true; solverFormOpen = false; solverSearching = true; solverResults = null;
   renderSolvePanel();
@@ -840,18 +876,25 @@ async function runSolve(targetPct, pinKey, pinVal){
 
   const baseLev  = JSON.parse(JSON.stringify(scenarios.find(s=>s.base)?.lev || defaultLevers()));
   const soloBase = JSON.parse(JSON.stringify(baseLev));
-  if(pinKey){ soloBase[pinKey] = pinVal; }
+  let pinned = null, score = trySuccess;
+  if(goalType==='retire'){        soloBase.retireAge = params.age; pinned = 'retireAge'; }
+  else if(goalType==='purchase'){ soloBase.eventAmt = params.amount; soloBase.eventAge = params.age; }
+  else if(goalType==='gift'){     soloBase.giftAmt = params.amount; soloBase.giftEndAge = params.toAge; }
+  else if(goalType==='legacy'){   score = (L)=>tryLegacyProb(L, params.amount); }
   syncPension(soloBase);
 
-  const keys = SOLVE_KEYS.filter(k => k !== pinKey);
+  const keys = SOLVE_KEYS.filter(k => k !== pinned);
   const rows = [];
   for(const k of keys){
     await new Promise(r => setTimeout(r, 0));      // yield so the spinner paints
-    const res = solveLeverFor(soloBase, k, targetPct);
+    const band = solveBand(k, soloBase);
+    const res  = solveLeverFor(soloBase, k, params.pct, score, band);
     if(res) rows.push({ key:k, value:res.value, reachedPct:res.reachedPct, capped:res.capped });
   }
 
-  solverResults  = { targetPct, pinKey, pinVal, soloBase, rows };
+  // Gift injects a liability with no column/lever to display, so its solos
+  // can't be loaded as a scenario faithfully — read-only. Everything else loads.
+  solverResults  = { goalType, params, targetPct: params.pct, soloBase, rows, canLoad: goalType!=='gift' };
   solverSearching = false;
   solving = false;
   renderSolvePanel();
@@ -898,10 +941,21 @@ function leversToOverrides(L){
   ov.pensionStartAge = L.pensionAge;
   return ov;
 }
-/* Risk lever changes the profile -> needs a plan clone, not an override. */
+/* Risk lever changes the profile -> needs a plan clone, not an override.
+   A gift/education goal injects a time-limited recurring outflow (a liability
+   with start/end age). colaPct = inflation so it stays real-constant — the
+   advisor enters today's dollars. No-op for normal scenarios (no giftAmt). */
 function planForScenario(L){
   const p=JSON.parse(JSON.stringify(plan));
   p.portfolio.riskProfile = L.risk;
+  if(L.giftAmt > 0 && L.giftEndAge){
+    p.liabilities = (p.liabilities || []).concat([{
+      amount: L.giftAmt,
+      startAge: plan.household.primary.currentAge,
+      endAge: L.giftEndAge,
+      colaPct: LONGRUN_INFLATION * 100
+    }]);
+  }
   return p;
 }
 
@@ -1660,10 +1714,12 @@ $('#solve-panel').addEventListener('input', e=>{
   if(e.target.classList?.contains('sf-money')) liveCommas(e.target);
 });
 $('#solve-panel').addEventListener('change', e=>{
-  if(e.target.id === 'sf-pin'){
+  if(e.target.id === 'sf-goal'){
     const baseLev = scenarios.find(s=>s.base)?.lev || defaultLevers();
-    const wrap = $('#sf-pinval-wrap');
-    if(wrap) wrap.innerHTML = pinValueHtml(e.target.value, baseLev);
+    const baseSucc = scenarios.find(s=>s.base)?.res?.successRate || 85;
+    const defPct = Math.min(95, Math.ceil((baseSucc+1)/5)*5);
+    const wrap = $('#sf-params');
+    if(wrap) wrap.innerHTML = goalParamsHtml(e.target.value, baseLev, defPct);
   }
 });
 $('#solve-panel').addEventListener('submit', e=>{
@@ -1672,14 +1728,14 @@ $('#solve-panel').addEventListener('submit', e=>{
   e.preventDefault();
   const pct = parseFloat($('#sf-pct')?.value);
   if(!isFinite(pct) || pct<50 || pct>99) return;
-  const pinKey = $('#sf-pin')?.value || '';
-  let pinVal = null;
-  if(pinKey){
-    const raw = $('#sf-pinval')?.value || '';
-    pinVal = parseInt(raw.replace(/[^0-9]/g,''), 10);
-    if(!isFinite(pinVal)) return;
-  }
-  runSolve(pct, pinKey, pinVal);
+  const goalType = $('#sf-goal')?.value || 'confidence';
+  const num = id => parseInt(($(id)?.value||'').replace(/[^0-9]/g,''), 10);
+  const params = { pct };
+  if(goalType==='retire'){        params.age = num('#sf-p-age'); if(!isFinite(params.age)) return; }
+  else if(goalType==='purchase'){ params.amount = num('#sf-p-amount'); params.age = num('#sf-p-age'); if(!isFinite(params.amount)||!isFinite(params.age)) return; }
+  else if(goalType==='gift'){     params.amount = num('#sf-p-amount'); params.toAge = num('#sf-p-toage'); if(!isFinite(params.amount)||!isFinite(params.toAge)) return; }
+  else if(goalType==='legacy'){   params.amount = num('#sf-p-amount'); if(!isFinite(params.amount)) return; }
+  runSolve(goalType, params);
 });
 // Solver panel: Cancel (form), Clear (results), and per-lever "Load" actions.
 document.addEventListener('click', e=>{

@@ -2,6 +2,27 @@
 
 Durable backlog so nothing gets lost between sessions. Newest on top.
 
+## SOLVER v2 (selectable goal · solo per-lever) — current
+- The solver now takes a GOAL the client actually wants and shows what EACH lever
+  alone must be to reach it (holding all else at today's plan). Neutral: no
+  weighting, no bundling. Goals: reach confidence, retire by age, afford a big
+  one-time purchase, gift/fund-education yearly (time-limited liability, real-
+  constant), leave a legacy ("X% chance of ≥ $Y", uses terminal distribution).
+- Realistic per-lever BANDS (solveBand): spend ±30%, savings ≤2×base, retire ±5yr.
+  If a lever can't reach within its band it honestly says "best hits X%".
+- PARKED in idea bank (Nathan's call):
+  • ALLOCATION/risk removed as a solo lever — "take more risk to hit a goal" isn't
+    a clean planning recommendation. Bring back only with a deliberate framing.
+  • SS stays but is a WEAK % mover for high-spend households (its value is lifetime
+    dollars / survivor insurance, not the success circle). OPEN: how to frame SS —
+    lifetime-dollars trade-off vs the % bar. Survivor step-up still unmodeled.
+  • HOME RELOCATION / downsizing as a goal needs a one-time INFLOW in the engine
+    (current lumpSum is outflow-only, Math.max(0,…)). Parked pending engine change.
+- Audit/PR #1 (overnight): correctly found dead module-scope drawFrom/effRateFor in
+  engine.js (lines 13–39) — applied that 28-line deletion directly on our branch
+  instead. DO NOT MERGE PR #1: it branched off the pre-solver main and its built
+  index.html/parallax.html would roll the live UI back. Close it as superseded.
+
 ## >>> DONE (built in the frozen session) <<<
 - #5 NAME/SAVE SCENARIOS — done. Named, saveable scenario objects in `scenarios[]`,
   auto-saved to localStorage (SCEN_KEY), inline rename, add/remove, baseline locked,
