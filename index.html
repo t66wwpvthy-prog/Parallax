@@ -1961,7 +1961,6 @@ function renderGutter(pageKey){
     return `<div class="np-gutter">
       <div class="lbl">Net Worth</div>
       <div class="big-num teal">${fmtMoney(nw)}</div>
-      <div class="big-sub">assets minus liabilities</div>
       <hr class="gut-rule"/>
       <div class="row"><span>Investable</span><b>${fmtMoney(investableTotal())}</b></div>
       <div class="row"><span>Real assets</span><b>${fmtMoney(realAssetsTotal())}</b></div>
@@ -2619,14 +2618,14 @@ function renderCashflow(){
 // to be maximally distinct from each other on the cream paper.
 const SEQ_YEARS=[
   {y:1929, tag:'Great Depression',  c:'#7d4a6b', on:false},  // plum
-  {y:1937, tag:'Depression relapse',c:'#b0863a', on:false},  // amber
   {y:1966, tag:'the lost decade',   c:'#3f566b', on:true },  // deep slate blue
   {y:1968, tag:'the 60s top',       c:'#5f6b3a', on:false},  // olive
   {y:1973, tag:'stagflation',       c:'#357a5e', on:true },  // deep teal-green
   {y:1987, tag:'Black Monday',      c:'#4a6f7a', on:false},  // steel
   {y:1995, tag:'the 90s boom',      c:'#a8742a', on:true },  // antique brass
-  {y:2000, tag:'dot-com → GFC',     c:'#99513f', on:true },  // deep rust
+  {y:2000, tag:'dot-com crash',     c:'#99513f', on:true },  // deep rust
   {y:2008, tag:'financial crisis',  c:'#8c4a5a', on:false},  // claret
+  {y:2009, tag:'the recovery bull', c:'#4f9d72', on:false},  // fresh green
 ];
 
 function buildSeqSelect(){
