@@ -142,6 +142,19 @@ this shared set. This is the long-planned "household-centric data root."
   on the data side: the engine ALREADY emits per-year rows per sim (balance,
   withdrawal, socialSecurity, otherIncome, pension), so the cash-flow table is
   mostly a VIEW of existing truth, not new math. Keep the visual shell shared.
+- **"Experience" visual direction (fintech / Mercury–Stripe bar) — explored, PARKED.**
+  Nathan currently prefers the live light "paper" theme; revisit ONLY if he wants to
+  elevate the whole app to feel like an *experience*, not a calculator. What landed in
+  the study (see `verify-out/exp-*.png` in that session): an atmospheric canvas (tonal
+  gradient + one faint accent glow, glassy floating top bar); the chart as a STAGE —
+  large, paths visibly separating, with a captured live moment (hover guide + tooltip +
+  end-of-path value labels) that signals "explore me"; scenarios rendered as floating
+  PLAN CARDS (pricing-page energy: big confidence number + delta pill + levers + ending
+  wealth), not a spreadsheet grid; area gradient under the anchor line; ONE confident
+  accent used sparingly; big type + lots of air. The ANTI-pattern (rejected twice):
+  flat "token-swap on wireframes" — recolored tables, stock donut rings, raw polylines,
+  multi-board palette suites. They read cheap. Depth, real type hierarchy, and
+  chart-craft are what make it feel designed; go DEEP on one, not wide on five.
 
 ## Hard-won lessons (do not relearn the hard way)
 - Don't optimize CSS for elegance/line-count. A clever property-level style merge
@@ -160,6 +173,14 @@ this shared set. This is the long-planned "household-centric data root."
 - GitHub Pages serves `main`, but feature work happens on a `claude/*` branch.
   Push to BOTH every time, or the live site goes stale and the next session
   spends an hour fighting a ghost. Use the `/ship` skill.
+- VISUAL changes get MOCKED first (static study → screenshot → Nathan approves)
+  BEFORE touching the live HTML. We pushed a full dark theme live; he rejected it;
+  a 5-minute throwaway mock would have caught it. Mock-first, build-second.
+- The live theme is the LIGHT "paper" report (warm off-white ground, slate ink,
+  brass + teal accents — see the running `:root` in `parallax_v2.html`, which is the
+  source of truth). A dark theme ("Midnight Analyst" navy) was built and REJECTED —
+  do NOT resurrect it unless Nathan explicitly asks. (The "Theme tokens" section
+  below still describes the older dark palette; treat it as historical, not current.)
 
 ## Theme tokens (dark "Sage-Brass")
 Background `#0b1118` / deep `#070b10`; surfaces `#101820`/`#151f2a`; rules `#26313d`.
