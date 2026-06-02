@@ -664,8 +664,7 @@ function resolveInputs(plan, ov){
 // not needed for spending is reinvested (after tax) into the taxable sleeve —
 // you must TAKE it, not SPEND it, so the portfolio only loses the tax.
 //
-// Divisors verified by Nathan Robinson (CFP), June 2026, against the 2025 IRS
-// Uniform Lifetime Table (IRS Pub 590-B, Table III). Values confirmed correct.
+// Divisors: IRS Uniform Lifetime Table (Pub 590-B, Table III), current 2026.
 const RMD_START_AGE = 73;
 const UNIFORM_LIFETIME = {
   73:26.5, 74:25.5, 75:24.6, 76:23.7, 77:22.9, 78:22.0, 79:21.1, 80:20.2,
