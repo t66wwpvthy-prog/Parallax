@@ -373,7 +373,7 @@ const plan = {
       roth:        { balance: 1000000 }                     // tax-free
     }
   },
-  savings: { annual: 0 },   // pre-retirement contribution ($/yr) — only applies when retirementAge > currentAge
+  savings: { annual: 0, split: { traditional: 1, roth: 0, taxable: 0 } },   // pre-retirement contribution ($/yr) + sleeve split — only applies when retirementAge > currentAge
   income: {
     // Social Security — per person. pia = the benefit at Full Retirement Age
     // (today's dollars), i.e. the number off the SSA statement. claimAge sets
@@ -561,6 +561,24 @@ function resolveInputs(plan, ov){
   const retirementAge = Math.max(curAge, (plan.household.primary.retirementAge != null
                           ? plan.household.primary.retirementAge : curAge) + (ov.retireDelay || 0));
   const savingsAnnual = Math.max(0, ((plan.savings && plan.savings.annual) || 0) * (1 + (ov.savingsBump || 0)));
+  // Contribution split — where accumulation savings land across the three sleeves.
+  // Default 100% pre-tax (Traditional) so existing plans are byte-identical. Lets
+  // high earners model Roth (backdoor) and post-tax brokerage contributions. The
+  // ov.savingsSplit override (if given) wins over the plan's split.
+  const rawSplit = ov.savingsSplit || (plan.savings && plan.savings.split) || null;
+  let savingsSplit;
+  if(!rawSplit){
+    savingsSplit = { traditional: 1, roth: 0, taxable: 0 };   // back-compat default
+  } else {
+    // A split object is given (plan or override): missing keys are 0, not 1.
+    const _st = Math.max(0, rawSplit.traditional || 0);
+    const _sr = Math.max(0, rawSplit.roth || 0);
+    const _sx = Math.max(0, rawSplit.taxable || 0);
+    const _ssum = _st + _sr + _sx;
+    savingsSplit = _ssum > 0
+      ? { traditional: _st/_ssum, roth: _sr/_ssum, taxable: _sx/_ssum }
+      : { traditional: 1, roth: 0, taxable: 0 };
+  }
   const pen           = plan.income.pension || {};
   // Chosen collection age. The UI computes this (retirement-linked or custom) and
   // passes it as an absolute override; fall back to the plan's startAge (+ legacy
@@ -584,6 +602,7 @@ function resolveInputs(plan, ov){
     currentAge: plan.household.primary.currentAge,
     retirementAge,
     savingsAnnual,
+    savingsSplit,
     horizonYears: horizon,
     accounts,  // structured account container
     portfolio: {
@@ -694,9 +713,15 @@ function runSinglePath(p, returnPath){
       if(y < 10) first10Product *= (1 + r);
       const accFactor = Math.abs(r) < 1e-7 ? 12 : r / (Math.pow(1 + r, 1/12) - 1);
       const startBalanceA = totalBalance();
-      accounts.taxable.balance     *= (1 + r);
-      accounts.roth.balance        *= (1 + r);
-      accounts.traditional.balance  = accounts.traditional.balance * (1 + r) + (p.savingsAnnual / 12) * accFactor;
+      // Contribution for the year (principal + partial-year growth), routed to
+      // the three sleeves per savingsSplit. Default split = 100% traditional, so
+      // this is byte-identical to the old single-line behavior.
+      const contrib = (p.savingsAnnual / 12) * accFactor;
+      accounts.taxable.balance     = accounts.taxable.balance     * (1 + r) + contrib * p.savingsSplit.taxable;
+      accounts.roth.balance        = accounts.roth.balance        * (1 + r) + contrib * p.savingsSplit.roth;
+      accounts.traditional.balance = accounts.traditional.balance * (1 + r) + contrib * p.savingsSplit.traditional;
+      // Taxable contributions are after-tax dollars → their principal adds to basis.
+      if(p.savingsSplit.taxable > 0) accounts.taxable.basis += p.savingsAnnual * p.savingsSplit.taxable;
       // One-time capital outlay (e.g. a home purchase) during working years. The
       // engine assumes salary covers recurring costs while working, but a large
       // purchase is funded by liquidating investments — taxable first, then

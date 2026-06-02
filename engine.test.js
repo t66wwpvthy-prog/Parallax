@@ -165,6 +165,44 @@ test('RMDs force pre-tax distributions from 73 and reinvest the excess', () => {
   assert.ok(r2.rows.every(x => !(x.rmd > 0)), 'no Traditional balance → no RMD');
 });
 
+// ── Contribution split (Roth / brokerage contributions in accumulation) ─────
+// Savings can land in any of the three sleeves. Default is 100% pre-tax so old
+// plans are unchanged; a Roth/taxable split routes the money differently.
+test('savings split: default is all pre-tax; resolveInputs normalizes a custom split', () => {
+  const p = JSON.parse(JSON.stringify(defaultPlan));
+  p.savings = { annual: 30000 };                       // no split → back-compat default
+  const d = resolveInputs(p, {});
+  assert.ok(Math.abs(d.savingsSplit.traditional - 1) < 1e-9 && d.savingsSplit.roth === 0 && d.savingsSplit.taxable === 0,
+    'missing split → 100% traditional');
+  const q = JSON.parse(JSON.stringify(defaultPlan));
+  q.savings = { annual: 30000, split: { traditional: 1, roth: 1, taxable: 2 } };  // 1:1:2
+  const e = resolveInputs(q, {});
+  assert.ok(Math.abs(e.savingsSplit.taxable - 0.5) < 1e-9 && Math.abs(e.savingsSplit.roth - 0.25) < 1e-9,
+    'split normalizes to fractions');
+  // override beats the plan's split
+  const o = resolveInputs(p, { savingsSplit: { roth: 1 } });
+  assert.ok(o.savingsSplit.roth === 1 && o.savingsSplit.traditional === 0, 'ov.savingsSplit wins');
+});
+
+test('Roth contributions end higher than the same dollars pre-tax (split flows through)', () => {
+  const horizon = 95 - 50;
+  const bundle = Array.from({ length: 200 }, () => generateReturnPath(horizon));
+  // Well-funded so the plan SURVIVES — then the withdrawal-side tax treatment
+  // (Roth tax-free + no RMD vs Traditional taxed + RMD drag) shows in the terminal.
+  const mk = split => {
+    const p = JSON.parse(JSON.stringify(defaultPlan));
+    p.household.primary = { currentAge: 50, retirementAge: 65, planEndAge: 95 };
+    p.savings   = { annual: 150000, split };
+    p.expenses  = { living: 60000, housing: 0, debt: 0, healthcare: 0 };
+    p.portfolio.accounts = { taxable:{balance:200000,basisPct:1}, traditional:{balance:0}, roth:{balance:0} };
+    return runSimulation(p, {}, bundle);
+  };
+  const allTrad = mk({ traditional:1, roth:0, taxable:0 });
+  const allRoth = mk({ traditional:0, roth:1, taxable:0 });
+  assert.ok(allRoth.terminal.p50 > allTrad.terminal.p50 + 1,
+    'tax-free Roth (no RMD) must end higher than the same dollars in pre-tax');
+});
+
 test('empty liabilities = byte-identical to before (no regression)', () => {
   const p = JSON.parse(JSON.stringify(defaultPlan));
   const withEmpty = runHistoricalPath(p, 1973, 'taxable-first');
