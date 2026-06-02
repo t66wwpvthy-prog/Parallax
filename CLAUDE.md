@@ -14,7 +14,7 @@ He is the domain expert and product owner, **not** a software engineer. So:
   path on implementation, but NEVER guess on destructive/irreversible moves —
   confirm first.
 
-## The two core principles (everything serves these)
+## The core principles (everything serves these)
 1. **Parallax models interactions.** The value is levers moving each other and the
    client *seeing* the effect. Not isolated stats. Every view must show an
    interaction or a truth, or it shouldn't exist.
@@ -22,6 +22,16 @@ He is the domain expert and product owner, **not** a software engineer. So:
    shows the story; the ADVISOR tells it. Any anecdotal sentence the program
    delivers is doing the advisor's job — cut it. If the visual is right, the
    sentence is redundant.
+3. **Neutrality.** Parallax has no thesis about whether retirement is scary or
+   joyful — it has no opinion at all. It runs the math and reports what's there,
+   equally willing to say "you're fine, spend more" as "this won't last, cut
+   back." Showing the upside is not adding optimism to balance the pessimism;
+   it's removing a distortion. A truth engine that hides good news is lying by
+   omission — every other tool is built around fear, which is itself a bias.
+   The same gauge reads green when the news is good and red when it isn't. That
+   neutrality *is* the product: it's why an advisor can trust it in front of a
+   client. (This is why the upside views — e.g. "how much more can you safely
+   spend?" — are required, not optional flavor.)
 
 ## PARALLAX DOCTRINE (apply to every decision)
 1. Make requirements less dumb — challenge assumptions, trace to fundamentals.
