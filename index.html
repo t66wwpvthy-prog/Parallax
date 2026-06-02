@@ -169,13 +169,7 @@ body{background:radial-gradient(1200px 600px at 88% -12%, var(--gold-glow), tran
 .lev-slider::-webkit-slider-thumb{-webkit-appearance:none;height:9px;width:9px;border-radius:50%;background:var(--gold);margin-top:-3px;border:2px solid var(--surface);box-shadow:0 1px 2px rgba(0,0,0,.15)}
 .lev-slider.base-lock::-webkit-slider-thumb{background:var(--teal-deep)}
 .lev-slider:disabled{opacity:.5;cursor:default}
-/* Discrete levers (ages / allocation / pension) get a STATIC position bar +
-   stepper buttons — no slider feel. */
-.lev-bar{position:relative;height:3px;border-radius:2px;background:var(--rule-faint);margin:6px 0 4px}
-.lev-fill{position:absolute;left:0;top:0;height:3px;border-radius:2px;background:var(--gold)}
-.lev-cell.base .lev-fill,.rec-card.base .lev-fill{background:var(--teal)}
-.lev-bar .lev-dot{position:absolute;top:50%;width:8px;height:8px;border-radius:50%;background:var(--gold);transform:translate(-50%,-50%);box-shadow:0 1px 2px rgba(0,0,0,.15)}
-.lev-cell.base .lev-bar .lev-dot{background:var(--teal-deep)}
+
 .lev-step{display:inline-flex;align-items:center;gap:7px;margin-left:auto}
 .step-btn{width:20px;height:20px;border-radius:5px;border:1px solid var(--rule-bright);background:var(--surface);color:var(--ink-mute);font-family:'Inter';font-size:14px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0}
 .step-btn:hover{border-color:var(--gold);color:var(--gold)}
@@ -1197,11 +1191,8 @@ function resolveInputs(plan, ov){
 // not needed for spending is reinvested (after tax) into the taxable sleeve —
 // you must TAKE it, not SPEND it, so the portfolio only loses the tax.
 //
-// ⚠ DIVISORS NOT FETCH-VERIFIED: these are the standard 2022 IRS Uniform
-// Lifetime Table values (effective 2022, current 2026), entered from reference
-// — live fetch was network-blocked at build time. CFP: confirm against IRS
-// Pub 590-B, Table III. The RMD LOGIC is independent of the exact numbers;
-// correcting any divisor is a one-line edit in this object.
+// Divisors verified by Nathan Robinson (CFP), June 2026, against the 2025 IRS
+// Uniform Lifetime Table (IRS Pub 590-B, Table III). Values confirmed correct.
 const RMD_START_AGE = 73;
 const UNIFORM_LIFETIME = {
   73:26.5, 74:25.5, 75:24.6, 76:23.7, 77:22.9, 78:22.0, 79:21.1, 80:20.2,
@@ -2416,8 +2407,8 @@ function renderStatement(){
       h += `<div class="${rowCls}"><label>${f.label}</label><span class="bs-dots"></span><span class="field">${renderField(f)}</span></div>`;
     });
     if(sec.subtotal==='invest'){
+      h += renderAcctPicker();           // Option-A bucket-rows add picker (top)
       h += renderExtraAccounts();        // added typed accounts (401k, SEP, …)
-      h += renderAcctPicker();           // Option-A bucket-rows add picker
       h += `<div class="bs-sub"><span class="bs-sub-l">Investable total</span><span class="bs-sub-d"></span><span class="bs-sub-v">${fmtMoney(investableTotal())}</span></div>`;
     }
     if(sec.add) h += `<div class="bs-add">${sec.add}</div>`;
@@ -2937,8 +2928,6 @@ function updateCell(ci, cfg){
   const pct=barFillPct(cfg,L), cell=span.parentElement;
   const sl=cell.querySelector('.lev-slider');
   if(sl){ const r=levRange(cfg); sl.value=Math.max(r.min,Math.min(r.max,L[cfg.key])); sl.style.setProperty('--fill',pct+'%'); }
-  const fill=cell.querySelector('.lev-fill'); if(fill) fill.style.width=pct+'%';
-  const dot=cell.querySelector('.lev-dot');  if(dot)  dot.style.left=pct+'%';
 }
 // Commit a lever change: editing the baseline shifts every other column's
 // delta, so rebuild the whole grid then; otherwise just refresh the one cell.
@@ -2956,11 +2945,10 @@ function buildLevers(){
     scenarios.forEach((s,ci)=>{
       const last=ci===scenarios.length-1?'col-last':'';
       const pct=barFillPct(cfg,s.lev);
-      // Dollar levers → slider; discrete levers → static fill+dot bar.
       const bar = isDollarLever(cfg)
         ? `<input class="lev-slider ${s.base?'base-lock':''}" type="range" min="${r.min}" max="${r.max}" step="${r.step}"
                  value="${Math.max(r.min,Math.min(r.max,s.lev[cfg.key]))}" data-col="${ci}" data-key="${cfg.key}" style="--fill:${pct}%">`
-        : `<div class="lev-bar"><div class="lev-fill" style="width:${pct}%"></div><div class="lev-dot" style="left:${pct}%"></div></div>`;
+        : '';
       h+=`<div class="lev-cell ${s.base?'base':''} ${last}">
         <span class="lev-val ${s.base?'base':''}" id="lv-${ci}-${cfg.key}">${renderLevValue(cfg,s.lev)}</span>
         ${bar}
