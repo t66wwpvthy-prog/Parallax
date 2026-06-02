@@ -402,7 +402,7 @@ body{background:radial-gradient(1200px 600px at 88% -12%, var(--gold-glow), tran
   <header class="hdr">
     <span class="wordmark">Parallax</span>
     <div class="hdr-tabs">
-      <button class="htab on" data-page="net-worth">Net Worth</button>
+      <button class="htab on" data-page="net-worth">Household</button>
       <button class="htab" data-page="scenarios">Scenarios</button>
       <button class="htab" data-page="sequencing">Sequencing</button>
     </div>
@@ -414,8 +414,8 @@ body{background:radial-gradient(1200px 600px at 88% -12%, var(--gold-glow), tran
 
   <section class="page on" data-page="net-worth">
     <nav class="subnav" id="np-subnav">
-      <span class="subnav-title">Net Worth</span>
-      <button class="stab on" data-sub="balance-sheet">Balance Sheet</button>
+      <span class="subnav-title">Household</span>
+      <button class="stab on" data-sub="balance-sheet">Net Worth</button>
       <button class="stab" data-sub="inflows">Inflows</button>
       <button class="stab" data-sub="outflows">Outflows</button>
       <button class="stab" data-sub="goals">Goals</button>
@@ -1999,7 +1999,7 @@ const RISK_NAMES={1:'Conservative',2:'Mod-Cons',3:'Moderate',4:'Mod-Agg',5:'Aggr
    Each hybrid page's gutter computes its own running total from the live
    plan values — same place on every page so the eye knows where to land. */
 const SUB_PAGES = {
-  'balance-sheet': { label:'Balance Sheet', layout:'statement' },
+  'balance-sheet': { label:'Net Worth', layout:'statement' },
   'inflows':       { label:'Inflows',  layout:'hybrid', totLabel:'Total at retirement' },
   'outflows':      { label:'Outflows', layout:'hybrid', totLabel:'Annual baseline' },
   'goals':         { label:'Goals',    layout:'hybrid', totLabel:'Annual goal spend' },
