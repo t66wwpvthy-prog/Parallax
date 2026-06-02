@@ -102,7 +102,7 @@ try {
     }
   });
 
-  await step('net worth · snapshot renders three diagnostic gauges', async () => {
+  await step('net worth · snapshot renders four diagnostic gauges', async () => {
     await page.click(`#np-subnav .stab[data-sub="snapshot"]`);
     await page.waitForTimeout(200);
     const m = await page.evaluate(() => ({
@@ -112,11 +112,13 @@ try {
       gauge:   !!document.querySelector('.gauge .marker'),
       seg:     document.querySelectorAll('.seg div').length,
     }));
-    if(m.metrics !== 3) throw new Error(`snapshot expected 3 metrics, got ${m.metrics}`);
+    if(m.metrics !== 4) throw new Error(`snapshot expected 4 metrics, got ${m.metrics}`);
     if(!m.cov)   throw new Error('snapshot income-floor coverage bar missing');
     if(!m.gauge) throw new Error('snapshot withdrawal-rate gauge marker missing');
     if(m.seg !== 3) throw new Error(`snapshot tax bar expected 3 segments, got ${m.seg}`);
     if(!m.heroes.every(h => /%$/.test(h))) throw new Error(`snapshot hero numbers not all %: ${JSON.stringify(m.heroes)}`);
+    const rep = await page.evaluate(() => !!document.querySelector('.rep .fill') && document.querySelectorAll('.rep-tick').length===2);
+    if(!rep) throw new Error('snapshot replacement-ratio bar missing fill or its two reference ticks');
     await page.screenshot({ path: `${OUT}/02-snapshot.png`, fullPage: true });
   });
 
