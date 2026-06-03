@@ -11,10 +11,12 @@
   /* AURORA GLASS re-skin. Engine + layout untouched — only these theme tokens
      flip from the old "paper" palette to Aurora (dark purple glass). Every
      variable NAME is preserved, so all existing rules re-theme in place. */
-  --bg-deep:#0c0712; --bg:#120B1C;
-  --surface:rgba(36,23,46,.55); --surface-2:rgba(255,255,255,.09); --surface-3:rgba(45,29,56,.42);
-  --rule:rgba(255,255,255,.16); --rule-bright:rgba(255,255,255,.28); --rule-faint:rgba(255,255,255,.09);
-  --ink:#F2ECFA; --ink-bright:#FFFFFF; --ink-mute:#BFB0CA; --ink-faint:rgba(226,211,236,.55); --ink-ghost:rgba(226,211,236,.28);
+  --bg-deep:#0a1610; --bg:#0E1A15;
+  /* Glass surfaces — translucent sage so the gradient bleeds through; the blur
+     + inner rim (added on the panel classes) is what makes them read as glass. */
+  --surface:rgba(18,38,31,.42); --surface-2:rgba(255,255,255,.07); --surface-3:rgba(26,48,40,.36);
+  --rule:rgba(255,255,255,.14); --rule-bright:rgba(255,255,255,.26); --rule-faint:rgba(255,255,255,.08);
+  --ink:#E8F0EA; --ink-bright:#FFFFFF; --ink-mute:#A6BCAF; --ink-faint:rgba(214,232,222,.52); --ink-ghost:rgba(214,232,222,.26);
   --gold:#B07840; --gold-bright:#C98B52; --gold-deep:#8A5C2C; --gold-glow:rgba(176,120,64,.22);
   --teal:#86A7C5; --teal-bright:#A3BFD8; --teal-deep:#6588A6; --teal-glow:rgba(134,167,197,.16);
   /* Result language: muted sage (strong) / bronze (caution, via --gold) /
@@ -26,15 +28,26 @@
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;background:var(--bg);font-family:'Sora',sans-serif;color:var(--ink);font-size:14px;-webkit-font-smoothing:antialiased;overflow:hidden}
-body{background-color:#120B1C;background-image:
-  radial-gradient(circle at 69% 9%, rgba(165,118,214,.50), transparent 46%),
-  radial-gradient(circle at 27% 26%, rgba(95,55,119,.42), transparent 35%),
-  radial-gradient(circle at 15% 84%, rgba(163,90,134,.20), transparent 26%),
-  radial-gradient(circle at 76% 84%, rgba(122,82,53,.14), transparent 35%),
-  linear-gradient(180deg,#120B1C,#3B264E 58%,#0A0710);}
+body{background-color:#0E1A15;background-image:
+  radial-gradient(circle at 78% 7%, rgba(96,140,118,.55), transparent 48%),
+  radial-gradient(circle at 33% 30%, rgba(56,92,78,.30), transparent 42%),
+  radial-gradient(circle at 11% 88%, rgba(8,18,14,.55), transparent 34%),
+  radial-gradient(circle at 90% 92%, rgba(8,18,14,.45), transparent 36%),
+  linear-gradient(165deg,#1A2C24,#16261F 45%,#0E1A15 78%,#0A130F);}
 .wrap{height:100vh;display:flex;flex-direction:column;overflow:hidden}
 
-.hdr{display:flex;align-items:center;gap:18px;padding:13px 28px;border-bottom:1px solid var(--rule);background:var(--bg-deep);flex:0 0 auto}
+/* ─── GLASS LAYER ───────────────────────────────────────────────────
+   Every floating panel is frosted glass: translucent sage fill (--surface)
+   + backdrop blur so the gradient bleeds through + a faint top inner-rim
+   highlight and a soft drop shadow for lift. One rule covers all cards. */
+.scn-band,.solve-panel,.acct-picker,.metric,.cf-drawer,.seq-pick,.seq-chart,.seq-print{
+  backdrop-filter:blur(16px) saturate(1.15);
+  -webkit-backdrop-filter:blur(16px) saturate(1.15);
+  background-image:linear-gradient(155deg,rgba(255,255,255,.08),rgba(255,255,255,0) 52%);
+  box-shadow:0 22px 48px -24px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.14);
+}
+
+.hdr{display:flex;align-items:center;gap:18px;padding:13px 28px;border-bottom:1px solid var(--rule);background:rgba(14,26,21,.55);backdrop-filter:blur(20px) saturate(1.1);-webkit-backdrop-filter:blur(20px) saturate(1.1);flex:0 0 auto;position:relative;z-index:50}
 .wordmark{font-size:15px;font-weight:600;letter-spacing:.30em;text-transform:uppercase;color:var(--ink-bright)}
 .hdr-tabs{display:flex;margin-left:24px}
 .htab{background:none;border:none;border-bottom:2px solid transparent;color:var(--ink-mute);cursor:pointer;font-family:'Sora';font-size:12px;letter-spacing:.2em;text-transform:uppercase;padding:6px 20px;font-weight:500;transition:color .2s,border-color .2s}
@@ -345,7 +358,7 @@ body{background-color:#120B1C;background-image:
    tax location). The visual tells the truth; no advisor-sentence narration.
    Each metric is a band: name + hero number on the left, the picture right. */
 .snap{max-width:1100px;display:grid;grid-template-columns:1fr 1fr;gap:28px;align-items:start}
-.metric{display:flex;flex-direction:column;gap:20px;padding:26px 28px 30px;border:1px solid var(--rule-faint);border-radius:10px}
+.metric{display:flex;flex-direction:column;gap:20px;padding:26px 28px 30px;border:1px solid var(--rule);border-radius:14px;background:var(--surface)}
 .m-eye{font-family:'Sora';font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-faint);font-weight:600;margin-bottom:10px}
 .m-hero{font-family:'Inter';font-size:46px;line-height:1;font-weight:700;color:var(--ink-mute);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
 .m-hero.teal{color:var(--ink-mute)} .m-hero.gold{color:var(--gold)} .m-hero.clay{color:var(--ink-faint)}
