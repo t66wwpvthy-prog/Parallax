@@ -141,7 +141,7 @@ body{background-color:#120B1C;background-image:
 .lev-cell{display:flex;flex-direction:column;justify-content:center;gap:7px;border-right:1px solid var(--rule-faint);border-bottom:1px solid var(--rule-faint);padding:0 16px;min-height:62px}
 .lev-cell.base{background:rgba(63,107,120,.04)}
 .scn-levers .lev-cell.col-last{border-right:none}
-.lev-val{font-family:'Inter';font-size:17px;font-weight:600;color:var(--ink-bright);display:flex;align-items:center;gap:6px}
+.lev-val{font-family:'Inter';font-size:17px;font-weight:600;color:var(--gold);display:flex;align-items:center;gap:6px}
 .lev-val.base{color:var(--teal-bright)}
 .lev-val .unit{font-size:10px;color:var(--ink-faint);font-weight:500;letter-spacing:.04em}
 /* Baseline-delta chip — right-aligned so the deltas form a clean comparison
@@ -151,12 +151,12 @@ body{background-color:#120B1C;background-image:
    no entered benefit yet. Looks like part of the value display (not an error).
    The "$" prefix sits in the normal value color; the input is borderless and
    inherits the typography so it reads as a natural prompt for a number. */
-.lev-val .pen-in{font-family:'Inter';font-size:15px;font-weight:600;color:var(--ink-bright);background:transparent;border:none;border-bottom:1px dashed var(--rule-bright);width:84px;padding:0 2px;outline:none;text-align:right}
+.lev-val .pen-in{font-family:'Inter';font-size:15px;font-weight:600;color:inherit;background:transparent;border:none;border-bottom:1px dashed var(--rule-bright);width:84px;padding:0 2px;outline:none;text-align:right}
 .lev-val .pen-in::placeholder{color:var(--ink-faint);font-weight:500}
 .lev-val .pen-in:focus{border-bottom-color:var(--gold)}
 /* Inline type-in boxes for the dollar/age levers. Same quiet dashed underline
    as the pension box; width tuned per content (dollars wider, age narrow). */
-.lev-val .lev-in{font-family:'Inter';font-size:17px;font-weight:600;color:var(--ink-bright);background:transparent;border:none;border-bottom:1px dashed var(--rule-bright);width:78px;padding:0 2px;outline:none;text-align:right}
+.lev-val .lev-in{font-family:'Inter';font-size:17px;font-weight:600;color:inherit;background:transparent;border:none;border-bottom:1px dashed var(--rule-bright);width:78px;padding:0 2px;outline:none;text-align:right}
 .lev-val .lev-in:focus{border-bottom-color:var(--gold)}
 .lev-val .lev-in.age-in{width:34px;text-align:center}
 /* Resting state = clean numbers + deltas (no bar clutter). The slider fades in
@@ -245,7 +245,7 @@ body{background-color:#120B1C;background-image:
 .np-gutter{position:sticky;top:0}
 .np-gutter .lbl{font-family:'Sora';font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-faint);font-weight:600;margin-bottom:4px}
 .np-gutter .big-num{font-family:'Inter';font-size:30px;line-height:1.05;font-weight:600;color:var(--ink-bright);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
-.np-gutter .big-num.teal{color:var(--teal-deep)}
+.np-gutter .big-num.teal{color:var(--gold)}
 .np-gutter .big-sub{font-family:'Sora';font-size:11px;color:var(--ink-mute);margin-top:5px;font-weight:500;line-height:1.4}
 .np-gutter .gut-rule{border:none;border-top:1px solid var(--rule-faint);margin:20px 0 14px}
 .np-gutter .row{display:flex;justify-content:space-between;align-items:baseline;padding:5px 0;font-size:12.5px;color:var(--ink-mute);font-family:'Sora';font-weight:500}
@@ -347,8 +347,8 @@ body{background-color:#120B1C;background-image:
 .snap{max-width:1100px;display:grid;grid-template-columns:1fr 1fr;gap:28px;align-items:start}
 .metric{display:flex;flex-direction:column;gap:20px;padding:26px 28px 30px;border:1px solid var(--rule-faint);border-radius:10px}
 .m-eye{font-family:'Sora';font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-faint);font-weight:600;margin-bottom:10px}
-.m-hero{font-family:'Inter';font-size:46px;line-height:1;font-weight:700;color:var(--ink-bright);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
-.m-hero.teal{color:var(--teal-deep)} .m-hero.gold{color:var(--gold-deep)} .m-hero.clay{color:var(--negative)}
+.m-hero{font-family:'Inter';font-size:46px;line-height:1;font-weight:700;color:var(--ink);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.m-hero.teal{color:#8AAEC6} .m-hero.gold{color:var(--gold-deep)} .m-hero.clay{color:var(--ink-mute)}
 .m-sub{font-family:'Sora';font-size:12.5px;color:var(--ink-mute);margin-top:8px;font-weight:500;line-height:1.45}
 /* Floating stat rows — labels above Inter numbers, no bar */
 .stat-row{display:flex;gap:22px;flex-wrap:wrap;margin-top:2px}
@@ -375,9 +375,9 @@ body{background-color:#120B1C;background-image:
 /* segmented proportion bar (tax location) */
 .seg{height:40px;border-radius:6px;overflow:hidden;display:flex;box-shadow:inset 0 0 0 1px var(--rule)}
 .seg div{display:flex;align-items:center;justify-content:center;color:#fff;font-family:'Inter';font-size:13px;font-weight:600;min-width:0;overflow:hidden}
-.seg .s-tax{background:linear-gradient(180deg,#6f8a93,var(--teal))}
-.seg .s-def{background:linear-gradient(180deg,var(--gold-bright),var(--gold))}
-.seg .s-roth{background:linear-gradient(180deg,#4f9d72,#3c7d59)}
+.seg .s-tax{background:linear-gradient(180deg,#4E6B7A,#3A5264)}
+.seg .s-def{background:linear-gradient(180deg,var(--gold),var(--gold-deep))}
+.seg .s-roth{background:linear-gradient(180deg,#456B54,#344F41)}
 
 /* Year-by-year cash-flow drawer on the Scenarios page. Three scenarios side
    by side; each scenario's columns are softly tinted in its line color so the
