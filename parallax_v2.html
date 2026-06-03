@@ -1096,7 +1096,7 @@ const HYBRID = {
 const SUB_KEY = 'parallax.netWorth.sub';
 let activeSub = (()=>{ try{ const k=localStorage.getItem(SUB_KEY); return SUB_PAGES[k]?k:'balance-sheet'; }catch{ return 'balance-sheet'; } })();
 const getPath=(o,p)=>p.split('.').reduce((a,k)=>a&&a[k],o);
-const setPath=(o,p,v)=>{const ks=p.split('.');const last=ks.pop();let t=o;for(const k of ks)t=t[k];t[last]=v;};
+const setPath=(o,p,v)=>{const ks=p.split('.');const last=ks.pop();let t=o;for(const k of ks){if(t==null)return;t=t[k];}if(t!=null)t[last]=v;};
 
 // Live comma formatting for money inputs. Reformats on every keystroke and
 // preserves the caret's LOGICAL position (after the same number of digits)
@@ -1511,48 +1511,26 @@ function renderInputs(){
   // after injecting so the input-binding code below doesn't run on it.
   if(layout==='snapshot') return;
 
-  // Row delete (×): drop the last key along the path, re-render.
-  $$('#np-content .row-x').forEach(btn => {
-    btn.addEventListener('click', e => {
-      const path = e.target.dataset.rmpath;
-      const ks = path.split('.'); const last = ks.pop();
-      let t = plan; for(const k of ks){ if(t==null) return; t=t[k]; }
-      if(t!=null) delete t[last];
-      sharedPaths = null; plansDirty = true;
-      renderInputs();
-      $('#status').textContent='Plan edited · open Scenarios';
-    });
-  });
-  // Live commas while typing into any money field.
-  $$('#np-content input[data-type="money"]').forEach(el => {
-    el.addEventListener('input', e => liveCommas(e.target));
-  });
-  // Commit edits on change (blur / enter / select-change).
-  $$('#np-content input, #np-content select').forEach(el => {
-    el.addEventListener('change', e => {
-      const path = e.target.dataset.path, type = e.target.dataset.type;
-      if(!path) return;                       // skip picker inputs (handled separately)
-      const raw = e.target.value;
-      let v;
-      if(type==='money')      v = parseFloat(String(raw).replace(/[^0-9.]/g,''));
-      else if(type==='risk')  v = +raw;
-      else                    v = parseFloat(raw);
-      if(!isFinite(v)) return;
-      if(type==='pct')   v = Math.max(0, Math.min(100, v))/100;
-      if(type==='money'){ v = Math.max(0, Math.round(v)); e.target.value = v.toLocaleString('en-US'); }
-      setPath(plan, path, v);
-      reseedScenarios();
-      buildLevers();
-      sharedPaths = null;
-      plansDirty = true;
-      renderInputs();   // re-draw so totals + meta lines reflect the edit
-      $('#status').textContent='Plan edited · open Scenarios';
-    });
-  });
 }
+// ── Net Worth input bindings — delegated on the stable #np-content ────────────
+// Input listeners are set once here so re-renders via renderInputs() (which
+// replaces #np-content children) never accumulate orphaned listeners.
 
-// ── Typed-account picker — delegated once on the static #np-content ──────────
+// ── All Net Worth interactions — delegated on the stable #np-content ─────────
 $('#np-content').addEventListener('click', e => {
+  // Row delete (×)
+  const rx = e.target.closest('.row-x');
+  if(rx){
+    const path = rx.dataset.rmpath;
+    const ks = path.split('.'); const last = ks.pop();
+    let t = plan; for(const k of ks){ if(t==null) return; t=t[k]; }
+    if(t!=null) delete t[last];
+    sharedPaths = null; plansDirty = true;
+    renderInputs();
+    $('#status').textContent='Plan edited · open Scenarios';
+    return;
+  }
+  // Account type chip
   const chip = e.target.closest('.acct-chip');
   if(chip){
     acctSel = { label: chip.dataset.label, bucket: chip.dataset.bucket };
@@ -1579,7 +1557,32 @@ $('#np-content').addEventListener('click', e => {
     commitPlanEdit();
   }
 });
+// Live commas on money fields.
+$('#np-content').addEventListener('input', e => {
+  if(e.target.dataset.type === 'money') liveCommas(e.target);
+});
 $('#np-content').addEventListener('change', e => {
+  // Field edits (data-path bindings)
+  const path = e.target.dataset.path, type = e.target.dataset.type;
+  if(path){
+    const raw = e.target.value;
+    let v;
+    if(type==='money')      v = parseFloat(String(raw).replace(/[^0-9.]/g,''));
+    else if(type==='risk')  v = +raw;
+    else                    v = parseFloat(raw);
+    if(!isFinite(v)) return;
+    if(type==='pct')   v = Math.max(0, Math.min(100, v))/100;
+    if(type==='money'){ v = Math.max(0, Math.round(v)); e.target.value = v.toLocaleString('en-US'); }
+    setPath(plan, path, v);
+    reseedScenarios();
+    buildLevers();
+    sharedPaths = null;
+    plansDirty = true;
+    renderInputs();
+    $('#status').textContent='Plan edited · open Scenarios';
+    return;
+  }
+  // Extra-account balance edit
   const bal = e.target.closest('.acct-bal');
   if(!bal) return;
   const i = +bal.dataset.acctidx;
@@ -1842,21 +1845,6 @@ function buildLevers(){
     });
   });
   $('#scn-levers').innerHTML=h;
-  // Dollar-lever sliders: live value on input (own cell only — drag stays fast),
-  // commit on drag-end (persist + refresh deltas if it was the baseline).
-  $$('.lev-slider').forEach(sl=>{
-    sl.addEventListener('input',e=>{
-      const ci=+e.target.dataset.col, cfg=LEVCFG.find(c=>c.key===e.target.dataset.key);
-      scenarios[ci].lev[cfg.key]=+e.target.value;
-      e.target.style.setProperty('--fill', barFillPct(cfg,scenarios[ci].lev)+'%');
-      updateCell(ci, cfg);
-      $('#status').textContent='Adjusted · Run to update';
-    });
-    sl.addEventListener('change',e=>{
-      if(scenarios[+e.target.dataset.col].base) buildLevers();
-      saveScenarios();
-    });
-  });
 }
 // Stepper buttons for the discrete levers (delegated — survives rebuilds).
 $('#scn-levers').addEventListener('click', e=>{
@@ -1955,18 +1943,32 @@ document.addEventListener('click', e=>{
   }
 });
 // Live commas while typing into any inline numeric input (pension + lever boxes).
+// Dollar-lever slider: live value update while dragging (delegated — survives buildLevers rebuilds).
 $('#scn-levers').addEventListener('input', e=>{
   const t=e.target;
   if(!t.classList) return;
   if(t.classList.contains('pen-in')) liveCommas(t);
   // Age boxes are 2-digit, no commas; dollar boxes get comma grouping.
   else if(t.classList.contains('lev-in') && !t.classList.contains('age-in')) liveCommas(t);
+  else if(t.classList.contains('lev-slider')){
+    const ci=+t.dataset.col, cfg=LEVCFG.find(c=>c.key===t.dataset.key);
+    scenarios[ci].lev[cfg.key]=+t.value;
+    t.style.setProperty('--fill', barFillPct(cfg,scenarios[ci].lev)+'%');
+    updateCell(ci, cfg);
+    $('#status').textContent='Adjusted · Run to update';
+  }
 });
 // Type-in lever boxes (monthly spend / savings / one-time event amount+age).
 // Writes the value the slider also drives, then refreshes that cell + status.
 // On change (blur/enter) we commit; the column re-runs on the next Run.
+// Slider drag-end: persist + rebuild baseline if needed.
 $('#scn-levers').addEventListener('change', e=>{
   const t=e.target;
+  if(t.classList && t.classList.contains('lev-slider')){
+    if(scenarios[+t.dataset.col].base) buildLevers();
+    saveScenarios();
+    return;
+  }
   if(!t.classList || !t.classList.contains('lev-in')) return;
   const span=t.closest('[id^="lv-"]'); if(!span) return;
   const ci=+span.id.split('-')[1];

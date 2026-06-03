@@ -1039,11 +1039,9 @@ function analyzeResults(sims, p){
 
   // Worst overall drawdown across all paths (not just survivors). Useful even
   // when failures exist because it indicates how steep the worst case got.
-  const allDDs = sims.map(s => s.maxDrawdown).sort((a,b)=>a-b);
-  const worstMaxDrawdown = allDDs[ns - 1];
+  const worstMaxDrawdown = sims.reduce((m, s) => s.maxDrawdown > m ? s.maxDrawdown : m, -Infinity);
 
-  const first10s = sims.map(s => s.first10Cagr).sort((a,b)=>a-b);
-  const worstFirst10Cagr = first10s[0];
+  const worstFirst10Cagr = sims.reduce((m, s) => s.first10Cagr < m ? s.first10Cagr : m, Infinity);
 
   // Years underwater — median count of years a path's balance sits below its
   // starting (real) capital. A direct sequence-risk read: how long the plan
