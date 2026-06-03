@@ -1,0 +1,104 @@
+:root {
+  /* PARALLAX AURORA GLASS v1 — LOCKED SYSTEM */
+
+  /* Background: use in this exact order */
+  --bg-base: #120B1C;
+  --bg-layer-1: linear-gradient(180deg, #120B1C 0%, #3B264E 58%, #0A0710 100%);
+  --bg-layer-2-lavender: radial-gradient(circle at 69.4% 9.8%, rgba(165,118,214,.56) 0%, rgba(165,118,214,0) 46.25%);
+  --bg-layer-3-violet: radial-gradient(circle at 26.9% 26.4%, rgba(95,55,119,.42) 0%, rgba(95,55,119,0) 35%);
+  --bg-layer-4-rose: radial-gradient(circle at 15.3% 84.4%, rgba(163,90,134,.20) 0%, rgba(163,90,134,0) 25%);
+  --bg-layer-5-green: radial-gradient(circle at 91.25% 58.9%, rgba(49,86,63,.14) 0%, rgba(49,86,63,0) 26.9%);
+  --bg-layer-6-bronze: radial-gradient(circle at 75.6% 84.4%, rgba(122,82,53,.12) 0%, rgba(122,82,53,0) 35%);
+  --bg-vignette: radial-gradient(ellipse at 51.9% 43.3%, rgba(0,0,0,0) 30%, rgba(5,3,8,.48) 100%);
+  --bg-curtain-texture: repeating-linear-gradient(90deg, rgba(255,255,255,.018) 0 1px, transparent 1px 35px);
+
+  /* Font */
+  --font-ui: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-display: "Inter Display", "Inter", system-ui, sans-serif;
+
+  /* Glass surfaces */
+  --surface-shell-fill: rgba(107,78,137,.24);
+  --surface-shell-border: rgba(255,255,255,.22);
+  --surface-shell-radius: 40px;
+  --surface-shell-blur: 30px;
+  --surface-shell-shadow: 0 36px 86px rgba(0,0,0,.24), inset 0 1px 0 rgba(255,255,255,.23), inset 1px 0 0 rgba(255,255,255,.10);
+  --surface-shell-inner-highlight: inset 0 1px 0 rgba(255,255,255,.23), inset 1px 0 0 rgba(255,255,255,.10);
+
+  --surface-card-fill: rgba(32,21,44,.49);
+  --surface-card-border: rgba(255,255,255,.16);
+  --surface-card-radius: 18px;
+  --surface-card-blur: 21px;
+  --surface-card-shadow: 0 22px 62px rgba(0,0,0,.24), inset 0 1px 0 rgba(255,255,255,.18);
+  --surface-card-inner-highlight: inset 0 1px 0 rgba(255,255,255,.18);
+
+  --surface-card-soft-fill: rgba(45,29,56,.47);
+  --surface-card-soft-border: rgba(255,255,255,.15);
+  --surface-card-soft-radius: 12px;
+  --surface-card-soft-blur: 15px;
+  --surface-card-soft-shadow: 0 18px 42px rgba(0,0,0,.20), inset 0 1px 0 rgba(255,255,255,.16);
+  --surface-card-soft-inner-highlight: inset 0 1px 0 rgba(255,255,255,.16);
+
+  --surface-control-fill: rgba(79,39,109,.42);
+  --surface-control-border: rgba(255,255,255,.17);
+  --surface-control-radius: 13px;
+  --surface-control-blur: 9px;
+  --surface-control-shadow: inset 0 1px 0 rgba(255,255,255,.17), 0 12px 28px rgba(0,0,0,.18);
+
+  --surface-input-fill: rgba(28,17,38,.59);
+  --surface-input-border: rgba(255,255,255,.13);
+  --surface-input-radius: 13px;
+  --surface-input-blur: 10px;
+
+  --surface-pill-fill-active: rgba(255,255,255,.105);
+  --surface-pill-fill-muted: rgba(255,255,255,.05);
+  --surface-pill-border-active: rgba(255,255,255,.26);
+  --surface-pill-border-muted: rgba(255,255,255,.095);
+  --surface-pill-radius: 20px;
+  --surface-pill-blur: 7px;
+
+  /* Text roles */
+  --text-primary: #F7F2FF;
+  --text-secondary: #E8DCEF;
+  --text-muted: #BFB0CA;
+  --text-axis: #D8E0EB;
+  --text-success: #E6FFEB;
+
+  --role-page-title-size: 12px; --role-page-title-weight: 700; --role-page-title-tracking: .18em;
+  --role-card-title-size: 12px; --role-card-title-weight: 700; --role-card-title-tracking: .20em;
+  --role-eyebrow-size: 7.6px; --role-eyebrow-weight: 600; --role-eyebrow-tracking: .18em;
+  --role-big-number-size: 30px; --role-big-number-weight: 600; --role-big-number-tracking: -.035em;
+  --role-body-size: 10.5px; --role-body-weight: 500; --role-body-tracking: -.01em;
+  --role-caption-size: 8.6px; --role-caption-weight: 500; --role-caption-tracking: -.005em;
+
+  /* Accents */
+  --accent-bronze: #D2943C;    /* 1995 boom line, active nav underline, run button */
+  --accent-lost-blue: #86A7C5;  /* 1966 lost-decade series */
+  --accent-stag-green: #65BD95; /* 1973 stagflation series, positive/survived */
+  --accent-dot-coral: #D87D6B;  /* 2000 dot-com series, pressure/coral */
+  --accent-lavender: #A576D6;   /* ambient glow, selected glass wash */
+  --accent-violet: #7248E8;     /* future selected bar / focus state */
+  --accent-cyan: #7FC8F3;       /* secondary chart accent */
+
+  /* Data-viz */
+  --viz-line-main-weight: 2.3px;
+  --viz-line-secondary-weight: 1.45px;
+  --viz-area-fill-opacity: .10;
+  --viz-line-glow: drop-shadow(0 0 7px currentColor);
+  --viz-grid: rgba(255,255,255,.105);
+  --viz-axis: rgba(216,224,235,.78);
+  --viz-tooltip-fill: rgba(20,13,28,.84);
+  --viz-tooltip-border: rgba(255,255,255,.16);
+
+  /* Spacing */
+  --space-unit: 8px;
+  --gap-xs: 4px;
+  --gap-sm: 8px;
+  --gap-md: 16px;
+  --gap-lg: 24px;
+  --gap-xl: 32px;
+  --panel-padding: 38px;
+  --card-padding: 24px;
+  --control-height: 40px;
+  --icon-size: 24px;
+  --icon-stroke: 1.7px;
+}
