@@ -364,6 +364,46 @@ body{background-color:#1A130B;background-image:
 .hp-item .meta b{color:var(--ink);font-weight:500}
 .hp-add{margin-top:14px;font-size:12.5px;color:var(--gold);font-weight:500;font-style:italic;cursor:pointer}
 
+/* ─── Editable add-rows (income / expense / liability / goal) ──────────────
+   A quiet ledger row: free-text name on the left, right-aligned amount, then a
+   small age window. Boxless, dashed-underline inputs in the same language as
+   every other field, so added rows read as data, not widgets. */
+.erows{margin-top:6px}
+.erow{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--rule-faint)}
+.erow:last-of-type{border-bottom:none}
+.erow input{font-family:'Inter';background:transparent;border:none;border-bottom:1px dashed var(--rule-bright);padding:1px 1px;outline:none;color:var(--ink-bright);transition:border-color .15s,background .15s}
+.erow input:hover{border-bottom-color:var(--gold)}
+.erow input:focus{border-bottom:1px solid var(--gold);background:rgba(154,115,34,.05)}
+.er-name{flex:1 1 auto;min-width:60px;font-size:13.5px;font-weight:500;text-align:left;font-family:'Sora'!important}
+.er-name::placeholder{color:var(--ink-faint);font-style:italic}
+.er-amt{display:inline-flex;align-items:baseline;gap:2px;flex:0 0 auto}
+.er-amt .pre{color:var(--ink-faint);font-size:13px;font-family:'Inter'}
+.er-amt input{width:88px;text-align:right;font-size:14px;font-weight:600;font-variant-numeric:tabular-nums}
+.er-ages{flex:0 0 auto;display:inline-flex;align-items:center;gap:4px;font-size:11.5px;color:var(--ink-mute);white-space:nowrap}
+.er-num{width:34px;text-align:center;font-size:13px;font-weight:600;color:var(--ink-bright);font-variant-numeric:tabular-nums}
+.er-dash{color:var(--ink-faint)}
+.erow .row-x{flex:0 0 auto;width:18px;height:18px;border:none;background:transparent;color:var(--ink-faint);font-size:15px;line-height:1;cursor:pointer;border-radius:4px;padding:0}
+.erow .row-x:hover{color:var(--negative-bright);background:rgba(240,145,141,.08)}
+
+/* Property card — name + value/basis + an optional mortgage sub-block. */
+.prop{margin:10px 0;padding:13px 15px;border-radius:12px;background:var(--surface-2);box-shadow:inset 0 0 0 1px rgba(255,255,255,.05)}
+.prop-top{display:flex;align-items:center;gap:10px;margin-bottom:9px}
+.prop-name{flex:1 1 auto;background:transparent;border:none;border-bottom:1px dashed var(--rule-bright);font-family:'Sora';font-size:14px;font-weight:600;color:var(--ink-bright);outline:none;padding:1px}
+.prop-name:focus{border-bottom:1px solid var(--gold)}
+.prop .row-x{width:18px;height:18px;border:none;background:transparent;color:var(--ink-faint);font-size:15px;cursor:pointer;border-radius:4px;padding:0}
+.prop .row-x:hover{color:var(--negative-bright);background:rgba(240,145,141,.08)}
+.prop-grid,.prop-mort{display:flex;flex-wrap:wrap;align-items:center;gap:6px 18px}
+.prop-mort{margin-top:9px;padding-top:9px;border-top:1px solid var(--rule-faint)}
+.prop-f{display:inline-flex;align-items:baseline;gap:5px;font-size:11.5px}
+.prop-f.narrow input{width:42px}
+.prop-f input{font-family:'Inter';background:transparent;border:none;border-bottom:1px dashed var(--rule-bright);outline:none;color:var(--ink-bright);font-size:14px;font-weight:600;width:96px;text-align:right;font-variant-numeric:tabular-nums;padding:1px}
+.prop-f input:focus{border-bottom:1px solid var(--gold)}
+.prop-f .pre{color:var(--ink-faint);font-size:12px;font-family:'Inter'}
+.er-k{font-family:'Sora';font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);font-weight:700}
+.er-sub{font-size:11px;color:var(--ink-mute)}
+.er-suf{color:var(--ink-faint);font-size:12px}
+.prop-meta{margin-top:9px;font-size:11.5px;color:var(--gold);font-style:italic}
+
 /* ─── Snapshot (the diagnosis) ─────────────────────────────────────
    Not ledger rows — a small set of diagnostic GAUGES, each a relationship
    between numbers the client already entered (income floor, withdrawal rate,
@@ -948,7 +988,12 @@ const plan = {
     // when they file (62–70); the engine actuarially adjusts pia for that age.
     // spouse: null when single; otherwise { pia, claimAge }.
     socialSecurity: { primary: { pia: 36000, claimAge: 67 }, spouse: null },
-    other:          { amount: 0,     startAge: 65, endAge: 75 },
+    // Other income — an ARRAY of variable / time-limited streams (rental, part-time,
+    // a fixed-period annuity). Each: { label, amount ($/yr, today's dollars),
+    // startAge, endAge }. Applied flat-real (today's-dollars maintained) and taxed
+    // at the ordinary rate. Empty by default. A legacy single {amount,startAge,endAge}
+    // object is still accepted (wrapped into a one-element array).
+    other:          [],
     // Pension: a DISCRETE benefit-by-age map taken straight off the plan statement
     // ({ age: annualBenefit, ... }) — the advisor enters only ages they actually
     // have a number for. The engine NEVER interpolates or extrapolates a missing
@@ -958,18 +1003,50 @@ const plan = {
     // only as a legacy single-amount fallback.
     pension:        { benefitByAge: {}, base: 0, startAge: 65, colaPct: 0 }
   },
-  expenses:   { living: 188000, housing: 0, debt: 0, healthcare: 12000 },
+  // expenses: the fixed essential scalars PLUS `extra` — an array of discretionary,
+  // time-bounded spending lines ({ label, amount, startAge, endAge }). Discretionary
+  // extras flex with the spending lever (spendMult), flat-real otherwise. Empty default.
+  expenses:   { living: 188000, housing: 0, debt: 0, healthcare: 12000, extra: [] },
   // Recurring time-bounded obligations (a mortgage, a car loan, a tuition plan).
   // Each: { label, amount ($/yr, today's dollars), startAge, endAge, colaPct }.
   // colaPct is the NOMINAL annual escalator like the pension: 0 = a fixed-nominal
   // payment, which the real-dollar engine erodes at −LONGRUN_INFLATION (a fixed
   // mortgage gets cheaper in real terms over its term). Empty by default.
   liabilities: [],
+  // Properties — real assets, each with an OPTIONAL engine-native mortgage. The
+  // engine amortizes the mortgage ({ balance, rate %, termYears }) into a fixed
+  // annual payment that runs as a liability until payoff (startAge + termYears),
+  // eroding in real terms like any fixed-nominal debt. `value` (current) and
+  // `purchasePrice` (cost basis) are captured for a FUTURE sale event (cap-gains
+  // on sale) and are INERT today — they touch no current calculation. Empty default.
+  properties: [],
   ltc:        { amount: 0, onsetAge: 85 },   // flat long-term-care cost ($/yr) from onsetAge onward
-  goals:      { vacation: 15000, property: 10000, gifts: 5000 },
+  // goals — an ARRAY of spend goals ({ name, amount, startAge, endAge }). A recurring
+  // goal spans many years; a ONE-TIME goal is a single-year window (startAge===endAge).
+  // Applied flat-real. A legacy { vacation, property, gifts } object is still accepted.
+  goals:      [
+    { name:'Vacation',         amount:15000, startAge:0, endAge:999 },
+    { name:'Home improvements', amount:10000, startAge:0, endAge:999 },
+    { name:'Gifts',            amount:5000,  startAge:0, endAge:999 },
+  ],
   taxes:      { ordinary: 22, capitalGains: 15 },
   simulation: { iterations: 1000 }
 };
+
+// Standard fixed-rate amortization → the NOMINAL ANNUAL payment (12 monthly
+// payments). `ratePct` is the APR in percent; rate 0 → straight-line. This is the
+// ONLY mortgage math the engine derives; the resulting payment is then run through
+// the existing (tested) liability cash-flow path, so mortgages add no new sim-loop
+// surface. Returns 0 for a paid-off or term-less loan.
+function annualMortgagePayment(balance, ratePct, termYears){
+  const P = Math.max(0, balance || 0);
+  const yrs = Math.max(0, termYears || 0);
+  if(P <= 0 || yrs <= 0) return 0;
+  const mr = (Math.max(0, ratePct || 0) / 100) / 12;
+  const N  = yrs * 12;
+  const monthly = (mr < 1e-9) ? P / N : (P * mr) / (1 - Math.pow(1 + mr, -N));
+  return monthly * 12;
+}
 
 
 // Seeded RNG (mulberry32). The bootstrap draws are deterministic so identical
@@ -1187,26 +1264,67 @@ function resolveInputs(plan, ov){
     },
     returnAdj: (ov.returnAdj || 0) / 100,
     ss: ssBenefits,   // array of { amount, startAge } in the primary's age frame
-    otherIncome:    { ...plan.income.other },
+    // Other income — normalized to an array of flat-real timed streams. Accepts a
+    // legacy single object too.
+    otherIncome: (Array.isArray(plan.income.other) ? plan.income.other
+                  : (plan.income.other ? [plan.income.other] : []))
+      .map(o => ({
+        amount:   Math.max(0, o.amount || 0),
+        startAge: (o.startAge != null ? o.startAge : 0),
+        endAge:   (o.endAge   != null ? o.endAge   : 999)
+      })),
     pension:        { amount: pensionAmount, startAge: penStartAge, colaReal: penColaReal },
     ltc:            { amount: Math.max(0, (ltc.amount || 0) * (1 + (ov.ltcAdj || 0))), onsetAge: (ltc.onsetAge != null ? ltc.onsetAge : 999) },
     expenses: {
       living:     plan.expenses.living     * spendMult,
       housing:    plan.expenses.housing    * spendMult,
       debt:       plan.expenses.debt       * spendMult,
-      healthcare: plan.expenses.healthcare * spendMult
+      healthcare: plan.expenses.healthcare * spendMult,
+      // Discretionary, time-bounded extras — flex with the spending lever, flat-real.
+      extra: (plan.expenses.extra || []).map(e => ({
+        amount:   Math.max(0, e.amount || 0) * spendMult,
+        startAge: (e.startAge != null ? e.startAge : 0),
+        endAge:   (e.endAge   != null ? e.endAge   : 999)
+      }))
     },
     // Recurring liabilities (e.g. a mortgage). NOT scaled by spendMult — a fixed
     // obligation isn't discretionary spending. colaReal mirrors the pension:
     // nominal escalator − inflation, so a 0%-COLA debt erodes in real terms.
-    liabilities: (plan.liabilities || []).map(L => ({
-      amount:   Math.max(0, L.amount || 0),
-      startAge: (L.startAge != null ? L.startAge : 0),
-      endAge:   (L.endAge   != null ? L.endAge   : 999),
-      colaReal: ((L.colaPct || 0) / 100) - LONGRUN_INFLATION
-    })),
+    // Property mortgages are amortized to a fixed annual payment and APPENDED here
+    // as ordinary fixed-nominal liabilities (payment from the loan's start age until
+    // payoff = startAge + termYears), so they reuse the same tested cash-flow path.
+    liabilities: [
+      ...(plan.liabilities || []).map(L => ({
+        amount:   Math.max(0, L.amount || 0),
+        startAge: (L.startAge != null ? L.startAge : 0),
+        endAge:   (L.endAge   != null ? L.endAge   : 999),
+        colaReal: ((L.colaPct || 0) / 100) - LONGRUN_INFLATION
+      })),
+      ...(plan.properties || [])
+        .filter(pr => pr && pr.mortgage && (pr.mortgage.balance > 0) && (pr.mortgage.termYears > 0))
+        .map(pr => {
+          const M = pr.mortgage;
+          const start = (M.startAge != null ? M.startAge : curAge);
+          return {
+            amount:   annualMortgagePayment(M.balance, M.rate || 0, M.termYears),
+            startAge: start,
+            endAge:   start + M.termYears,            // payoff
+            colaReal: -LONGRUN_INFLATION              // fixed-nominal payment erodes in real terms
+          };
+        })
+    ],
     healthcareMult: 1 + (ov.healthcareAdj || 0),
-    goals:          { ...plan.goals },
+    // Goals — normalized to an array of flat-real timed entries. A legacy
+    // { vacation, property, gifts } object is converted to always-on entries.
+    goals: (Array.isArray(plan.goals)
+              ? plan.goals
+              : Object.keys(plan.goals || {}).map(k => ({ name:k, amount:plan.goals[k], startAge:0, endAge:999 })))
+      .map(g => ({
+        name:     g.name || '',
+        amount:   Math.max(0, g.amount || 0),
+        startAge: (g.startAge != null ? g.startAge : 0),
+        endAge:   (g.endAge   != null ? g.endAge   : 999)
+      })),
     // Tax rates split: ordinary income (for traditional withdrawals and SS),
     // and long-term capital gains (for taxable account gains).
     // The taxMult override scales both rates proportionally for stress testing.
@@ -1332,14 +1450,17 @@ function runSinglePath(p, returnPath){
     // person's benefit that has started by this age (primary + spouse).
     let ssInc = 0;
     for(const b of p.ss){ if(age >= b.startAge) ssInc += b.amount; }
-    const oiInc = (age >= p.otherIncome.startAge && age <= p.otherIncome.endAge)
-                  ? p.otherIncome.amount : 0;
+    let oiInc = 0;
+    for(const o of p.otherIncome){ if(age >= o.startAge && age <= o.endAge) oiInc += o.amount; }
     const penInc = (p.pension && age >= p.pension.startAge)
                    ? p.pension.amount * Math.pow(1 + (p.pension.colaReal || 0), age - p.pension.startAge) : 0;
     const ltcCost = (p.ltc && age >= p.ltc.onsetAge) ? p.ltc.amount : 0;
+    let extraExp = 0;
+    for(const e of p.expenses.extra){ if(age >= e.startAge && age <= e.endAge) extraExp += e.amount; }
     const expenses = p.expenses.living + p.expenses.housing + p.expenses.debt
-                     + p.expenses.healthcare * p.healthcareMult + ltcCost;
-    const goalsY   = p.goals.vacation + p.goals.property + p.goals.gifts;
+                     + p.expenses.healthcare * p.healthcareMult + extraExp + ltcCost;
+    let goalsY = 0;
+    for(const g of p.goals){ if(age >= g.startAge && age <= g.endAge) goalsY += g.amount; }
     // Recurring liabilities active at this age, each eroded in real terms from
     // its OWN start age (a fixed mortgage started years ago is already cheaper).
     const liabCost = p.liabilities.reduce((s, L) =>
@@ -1729,9 +1850,20 @@ plan.portfolio.accounts.roth.balance         = 400000;
 plan.portfolio.accounts.taxable.basisPct     = 0.55;
 plan.expenses.living     = 205000;
 plan.expenses.healthcare = 12000;
-plan.goals.vacation      = 12000;
-plan.goals.property      = 5000;
-plan.goals.gifts         = 5000;
+// Goals are now an ARRAY: recurring goals (lifelong window 0–999) live in the
+// left column; a one-time goal is a single-year window (startAge===endAge).
+plan.goals = [
+  { name:'Travel',            amount:12000, startAge:0, endAge:999 },
+  { name:'Home improvements', amount:5000,  startAge:0, endAge:999 },
+  { name:'Gifts',             amount:5000,  startAge:0, endAge:999 },
+];
+// Demo real asset: a primary residence with a remaining mortgage. The engine
+// amortizes it (balance/rate/term) into a payment that runs until payoff; value
+// and purchasePrice are captured for a future sale event and are inert today.
+plan.properties = [
+  { name:'Primary residence', value:1200000, purchasePrice:520000,
+    mortgage:{ balance:280000, rate:5.5, termYears:9 } },
+];
 // Two earners: one maxed (~$48k PIA at FRA), spouse a strong earner (~$30k).
 // pia = benefit at FRA (67) in today's dollars, straight off the SSA statement.
 plan.income.socialSecurity.primary = { pia: 48000, claimAge: 67 };
@@ -2206,8 +2338,8 @@ const BALANCE_SHEET = [
     {path:'portfolio.accounts.traditional.balance', label:'Traditional / IRA', type:'money'},
     {path:'portfolio.accounts.roth.balance',        label:'Roth IRA',          type:'money'},
   ]},
-  { head:'Real assets',  fields:[], add:'+ add a property or other real asset' },
-  { head:'Liabilities',  liab:true, fields:[], add:'+ add a loan or recurring obligation' },
+  { head:'Real assets',  fields:[], kind:'property',  add:'+ add a property or other real asset' },
+  { head:'Liabilities',  liab:true, fields:[], kind:'liability', add:'+ add a loan or recurring obligation' },
 ];
 // Household & Plan inputs — plain framing data (ages, income), rendered as a
 // short horizontal stat bar across the top of the Net Worth page rather than a
@@ -2228,23 +2360,21 @@ const HYBRID = {
     left:  { head:'Guaranteed for life', items:[
       {path:'income.socialSecurity.primary.pia', name:'Social Security · Primary', type:'money', meta:()=>`Claim at age ${plan.income.socialSecurity.primary.claimAge}`},
       {path:'income.socialSecurity.spouse.pia',  name:'Social Security · Spouse',  type:'money', meta:()=>plan.income.socialSecurity.spouse?`Claim at age ${plan.income.socialSecurity.spouse.claimAge}`:''},
-    ], dynamic:'pension', add:'+ add a guaranteed income source' },
-    right: { head:'Variable or time-limited', items:[], add:'+ add a variable income source' },
+    ], dynamic:'pension' },
+    right: { head:'Variable or time-limited',
+             section:{ arr:'income.other', kind:'income', nameKey:'label', ph:'Source', add:'+ add a variable income source' } },
   },
   'outflows': {
     left:  { head:'Essential', items:[
       {path:'expenses.living',     name:'Living',     type:'money', meta:()=>'Housing, utilities, food, transport'},
       {path:'expenses.healthcare', name:'Healthcare', type:'money', meta:()=>'Premiums + out-of-pocket'},
-    ], add:'+ add an essential expense' },
-    right: { head:'Discretionary', items:[], add:'+ add a discretionary expense' },
+    ] },
+    right: { head:'Discretionary',
+             section:{ arr:'expenses.extra', kind:'expense', nameKey:'label', ph:'Expense', add:'+ add a discretionary expense' } },
   },
   'goals': {
-    left:  { head:'Recurring', items:[
-      {path:'goals.vacation', name:'Travel',            type:'money', meta:()=>'Grows with inflation'},
-      {path:'goals.property', name:'Home improvements', type:'money', meta:()=>'Ongoing through plan'},
-      {path:'goals.gifts',    name:'Gifts',             type:'money', meta:()=>'Annual'},
-    ], add:'+ add a recurring goal' },
-    right: { head:'One-time', items:[], add:'+ add a one-time goal' },
+    left:  { head:'Recurring',  goals:'recurring', add:'+ add a recurring goal' },
+    right: { head:'One-time',   goals:'once',      add:'+ add a one-time goal' },
   },
 };
 
@@ -2349,16 +2479,19 @@ function commitPlanEdit(){
 // shows investable as net worth and zeroes for the empty buckets — never
 // invents numbers. When real assets and liabilities land, this fn picks
 // them up automatically from the plan.
-function realAssetsTotal(){ return (plan.realAssets||[]).reduce((s,a)=>s+(a.value||0),0); }
+function realAssetsTotal(){ return (plan.properties||[]).reduce((s,a)=>s+(a.value||0),0); }
 function liabilitiesPVTotal(){
-  // Sum of liabilities' simple present value: amount/yr × years remaining.
-  // Honest crude estimate for the side-panel — the engine still does the
-  // proper time-erosion math during simulation.
+  // Side-panel estimate of what's owed: generic recurring liabilities as a simple
+  // PV (amount/yr × years remaining) + each property mortgage's outstanding
+  // balance. Honest crude estimate — the engine still does the proper
+  // time-erosion + amortization math during simulation.
   const p=plan.household.primary;
-  return (plan.liabilities||[]).reduce((s,L)=>{
+  const recurring = (plan.liabilities||[]).reduce((s,L)=>{
     const yrs = Math.max(0, (L.endAge||p.planEndAge) - Math.max(L.startAge||p.currentAge, p.currentAge));
     return s + (L.amount||0)*yrs;
   },0);
+  const mortgages = (plan.properties||[]).reduce((s,pr)=>s+((pr.mortgage&&pr.mortgage.balance)||0),0);
+  return recurring + mortgages;
 }
 function netWorthTotal(){ return investableTotal() + realAssetsTotal() - liabilitiesPVTotal(); }
 
@@ -2374,6 +2507,12 @@ function colSum(page, side){
     // Pension pays ONE amount — at the chosen start age. Don't sum every age.
     const pStart=(plan.income.pension&&plan.income.pension.startAge);
     s += (pStart && m[pStart]) || 0;
+  }
+  // Array-backed sections: sum each row's annual amount.
+  if(col.section){ (getPath(plan, col.section.arr)||[]).forEach(r => { s += (r.amount||0); }); }
+  if(col.goals){
+    const once = col.goals==='once';
+    (plan.goals||[]).forEach(g => { if((once ? g.startAge===g.endAge : g.startAge!==g.endAge)) s += (g.amount||0); });
   }
   return s;
 }
@@ -2420,6 +2559,9 @@ function renderField(f, klass){
       `<option value="${k}" ${+k===+v?'selected':''}>${RISK_NAMES[k]} · ${RISK_LABELS[k]}</option>`).join('');
     return `<select data-path="${f.path}" data-type="risk">${opts}</select>`;
   }
+  if(f.type==='text'){
+    return `<input type="text" data-path="${f.path}" data-type="text" value="${escHtml(v||'')}" placeholder="${f.ph||''}">`;
+  }
   if(f.type==='money'){
     const dv = (v||0).toLocaleString('en-US');
     return `<span class="pre">$</span><input type="text" inputmode="numeric" data-path="${f.path}" data-type="money" value="${dv}">`;
@@ -2430,6 +2572,76 @@ function renderField(f, klass){
   }
   // age
   return `<input type="number" data-path="${f.path}" data-type="${f.type}" value="${v}" step="1">`;
+}
+
+/* ── Add-row sections ─────────────────────────────────────────────
+   Schema-driven editable rows backed by a plan array. The SAME data-path
+   binding + change handler that drives every other input writes these, so
+   "add a row" is just pushing a default object and re-rendering, and "remove"
+   is an array splice. Each kind names its backing array + a factory for a new
+   row's defaults. (Goals share one array; recurring vs one-time is decided by
+   the window: a one-time goal is a single-year window, startAge===endAge.) */
+const ROW_KINDS = {
+  income:    { arr:'income.other',   mk:()=>({ label:'', amount:0, startAge:65, endAge:75 }) },
+  expense:   { arr:'expenses.extra', mk:()=>({ label:'', amount:0, startAge:65, endAge:80 }) },
+  liability: { arr:'liabilities',    mk:()=>({ label:'', amount:0, startAge:65, endAge:75, colaPct:0 }) },
+  goalRec:   { arr:'goals',          mk:()=>({ name:'',  amount:0, startAge:0,  endAge:999 }) },
+  goalOnce:  { arr:'goals',          mk:()=>({ name:'',  amount:0, startAge:70, endAge:70 }) },
+  property:  { arr:'properties',     mk:()=>({ name:'',  value:0, purchasePrice:0, mortgage:{ balance:0, rate:0, termYears:0 } }) },
+};
+const money = (p,base,k)=>`<span class="er-amt"><span class="pre">$</span><input type="text" inputmode="numeric" data-path="${base}.${k}" data-type="money" value="${(getPath(plan,base+'.'+k)||0).toLocaleString('en-US')}"></span>`;
+const num   = (p,base,k,step)=>`<input class="er-num" type="number" step="${step||1}" data-path="${base}.${k}" data-type="num" value="${getPath(plan,base+'.'+k)}">`;
+const name  = (p,base,k,ph)=>`<input class="er-name" type="text" data-path="${base}.${k}" data-type="text" value="${escHtml(getPath(plan,base+'.'+k)||'')}" placeholder="${ph}">`;
+const rmX   = base=>`<button class="row-x" data-rmpath="${base}" title="Remove this row">×</button>`;
+
+// A flow row (income / expense / liability): name · amount · from–to ages.
+function flowRow(arr, i, nameKey, ph){
+  const base = `${arr}.${i}`;
+  return `<div class="erow">${name(plan,base,nameKey,ph)}${money(plan,base,'amount')}
+    <span class="er-ages">age ${num(plan,base,'startAge')}<span class="er-dash">–</span>${num(plan,base,'endAge')}</span>${rmX(base)}</div>`;
+}
+// A recurring goal: name · amount (lifelong — no age window shown).
+function recGoalRow(i){
+  const base = `goals.${i}`;
+  return `<div class="erow">${name(plan,base,'name','Goal')}${money(plan,base,'amount')}${rmX(base)}</div>`;
+}
+// A one-time goal: name · amount · single "at age" (mirrors into endAge).
+function onceGoalRow(i){
+  const base = `goals.${i}`;
+  const at = `<span class="er-ages">at age <input class="er-num" type="number" step="1" data-path="${base}.startAge" data-sync="${base}.endAge" data-type="num" value="${getPath(plan,base+'.startAge')}"></span>`;
+  return `<div class="erow">${name(plan,base,'name','One-time goal')}${money(plan,base,'amount')}${at}${rmX(base)}</div>`;
+}
+// A property card: name · value · purchase price · optional mortgage. The
+// payment + payoff shown is the ENGINE's amortization (truth), not UI math.
+function propRow(i){
+  const base = `properties.${i}`, m = `${base}.mortgage`;
+  const M = getPath(plan, m) || {};
+  const pay = annualMortgagePayment(M.balance, M.rate, M.termYears);
+  const start = plan.household.primary.currentAge;
+  const meta = pay > 0
+    ? `Engine: ${fmtMoney(Math.round(pay))}/yr · paid off at age ${start + (M.termYears||0)}`
+    : `No mortgage — value & purchase price are captured for a future sale`;
+  return `<div class="prop">
+    <div class="prop-top">${name(plan,base,'name','Property')}${rmX(base)}</div>
+    <div class="prop-grid">
+      <label class="prop-f"><span class="er-k">Value</span>${money(plan,base,'value')}</label>
+      <label class="prop-f"><span class="er-k">Purchase price</span>${money(plan,base,'purchasePrice')}</label>
+    </div>
+    <div class="prop-mort">
+      <span class="er-k">Mortgage</span>
+      <label class="prop-f"><span class="er-sub">Balance</span>${money(plan,m,'balance')}</label>
+      <label class="prop-f narrow"><span class="er-sub">Rate</span>${num(plan,m,'rate',0.1)}<span class="er-suf">%</span></label>
+      <label class="prop-f narrow"><span class="er-sub">Term</span>${num(plan,m,'termYears')}<span class="er-suf">yr</span></label>
+    </div>
+    <div class="prop-meta">${meta}</div>
+  </div>`;
+}
+// Render every row of a flow kind backed by `arr`, with the trailing "+ add".
+function flowSection(arr, nameKey, ph, kind, addLabel){
+  const list = getPath(plan, arr) || [];
+  let h = list.map((_,i)=>flowRow(arr,i,nameKey,ph)).join('');
+  h += `<div class="hp-add" data-add="${kind}">${addLabel}</div>`;
+  return h;
 }
 
 /* ── Statement layout (Balance Sheet) ─────────────────────────────
@@ -2449,7 +2661,13 @@ function renderStatement(){
         h += renderExtraAccounts();
         h += `<div class="bs-sub"><span class="bs-sub-l">Investable total</span><span class="bs-sub-d"></span><span class="bs-sub-v">${fmtMoney(investableTotal())}</span></div>`;
       }
-      if(sec.add) h += `<div class="bs-add">${sec.add}</div>`;
+      // Editable array rows: property cards (Real assets) or flow rows (Liabilities).
+      if(sec.kind==='property'){
+        h += `<div class="erows">${(plan.properties||[]).map((_,i)=>propRow(i)).join('')}</div>`;
+      } else if(sec.kind==='liability'){
+        h += `<div class="erows">${(plan.liabilities||[]).map((_,i)=>flowRow('liabilities',i,'label','Loan / obligation')).join('')}</div>`;
+      }
+      if(sec.add) h += `<div class="bs-add" data-add="${sec.kind||''}">${sec.add}</div>`;
     });
     return h;
   };
@@ -2506,7 +2724,20 @@ function renderHybrid(pageKey){
       if(m) h += `<div class="meta">${m}</div>`;
       h += `</div>`;
     });
-    if(colDef.add) h += `<div class="hp-add">${colDef.add}</div>`;
+    // Array-backed editable rows: a flow section (income / expense) …
+    if(colDef.section){
+      const s = colDef.section;
+      h += `<div class="erows">${flowSection(s.arr, s.nameKey, s.ph, s.kind, s.add)}</div>`;
+    }
+    // … or the goals array, split by window into recurring vs one-time columns.
+    if(colDef.goals){
+      const once = colDef.goals==='once';
+      const rows = (plan.goals||[]).map((g,i)=>({g,i}))
+        .filter(({g})=> once ? (g.startAge===g.endAge) : (g.startAge!==g.endAge))
+        .map(({i})=> once ? onceGoalRow(i) : recGoalRow(i)).join('');
+      h += `<div class="erows">${rows}<div class="hp-add" data-add="${once?'goalOnce':'goalRec'}">${colDef.add}</div></div>`;
+    }
+    if(colDef.add && !colDef.goals) h += `<div class="hp-add">${colDef.add}</div>`;
     return `<div class="hp-col">${h}</div>`;
   };
   return `<div class="np-page">
@@ -2539,7 +2770,7 @@ function snapshotMetrics(){
   const penAmt = (pen.benefitByAge && pen.startAge!=null) ? (pen.benefitByAge[pen.startAge]||0) : 0;
   const guaranteed = ssP + ssS + penAmt;
   const essentials = (plan.expenses.living||0) + (plan.expenses.healthcare||0);
-  const goals = (plan.goals.vacation||0) + (plan.goals.property||0) + (plan.goals.gifts||0);
+  const goals = (Array.isArray(plan.goals) ? plan.goals : []).reduce((s,g)=>s+(g.amount||0),0);
   const totalSpend = essentials + goals;
   const floorPct = essentials>0 ? guaranteed/essentials : 0;
   const fromPortfolioEssential = Math.max(0, essentials - guaranteed);
@@ -2685,10 +2916,26 @@ $('#np-content').addEventListener('click', e => {
     const path = rx.dataset.rmpath;
     const ks = path.split('.'); const last = ks.pop();
     let t = plan; for(const k of ks){ if(t==null) return; t=t[k]; }
-    if(t!=null) delete t[last];
+    // Array rows splice (no holes); object keys delete.
+    if(Array.isArray(t)) t.splice(+last, 1);
+    else if(t!=null) delete t[last];
+    reseedScenarios(); buildLevers();
     sharedPaths = null; plansDirty = true;
     renderInputs();
     $('#status').textContent='Plan edited · open Scenarios';
+    return;
+  }
+  // "+ add …" — push a default row onto the backing array, then re-render.
+  const adder = e.target.closest('[data-add]');
+  if(adder){
+    const kind = adder.dataset.add;
+    const k = ROW_KINDS[kind];
+    if(k){
+      const arr = getPath(plan, k.arr);
+      if(Array.isArray(arr)) arr.push(k.mk());
+      else setPath(plan, k.arr, [k.mk()]);
+      commitPlanEdit();
+    }
     return;
   }
   // Account type chip
@@ -2727,6 +2974,12 @@ $('#np-content').addEventListener('change', e => {
   const path = e.target.dataset.path, type = e.target.dataset.type;
   if(path){
     const raw = e.target.value;
+    if(type==='text'){            // free-text row labels (income/expense/goal/property names)
+      setPath(plan, path, raw);
+      reseedScenarios(); buildLevers(); sharedPaths=null; plansDirty=true; renderInputs();
+      $('#status').textContent='Plan edited · open Scenarios';
+      return;
+    }
     let v;
     if(type==='money')      v = parseFloat(String(raw).replace(/[^0-9.]/g,''));
     else if(type==='risk')  v = +raw;
@@ -2735,6 +2988,9 @@ $('#np-content').addEventListener('change', e => {
     if(type==='pct')   v = Math.max(0, Math.min(100, v))/100;
     if(type==='money'){ v = Math.max(0, Math.round(v)); e.target.value = v.toLocaleString('en-US'); }
     setPath(plan, path, v);
+    // A one-time goal edits a single "at age": mirror it into endAge so the
+    // engine's window is exactly that year.
+    if(e.target.dataset.sync) setPath(plan, e.target.dataset.sync, v);
     reseedScenarios();
     buildLevers();
     sharedPaths = null;

@@ -381,7 +381,12 @@ const plan = {
     // when they file (62–70); the engine actuarially adjusts pia for that age.
     // spouse: null when single; otherwise { pia, claimAge }.
     socialSecurity: { primary: { pia: 36000, claimAge: 67 }, spouse: null },
-    other:          { amount: 0,     startAge: 65, endAge: 75 },
+    // Other income — an ARRAY of variable / time-limited streams (rental, part-time,
+    // a fixed-period annuity). Each: { label, amount ($/yr, today's dollars),
+    // startAge, endAge }. Applied flat-real (today's-dollars maintained) and taxed
+    // at the ordinary rate. Empty by default. A legacy single {amount,startAge,endAge}
+    // object is still accepted (wrapped into a one-element array).
+    other:          [],
     // Pension: a DISCRETE benefit-by-age map taken straight off the plan statement
     // ({ age: annualBenefit, ... }) — the advisor enters only ages they actually
     // have a number for. The engine NEVER interpolates or extrapolates a missing
@@ -391,18 +396,50 @@ const plan = {
     // only as a legacy single-amount fallback.
     pension:        { benefitByAge: {}, base: 0, startAge: 65, colaPct: 0 }
   },
-  expenses:   { living: 188000, housing: 0, debt: 0, healthcare: 12000 },
+  // expenses: the fixed essential scalars PLUS `extra` — an array of discretionary,
+  // time-bounded spending lines ({ label, amount, startAge, endAge }). Discretionary
+  // extras flex with the spending lever (spendMult), flat-real otherwise. Empty default.
+  expenses:   { living: 188000, housing: 0, debt: 0, healthcare: 12000, extra: [] },
   // Recurring time-bounded obligations (a mortgage, a car loan, a tuition plan).
   // Each: { label, amount ($/yr, today's dollars), startAge, endAge, colaPct }.
   // colaPct is the NOMINAL annual escalator like the pension: 0 = a fixed-nominal
   // payment, which the real-dollar engine erodes at −LONGRUN_INFLATION (a fixed
   // mortgage gets cheaper in real terms over its term). Empty by default.
   liabilities: [],
+  // Properties — real assets, each with an OPTIONAL engine-native mortgage. The
+  // engine amortizes the mortgage ({ balance, rate %, termYears }) into a fixed
+  // annual payment that runs as a liability until payoff (startAge + termYears),
+  // eroding in real terms like any fixed-nominal debt. `value` (current) and
+  // `purchasePrice` (cost basis) are captured for a FUTURE sale event (cap-gains
+  // on sale) and are INERT today — they touch no current calculation. Empty default.
+  properties: [],
   ltc:        { amount: 0, onsetAge: 85 },   // flat long-term-care cost ($/yr) from onsetAge onward
-  goals:      { vacation: 15000, property: 10000, gifts: 5000 },
+  // goals — an ARRAY of spend goals ({ name, amount, startAge, endAge }). A recurring
+  // goal spans many years; a ONE-TIME goal is a single-year window (startAge===endAge).
+  // Applied flat-real. A legacy { vacation, property, gifts } object is still accepted.
+  goals:      [
+    { name:'Vacation',         amount:15000, startAge:0, endAge:999 },
+    { name:'Home improvements', amount:10000, startAge:0, endAge:999 },
+    { name:'Gifts',            amount:5000,  startAge:0, endAge:999 },
+  ],
   taxes:      { ordinary: 22, capitalGains: 15 },
   simulation: { iterations: 1000 }
 };
+
+// Standard fixed-rate amortization → the NOMINAL ANNUAL payment (12 monthly
+// payments). `ratePct` is the APR in percent; rate 0 → straight-line. This is the
+// ONLY mortgage math the engine derives; the resulting payment is then run through
+// the existing (tested) liability cash-flow path, so mortgages add no new sim-loop
+// surface. Returns 0 for a paid-off or term-less loan.
+function annualMortgagePayment(balance, ratePct, termYears){
+  const P = Math.max(0, balance || 0);
+  const yrs = Math.max(0, termYears || 0);
+  if(P <= 0 || yrs <= 0) return 0;
+  const mr = (Math.max(0, ratePct || 0) / 100) / 12;
+  const N  = yrs * 12;
+  const monthly = (mr < 1e-9) ? P / N : (P * mr) / (1 - Math.pow(1 + mr, -N));
+  return monthly * 12;
+}
 
 
 // Seeded RNG (mulberry32). The bootstrap draws are deterministic so identical
@@ -620,26 +657,67 @@ function resolveInputs(plan, ov){
     },
     returnAdj: (ov.returnAdj || 0) / 100,
     ss: ssBenefits,   // array of { amount, startAge } in the primary's age frame
-    otherIncome:    { ...plan.income.other },
+    // Other income — normalized to an array of flat-real timed streams. Accepts a
+    // legacy single object too.
+    otherIncome: (Array.isArray(plan.income.other) ? plan.income.other
+                  : (plan.income.other ? [plan.income.other] : []))
+      .map(o => ({
+        amount:   Math.max(0, o.amount || 0),
+        startAge: (o.startAge != null ? o.startAge : 0),
+        endAge:   (o.endAge   != null ? o.endAge   : 999)
+      })),
     pension:        { amount: pensionAmount, startAge: penStartAge, colaReal: penColaReal },
     ltc:            { amount: Math.max(0, (ltc.amount || 0) * (1 + (ov.ltcAdj || 0))), onsetAge: (ltc.onsetAge != null ? ltc.onsetAge : 999) },
     expenses: {
       living:     plan.expenses.living     * spendMult,
       housing:    plan.expenses.housing    * spendMult,
       debt:       plan.expenses.debt       * spendMult,
-      healthcare: plan.expenses.healthcare * spendMult
+      healthcare: plan.expenses.healthcare * spendMult,
+      // Discretionary, time-bounded extras — flex with the spending lever, flat-real.
+      extra: (plan.expenses.extra || []).map(e => ({
+        amount:   Math.max(0, e.amount || 0) * spendMult,
+        startAge: (e.startAge != null ? e.startAge : 0),
+        endAge:   (e.endAge   != null ? e.endAge   : 999)
+      }))
     },
     // Recurring liabilities (e.g. a mortgage). NOT scaled by spendMult — a fixed
     // obligation isn't discretionary spending. colaReal mirrors the pension:
     // nominal escalator − inflation, so a 0%-COLA debt erodes in real terms.
-    liabilities: (plan.liabilities || []).map(L => ({
-      amount:   Math.max(0, L.amount || 0),
-      startAge: (L.startAge != null ? L.startAge : 0),
-      endAge:   (L.endAge   != null ? L.endAge   : 999),
-      colaReal: ((L.colaPct || 0) / 100) - LONGRUN_INFLATION
-    })),
+    // Property mortgages are amortized to a fixed annual payment and APPENDED here
+    // as ordinary fixed-nominal liabilities (payment from the loan's start age until
+    // payoff = startAge + termYears), so they reuse the same tested cash-flow path.
+    liabilities: [
+      ...(plan.liabilities || []).map(L => ({
+        amount:   Math.max(0, L.amount || 0),
+        startAge: (L.startAge != null ? L.startAge : 0),
+        endAge:   (L.endAge   != null ? L.endAge   : 999),
+        colaReal: ((L.colaPct || 0) / 100) - LONGRUN_INFLATION
+      })),
+      ...(plan.properties || [])
+        .filter(pr => pr && pr.mortgage && (pr.mortgage.balance > 0) && (pr.mortgage.termYears > 0))
+        .map(pr => {
+          const M = pr.mortgage;
+          const start = (M.startAge != null ? M.startAge : curAge);
+          return {
+            amount:   annualMortgagePayment(M.balance, M.rate || 0, M.termYears),
+            startAge: start,
+            endAge:   start + M.termYears,            // payoff
+            colaReal: -LONGRUN_INFLATION              // fixed-nominal payment erodes in real terms
+          };
+        })
+    ],
     healthcareMult: 1 + (ov.healthcareAdj || 0),
-    goals:          { ...plan.goals },
+    // Goals — normalized to an array of flat-real timed entries. A legacy
+    // { vacation, property, gifts } object is converted to always-on entries.
+    goals: (Array.isArray(plan.goals)
+              ? plan.goals
+              : Object.keys(plan.goals || {}).map(k => ({ name:k, amount:plan.goals[k], startAge:0, endAge:999 })))
+      .map(g => ({
+        name:     g.name || '',
+        amount:   Math.max(0, g.amount || 0),
+        startAge: (g.startAge != null ? g.startAge : 0),
+        endAge:   (g.endAge   != null ? g.endAge   : 999)
+      })),
     // Tax rates split: ordinary income (for traditional withdrawals and SS),
     // and long-term capital gains (for taxable account gains).
     // The taxMult override scales both rates proportionally for stress testing.
@@ -765,14 +843,17 @@ function runSinglePath(p, returnPath){
     // person's benefit that has started by this age (primary + spouse).
     let ssInc = 0;
     for(const b of p.ss){ if(age >= b.startAge) ssInc += b.amount; }
-    const oiInc = (age >= p.otherIncome.startAge && age <= p.otherIncome.endAge)
-                  ? p.otherIncome.amount : 0;
+    let oiInc = 0;
+    for(const o of p.otherIncome){ if(age >= o.startAge && age <= o.endAge) oiInc += o.amount; }
     const penInc = (p.pension && age >= p.pension.startAge)
                    ? p.pension.amount * Math.pow(1 + (p.pension.colaReal || 0), age - p.pension.startAge) : 0;
     const ltcCost = (p.ltc && age >= p.ltc.onsetAge) ? p.ltc.amount : 0;
+    let extraExp = 0;
+    for(const e of p.expenses.extra){ if(age >= e.startAge && age <= e.endAge) extraExp += e.amount; }
     const expenses = p.expenses.living + p.expenses.housing + p.expenses.debt
-                     + p.expenses.healthcare * p.healthcareMult + ltcCost;
-    const goalsY   = p.goals.vacation + p.goals.property + p.goals.gifts;
+                     + p.expenses.healthcare * p.healthcareMult + extraExp + ltcCost;
+    let goalsY = 0;
+    for(const g of p.goals){ if(age >= g.startAge && age <= g.endAge) goalsY += g.amount; }
     // Recurring liabilities active at this age, each eroded in real terms from
     // its OWN start age (a fixed mortgage started years ago is already cheaper).
     const liabCost = p.liabilities.reduce((s, L) =>
@@ -1138,5 +1219,6 @@ export {
   RISK_PROFILES, ASSET_STATS, LONGRUN_INFLATION,
   buildAssetWeights, computeAssetStats, generateReturnPath, resetSeed, weightedAssetReturn,
   runSimulation, resolveInputs, runSinglePath, analyzeResults, runHistoricalPath,
+  annualMortgagePayment,
   plan as defaultPlan
 };

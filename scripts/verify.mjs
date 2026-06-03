@@ -132,6 +132,36 @@ try {
     await page.screenshot({ path: `${OUT}/02-snapshot.png`, fullPage: true });
   });
 
+  await step('net worth · property card with engine-derived mortgage', async () => {
+    await page.click(`#np-subnav .stab[data-sub="balance-sheet"]`);
+    await new Promise(r => setTimeout(r, 200));
+    const m = await page.evaluate(() => ({
+      props:  document.querySelectorAll('.prop').length,
+      meta:   document.querySelector('.prop-meta')?.textContent || '',
+      mortInputs: document.querySelectorAll('.prop-mort input').length,
+    }));
+    if(m.props < 1) throw new Error('no property card rendered');
+    if(m.mortInputs < 3) throw new Error(`property mortgage inputs missing (got ${m.mortInputs})`);
+    if(!/paid off at age/.test(m.meta)) throw new Error(`property meta missing engine payoff line: "${m.meta}"`);
+    const card = await page.$('.prop');
+    await card.screenshot({ path: `${OUT}/06-property.png` });
+  });
+
+  await step('add-row workflow: + add appends an editable row', async () => {
+    await page.click(`#np-subnav .stab[data-sub="outflows"]`);
+    await new Promise(r => setTimeout(r, 200));
+    const before = await page.evaluate(() => document.querySelectorAll('.hp-col .erow').length);
+    await page.click('.hp-add[data-add="expense"]');
+    await new Promise(r => setTimeout(r, 200));
+    const after = await page.evaluate(() => document.querySelectorAll('.hp-col .erow').length);
+    if(after !== before + 1) throw new Error(`add-row did not append (before=${before}, after=${after})`);
+    // Remove it again so the saved demo state is unchanged.
+    await page.click('.erow .row-x');
+    await new Promise(r => setTimeout(r, 150));
+    const final = await page.evaluate(() => document.querySelectorAll('.hp-col .erow').length);
+    if(final !== before) throw new Error(`row delete did not splice (final=${final}, expected ${before})`);
+  });
+
   await step('scenarios renders (after tab switch)', async () => {
     await page.click('button[data-page="scenarios"]');
     await new Promise(r => setTimeout(r, 800));

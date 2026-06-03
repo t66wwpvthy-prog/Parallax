@@ -6,7 +6,8 @@ import { test } from 'node:test';
 import assert from 'node:assert';
 import {
   RETURN_DATA, RISK_PROFILES, generateReturnPath, runSimulation,
-  runHistoricalPath, resolveInputs, defaultPlan, LONGRUN_INFLATION
+  runHistoricalPath, resolveInputs, defaultPlan, LONGRUN_INFLATION,
+  annualMortgagePayment
 } from './engine.js';
 
 test('return data spans the full history', () => {
@@ -128,6 +129,110 @@ test('a recurring liability lowers retirement wealth and stops at endAge', () =>
   const at65 = m.rows.find(r => r.age === 65).liabilities;
   const at75 = m.rows.find(r => r.age === 75).liabilities;
   assert.ok(at75 < at65, 'a fixed-nominal liability erodes in real terms over time');
+});
+
+// ── Multi-row income / expenses / goals (the add-row data model) ─────────────
+// income.other is now an ARRAY of timed streams: each is summed only while active,
+// and a legacy single object is still accepted.
+test('other income: multiple timed streams sum while active and stop at endAge', () => {
+  const p = JSON.parse(JSON.stringify(defaultPlan));
+  p.household.primary = { currentAge: 65, retirementAge: 65, planEndAge: 95 };
+  p.income.other = [
+    { label:'Rental',    amount:24000, startAge:65, endAge:75 },
+    { label:'Part-time', amount:30000, startAge:65, endAge:70 },
+  ];
+  const r = resolveInputs(p, {});
+  assert.strictEqual(r.otherIncome.length, 2, 'both streams resolved');
+  const m = runHistoricalPath(p, 1995, 'taxable-first');
+  const at66 = m.rows.find(r => r.age === 66).otherIncome;  // both active
+  const at72 = m.rows.find(r => r.age === 72).otherIncome;  // only rental
+  const at80 = m.rows.find(r => r.age === 80).otherIncome;  // neither
+  assert.strictEqual(at66, 54000, 'both streams active → summed');
+  assert.strictEqual(at72, 24000, 'part-time ended → only rental');
+  assert.strictEqual(at80, 0, 'both ended → no other income');
+});
+
+test('a legacy single other-income object is still honored', () => {
+  const p = JSON.parse(JSON.stringify(defaultPlan));
+  p.income.other = { amount: 12000, startAge: 0, endAge: 999 };
+  const r = resolveInputs(p, {});
+  assert.strictEqual(r.otherIncome.length, 1, 'single object wrapped into one stream');
+  assert.strictEqual(r.otherIncome[0].amount, 12000, 'amount preserved');
+});
+
+// expenses.extra: discretionary, time-bounded, and flexes with the spending lever.
+test('a discretionary extra expense lowers wealth, stops at endAge, and flexes with spendMult', () => {
+  const base = JSON.parse(JSON.stringify(defaultPlan));
+  const exp  = JSON.parse(JSON.stringify(defaultPlan));
+  exp.expenses.extra = [{ label:'Go-go travel', amount:40000, startAge:65, endAge:75 }];
+  const b = runHistoricalPath(base, 1995, 'taxable-first');
+  const e = runHistoricalPath(exp,  1995, 'taxable-first');
+  assert.ok(e.terminalBalance < b.terminalBalance - 1, 'extra spending must lower ending wealth');
+  const at70 = e.rows.find(r => r.age === 70).expenses;
+  const at80 = e.rows.find(r => r.age === 80).expenses;
+  assert.ok(at70 > at80, 'extra expense active at 70, gone by 80');
+  // spendMult scales discretionary extras: a +20% spend bump raises the resolved amount.
+  const bumped = resolveInputs(exp, { spendBump: 0.20 });
+  assert.ok(Math.abs(bumped.expenses.extra[0].amount - 48000) < 1e-6, 'extra flexes with spendMult');
+});
+
+// goals: a ONE-TIME goal is a single-year window; it hits exactly one year.
+test('a one-time goal (startAge===endAge) charges exactly one year', () => {
+  const p = JSON.parse(JSON.stringify(defaultPlan));
+  p.household.primary = { currentAge: 65, retirementAge: 65, planEndAge: 95 };
+  p.goals = [{ name:'Wedding', amount:60000, startAge:68, endAge:68 }];
+  const m = runHistoricalPath(p, 1995, 'taxable-first');
+  assert.strictEqual(m.rows.find(r => r.age === 67).goals, 0, 'nothing before the year');
+  assert.strictEqual(m.rows.find(r => r.age === 68).goals, 60000, 'full hit in the goal year');
+  assert.strictEqual(m.rows.find(r => r.age === 69).goals, 0, 'nothing after');
+});
+
+test('a legacy { vacation, property, gifts } goals object still resolves', () => {
+  const p = JSON.parse(JSON.stringify(defaultPlan));
+  p.goals = { vacation: 15000, property: 10000, gifts: 5000 };
+  const r = resolveInputs(p, {});
+  assert.strictEqual(r.goals.length, 3, 'object converted to three always-on entries');
+  const total = r.goals.reduce((s, g) => s + g.amount, 0);
+  assert.strictEqual(total, 30000, 'amounts preserved');
+});
+
+// ── Property mortgage (engine-native amortization) ──────────────────────────
+// The mortgage is amortized to a fixed annual payment and run through the tested
+// liability path: it charges until payoff, then stops. purchasePrice is inert.
+test('annualMortgagePayment matches the standard amortization formula', () => {
+  // $300k, 6% APR, 30yr → ~$1798.65/mo → ~$21,583.81/yr.
+  const pay = annualMortgagePayment(300000, 6, 30);
+  assert.ok(Math.abs(pay - 21583.81) < 1.0, `expected ~21583.81/yr, got ${pay.toFixed(2)}`);
+  assert.strictEqual(annualMortgagePayment(0, 6, 30), 0, 'no balance → no payment');
+  assert.strictEqual(annualMortgagePayment(300000, 6, 0), 0, 'no term → no payment');
+  // 0% loan = straight-line: 120000 / 10yr = 12000/yr.
+  assert.ok(Math.abs(annualMortgagePayment(120000, 0, 10) - 12000) < 1e-6, '0% APR → straight-line');
+});
+
+test('a property mortgage becomes an amortized liability that stops at payoff', () => {
+  const p = JSON.parse(JSON.stringify(defaultPlan));
+  p.household.primary = { currentAge: 65, retirementAge: 65, planEndAge: 95 };
+  p.properties = [{
+    name:'Primary residence', value:900000, purchasePrice:400000,
+    mortgage:{ balance:300000, rate:6, termYears:10 }
+  }];
+  const r = resolveInputs(p, {});
+  assert.strictEqual(r.liabilities.length, 1, 'mortgage folded into liabilities');
+  assert.ok(Math.abs(r.liabilities[0].amount - annualMortgagePayment(300000, 6, 10)) < 1e-6,
+    'liability amount = amortized annual payment');
+  assert.strictEqual(r.liabilities[0].endAge, 75, 'payoff = startAge + termYears');
+  const m = runHistoricalPath(p, 1995, 'taxable-first');
+  assert.ok(m.rows.find(r => r.age === 70).liabilities > 0, 'mortgage charged while active');
+  assert.strictEqual(m.rows.find(r => r.age === 80).liabilities, 0, 'gone after payoff');
+});
+
+test('purchasePrice / value are inert — they move no current number', () => {
+  const withProp = JSON.parse(JSON.stringify(defaultPlan));
+  withProp.properties = [{ name:'House', value:900000, purchasePrice:400000 }];  // no mortgage
+  const without = JSON.parse(JSON.stringify(defaultPlan));
+  const a = runHistoricalPath(withProp, 1995, 'taxable-first');
+  const b = runHistoricalPath(without,  1995, 'taxable-first');
+  assert.strictEqual(a.terminalBalance, b.terminalBalance, 'a mortgage-less property changes nothing today');
 });
 
 test('a pre-retirement lump sum debits the portfolio (no longer ignored in accumulation)', () => {
