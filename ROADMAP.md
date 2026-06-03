@@ -91,6 +91,16 @@ Status tags: **NEXT** · **BIG** (own session) · **PARKED** · **SKIP** · ✅ 
   the two don't blur. Holdings-level (individual funds) is OUT of the current engine's
   allocation-bucket model.
 
+## K. Session adds — 2026-06-03 (detail in NOTES.md)
+- [ ] **Home SALE event + cap-gains on sale** — proceeds = value − mortgage − cap-gains tax; needs $250k/$500k-MFJ primary-residence exclusion + `capitalImprovements` basis. (`purchasePrice` already captured, inert.) Extends A "real assets".
+- [ ] **`taxClass` on income streams** — ordinary / tax-free / cap-gains; today all other income is flat ordinary. (Engine field, A.)
+- [ ] **Sustainable-withdrawal solve** — safe annual draw framed as "sustainable withdrawal," not income. (Pairs with B Solve-For + C max-withdrawal tile.)
+- [ ] **Income-stream COLA** — variable income is flat-real; let fixed annuities erode.
+- [ ] **Rolling-period analysis (extended block bootstrap)** — sweep every real contiguous historical window, not just named Sequencing years. (Also in CLAUDE.md.)
+- [ ] **Goals page interesting layout** — not the ledger style (end-date windows already built; visual redesign pinned).
+- [ ] **Open:** demo mortgage keep (84.9%) vs paid-off (~86.5%); Net Worth → Assets as the wider column.
+- [x] ✅ Done this session: add-row workflow · engine-native mortgages + amortization · mortgage→Liabilities mirror · recurring-goal end dates · Inflows+Outflows→Cash Flow tab · Snapshot to own tab · replacement-ratio = guaranteed only · cash-flow age/ sticky/ $0→"—" fixes · no-bright-white + glass-everywhere pass.
+
 ---
 
 ### Standing guidance / doctrine

@@ -226,6 +226,50 @@ output and on-doctrine. (c) Bridge-years (pre-SS/pension gap) is a latent view.
   building piecemeal.
 - Nathan to send a LIBRARY OF SCREENSHOTS (reference material — incoming).
 
+## Banked — this session (2026-06-03) [reconciled after the bank was under-captured]
+PARKED — engine / model:
+- HOME SALE event + cap-gains on sale. On sale: net proceeds = value − remaining
+  mortgage − cap-gains tax. Needs the US primary-residence exclusion ($250k single /
+  $500k MFJ) and a `capitalImprovements` field for true basis (gain = sale −
+  (purchasePrice + improvements)). `purchasePrice` is already captured on
+  `properties[]` and INERT today. Extends "real assets in engine."
+- taxClass on income streams (ordinary / tax-free / cap-gains). Today ALL other
+  income is taxed flat at the ordinary rate; real streams differ. An engine field
+  on each income row, not a cosmetic label.
+- Sustainable-withdrawal SOLVE. Back into a safe annual portfolio draw and frame it
+  as a "sustainable withdrawal amount" — NOT "income" (withdrawals aren't income).
+  Pairs with Solve-For + the honest "max sustainable withdrawal %" tile.
+- Income-stream COLA. Variable income is modeled flat-real; let fixed annuities
+  erode (colaReal, like liabilities) when that's the truth.
+- Rolling-period analysis (extended block bootstrap) — also in CLAUDE.md idea bank.
+  Sweep every real contiguous historical window, not just the named Sequencing years.
+
+PARKED — design:
+- GOALS page interesting layout (NOT the ledger style used for cash flow / net
+  worth). End-date windows on recurring goals are already built; the visual
+  redesign is pinned.
+
+OPEN DECISIONS:
+- Demo mortgage: keep (baseline 84.9%) vs strip to a paid-off house (~86.5%).
+- Net Worth: make Assets the wider column (Liabilities is often sparse).
+
+DONE this session (2026-06-03):
+- Add-row data-entry workflow (income / expenses / goals / liabilities / properties).
+- ENGINE: income.other[], expenses.extra[], goals[] are now timed arrays;
+  `properties[]` with engine-native mortgage amortization (`annualMortgagePayment`;
+  +8 tests → 25 total). Legacy shapes still accepted.
+- Property mortgage mirrors onto Liabilities as a read-only "linked" line (ties out).
+- Recurring-goal end dates (age windows); one-time goal = single-year window.
+- Inflows+Outflows merged → one "Cash Flow" tab; discretionary expenses dropped
+  (Goals model that). Renames: "Guaranteed for life"→Fixed income, "Variable or
+  time-limited"→Variable.
+- Snapshot moved OFF Net Worth to its own sub-tab (was too cluttered); replacement
+  ratio now = GUARANTEED income only (no portfolio withdrawals).
+- Cash-flow table: off-by-one age fixed; sticky headers opaque (no bleed); working
+  years show "—" not $0.
+- No bright white anywhere (--ink-bright → warm off-white); glass everywhere with
+  soft borders; Sencha-green good % rings; removed duplicate "Household" sub-nav label.
+
 ## DONE — recurring liabilities (engine, 2026-06)
 - New plan field `liabilities: [{label, amount, startAge, endAge, colaPct}]`. A
   fixed mortgage = 0% COLA, which the real-dollar engine erodes at
