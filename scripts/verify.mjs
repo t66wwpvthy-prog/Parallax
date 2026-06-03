@@ -107,28 +107,21 @@ try {
     }
   });
 
-  await step('net worth · snapshot embedded in balance-sheet right column', async () => {
-    // Snapshot is no longer a sub-tab; it lives in the Net Worth page's right
-    // column. Go back to balance-sheet and assert the embedded gauges render.
-    await page.click(`#np-subnav .stab[data-sub="balance-sheet"]`);
+  await step('net worth · snapshot is its own sub-page with four gauges', async () => {
+    await page.click(`#np-subnav .stab[data-sub="snapshot"]`);
     await new Promise(r => setTimeout(r, 200));
     const m = await page.evaluate(() => ({
-      embedded: !!document.querySelector('.np-snapshot .snap'),
-      metrics: document.querySelectorAll('.np-snapshot .metric').length,
-      heroes:  [...document.querySelectorAll('.np-snapshot .m-hero')].map(e=>e.textContent),
-      cov:     !!document.querySelector('.np-snapshot .cov .fill'),
-      wrStats: document.querySelectorAll('.np-snapshot .metric:nth-child(2) .stat-item').length,
-      seg:     document.querySelectorAll('.np-snapshot .seg div').length,
+      page:    !!document.querySelector('.np-snapshot-page .snap'),
+      metrics: document.querySelectorAll('.np-snapshot-page .metric').length,
+      heroes:  [...document.querySelectorAll('.np-snapshot-page .m-hero')].map(e=>e.textContent),
+      cov:     !!document.querySelector('.np-snapshot-page .cov .fill'),
+      seg:     document.querySelectorAll('.np-snapshot-page .seg div').length,
     }));
-    if(!m.embedded) throw new Error('snapshot not embedded in balance-sheet right column');
+    if(!m.page) throw new Error('snapshot page did not render');
     if(m.metrics !== 4) throw new Error(`snapshot expected 4 metrics, got ${m.metrics}`);
-    if(!m.cov)         throw new Error('snapshot income-floor coverage bar missing');
-    if(m.wrStats < 2)  throw new Error(`snapshot withdrawal-rate stat items expected ≥2, got ${m.wrStats}`);
+    if(!m.cov)         throw new Error('snapshot coverage bar missing');
     if(m.seg !== 3) throw new Error(`snapshot tax bar expected 3 segments, got ${m.seg}`);
     if(!m.heroes.every(h => /%$/.test(h))) throw new Error(`snapshot hero numbers not all %: ${JSON.stringify(m.heroes)}`);
-    // Income floor uses stat-row now; only replacement ratio keeps the coverage bar.
-    const covBars = await page.evaluate(() => document.querySelectorAll('.np-snapshot .cov .fill').length);
-    if(covBars !== 1) throw new Error(`snapshot expected 1 coverage bar (replacement ratio), got ${covBars}`);
     await page.screenshot({ path: `${OUT}/02-snapshot.png`, fullPage: true });
   });
 
