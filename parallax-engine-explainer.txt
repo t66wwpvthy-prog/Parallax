@@ -1,0 +1,68 @@
+PARALLAX
+Six things the engine does that most planning tools don't.
+────────────────────────────────────────────────────────────
+
+
+01 — Real returns. Inflation is native, not bolted on.
+
+Every return in the dataset is already inflation-adjusted. The engine works
+entirely in today's dollars — so when it says your portfolio grows, that's
+real purchasing power, not nominal noise.
+
+Most tools model nominal returns and subtract inflation separately, which
+compounds the error across decades.
+
+
+02 — Withdrawals happen throughout the year, not at year-end.
+
+Spending is spread across 12 monthly draws. The account keeps earning returns
+while money is still in it. In a bad year, you're not losing a full year of
+growth before the first dollar leaves.
+
+Year-end withdrawal models overstate the damage in down years and understate
+compounding in good ones.
+
+
+03 — Returns are sampled in blocks, not drawn randomly year by year.
+
+The Monte Carlo draws multi-year blocks from 98 years of real return data
+(1928–2025). A crash year drags its neighbors. That preserves the clustering
+of bad sequences — the thing that actually ends retirement plans.
+
+Independent year-by-year sampling never produces the sustained bad runs that
+sequence-of-returns risk actually looks like.
+
+
+04 — Every scenario runs the same market draws.
+
+When you compare two scenarios, both live through the identical 1,000 market
+sequences. Any difference in the outcome is purely the decision you changed —
+not sampling luck.
+
+Most tools run independent simulations per scenario, so you can't know if the
+number moved because of your lever or noise in the draw.
+
+
+05 — Three account types. Withdrawals are sequenced, not blended.
+
+Money comes from taxable first, then traditional (RMDs kick in at 73), then
+Roth. The engine tracks cost basis in taxable accounts and treats traditional
+withdrawals as ordinary income. Tax drag is modeled in the order it actually
+happens.
+
+A blended tax rate applied to a single portfolio misses the sequence entirely —
+and the sequence is what determines the tax bill.
+
+
+06 — Historical paths are the real thing.
+
+The Sequencing view runs the actual 1973 return sequence, year by year, in
+order. Not "a representative bad period" — that period. 1929, 1966, 1973,
+2000, 2008. Your plan, living through each one.
+
+Stylized stress tests (e.g. "a 30% drop") are arbitrary. The historical
+record is the most honest stress test available.
+
+
+────────────────────────────────────────────────────────────
+Parallax — retirement planning simulator
