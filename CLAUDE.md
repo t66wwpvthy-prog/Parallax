@@ -169,6 +169,12 @@ this shared set. This is the long-planned "household-centric data root."
 - **`/mock` skill (process).** Formalize the throwaway-mock harness (standalone
   `_mock.html` + headless screenshot) so mock-first is one command and visual
   exploration stays off the live app by default.
+- **Rolling-period analysis (extended block bootstrap).** Sweep the plan through
+  EVERY real contiguous historical window (start 1928, 1929, … through the last
+  start that fits the horizon), not just the few named Sequencing years — i.e. a
+  block bootstrap whose block = the full horizon (no stitching/resampling). Shows
+  the complete historical range/distribution of outcomes. Low-lift: `runHistoricalPath(startYear)`
+  already exists; this just iterates all valid start years and aggregates.
 
 ## Hard-won lessons (do not relearn the hard way)
 - Don't optimize CSS for elegance/line-count. A clever property-level style merge
