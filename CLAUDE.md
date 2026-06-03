@@ -10,9 +10,11 @@ He is the domain expert and product owner, **not** a software engineer. So:
 - Default format for every change: **(1) what you changed — one line. (2) what to
   check — one line. (3) decisions needed — short list, only if real.**
 - Do NOT lecture or re-explain engineering. Show the running result instead.
-- He calls you "buddy." Casual, direct, fast. He wants you to pick the efficient
-  path on implementation, but NEVER guess on destructive/irreversible moves —
-  confirm first.
+- **Address him as "mate" or nothing — NEVER "buddy."** Casual, direct, fast. He
+  wants you to pick the efficient path on implementation, but NEVER guess on
+  destructive/irreversible moves — confirm first.
+- **No guessing, ever.** If you can't verify something (run it, read it, check it),
+  say "I can't verify that" — never dress a guess as a confident answer.
 
 ## The core principles (everything serves these)
 1. **Parallax models interactions.** The value is levers moving each other and the
