@@ -256,40 +256,41 @@ body{background-color:#120B1C;background-image:
    "label … dotted leader … value", values are boxless inputs that go gold
    on focus (same edit language as the Scenarios levers). Subtotals close
    each money section in slate, the statement's running truth. */
-.bs-sheet{max-width:none}
-/* "Assets" — stands above the section heads (bigger than a bs-head, smaller
-   than the page's big number); frames the right column. */
-.bs-title{font-family:'Sora';font-size:22px;font-weight:600;color:var(--ink-bright);letter-spacing:-.01em;margin:0 0 6px}
-.bs-head{font-family:'Sora';font-size:10.5px;letter-spacing:.26em;text-transform:uppercase;color:var(--ink-bright);font-weight:600;margin:38px 0 6px;padding-bottom:8px;border-bottom:1px solid var(--gold)}
-.bs-head:first-of-type{margin-top:18px}
-/* Household & Plan as a short horizontal stat bar across the top of the page
-   (ages + income — plain framing data, no need for a full section). */
-.hh-bar{grid-column:1 / -1;display:flex;align-items:stretch}
-.hh-f{flex:1;display:flex;flex-direction:column;gap:3px;padding:4px 22px 14px 0;border-right:1px solid var(--rule-faint)}
-.hh-f:last-child{border-right:none}
+/* Two-column ledger: Assets left | Liabilities right */
+.bs-sheet{display:grid;grid-template-columns:1fr 1px 1fr;gap:0 36px;max-width:none}
+.bs-col{min-width:0}
+.bs-divider{background:var(--rule-faint);align-self:stretch}
+/* Column title ("Assets" / "Liabilities") */
+.bs-title{font-family:'Sora';font-size:18px;font-weight:600;color:var(--ink-bright);letter-spacing:-.01em;margin:0 0 4px}
+.bs-head{font-family:'Sora';font-size:10.5px;letter-spacing:.26em;text-transform:uppercase;color:var(--ink-bright);font-weight:600;margin:24px 0 6px;padding-bottom:8px;border-bottom:1px solid var(--gold)}
+.bs-head:first-of-type{margin-top:14px}
+/* Household stat bar — compact, hugs content, separators properly spaced */
+.hh-bar{grid-column:1 / -1;display:flex;align-items:stretch;width:fit-content;margin-bottom:4px}
+.hh-f{display:flex;flex-direction:column;gap:3px;padding:4px 28px 10px 0;margin-right:28px;border-right:1px solid var(--rule-faint)}
+.hh-f:last-child{border-right:none;padding-right:0;margin-right:0}
 .hh-f label{font-family:'Sora';font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-faint);font-weight:600}
 .hh-f .field{display:flex;align-items:baseline;gap:3px}
 .hh-f .pre{color:var(--ink-faint);font-size:13px;font-family:'Inter'}
-.hh-f input{font-family:'Inter';font-size:16px;font-weight:600;color:var(--ink-bright);background:transparent;border:none;border-bottom:1px dashed transparent;padding:1px;width:90px;text-align:left;outline:none;font-variant-numeric:tabular-nums;transition:border-color .15s,background .15s}
+.hh-f input{font-family:'Inter';font-size:16px;font-weight:500;color:var(--ink);background:transparent;border:none;border-bottom:1px dashed transparent;padding:1px;width:90px;text-align:left;outline:none;font-variant-numeric:tabular-nums;transition:border-color .15s,background .15s}
 .hh-f input:hover{border-bottom-color:var(--rule-bright)}
 .hh-f input:focus{border-bottom:1px solid var(--gold);background:rgba(154,115,34,.05)}
-.bs-row{display:flex;align-items:baseline;padding:9px 0;font-size:14px}
-.bs-row label{color:var(--ink-bright);font-weight:500;font-family:'Sora'}
-.bs-row.sub label{color:var(--ink-mute);font-size:13px;padding-left:18px;font-weight:400}
-.bs-dots{flex:1;border-bottom:1px dotted var(--rule-bright);margin:0 12px;transform:translateY(-3px)}
+.bs-row{display:flex;align-items:baseline;padding:7px 0;font-size:14px}
+.bs-row label{color:var(--ink-mute);font-weight:500;font-family:'Sora'}
+.bs-row.sub label{color:var(--ink-faint);font-size:13px;padding-left:18px;font-weight:400}
+.bs-dots{flex:1;border-bottom:1px dotted var(--rule-faint);margin:0 10px;transform:translateY(-3px)}
 .bs-row .field{display:flex;align-items:baseline;gap:3px}
 .bs-row .pre{color:var(--ink-faint);font-size:13px;font-family:'Inter'}
-.bs-row input{font-family:'Inter';font-size:14.5px;font-weight:600;color:var(--ink-bright);background:transparent;border:none;border-bottom:1px dashed var(--rule-bright);padding:1px 1px;width:110px;text-align:right;outline:none;font-variant-numeric:tabular-nums;transition:border-color .15s,background .15s}
+.bs-row input{font-family:'Inter';font-size:14.5px;font-weight:500;color:var(--ink);background:transparent;border:none;border-bottom:1px dashed var(--rule-faint);padding:1px 1px;width:110px;text-align:right;outline:none;font-variant-numeric:tabular-nums;transition:border-color .15s,background .15s}
 .bs-row input:hover{border-bottom-color:var(--gold)}
 .bs-row input:focus{border-bottom:1px solid var(--gold);background:rgba(154,115,34,.05)}
-.bs-row select{font-family:'Sora';font-size:13.5px;font-weight:500;color:var(--ink-bright);background:transparent;border:none;border-bottom:1px dashed var(--rule-bright);padding:1px 18px 1px 1px;outline:none;cursor:pointer;appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M0 0 L5 6 L10 0' fill='%238a93a0'/></svg>");background-repeat:no-repeat;background-position:right 2px center}
+.bs-row select{font-family:'Sora';font-size:13.5px;font-weight:500;color:var(--ink);background:transparent;border:none;border-bottom:1px dashed var(--rule-faint);padding:1px 18px 1px 1px;outline:none;cursor:pointer;appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M0 0 L5 6 L10 0' fill='%238a93a0'/></svg>");background-repeat:no-repeat;background-position:right 2px center}
 .bs-row select:hover,.bs-row select:focus{border-bottom-color:var(--gold)}
-.bs-row.sub input{font-size:13px;font-weight:500;color:var(--ink-mute);width:90px}
-.bs-sub{display:flex;align-items:baseline;padding:13px 0 4px;border-top:1px solid var(--rule-faint);margin-top:8px}
+.bs-row.sub input{font-size:13px;font-weight:400;color:var(--ink-mute);width:90px}
+.bs-sub{display:flex;align-items:baseline;padding:10px 0 4px;border-top:1px solid var(--rule-faint);margin-top:6px}
 .bs-sub-l{font-family:'Sora';font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-faint);font-weight:600}
-.bs-sub-d{flex:1;border-bottom:1px dotted var(--rule-bright);margin:0 12px;transform:translateY(-3px)}
+.bs-sub-d{flex:1;border-bottom:1px dotted var(--rule-faint);margin:0 10px;transform:translateY(-3px)}
 .bs-sub-v{font-family:'Inter';font-size:14px;color:var(--teal-deep);font-weight:600;font-variant-numeric:tabular-nums}
-.bs-add{padding:14px 0 4px;font-size:12.5px;color:var(--gold);font-weight:500;font-style:italic;cursor:pointer}
+.bs-add{padding:12px 0 4px;font-size:12.5px;color:var(--gold);font-weight:500;font-style:italic;cursor:pointer}
 .bs-row .row-x{margin-left:8px;width:20px;height:20px;border:none;background:transparent;color:var(--ink-faint);font-size:16px;line-height:1;cursor:pointer;border-radius:4px;padding:0}
 /* Typed-account picker (Option A — bucket rows) + added-account rows + tags */
 .bs-row .acct-tag{font-family:'Sora';font-size:8.5px;letter-spacing:.06em;text-transform:uppercase;font-weight:600;padding:2px 6px;border-radius:20px;margin-left:9px}
@@ -1050,7 +1051,7 @@ const BALANCE_SHEET = [
     {path:'portfolio.accounts.roth.balance',        label:'Roth IRA',          type:'money'},
   ]},
   { head:'Real assets',  fields:[], add:'+ add a property or other real asset' },
-  { head:'Liabilities',  fields:[], add:'+ add a loan or recurring obligation' },
+  { head:'Liabilities',  liab:true, fields:[], add:'+ add a loan or recurring obligation' },
 ];
 // Household & Plan inputs — plain framing data (ages, income), rendered as a
 // short horizontal stat bar across the top of the Net Worth page rather than a
@@ -1279,29 +1280,36 @@ function renderField(f, klass){
    Section heads = small caps + thin gold underline. Rows = label, dotted
    leader, boxless input. Subtotal closes a money section in slate. */
 function renderStatement(){
-  // No per-section wrapper div — every element is a direct child of .bs-sheet
-  // so the .bs-head:first-of-type rule applies to the FIRST head on the page.
-  let h='';
-  BALANCE_SHEET.forEach(sec => {
-    h += `<div class="bs-head">${sec.head}</div>`;
-    if(sec.subtotal==='invest') h += renderAcctPicker();  // picker above account rows
-    (sec.fields||[]).forEach(f => {
-      const rowCls = f.sub ? 'bs-row sub' : 'bs-row';
-      h += `<div class="${rowCls}"><label>${f.label}</label><span class="bs-dots"></span><span class="field">${renderField(f)}</span></div>`;
+  const renderSecs = secs => {
+    let h = '';
+    secs.forEach(sec => {
+      h += `<div class="bs-head">${sec.head}</div>`;
+      if(sec.subtotal==='invest') h += renderAcctPicker();
+      (sec.fields||[]).forEach(f => {
+        const rowCls = f.sub ? 'bs-row sub' : 'bs-row';
+        h += `<div class="${rowCls}"><label>${f.label}</label><span class="bs-dots"></span><span class="field">${renderField(f)}</span></div>`;
+      });
+      if(sec.subtotal==='invest'){
+        h += renderExtraAccounts();
+        h += `<div class="bs-sub"><span class="bs-sub-l">Investable total</span><span class="bs-sub-d"></span><span class="bs-sub-v">${fmtMoney(investableTotal())}</span></div>`;
+      }
+      if(sec.add) h += `<div class="bs-add">${sec.add}</div>`;
     });
-    if(sec.subtotal==='invest'){
-      h += renderExtraAccounts();        // added typed accounts (401k, SEP, …)
-      h += `<div class="bs-sub"><span class="bs-sub-l">Investable total</span><span class="bs-sub-d"></span><span class="bs-sub-v">${fmtMoney(investableTotal())}</span></div>`;
-    }
-    if(sec.add) h += `<div class="bs-add">${sec.add}</div>`;
-  });
+    return h;
+  };
+  const assetSecs = BALANCE_SHEET.filter(s => !s.liab);
+  const liabSecs  = BALANCE_SHEET.filter(s =>  s.liab);
   const hh = HH_FIELDS.map(f =>
     `<div class="hh-f"><label>${f.label}</label><span class="field">${renderField(f)}</span></div>`
   ).join('');
   return `<div class="np-page">
     <div class="hh-bar">${hh}</div>
     ${renderGutter('balance-sheet')}
-    <div class="bs-sheet"><div class="bs-title">Assets</div>${h}</div>
+    <div class="bs-sheet">
+      <div class="bs-col"><div class="bs-title">Assets</div>${renderSecs(assetSecs)}</div>
+      <div class="bs-divider"></div>
+      <div class="bs-col"><div class="bs-title">Liabilities</div>${renderSecs(liabSecs)}</div>
+    </div>
   </div>`;
 }
 
