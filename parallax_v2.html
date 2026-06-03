@@ -405,6 +405,10 @@ body{background-color:#1A130B;background-image:
 .er-amt .pre{color:var(--ink-faint);font-size:13px;font-family:'Inter'}
 .er-amt input{width:88px;text-align:right;font-size:14px;font-weight:500;font-variant-numeric:tabular-nums}
 .er-ages{flex:0 0 auto;display:inline-flex;align-items:center;gap:4px;font-size:11.5px;color:var(--ink-mute);white-space:nowrap}
+/* Read-only liability line mirrored from a property's mortgage (no inputs). */
+.ro-name{flex:1 1 auto;min-width:0;font-family:'Sora';font-size:13.5px;font-weight:500;color:var(--ink-mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ro-amt{flex:0 0 auto;font-family:'Inter';font-size:14px;font-weight:500;color:var(--ink);font-variant-numeric:tabular-nums}
+.ro-tag{flex:0 0 auto;font-family:'Sora';font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);font-weight:700;border:1px solid var(--rule-faint);border-radius:4px;padding:2px 5px}
 .er-num{width:34px;text-align:center;font-size:13px;font-weight:500;color:var(--ink);font-variant-numeric:tabular-nums}
 .er-dash{color:var(--ink-faint)}
 .erow .row-x{flex:0 0 auto;width:18px;height:18px;border:none;background:transparent;color:var(--ink-faint);font-size:15px;line-height:1;cursor:pointer;border-radius:4px;padding:0}
@@ -1493,7 +1497,17 @@ function renderStatement(){
       if(sec.kind==='property'){
         h += `<div class="erows">${(plan.properties||[]).map((_,i)=>propRow(i)).join('')}</div>`;
       } else if(sec.kind==='liability'){
-        h += `<div class="erows">${(plan.liabilities||[]).map((_,i)=>flowRow('liabilities',i,'label','Loan / obligation')).join('')}</div>`;
+        // Property mortgages mirror onto the Liabilities side as READ-ONLY lines so
+        // the balance sheet ties out — the property card stays the source of truth.
+        const linked = (plan.properties||[])
+          .filter(pr => pr.mortgage && (pr.mortgage.balance > 0))
+          .map(pr => `<div class="erow ro-row">
+            <span class="ro-name">Mortgage · ${escHtml(pr.name||'Property')}</span>
+            <span class="ro-amt">${fmtMoney(pr.mortgage.balance)}</span>
+            <span class="ro-tag" title="Edit on the property in Real assets">linked</span>
+          </div>`).join('');
+        const editable = (plan.liabilities||[]).map((_,i)=>flowRow('liabilities',i,'label','Loan / obligation')).join('');
+        h += `<div class="erows">${linked}${editable}</div>`;
       }
       if(sec.add) h += `<div class="bs-add" data-add="${sec.kind||''}">${sec.add}</div>`;
     });
