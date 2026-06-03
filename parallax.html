@@ -8,29 +8,30 @@
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
 <style>
 :root{
-  /* LIGHT REPORT — warm "paper" financial document. Dark slate ink on
-     off-white; brass + slate accents. Gold is reserved for emphasis
-     (probability rings, the active-tab underline) — never header/body text
-     on beige, where its contrast is too weak. Results read as slate
-     (strong) / brass (caution) / clay (at-risk). */
-  --bg-deep:#e7e1d4; --bg:#f4efe6;
-  --surface:#fbf8f1; --surface-2:#ffffff; --surface-3:#f1ece1;
-  --rule:#d8d0bf; --rule-bright:#c2b8a2; --rule-faint:#e8e2d5;
-  --ink:#23282e; --ink-bright:#11151a; --ink-mute:#5d6671; --ink-faint:#8a93a0; --ink-ghost:#c2c8d0;
-  --gold:#9a7322; --gold-bright:#b88c30; --gold-deep:#6f521a; --gold-glow:rgba(154,115,34,.10);
-  --teal:#3f6b78; --teal-bright:#557f8c; --teal-deep:#2c4d57; --teal-glow:rgba(63,107,120,.10);
-  /* Result language on paper: deep green (strong) / bronze gold (caution,
-     via --gold) / deep burgundy (at-risk). Tuned dark enough to read on the
-     off-white ground. */
-  --positive:#16401f; --positive-bright:#194a2c;
-  /* Snapshot withdrawal gauge: green (safe) → gold (caution) → clay (strained). */
-  --clay:#a8593f;
-  --negative:#7e2b38; --negative-bright:#8f3340;
-  --s1:#9a7322; --s2:#3f6b78; --s3:#7d5a82;
+  /* AURORA GLASS re-skin. Engine + layout untouched — only these theme tokens
+     flip from the old "paper" palette to Aurora (dark purple glass). Every
+     variable NAME is preserved, so all existing rules re-theme in place. */
+  --bg-deep:#0c0712; --bg:#120B1C;
+  --surface:rgba(36,23,46,.55); --surface-2:rgba(255,255,255,.09); --surface-3:rgba(45,29,56,.42);
+  --rule:rgba(255,255,255,.16); --rule-bright:rgba(255,255,255,.28); --rule-faint:rgba(255,255,255,.09);
+  --ink:#F2ECFA; --ink-bright:#FFFFFF; --ink-mute:#BFB0CA; --ink-faint:rgba(226,211,236,.55); --ink-ghost:rgba(226,211,236,.28);
+  --gold:#D2943C; --gold-bright:#E6AE55; --gold-deep:#A9762C; --gold-glow:rgba(210,148,60,.22);
+  --teal:#86A7C5; --teal-bright:#A3BFD8; --teal-deep:#6588A6; --teal-glow:rgba(134,167,197,.16);
+  /* Result language: muted sage (strong) / bronze (caution, via --gold) /
+     distressed coral (at-risk) — all muted, no neon. */
+  --positive:#7FB58F; --positive-bright:#97C9A4;
+  --clay:#D87D6B;
+  --negative:#CF7468; --negative-bright:#DE8979;
+  --s1:#D2943C; --s2:#86A7C5; --s3:#A576D6;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;background:var(--bg);font-family:'Sora',sans-serif;color:var(--ink);font-size:14px;-webkit-font-smoothing:antialiased;overflow:hidden}
-body{background:radial-gradient(1200px 600px at 88% -12%, var(--gold-glow), transparent 60%),linear-gradient(180deg,#f6f2ea,var(--bg) 44%,#ece5d8);}
+body{background-color:#120B1C;background-image:
+  radial-gradient(circle at 69% 9%, rgba(165,118,214,.50), transparent 46%),
+  radial-gradient(circle at 27% 26%, rgba(95,55,119,.42), transparent 35%),
+  radial-gradient(circle at 15% 84%, rgba(163,90,134,.20), transparent 26%),
+  radial-gradient(circle at 76% 84%, rgba(122,82,53,.14), transparent 35%),
+  linear-gradient(180deg,#120B1C,#3B264E 58%,#0A0710);}
 .wrap{height:100vh;display:flex;flex-direction:column;overflow:hidden}
 
 .hdr{display:flex;align-items:center;gap:18px;padding:13px 28px;border-bottom:1px solid var(--rule);background:var(--bg-deep);flex:0 0 auto}
