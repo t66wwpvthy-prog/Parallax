@@ -40,7 +40,7 @@ body{background-color:#1A130B;background-image:
    Every floating panel is frosted glass: translucent sage fill (--surface)
    + backdrop blur so the gradient bleeds through + a faint top inner-rim
    highlight and a soft drop shadow for lift. One rule covers all cards. */
-.solve-panel,.acct-picker,.metric,.cf-drawer,.seq-pick,.seq-chart,.seq-print{
+.solve-panel,.acct-picker,.metric,.cf-drawer,.seq-pick,.seq-chart,.seq-print,.prop{
   backdrop-filter:blur(16px) saturate(1.15);
   -webkit-backdrop-filter:blur(16px) saturate(1.15);
   background-image:linear-gradient(155deg,rgba(255,255,255,.08),rgba(255,255,255,0) 52%);
@@ -101,7 +101,8 @@ body{background-color:#1A130B;background-image:
 .sf-prefix,.sf-suffix{font-family:'Inter';font-size:17px;font-weight:600;color:var(--ink-mute)}
 /* Same idiom as every other input in the app: dashed underline, transparent,
    gold on focus. Just bigger. */
-.sf-box{font-family:'Inter';font-size:19px;font-weight:600;color:var(--ink-bright);background:transparent;border:none;border-bottom:1px dashed var(--rule-bright);padding:2px 3px;outline:none;width:64px;text-align:right;-moz-appearance:textfield}
+.sf-box{font-family:'Inter';font-size:19px;font-weight:500;color:var(--ink);background:rgba(255,255,255,.05);border:none;border-radius:6px;padding:3px 6px;outline:none;width:64px;text-align:right;-moz-appearance:textfield;transition:background .15s}
+.sf-box:focus{background:rgba(214,170,89,.13)}
 .sf-box::-webkit-outer-spin-button,.sf-box::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .sf-box:hover{border-bottom-color:var(--gold)}
 .sf-box:focus{border-bottom:1px solid var(--gold)}
@@ -115,7 +116,7 @@ body{background-color:#1A130B;background-image:
 @keyframes pulse{0%,100%{opacity:.3}50%{opacity:1}}
 /* When a lever value was set by the solver, mark it subtly so the advisor knows
    it came from a solve (not their drag). Underline in brass; removed on edit. */
-.lev-val.solved{border-bottom:1px dotted var(--gold);padding-bottom:1px}
+.lev-val.solved{color:var(--gold)}
 .lev-val.solved-capped{color:var(--negative-bright)}
 /* Solver panel (form + solo-answer results) */
 .solve-panel{margin:0 0 20px;padding:18px 22px;background:var(--surface);border-radius:14px}
@@ -124,7 +125,7 @@ body{background-color:#1A130B;background-image:
 .solve-panel-title b{font-family:'Inter';color:var(--ink-bright);font-weight:700}
 .solve-clear{font-family:'Sora';font-size:10px;color:var(--ink-faint);background:none;border:none;cursor:pointer;letter-spacing:.1em;text-transform:uppercase;font-weight:600;padding:0;white-space:nowrap}
 .solve-clear:hover{color:var(--negative)}
-.sf-select{font-family:'Inter';font-size:18px;font-weight:600;color:var(--ink-bright);background:transparent;border:none;border-bottom:1px dashed var(--rule-bright);padding:2px 18px 2px 3px;outline:none;cursor:pointer;-webkit-appearance:none;appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--ink-mute) 50%),linear-gradient(135deg,var(--ink-mute) 50%,transparent 50%);background-position:calc(100% - 9px) 11px,calc(100% - 4px) 11px;background-size:5px 5px,5px 5px;background-repeat:no-repeat}
+.sf-select{font-family:'Inter';font-size:18px;font-weight:500;color:var(--ink);background:transparent;border:none;padding:2px 18px 2px 3px;outline:none;cursor:pointer;-webkit-appearance:none;appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--ink-mute) 50%),linear-gradient(135deg,var(--ink-mute) 50%,transparent 50%);background-position:calc(100% - 9px) 11px,calc(100% - 4px) 11px;background-size:5px 5px,5px 5px;background-repeat:no-repeat}
 .sf-select:hover,.sf-select:focus{border-bottom-color:var(--gold)}
 .sf-hint{font-family:'Sora';font-size:12px;color:var(--ink-faint);font-style:italic;padding-bottom:3px}
 .sf-params{display:contents}
@@ -156,8 +157,8 @@ body{background-color:#1A130B;background-image:
 .scn-levers{display:grid;grid-template-columns:148px repeat(3,1fr);column-gap:14px}
 .lev-name{display:flex;align-items:center;padding:0 14px;min-height:62px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-mute);font-weight:500;line-height:1.3}
 .lev-cell{display:flex;flex-direction:column;justify-content:center;gap:7px;border-bottom:1px solid var(--rule-faint);padding:0 16px;min-height:62px;background:var(--surface)}
-.lev-val{font-family:'Inter';font-size:17px;font-weight:600;color:var(--ink);display:flex;align-items:center;gap:6px}
-.lev-val.base{color:var(--ink)}
+.lev-val{font-family:'Inter';font-size:16.5px;font-weight:500;color:var(--ink-mute);display:flex;align-items:center;gap:6px}
+.lev-val.base{color:var(--ink-mute)}
 .lev-val .unit{font-size:10px;color:var(--ink-faint);font-weight:500;letter-spacing:.04em}
 /* Baseline-delta chip — right-aligned so the deltas form a clean comparison
    column down the right edge of each scenario. Muted/neutral (no good-bad hue). */
@@ -166,13 +167,14 @@ body{background-color:#1A130B;background-image:
    no entered benefit yet. Looks like part of the value display (not an error).
    The "$" prefix sits in the normal value color; the input is borderless and
    inherits the typography so it reads as a natural prompt for a number. */
-.lev-val .pen-in{font-family:'Inter';font-size:15px;font-weight:600;color:inherit;background:transparent;border:none;border-bottom:1px dashed var(--rule-bright);width:84px;padding:0 2px;outline:none;text-align:right}
+.lev-val .pen-in{font-family:'Inter';font-size:15px;font-weight:500;color:inherit;background:transparent;border:none;border-radius:5px;width:84px;padding:1px 3px;outline:none;text-align:right;transition:background .15s}
 .lev-val .pen-in::placeholder{color:var(--ink-faint);font-weight:500}
-.lev-val .pen-in:focus{border-bottom-color:var(--gold)}
-/* Inline type-in boxes for the dollar/age levers. Same quiet dashed underline
-   as the pension box; width tuned per content (dollars wider, age narrow). */
-.lev-val .lev-in{font-family:'Inter';font-size:17px;font-weight:600;color:inherit;background:transparent;border:none;border-bottom:1px dashed var(--rule-bright);width:78px;padding:0 2px;outline:none;text-align:right}
-.lev-val .lev-in:focus{border-bottom-color:var(--gold)}
+/* No spreadsheet underlines — editability shows as a soft glassy fill on
+   hover/focus instead, keeping the levers in the glass language. */
+.lev-val .pen-in:hover,.lev-val .lev-in:hover{background:rgba(255,255,255,.05)}
+.lev-val .pen-in:focus,.lev-val .lev-in:focus{background:rgba(214,170,89,.13)}
+/* Inline type-in boxes for the dollar/age levers; width tuned per content. */
+.lev-val .lev-in{font-family:'Inter';font-size:16.5px;font-weight:500;color:inherit;background:transparent;border:none;border-radius:5px;width:78px;padding:1px 3px;outline:none;text-align:right;transition:background .15s}
 .lev-val .lev-in.age-in{width:34px;text-align:center}
 /* Resting state = clean numbers + deltas (no bar clutter). The slider fades in
    when you hover/focus the cell, so drag-to-explore stays for live demos but the
@@ -192,7 +194,7 @@ body{background-color:#1A130B;background-image:
 .scn-foot{display:grid;grid-template-columns:148px repeat(3,1fr);column-gap:14px}
 .foot-cell{padding:12px 14px;font-family:'Inter';font-size:12.5px;color:var(--ink-mute)}
 .foot-cell:not(:first-child){background:var(--surface);border-radius:0 0 14px 14px}
-.foot-cell b{color:var(--ink-bright);font-weight:600}
+.foot-cell b{color:var(--ink);font-weight:500}
 
 /* Shared chart chrome (used by the Sequencing chart). */
 .chart-head{display:flex;align-items:baseline;gap:16px;margin-bottom:6px;flex:0 0 auto}
@@ -261,11 +263,27 @@ body{background-color:#1A130B;background-image:
    have + what it means). Wider cap to give the ledger and snapshot room. */
 .np-page.np-bs{grid-template-columns:200px minmax(0,1fr) 360px;gap:48px;max-width:1520px}
 .np-snapshot{align-self:start}
-.np-snapshot .snap{display:grid;grid-template-columns:1fr;gap:16px;max-width:none}
-.np-snapshot .metric{padding:18px 20px 22px;gap:14px;border-radius:12px}
-.np-snapshot .m-hero{font-size:34px}
-.np-snapshot .m-eye{margin-bottom:7px}
-.np-snapshot .stat-row{gap:14px 18px}
+/* In the column the four gauges read as ONE diagnostics panel — a single glass
+   card with hairline-separated, compact rows — not four forced boxes. Smaller
+   heroes + slimmer bars keep the vertical footprint tight. margin-top matches
+   the Assets/Liabilities title→content gap so all three columns breathe alike. */
+.np-snapshot .snap{display:flex;flex-direction:column;gap:0;max-width:none;margin-top:24px;
+  background:var(--surface);border-radius:14px;padding:2px 22px;
+  backdrop-filter:blur(16px) saturate(1.15);-webkit-backdrop-filter:blur(16px) saturate(1.15);
+  background-image:linear-gradient(155deg,rgba(255,255,255,.08),rgba(255,255,255,0) 52%);
+  box-shadow:0 22px 48px -24px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.14),inset 0 0 0 1px rgba(255,255,255,.05)}
+.np-snapshot .metric{background:none;background-image:none;backdrop-filter:none;-webkit-backdrop-filter:none;
+  box-shadow:none;border-radius:0;padding:15px 0;gap:8px;border-top:1px solid var(--rule-faint)}
+.np-snapshot .metric:first-child{border-top:none}
+.np-snapshot .m-hero{font-size:26px}
+.np-snapshot .m-eye{margin-bottom:5px}
+.np-snapshot .m-sub{font-size:11px;margin-top:5px;line-height:1.35}
+.np-snapshot .stat-row{gap:6px 16px;margin-top:8px}
+.np-snapshot .stat-val{font-size:13px}
+.np-snapshot .stat-lbl{font-size:9px}
+.np-snapshot .cov,.np-snapshot .seg{height:26px}
+.np-snapshot .cov .fill{font-size:10px}
+.np-snapshot .cov-legend,.np-snapshot .seg-legend{font-size:10px;margin-top:6px}
 @media (max-width:1100px){ .np-page.np-bs{grid-template-columns:200px 1fr;max-width:1100px} .np-snapshot{grid-column:1/-1} }
 .np-gutter{position:sticky;top:0}
 .np-gutter .lbl{font-family:'Sora';font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-faint);font-weight:600;margin-bottom:4px}
@@ -334,7 +352,7 @@ body{background-color:#1A130B;background-image:
 .acct-chip.sel{border-color:var(--gold);background:rgba(154,115,34,.12);font-weight:600;color:var(--gold-deep)}
 .acct-foot{display:flex;align-items:flex-end;gap:11px;margin-top:11px;padding-top:11px;border-top:1px solid var(--rule-faint)}
 .acct-foot .lbl{font-size:10.5px;color:var(--ink-faint);display:block;margin-bottom:4px}
-.acct-amt{font-family:'Inter';font-size:14px;font-weight:600;color:var(--ink-bright);background:var(--surface-2);border:1px solid var(--rule-faint);border-radius:7px;padding:7px 10px;width:130px;text-align:right;outline:none}
+.acct-amt{font-family:'Inter';font-size:14px;font-weight:500;color:var(--ink);background:var(--surface-2);border:1px solid var(--rule-faint);border-radius:7px;padding:7px 10px;width:130px;text-align:right;outline:none}
 .acct-amt:focus{border-color:var(--gold)}
 .acct-add{font-family:'Sora';font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;padding:8px 15px;border-radius:7px;border:none;background:var(--gold);color:#1a130a;cursor:pointer;margin-left:auto}
 .acct-add:disabled{opacity:.45;cursor:default}
@@ -355,7 +373,7 @@ body{background-color:#1A130B;background-image:
 .hp-item .nm{font-size:14px;color:var(--ink-bright);font-weight:500;flex:1;font-family:'Sora'}
 .hp-item .field{display:flex;align-items:baseline;gap:3px}
 .hp-item .pre{color:var(--ink-faint);font-size:13px;font-family:'Inter'}
-.hp-item input{font-family:'Inter';font-size:14.5px;font-weight:600;color:var(--ink-bright);background:transparent;border:none;border-bottom:1px dashed var(--rule-bright);padding:1px 1px;width:96px;text-align:right;outline:none;font-variant-numeric:tabular-nums;transition:border-color .15s,background .15s}
+.hp-item input{font-family:'Inter';font-size:14.5px;font-weight:500;color:var(--ink);background:transparent;border:none;border-bottom:1px dashed var(--rule-faint);padding:1px 1px;width:96px;text-align:right;outline:none;font-variant-numeric:tabular-nums;transition:border-color .15s,background .15s}
 .hp-item input:hover{border-bottom-color:var(--gold)}
 .hp-item input:focus{border-bottom:1px solid var(--gold);background:rgba(154,115,34,.05)}
 .hp-item .row-x{margin-left:6px;width:18px;height:18px;border:none;background:transparent;color:var(--ink-faint);font-size:15px;line-height:1;cursor:pointer;border-radius:4px;padding:0}
@@ -371,24 +389,27 @@ body{background-color:#1A130B;background-image:
 .erows{margin-top:6px}
 .erow{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--rule-faint)}
 .erow:last-of-type{border-bottom:none}
-.erow input{font-family:'Inter';background:transparent;border:none;border-bottom:1px dashed var(--rule-bright);padding:1px 1px;outline:none;color:var(--ink-bright);transition:border-color .15s,background .15s}
+.erow input{font-family:'Inter';background:transparent;border:none;border-bottom:1px dashed var(--rule-faint);padding:1px 1px;outline:none;color:var(--ink);transition:border-color .15s,background .15s}
 .erow input:hover{border-bottom-color:var(--gold)}
 .erow input:focus{border-bottom:1px solid var(--gold);background:rgba(154,115,34,.05)}
-.er-name{flex:1 1 auto;min-width:60px;font-size:13.5px;font-weight:500;text-align:left;font-family:'Sora'!important}
+.er-name{flex:1 1 auto;min-width:60px;font-size:13.5px;font-weight:500;text-align:left;font-family:'Sora'!important;background:transparent;border:none;border-bottom:1px dashed var(--rule-faint);color:var(--ink);outline:none;padding:1px}
+.er-name:hover{border-bottom-color:var(--gold)}
+.er-name:focus{border-bottom:1px solid var(--gold);background:rgba(154,115,34,.05)}
+.prop-top .er-name{font-size:14px;font-weight:600}
 .er-name::placeholder{color:var(--ink-faint);font-style:italic}
 .er-amt{display:inline-flex;align-items:baseline;gap:2px;flex:0 0 auto}
 .er-amt .pre{color:var(--ink-faint);font-size:13px;font-family:'Inter'}
-.er-amt input{width:88px;text-align:right;font-size:14px;font-weight:600;font-variant-numeric:tabular-nums}
+.er-amt input{width:88px;text-align:right;font-size:14px;font-weight:500;font-variant-numeric:tabular-nums}
 .er-ages{flex:0 0 auto;display:inline-flex;align-items:center;gap:4px;font-size:11.5px;color:var(--ink-mute);white-space:nowrap}
-.er-num{width:34px;text-align:center;font-size:13px;font-weight:600;color:var(--ink-bright);font-variant-numeric:tabular-nums}
+.er-num{width:34px;text-align:center;font-size:13px;font-weight:500;color:var(--ink);font-variant-numeric:tabular-nums}
 .er-dash{color:var(--ink-faint)}
 .erow .row-x{flex:0 0 auto;width:18px;height:18px;border:none;background:transparent;color:var(--ink-faint);font-size:15px;line-height:1;cursor:pointer;border-radius:4px;padding:0}
 .erow .row-x:hover{color:var(--negative-bright);background:rgba(240,145,141,.08)}
 
 /* Property card — name + value/basis + an optional mortgage sub-block. */
-.prop{margin:10px 0;padding:13px 15px;border-radius:12px;background:var(--surface-2);box-shadow:inset 0 0 0 1px rgba(255,255,255,.05)}
+.prop{margin:10px 0;padding:14px 16px;border-radius:14px;background:var(--surface)}
 .prop-top{display:flex;align-items:center;gap:10px;margin-bottom:9px}
-.prop-name{flex:1 1 auto;background:transparent;border:none;border-bottom:1px dashed var(--rule-bright);font-family:'Sora';font-size:14px;font-weight:600;color:var(--ink-bright);outline:none;padding:1px}
+.prop-name{flex:1 1 auto;background:transparent;border:none;border-bottom:1px dashed var(--rule-faint);font-family:'Sora';font-size:14px;font-weight:600;color:var(--ink);outline:none;padding:1px}
 .prop-name:focus{border-bottom:1px solid var(--gold)}
 .prop .row-x{width:18px;height:18px;border:none;background:transparent;color:var(--ink-faint);font-size:15px;cursor:pointer;border-radius:4px;padding:0}
 .prop .row-x:hover{color:var(--negative-bright);background:rgba(240,145,141,.08)}
@@ -396,7 +417,7 @@ body{background-color:#1A130B;background-image:
 .prop-mort{margin-top:9px;padding-top:9px;border-top:1px solid var(--rule-faint)}
 .prop-f{display:inline-flex;align-items:baseline;gap:5px;font-size:11.5px}
 .prop-f.narrow input{width:42px}
-.prop-f input{font-family:'Inter';background:transparent;border:none;border-bottom:1px dashed var(--rule-bright);outline:none;color:var(--ink-bright);font-size:14px;font-weight:600;width:96px;text-align:right;font-variant-numeric:tabular-nums;padding:1px}
+.prop-f input{font-family:'Inter';background:transparent;border:none;border-bottom:1px dashed var(--rule-faint);outline:none;color:var(--ink);font-size:14px;font-weight:500;width:96px;text-align:right;font-variant-numeric:tabular-nums;padding:1px}
 .prop-f input:focus{border-bottom:1px solid var(--gold)}
 .prop-f .pre{color:var(--ink-faint);font-size:12px;font-family:'Inter'}
 .er-k{font-family:'Sora';font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);font-weight:700}
@@ -3553,10 +3574,15 @@ function renderCashflow(){
     scenarios.forEach((s,i)=>{
       const r = rowsByScen[i][y];
       if(!r){ h += `<td colspan="${cols}" class="dim ${gcls[i]}">—</td>`; return; }
+      // Pre-retirement (still working) years: income/withdrawal aren't part of the
+      // post-retirement story, so show a neutral dash — never a $0 that reads as a
+      // value. The balance still matters (it's accumulating), so it stays.
+      const acc = r.phase === 'accum';
+      const dash = '<span style="color:var(--ink-faint)">—</span>';
       const inc = (r.socialSecurity || 0) + (r.pension || 0) + (r.otherIncome || 0);
-      h += `<td class="${gcls[i]}">${cfMoney(inc)}</td>`;
-      h += `<td class="${gcls[i]}">${cfMoney(r.withdrawal || 0)}</td>`;
-      if(hasRmd) h += `<td class="${gcls[i]}">${r.rmd > 0 ? cfMoney(r.rmd) : '<span style="color:var(--ink-faint)">—</span>'}</td>`;
+      h += `<td class="${gcls[i]}">${acc ? dash : cfMoney(inc)}</td>`;
+      h += `<td class="${gcls[i]}">${acc ? dash : cfMoney(r.withdrawal || 0)}</td>`;
+      if(hasRmd) h += `<td class="${gcls[i]}">${(!acc && r.rmd > 0) ? cfMoney(r.rmd) : dash}</td>`;
       h += `<td class="${gcls[i]}">${cfMoney(r.balance || 0)}</td>`;
     });
     h += '</tr>';
