@@ -11,13 +11,13 @@
   /* AURORA GLASS re-skin. Engine + layout untouched — only these theme tokens
      flip from the old "paper" palette to Aurora (dark purple glass). Every
      variable NAME is preserved, so all existing rules re-theme in place. */
-  --bg-deep:#0a1610; --bg:#0E1A15;
-  /* Glass surfaces — translucent sage so the gradient bleeds through; the blur
+  --bg-deep:#160F08; --bg:#1A130B;
+  /* Glass surfaces — translucent bronze so the gradient bleeds through; the blur
      + inner rim (added on the panel classes) is what makes them read as glass. */
-  --surface:rgba(18,38,31,.42); --surface-2:rgba(255,255,255,.07); --surface-3:rgba(26,48,40,.36);
+  --surface:rgba(40,28,19,.44); --surface-2:rgba(255,255,255,.07); --surface-3:rgba(50,37,26,.38);
   --rule:rgba(255,255,255,.14); --rule-bright:rgba(255,255,255,.26); --rule-faint:rgba(255,255,255,.08);
-  --ink:#E8F0EA; --ink-bright:#FFFFFF; --ink-mute:#A6BCAF; --ink-faint:rgba(214,232,222,.52); --ink-ghost:rgba(214,232,222,.26);
-  --gold:#B07840; --gold-bright:#C98B52; --gold-deep:#8A5C2C; --gold-glow:rgba(176,120,64,.22);
+  --ink:#F0E8DC; --ink-bright:#FFFFFF; --ink-mute:#BBAD99; --ink-faint:rgba(235,225,210,.52); --ink-ghost:rgba(235,225,210,.26);
+  --gold:#D2943C; --gold-bright:#E6AE55; --gold-deep:#A9762C; --gold-glow:rgba(210,148,60,.24);
   --teal:#86A7C5; --teal-bright:#A3BFD8; --teal-deep:#6588A6; --teal-glow:rgba(134,167,197,.16);
   /* Result language: muted sage (strong) / bronze (caution, via --gold) /
      distressed coral (at-risk) — all muted, no neon. */
@@ -28,12 +28,12 @@
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;background:var(--bg);font-family:'Sora',sans-serif;color:var(--ink);font-size:14px;-webkit-font-smoothing:antialiased;overflow:hidden}
-body{background-color:#0E1A15;background-image:
-  radial-gradient(circle at 78% 7%, rgba(96,140,118,.55), transparent 48%),
-  radial-gradient(circle at 33% 30%, rgba(56,92,78,.30), transparent 42%),
-  radial-gradient(circle at 11% 88%, rgba(8,18,14,.55), transparent 34%),
-  radial-gradient(circle at 90% 92%, rgba(8,18,14,.45), transparent 36%),
-  linear-gradient(165deg,#1A2C24,#16261F 45%,#0E1A15 78%,#0A130F);}
+body{background-color:#1A130B;background-image:
+  radial-gradient(circle at 78% 7%, rgba(150,122,86,.55), transparent 48%),
+  radial-gradient(circle at 33% 30%, rgba(103,84,64,.32), transparent 42%),
+  radial-gradient(circle at 11% 88%, rgba(18,12,7,.55), transparent 34%),
+  radial-gradient(circle at 90% 92%, rgba(18,12,7,.45), transparent 36%),
+  linear-gradient(165deg,#2A2014,#221A11 45%,#1A130B 78%,#120C06);}
 .wrap{height:100vh;display:flex;flex-direction:column;overflow:hidden}
 
 /* ─── GLASS LAYER ───────────────────────────────────────────────────
@@ -47,7 +47,7 @@ body{background-color:#0E1A15;background-image:
   box-shadow:0 22px 48px -24px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.14);
 }
 
-.hdr{display:flex;align-items:center;gap:18px;padding:13px 28px;border-bottom:1px solid var(--rule);background:rgba(14,26,21,.55);backdrop-filter:blur(20px) saturate(1.1);-webkit-backdrop-filter:blur(20px) saturate(1.1);flex:0 0 auto;position:relative;z-index:50}
+.hdr{display:flex;align-items:center;gap:18px;padding:13px 28px;border-bottom:1px solid var(--rule);background:rgba(26,19,11,.55);backdrop-filter:blur(20px) saturate(1.1);-webkit-backdrop-filter:blur(20px) saturate(1.1);flex:0 0 auto;position:relative;z-index:50}
 .wordmark{font-size:15px;font-weight:600;letter-spacing:.30em;text-transform:uppercase;color:var(--ink-bright)}
 .hdr-tabs{display:flex;margin-left:24px}
 .htab{background:none;border:none;border-bottom:2px solid transparent;color:var(--ink-mute);cursor:pointer;font-family:'Sora';font-size:12px;letter-spacing:.2em;text-transform:uppercase;padding:6px 20px;font-weight:500;transition:color .2s,border-color .2s}
@@ -154,8 +154,8 @@ body{background-color:#0E1A15;background-image:
 .lev-cell{display:flex;flex-direction:column;justify-content:center;gap:7px;border-right:1px solid var(--rule-faint);border-bottom:1px solid var(--rule-faint);padding:0 16px;min-height:62px}
 .lev-cell.base{background:rgba(63,107,120,.04)}
 .scn-levers .lev-cell.col-last{border-right:none}
-.lev-val{font-family:'Inter';font-size:17px;font-weight:600;color:var(--gold-bright);display:flex;align-items:center;gap:6px}
-.lev-val.base{color:var(--gold-bright)}
+.lev-val{font-family:'Inter';font-size:17px;font-weight:600;color:var(--ink);display:flex;align-items:center;gap:6px}
+.lev-val.base{color:var(--ink)}
 .lev-val .unit{font-size:10px;color:var(--ink-faint);font-weight:500;letter-spacing:.04em}
 /* Baseline-delta chip — right-aligned so the deltas form a clean comparison
    column down the right edge of each scenario. Muted/neutral (no good-bad hue). */
@@ -175,13 +175,13 @@ body{background-color:#0E1A15;background-image:
 /* Resting state = clean numbers + deltas (no bar clutter). The slider fades in
    when you hover/focus the cell, so drag-to-explore stays for live demos but the
    grid reads as a comparison table at a glance. Touch (no hover) keeps it shown. */
-/* Dollar levers (spend / savings / one-time event) keep a slider, styled as a
-   fill-bar: filled to the value via --fill (set per element), small dot thumb. */
-.lev-slider{-webkit-appearance:none;width:100%;height:11px;background:transparent;cursor:pointer;margin:3px 0}
-.lev-slider::-webkit-slider-runnable-track{height:3px;border-radius:2px;background:linear-gradient(90deg,var(--gold) 0 var(--fill,0%),var(--rule-faint) var(--fill,0%))}
-.lev-slider.base-lock::-webkit-slider-runnable-track{background:linear-gradient(90deg,var(--gold) 0 var(--fill,0%),var(--rule-faint) var(--fill,0%))}
-.lev-slider::-webkit-slider-thumb{-webkit-appearance:none;height:9px;width:9px;border-radius:50%;background:var(--gold);margin-top:-3px;border:2px solid var(--surface);box-shadow:0 1px 2px rgba(0,0,0,.15)}
-.lev-slider.base-lock::-webkit-slider-thumb{background:var(--gold)}
+/* Dollar levers (spend / savings / one-time event): discreet. Hidden at rest so
+   the grid reads as clean numbers; a thin neutral line + gold dot fades in only
+   when you hover/focus the cell. No always-on fill-bar clutter. */
+.lev-slider{-webkit-appearance:none;width:100%;height:12px;background:transparent;cursor:pointer;margin:3px 0;opacity:0;transition:opacity .15s}
+.lev-cell:hover .lev-slider,.lev-slider:focus{opacity:1}
+.lev-slider::-webkit-slider-runnable-track{height:2px;border-radius:2px;background:var(--rule)}
+.lev-slider::-webkit-slider-thumb{-webkit-appearance:none;height:9px;width:9px;border-radius:50%;background:var(--gold);margin-top:-3.5px;border:2px solid var(--surface);box-shadow:0 1px 2px rgba(0,0,0,.15)}
 .lev-slider:disabled{opacity:.5;cursor:default}
 
 .lev-step{display:inline-flex;align-items:center;gap:7px;margin-left:auto}
@@ -369,8 +369,8 @@ body{background-color:#0E1A15;background-image:
 .stat-lbl{font-family:'Sora';font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--ink-faint);font-weight:600}
 .stat-val{font-family:'Inter';font-size:16px;font-weight:600;color:var(--ink-bright);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
 /* coverage bar (income floor): teal fill = guaranteed, hatched = portfolio-drawn */
-.cov{height:40px;border-radius:6px;overflow:hidden;display:flex;background:repeating-linear-gradient(135deg,#efe7d6,#efe7d6 7px,#e8dfcc 7px,#e8dfcc 14px);box-shadow:inset 0 0 0 1px var(--rule)}
-.cov .fill{background:linear-gradient(180deg,var(--teal-bright),var(--teal));display:flex;align-items:center;padding-left:14px;color:#fff;font-family:'Inter';font-size:13px;font-weight:600;white-space:nowrap;min-width:0;overflow:hidden}
+.cov{height:40px;border-radius:6px;overflow:hidden;display:flex;background:repeating-linear-gradient(135deg,rgba(255,255,255,.05),rgba(255,255,255,.05) 7px,rgba(255,255,255,.09) 7px,rgba(255,255,255,.09) 14px);box-shadow:inset 0 0 0 1px var(--rule)}
+.cov .fill{background:linear-gradient(180deg,#6E8E8A,#52706E);display:flex;align-items:center;padding-left:14px;color:#fff;font-family:'Inter';font-size:13px;font-weight:600;white-space:nowrap;min-width:0;overflow:hidden}
 .cov-legend,.seg-legend{display:flex;flex-wrap:wrap;gap:14px 26px;margin-top:14px;font-family:'Sora';font-size:12px;color:var(--ink-mute);font-weight:500}
 .cov-legend .k,.seg-legend .k{display:flex;align-items:center;gap:8px}
 .cov-legend .sw,.seg-legend .sw{width:11px;height:11px;border-radius:2px;flex:none}
@@ -388,9 +388,9 @@ body{background-color:#0E1A15;background-image:
 /* segmented proportion bar (tax location) */
 .seg{height:40px;border-radius:6px;overflow:hidden;display:flex;box-shadow:inset 0 0 0 1px var(--rule)}
 .seg div{display:flex;align-items:center;justify-content:center;color:#fff;font-family:'Inter';font-size:13px;font-weight:600;min-width:0;overflow:hidden}
-.seg .s-tax{background:linear-gradient(180deg,#4A5F6A,#344957)}
-.seg .s-def{background:linear-gradient(180deg,var(--gold-bright),var(--gold))}
-.seg .s-roth{background:linear-gradient(180deg,#3E5E4A,#2E4638)}
+.seg .s-tax{background:linear-gradient(180deg,#52646E,#3C4A52)}
+.seg .s-def{background:linear-gradient(180deg,#9A7A45,#73572F)}
+.seg .s-roth{background:linear-gradient(180deg,#4E6A58,#3A5042)}
 
 /* Year-by-year cash-flow drawer on the Scenarios page. Three scenarios side
    by side; each scenario's columns are softly tinted in its line color so the
@@ -1717,14 +1717,14 @@ function runAll(){
 // Success ring color band: steel-teal (strong) / brass (caution) /
 // clay (at risk). No green — matches the Obsidian Brass result tokens.
 // Ring band matches the % number: deep green / bronze gold / deep burgundy.
-function ringColor(pct){ return pct>=85?'#194a2c':pct>=70?'#9a7322':'#8f3340'; }
+function ringColor(pct){ return pct>=85?'#56876D':pct>=70?'#B5803B':'#A8534A'; }
 function ring(pct){
   // SVG fills its .circle-wrap via viewBox, so the ring size is controlled by
   // CSS (one place). Thin stroke near the edge leaves room for the % number.
   const r=45,c=2*Math.PI*r,off=c*(1-pct/100);
   const col=ringColor(pct);
   return `<svg viewBox="0 0 100 100" width="100%" height="100%">
-    <circle cx="50" cy="50" r="${r}" fill="none" stroke="#e2dccd" stroke-width="4"/>
+    <circle cx="50" cy="50" r="${r}" fill="none" stroke="rgba(255,255,255,.13)" stroke-width="4"/>
     <circle cx="50" cy="50" r="${r}" fill="none" stroke="${col}" stroke-width="4" stroke-linecap="round"
       stroke-dasharray="${c}" stroke-dashoffset="${off}" transform="rotate(-90 50 50)" style="transition:stroke-dashoffset .7s cubic-bezier(.4,0,.2,1)"/></svg>`;
 }
@@ -1742,7 +1742,7 @@ function renderBand(){
   let h=`<div class="band-cell label"><span>Scenario</span></div>`;
   scenarios.forEach((s,ci)=>{
     const sr=s.res?s.res.successRate:0;
-    const col= sr>=85?'var(--positive-bright)':sr>=70?'var(--gold-bright)':'var(--negative-bright)';
+    const col= sr>=85?'#7DAB90':sr>=70?'var(--gold-bright)':'var(--negative-bright)';
     // Header: a small identity dot (column color) + the name. Baseline's name is
     // locked (the anchor); other scenarios render an inline editable field so the
     // advisor can label them ("Retire at 62"). A ✕ removes non-baseline columns.
