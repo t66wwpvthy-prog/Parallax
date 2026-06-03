@@ -254,6 +254,17 @@ body{background-color:#1A130B;background-image:
    live totals) — the eye lands in the same place every time. Body to the
    right holds the Statement ledger or the two-column Hybrid body. */
 .np-page{display:grid;grid-template-columns:200px 1fr;gap:54px;max-width:1100px;align-items:start}
+/* Balance sheet adds a third column: the Snapshot diagnostics fill the
+   previously-dead right space, so the page reads as one overview (what you
+   have + what it means). Wider cap to give the ledger and snapshot room. */
+.np-page.np-bs{grid-template-columns:200px minmax(0,1fr) 360px;gap:48px;max-width:1520px}
+.np-snapshot{align-self:start}
+.np-snapshot .snap{display:grid;grid-template-columns:1fr;gap:16px;max-width:none}
+.np-snapshot .metric{padding:18px 20px 22px;gap:14px;border-radius:12px}
+.np-snapshot .m-hero{font-size:34px}
+.np-snapshot .m-eye{margin-bottom:7px}
+.np-snapshot .stat-row{gap:14px 18px}
+@media (max-width:1100px){ .np-page.np-bs{grid-template-columns:200px 1fr;max-width:1100px} .np-snapshot{grid-column:1/-1} }
 .np-gutter{position:sticky;top:0}
 .np-gutter .lbl{font-family:'Sora';font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-faint);font-weight:600;margin-bottom:4px}
 .np-gutter .big-num{font-family:'Inter';font-size:30px;line-height:1.05;font-weight:600;color:var(--ink-bright);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
@@ -502,7 +513,6 @@ body{background-color:#1A130B;background-image:
       <button class="stab" data-sub="inflows">Inflows</button>
       <button class="stab" data-sub="outflows">Outflows</button>
       <button class="stab" data-sub="goals">Goals</button>
-      <button class="stab" data-sub="snapshot">Snapshot</button>
     </nav>
     <div id="np-content"></div>
   </section>
@@ -2180,7 +2190,6 @@ const SUB_PAGES = {
   'inflows':       { label:'Inflows',  layout:'hybrid', totLabel:'Total at retirement' },
   'outflows':      { label:'Outflows', layout:'hybrid', totLabel:'Annual baseline' },
   'goals':         { label:'Goals',    layout:'hybrid', totLabel:'Annual goal spend' },
-  'snapshot':      { label:'Snapshot', layout:'snapshot' },
 };
 
 /* ── Balance Sheet (Statement) sections ───────────────────────────
@@ -2447,7 +2456,7 @@ function renderStatement(){
   const hh = HH_FIELDS.map(f =>
     `<div class="hh-f"><label>${f.label}</label><span class="field">${renderField(f)}</span></div>`
   ).join('');
-  return `<div class="np-page">
+  return `<div class="np-page np-bs">
     <div class="hh-bar">${hh}</div>
     ${renderGutter('balance-sheet')}
     <div class="bs-sheet">
@@ -2455,6 +2464,7 @@ function renderStatement(){
       <div class="bs-divider"></div>
       <div class="bs-col"><div class="bs-title">Liabilities</div>${renderSecs(liabSecs)}</div>
     </div>
+    <aside class="np-snapshot"><div class="bs-title">Snapshot</div>${renderSnapshot()}</aside>
   </div>`;
 }
 
@@ -2656,14 +2666,10 @@ function renderInputs(){
   // sub-nav active state
   $$('#np-subnav .stab').forEach(b => b.classList.toggle('on', b.dataset.sub===activeSub));
   const layout = SUB_PAGES[activeSub].layout;
-  const html = layout==='statement' ? renderStatement()
-             : layout==='snapshot'  ? renderSnapshot()
-             :                        renderHybrid(activeSub);
+  // Balance sheet now carries the Snapshot diagnostics in its right column, so
+  // there's no standalone snapshot sub-page any more.
+  const html = layout==='statement' ? renderStatement() : renderHybrid(activeSub);
   $('#np-content').innerHTML = html;
-  // Snapshot is read-only (diagnostic gauges) — no field wiring needed; bail
-  // after injecting so the input-binding code below doesn't run on it.
-  if(layout==='snapshot') return;
-
 }
 // ── Net Worth input bindings — delegated on the stable #np-content ────────────
 // Input listeners are set once here so re-renders via renderInputs() (which
@@ -2849,7 +2855,7 @@ function runAll(){
 // Success ring color band: steel-teal (strong) / brass (caution) /
 // clay (at risk). No green — matches the Obsidian Brass result tokens.
 // Ring band matches the % number: deep green / bronze gold / deep burgundy.
-function ringColor(pct){ return pct>=85?'#56876D':pct>=70?'#B5803B':'#A8534A'; }
+function ringColor(pct){ return pct>=85?'#384820':pct>=70?'#B5803B':'#A8534A'; }
 function ring(pct){
   // SVG fills its .circle-wrap via viewBox, so the ring size is controlled by
   // CSS (one place). Thin stroke near the edge leaves room for the % number.
@@ -2874,7 +2880,7 @@ function renderBand(){
   let h=`<div class="band-cell label"><span>Scenario</span></div>`;
   scenarios.forEach((s,ci)=>{
     const sr=s.res?s.res.successRate:0;
-    const col= sr>=85?'#7DAB90':sr>=70?'var(--gold-bright)':'var(--negative-bright)';
+    const col= sr>=85?'#8FAA77':sr>=70?'var(--gold-bright)':'var(--negative-bright)';
     // Header: a small identity dot (column color) + the name. Baseline's name is
     // locked (the anchor); other scenarios render an inline editable field so the
     // advisor can label them ("Retire at 62"). A ✕ removes non-baseline columns.
