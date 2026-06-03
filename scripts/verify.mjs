@@ -91,8 +91,8 @@ try {
     await page.screenshot({ path: `${OUT}/01-balance-sheet.png`, fullPage: true });
   });
 
-  await step('net worth sub-nav cycles through inflows / outflows / goals', async () => {
-    for(const sub of ['inflows','outflows','goals']){
+  await step('net worth sub-nav cycles through cash flow / goals', async () => {
+    for(const sub of ['cashflow','goals']){
       await page.click(`#np-subnav .stab[data-sub="${sub}"]`);
       await new Promise(r => setTimeout(r, 200));
       const m = await page.evaluate(() => ({
@@ -141,10 +141,10 @@ try {
   });
 
   await step('add-row workflow: + add appends an editable row', async () => {
-    await page.click(`#np-subnav .stab[data-sub="outflows"]`);
+    await page.click(`#np-subnav .stab[data-sub="cashflow"]`);
     await new Promise(r => setTimeout(r, 200));
     const before = await page.evaluate(() => document.querySelectorAll('.hp-col .erow').length);
-    await page.click('.hp-add[data-add="expense"]');
+    await page.click('.hp-add[data-add="income"]');
     await new Promise(r => setTimeout(r, 200));
     const after = await page.evaluate(() => document.querySelectorAll('.hp-col .erow').length);
     if(after !== before + 1) throw new Error(`add-row did not append (before=${before}, after=${after})`);
