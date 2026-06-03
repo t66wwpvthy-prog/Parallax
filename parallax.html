@@ -1881,9 +1881,9 @@ plan.expenses.healthcare = 12000;
 // Goals are now an ARRAY: recurring goals (lifelong window 0–999) live in the
 // left column; a one-time goal is a single-year window (startAge===endAge).
 plan.goals = [
-  { name:'Travel',            amount:12000, startAge:0, endAge:999 },
-  { name:'Home improvements', amount:5000,  startAge:0, endAge:999 },
-  { name:'Gifts',             amount:5000,  startAge:0, endAge:999 },
+  { name:'Travel',            amount:12000, startAge:65, endAge:95 },
+  { name:'Home improvements', amount:5000,  startAge:65, endAge:95 },
+  { name:'Gifts',             amount:5000,  startAge:65, endAge:95 },
 ];
 // Demo real asset: a primary residence with a remaining mortgage. The engine
 // amortizes it (balance/rate/term) into a payment that runs until payoff; value
@@ -2631,7 +2631,7 @@ const ROW_KINDS = {
   income:    { arr:'income.other',   mk:()=>({ label:'', amount:0, startAge:65, endAge:75 }) },
   expense:   { arr:'expenses.extra', mk:()=>({ label:'', amount:0, startAge:65, endAge:80 }) },
   liability: { arr:'liabilities',    mk:()=>({ label:'', amount:0, startAge:65, endAge:75, colaPct:0 }) },
-  goalRec:   { arr:'goals',          mk:()=>({ name:'',  amount:0, startAge:0,  endAge:999 }) },
+  goalRec:   { arr:'goals',          mk:()=>({ name:'',  amount:0, startAge:plan.household.primary.retirementAge, endAge:plan.household.primary.planEndAge }) },
   goalOnce:  { arr:'goals',          mk:()=>({ name:'',  amount:0, startAge:70, endAge:70 }) },
   property:  { arr:'properties',     mk:()=>({ name:'',  value:0, purchasePrice:0, mortgage:{ balance:0, rate:0, termYears:0 } }) },
 };
@@ -2646,10 +2646,13 @@ function flowRow(arr, i, nameKey, ph){
   return `<div class="erow">${name(plan,base,nameKey,ph)}${money(plan,base,'amount')}
     <span class="er-ages">age ${num(plan,base,'startAge')}<span class="er-dash">–</span>${num(plan,base,'endAge')}</span>${rmX(base)}</div>`;
 }
-// A recurring goal: name · amount (lifelong — no age window shown).
+// A recurring goal: name · amount · age window (from – to). Defaults to
+// retirement → plan-end (the old "lifelong"), but the end is now editable so a
+// goal can run for a finite span (e.g. tuition ages 70–78).
 function recGoalRow(i){
   const base = `goals.${i}`;
-  return `<div class="erow">${name(plan,base,'name','Goal')}${money(plan,base,'amount')}${rmX(base)}</div>`;
+  const ages = `<span class="er-ages">age ${num(plan,base,'startAge')}<span class="er-dash">–</span>${num(plan,base,'endAge')}</span>`;
+  return `<div class="erow">${name(plan,base,'name','Goal')}${money(plan,base,'amount')}${ages}${rmX(base)}</div>`;
 }
 // A one-time goal: name · amount · single "at age" (mirrors into endAge).
 function onceGoalRow(i){
