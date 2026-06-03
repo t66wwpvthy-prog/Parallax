@@ -15,7 +15,7 @@
   --surface:rgba(36,23,46,.55); --surface-2:rgba(255,255,255,.09); --surface-3:rgba(45,29,56,.42);
   --rule:rgba(255,255,255,.16); --rule-bright:rgba(255,255,255,.28); --rule-faint:rgba(255,255,255,.09);
   --ink:#F2ECFA; --ink-bright:#FFFFFF; --ink-mute:#BFB0CA; --ink-faint:rgba(226,211,236,.55); --ink-ghost:rgba(226,211,236,.28);
-  --gold:#D2943C; --gold-bright:#E6AE55; --gold-deep:#A9762C; --gold-glow:rgba(210,148,60,.22);
+  --gold:#B07840; --gold-bright:#C98B52; --gold-deep:#8A5C2C; --gold-glow:rgba(176,120,64,.22);
   --teal:#86A7C5; --teal-bright:#A3BFD8; --teal-deep:#6588A6; --teal-glow:rgba(134,167,197,.16);
   /* Result language: muted sage (strong) / bronze (caution, via --gold) /
      distressed coral (at-risk) — all muted, no neon. */
@@ -63,7 +63,7 @@ body{background-color:#120B1C;background-image:
 .band-cell.label{align-items:flex-start;justify-content:flex-end}
 .band-cell.label span{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-mute);font-weight:500}
 .col-name{font-size:11.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-bright);font-weight:600;text-align:center;display:flex;align-items:center;justify-content:center;gap:7px}
-.col-name.base-tag{color:var(--teal-bright)}
+.col-name.base-tag{color:var(--gold-bright)}
 .col-dot{width:8px;height:8px;border-radius:50%;flex:0 0 auto}
 /* Inline rename field — looks like the label until focused, then shows it's
    editable. Sized to content via a generous max so longer names fit. */
@@ -141,8 +141,8 @@ body{background-color:#120B1C;background-image:
 .lev-cell{display:flex;flex-direction:column;justify-content:center;gap:7px;border-right:1px solid var(--rule-faint);border-bottom:1px solid var(--rule-faint);padding:0 16px;min-height:62px}
 .lev-cell.base{background:rgba(63,107,120,.04)}
 .scn-levers .lev-cell.col-last{border-right:none}
-.lev-val{font-family:'Inter';font-size:17px;font-weight:600;color:var(--gold);display:flex;align-items:center;gap:6px}
-.lev-val.base{color:var(--teal-bright)}
+.lev-val{font-family:'Inter';font-size:17px;font-weight:600;color:var(--gold-bright);display:flex;align-items:center;gap:6px}
+.lev-val.base{color:var(--gold-bright)}
 .lev-val .unit{font-size:10px;color:var(--ink-faint);font-weight:500;letter-spacing:.04em}
 /* Baseline-delta chip — right-aligned so the deltas form a clean comparison
    column down the right edge of each scenario. Muted/neutral (no good-bad hue). */
@@ -166,9 +166,9 @@ body{background-color:#120B1C;background-image:
    fill-bar: filled to the value via --fill (set per element), small dot thumb. */
 .lev-slider{-webkit-appearance:none;width:100%;height:11px;background:transparent;cursor:pointer;margin:3px 0}
 .lev-slider::-webkit-slider-runnable-track{height:3px;border-radius:2px;background:linear-gradient(90deg,var(--gold) 0 var(--fill,0%),var(--rule-faint) var(--fill,0%))}
-.lev-slider.base-lock::-webkit-slider-runnable-track{background:linear-gradient(90deg,var(--teal) 0 var(--fill,0%),var(--rule-faint) var(--fill,0%))}
+.lev-slider.base-lock::-webkit-slider-runnable-track{background:linear-gradient(90deg,var(--gold) 0 var(--fill,0%),var(--rule-faint) var(--fill,0%))}
 .lev-slider::-webkit-slider-thumb{-webkit-appearance:none;height:9px;width:9px;border-radius:50%;background:var(--gold);margin-top:-3px;border:2px solid var(--surface);box-shadow:0 1px 2px rgba(0,0,0,.15)}
-.lev-slider.base-lock::-webkit-slider-thumb{background:var(--teal-deep)}
+.lev-slider.base-lock::-webkit-slider-thumb{background:var(--gold)}
 .lev-slider:disabled{opacity:.5;cursor:default}
 
 .lev-step{display:inline-flex;align-items:center;gap:7px;margin-left:auto}
@@ -347,8 +347,8 @@ body{background-color:#120B1C;background-image:
 .snap{max-width:1100px;display:grid;grid-template-columns:1fr 1fr;gap:28px;align-items:start}
 .metric{display:flex;flex-direction:column;gap:20px;padding:26px 28px 30px;border:1px solid var(--rule-faint);border-radius:10px}
 .m-eye{font-family:'Sora';font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-faint);font-weight:600;margin-bottom:10px}
-.m-hero{font-family:'Inter';font-size:46px;line-height:1;font-weight:700;color:var(--ink);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
-.m-hero.teal{color:#8AAEC6} .m-hero.gold{color:var(--gold-deep)} .m-hero.clay{color:var(--ink-mute)}
+.m-hero{font-family:'Inter';font-size:46px;line-height:1;font-weight:700;color:var(--ink-mute);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.m-hero.teal{color:var(--ink-mute)} .m-hero.gold{color:var(--gold)} .m-hero.clay{color:var(--ink-faint)}
 .m-sub{font-family:'Sora';font-size:12.5px;color:var(--ink-mute);margin-top:8px;font-weight:500;line-height:1.45}
 /* Floating stat rows — labels above Inter numbers, no bar */
 .stat-row{display:flex;gap:22px;flex-wrap:wrap;margin-top:2px}
@@ -375,9 +375,9 @@ body{background-color:#120B1C;background-image:
 /* segmented proportion bar (tax location) */
 .seg{height:40px;border-radius:6px;overflow:hidden;display:flex;box-shadow:inset 0 0 0 1px var(--rule)}
 .seg div{display:flex;align-items:center;justify-content:center;color:#fff;font-family:'Inter';font-size:13px;font-weight:600;min-width:0;overflow:hidden}
-.seg .s-tax{background:linear-gradient(180deg,#4E6B7A,#3A5264)}
-.seg .s-def{background:linear-gradient(180deg,var(--gold),var(--gold-deep))}
-.seg .s-roth{background:linear-gradient(180deg,#456B54,#344F41)}
+.seg .s-tax{background:linear-gradient(180deg,#4A5F6A,#344957)}
+.seg .s-def{background:linear-gradient(180deg,var(--gold-bright),var(--gold))}
+.seg .s-roth{background:linear-gradient(180deg,#3E5E4A,#2E4638)}
 
 /* Year-by-year cash-flow drawer on the Scenarios page. Three scenarios side
    by side; each scenario's columns are softly tinted in its line color so the
