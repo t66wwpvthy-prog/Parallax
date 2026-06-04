@@ -30,6 +30,10 @@
   /* Named aliases from Nathan's spec (point at the same refined roles). */
   --sage-text-primary:#F4F6F0; --sage-text-value:#E5D9C4; --sage-accent-clay:#D9A07E;
   --sage-border-muted:#BDCDC0; --sage-accent-bronze-muted:#BFA78F;
+  /* Probability band colors — applied ONLY to ring stroke/arc/dot/%text/glow */
+  --sangria:#5E1916; --sangria-rgb:94,25,22;
+  --bronze-band:#D8B371; --bronze-band-rgb:216,179,113;
+  --deep-green:#7AA76C; --deep-green-rgb:122,167,108;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;background:var(--bg);font-family:'Sora',sans-serif;color:var(--ink);font-size:14px;-webkit-font-smoothing:antialiased;overflow:hidden}
@@ -2183,7 +2187,7 @@ function runAll(){
 // Success ring color band: steel-teal (strong) / brass (caution) /
 // clay (at risk). No green — matches the Obsidian Brass result tokens.
 // Ring band matches the % number: deep green / bronze gold / deep burgundy.
-function ringColor(pct){ return pct>=85?'#2d5a40':pct>=70?'#D9A07E':'#d4706a'; }
+function ringColor(pct){ return pct>=80?'#7AA76C':pct>=71?'#D8B371':'#5E1916'; }
 function ring(pct){
   // SVG fills its .circle-wrap via viewBox, so the ring size is controlled by
   // CSS (one place). Thin stroke near the edge leaves room for the % number.
@@ -2208,7 +2212,7 @@ function renderBand(){
   let h=`<div class="band-cell label"><span>Scenario</span></div>`;
   scenarios.forEach((s,ci)=>{
     const sr=s.res?s.res.successRate:0;
-    const col= sr>=85?'#8FAA77':sr>=70?'var(--gold-bright)':'var(--negative-bright)';
+    const col= sr>=80?'#7AA76C':sr>=71?'#D8B371':'#5E1916';
     // Header: a small identity dot (column color) + the name. Baseline's name is
     // locked (the anchor); other scenarios render an inline editable field so the
     // advisor can label them ("Retire at 62"). A ✕ removes non-baseline columns.
