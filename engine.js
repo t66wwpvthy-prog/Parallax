@@ -399,7 +399,9 @@ const plan = {
   // expenses: the fixed essential scalars PLUS `extra` — an array of discretionary,
   // time-bounded spending lines ({ label, amount, startAge, endAge }). Discretionary
   // extras flex with the spending lever (spendMult), flat-real otherwise. Empty default.
-  expenses:   { living: 188000, housing: 0, debt: 0, healthcare: 12000, extra: [] },
+  // healthcareRealGrowth: annual real growth rate for healthcare above general CPI
+  // (historically ~2%/yr; 0 = flat real). Applied from retirement age forward.
+  expenses:   { living: 188000, housing: 0, debt: 0, healthcare: 12000, extra: [], healthcareRealGrowth: 0.02 },
   // Recurring time-bounded obligations (a mortgage, a car loan, a tuition plan).
   // Each: { label, amount ($/yr, today's dollars), startAge, endAge, colaPct }.
   // colaPct is the NOMINAL annual escalator like the pension: 0 = a fixed-nominal
@@ -672,7 +674,9 @@ function resolveInputs(plan, ov){
       living:     plan.expenses.living     * spendMult,
       housing:    plan.expenses.housing    * spendMult,
       debt:       plan.expenses.debt       * spendMult,
-      healthcare: plan.expenses.healthcare * spendMult,
+      // Healthcare is NOT scaled by spendMult — it's not discretionary lifestyle
+      // spending. It has its own healthcareRealGrowth rate applied in the sim loop.
+      healthcare: plan.expenses.healthcare,
       // Discretionary, time-bounded extras — flex with the spending lever, flat-real.
       extra: (plan.expenses.extra || []).map(e => ({
         amount:   Math.max(0, e.amount || 0) * spendMult,
@@ -707,6 +711,7 @@ function resolveInputs(plan, ov){
         })
     ],
     healthcareMult: 1 + (ov.healthcareAdj || 0),
+    healthcareRealGrowth: Math.max(0, plan.expenses.healthcareRealGrowth ?? 0.02),
     // Goals — normalized to an array of flat-real timed entries. A legacy
     // { vacation, property, gifts } object is converted to always-on entries.
     goals: (Array.isArray(plan.goals)
@@ -850,8 +855,11 @@ function runSinglePath(p, returnPath){
     const ltcCost = (p.ltc && age >= p.ltc.onsetAge) ? p.ltc.amount : 0;
     let extraExp = 0;
     for(const e of p.expenses.extra){ if(age >= e.startAge && age <= e.endAge) extraExp += e.amount; }
+    const yearsRetired = Math.max(0, age - p.retirementAge);
+    const healthcareCost = p.expenses.healthcare * p.healthcareMult
+                           * Math.pow(1 + p.healthcareRealGrowth, yearsRetired);
     const expenses = p.expenses.living + p.expenses.housing + p.expenses.debt
-                     + p.expenses.healthcare * p.healthcareMult + extraExp + ltcCost;
+                     + healthcareCost + extraExp + ltcCost;
     let goalsY = 0;
     for(const g of p.goals){ if(age >= g.startAge && age <= g.endAge) goalsY += g.amount; }
     // Recurring liabilities active at this age, each eroded in real terms from
