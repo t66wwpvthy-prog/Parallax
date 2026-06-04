@@ -12,8 +12,8 @@
      The mock's "light sage" comes from a big bright sage card filling the view;
      Parallax has no such card, so we carry that light into the body ground + lift
      the panels to a translucent sage tint that lets the bright ground through. */
-  --bg-deep:#13241d; --bg:#16271f;
-  --surface:rgba(150,190,165,.13); --surface-2:rgba(183,221,195,.10); --surface-3:rgba(150,190,165,.09);
+  --bg-deep:#1a3526; --bg:#1e3d2b;
+  --surface:rgba(170,210,180,.18); --surface-2:rgba(183,221,195,.13); --surface-3:rgba(160,200,175,.12);
   --rule:rgba(225,247,232,.20); --rule-bright:rgba(235,250,240,.34); --rule-faint:rgba(225,247,232,.10);
   --ink:#f5f8f6; --ink-bright:#ffffff; --ink-mute:#9bb8a8; --ink-faint:rgba(230,238,234,.58); --ink-ghost:rgba(220,240,228,.24);
   --gold:#c47b31; --gold-bright:#fb8d26; --gold-deep:#aa692a; --gold-glow:rgba(196,123,49,.24);
@@ -25,13 +25,13 @@
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;background:var(--bg);font-family:'Sora',sans-serif;color:var(--ink);font-size:14px;-webkit-font-smoothing:antialiased;overflow:hidden}
-body{background-color:#16271f;background-image:
-  radial-gradient(circle at 52% 22%, rgba(205,235,212,.40), transparent 46%),
-  radial-gradient(circle at 80% 40%, rgba(150,190,165,.28), transparent 38%),
-  radial-gradient(circle at 22% 78%, rgba(140,185,158,.20), transparent 42%),
-  linear-gradient(90deg, rgba(255,255,255,.022) 1px, transparent 1px),
-  linear-gradient(180deg, rgba(255,255,255,.022) 1px, transparent 1px),
-  linear-gradient(135deg,#15281f 0%,#22392f 48%,#16271f 100%);
+body{background-color:#1e3d2b;background-image:
+  radial-gradient(circle at 54% 20%, rgba(190,230,202,.68), transparent 48%),
+  radial-gradient(circle at 80% 38%, rgba(155,200,170,.48), transparent 40%),
+  radial-gradient(circle at 20% 75%, rgba(145,190,162,.34), transparent 44%),
+  linear-gradient(90deg, rgba(255,255,255,.018) 1px, transparent 1px),
+  linear-gradient(180deg, rgba(255,255,255,.018) 1px, transparent 1px),
+  linear-gradient(135deg,#1a3828 0%,#2a4a38 48%,#1e3d2b 100%);
 background-size:auto,auto,auto,64px 64px,64px 64px,auto;}
 .wrap{height:100vh;display:flex;flex-direction:column;overflow:hidden}
 
@@ -48,7 +48,7 @@ background-size:auto,auto,auto,64px 64px,64px 64px,auto;}
   box-shadow:0 22px 48px -24px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.14), inset 0 0 0 1px rgba(255,255,255,.05);
 }
 
-.hdr{display:flex;align-items:center;gap:18px;padding:13px 28px;border-bottom:1px solid var(--rule);background:rgba(20,38,30,.50);backdrop-filter:blur(20px) saturate(1.1);-webkit-backdrop-filter:blur(20px) saturate(1.1);flex:0 0 auto;position:relative;z-index:50}
+.hdr{display:flex;align-items:center;gap:18px;padding:13px 28px;border-bottom:1px solid var(--rule);background:rgba(28,56,40,.42);backdrop-filter:blur(20px) saturate(1.1);-webkit-backdrop-filter:blur(20px) saturate(1.1);flex:0 0 auto;position:relative;z-index:50}
 .wordmark{font-size:15px;font-weight:600;letter-spacing:.30em;text-transform:uppercase;color:var(--ink-bright)}
 .hdr-tabs{display:flex;margin-left:24px}
 .htab{background:none;border:none;border-bottom:2px solid transparent;color:var(--ink-mute);cursor:pointer;font-family:'Sora';font-size:12px;letter-spacing:.2em;text-transform:uppercase;padding:6px 20px;font-weight:500;transition:color .2s,border-color .2s}
