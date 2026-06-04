@@ -2599,7 +2599,6 @@ const HH_FIELDS = [
 /* ── Hybrid columns: each sub-page has a LEFT and a RIGHT column.
    Each item carries name + path + type, and an optional meta() that draws
    from the live plan (e.g. "claim at 67" reads the actual claim age). */
-const meta = fn => fn;
 const HYBRID = {
   // Income and expenses live on ONE page (Cash Flow). Income = Fixed (SS, pension)
   // + Variable. Expenses = Essential only — discretionary spending is modeled as
