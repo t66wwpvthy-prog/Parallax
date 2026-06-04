@@ -153,6 +153,40 @@ body{background-color:#1A130B;background-image:
 .solo-allcapped{margin-top:14px;font-family:'Sora';font-size:12px;color:var(--negative);font-weight:600;letter-spacing:.02em}
 .solve-searching,.solve-empty{font-family:'Sora';font-size:12px;color:var(--ink-mute);font-weight:500}
 .solve-searching::after{content:'';display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--gold);margin-left:8px;animation:pulse 1.1s infinite}
+/* ── Combo solver: the small solo widget folds DOWN into this bigger field.
+   Same engine, same markets — the % on each card is the real Monte Carlo for
+   that exact lever set. The cards are the gentlest PAIRS that clear the goal. */
+.fold-cta{display:flex;justify-content:center;margin:0}
+.fold-tab{margin-top:-1px;background:var(--surface-3);border:1px solid var(--rule-faint);border-top:none;border-radius:0 0 12px 12px;padding:7px 22px;font-family:'Sora';font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:var(--gold-bright);cursor:pointer;display:flex;align-items:center;gap:8px}
+.fold-tab:hover{color:var(--gold);border-color:var(--rule)}
+.combo-field{margin:14px 0 20px;padding:22px 24px;border-radius:16px;background:linear-gradient(180deg,rgba(60,44,28,.5),rgba(36,26,17,.5));backdrop-filter:blur(20px);box-shadow:inset 0 1px 0 var(--rule-bright),inset 0 0 0 1px var(--rule-faint),0 30px 60px -30px #000}
+.combo-head{font-family:'Sora';font-size:14px;color:var(--ink-bright);font-weight:600;margin-bottom:3px}
+.combo-sub{font-size:12px;color:var(--ink-faint);margin-bottom:18px}
+.combo-sub b{color:var(--gold-bright);font-family:'Inter';font-weight:700}
+.combo-card{display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:20px;padding:15px 18px;margin-bottom:11px;border-radius:13px;background:var(--surface);box-shadow:inset 0 1px 0 var(--rule-faint),inset 0 0 0 1px var(--rule-faint)}
+.combo-card:last-child{margin-bottom:0}
+.combo-card.lead{box-shadow:inset 0 1px 0 var(--gold-glow),inset 0 0 0 1px rgba(210,148,60,.32),0 0 28px -16px var(--gold-glow)}
+.cc-moves{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.cpill{display:inline-flex;align-items:baseline;gap:7px;padding:7px 12px;border-radius:9px;font-family:'Inter';white-space:nowrap}
+.cpill .pk{font-family:'Sora';font-size:9px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;opacity:.75}
+.cpill .pv{font-size:15px;font-weight:700}
+.cpill.pin{background:rgba(255,255,255,.05);color:var(--ink-mute)}
+.cpill.pin .pk{color:var(--ink-faint)}
+.cpill.move{background:var(--gold-glow);color:var(--gold-bright)}
+.cpill.move .pk{color:var(--gold-deep)}
+.cpill.cut{background:rgba(216,125,107,.16);color:var(--clay)}
+.cpill.cut .pk{color:var(--clay)}
+.cc-plus{color:var(--ink-faint);font-size:15px;font-weight:300}
+.cc-conf{text-align:right;font-family:'Inter'}
+.cc-conf .cv{font-size:23px;font-weight:600;color:var(--positive-bright);line-height:1}
+.cc-conf .ck{font-family:'Sora';font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);font-weight:600}
+.cc-conf .cd{font-family:'Sora';font-size:10px;font-weight:600;color:var(--positive);margin-top:2px}
+.cc-load{font-family:'Sora';font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;padding:9px 16px;border-radius:7px;cursor:pointer;background:none;border:1px solid var(--rule-bright);color:var(--ink-mute)}
+.cc-load:hover:not(:disabled){border-color:var(--gold);color:var(--gold)}
+.cc-load:disabled{opacity:.3;cursor:default}
+.combo-foot{margin-top:16px;font-size:11.5px;color:var(--ink-faint);font-style:italic;line-height:1.5}
+.combo-empty,.combo-searching{font-family:'Sora';font-size:12.5px;color:var(--ink-mute);font-weight:500;padding:4px 0}
+.combo-searching::after{content:'';display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--gold);margin-left:8px;animation:pulse 1.1s infinite}
 .circle-wrap{position:relative;width:118px;height:118px}
 .circle-val{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
 .circle-val .big{font-size:28px;font-weight:400;line-height:1;font-family:'Inter';letter-spacing:-.01em}
@@ -871,12 +905,30 @@ function solveLeverFor(baseLev, key, targetPct, score = trySuccess, band = null)
 // bundling. The advisor reads each contribution and surmises any blend.
 let solverResults = null;  // null=no run yet, else {goal, params, targetPct, soloBase, rows}
 let solverSearching = false;
+// Combo solver state. The fold-down is opened on demand (the search is heavy),
+// so comboResults stays null until the advisor opens it for a given solve; it's
+// cleared whenever the underlying solo solve changes.
+let comboResults = null, comboOpen = false, comboSearching = false;
 
 // Levers that get a solo answer. Some goals PIN one (excluded from the list).
 // Allocation/risk is intentionally OUT — "take more risk to hit a goal" isn't a
 // clean planning recommendation (parked in the idea bank). SS stays, though it's
 // a weak % mover for high-spend households (its value is lifetime dollars).
 const SOLVE_KEYS = ['retireAge','spend','savings','ssAge','pensionAge'];
+
+// ── Combo solver tuning (all adjustable — refine with use) ──────────────────
+// "Least disruptive" blends the three rules Nathan approved:
+//   1. minimize the BIGGEST single lever stretch (each move normalized to its
+//      own realistic band), so no one lever carries the whole load;
+//   2. weight spending CUTS heavier — protect lifestyle, so combos lean to
+//      save-more / claim-SS-later before they cut spend;
+//   3. break ties by the smallest TOTAL move.
+const COMBO_SPEND_CUT_W = 1.6;                 // penalty multiplier on a spend cut
+const COMBO_A_FRACTIONS = [0.3, 0.55, 0.8];    // PARTIAL pushes of lever A (never the full solo move) so B genuinely shares the load
+const COMBO_MAX_CARDS   = 3;                    // cards shown
+const COMBO_MAX_LEVERS  = 3;                    // candidate levers searched (caps cost)
+// Short labels for the combo pills (the lever names are too long for a pill).
+const COMBO_SHORT = { retireAge:'Retire', ssAge:'SS at', spend:'Spend', savings:'Save', pensionAge:'Pension' };
 
 // Realistic search band per lever (relative to baseline) so a solo answer can't
 // suggest something absurd ($73k/yr savings off a $30k base). Not limiting: if a
@@ -1004,6 +1056,14 @@ function renderSolvePanel(){
   }).join('');
   const allCappedNote = allCapped
     ? `<div class="solo-allcapped">No single lever reaches ${R.targetPct}% — combine moves, or ease the goal.</div>` : '';
+  // The small solo widget folds DOWN into the combo field. The tab is always
+  // offered once we have solo results; the heavy search only runs when opened.
+  let comboHtml = `<div class="fold-cta"><button class="fold-tab" id="combo-toggle">${comboOpen?'↑ Hide combinations':'↓ Balanced combinations'}</button></div>`;
+  if(comboOpen){
+    comboHtml += comboSearching
+      ? `<div class="combo-field"><div class="combo-searching">Searching balanced combinations</div></div>`
+      : (comboResults ? renderComboField(comboResults) : '');
+  }
   el.innerHTML = `
     <div class="solve-panel">
       <div class="solve-panel-head">
@@ -1012,7 +1072,8 @@ function renderSolvePanel(){
       </div>
       <div class="solo-list">${rows}</div>
       ${allCappedNote}
-    </div>`;
+    </div>
+    ${comboHtml}`;
 }
 
 // Solve toward a chosen GOAL. Build soloBase = today's plan + the wish applied,
@@ -1055,7 +1116,166 @@ async function runSolve(goalType, params){
   solverResults  = { goalType, params, targetPct: params.pct, soloBase, rows, canLoad: goalType!=='gift' };
   solverSearching = false;
   solving = false;
+  // A fresh solo solve invalidates any combos computed for the previous one.
+  comboResults = null; comboOpen = false; comboSearching = false;
   renderSolvePanel();
+}
+
+// ── Combo solver ────────────────────────────────────────────────────────────
+// When no SINGLE lever reaches the goal, the advisor opens the fold-down and we
+// search PAIRS of the remaining levers (the goal's pinned lever is held fixed).
+// For each pair we push lever A partway toward its helpful end, then solve B to
+// the gentlest value that still clears the target — tracing the trade-off line.
+// Every % is the real engine on the shared market paths (apples-to-apples). We
+// then rank the passing combos by the blended "least-disruptive" score and show
+// the gentlest one per distinct lever-pair. No new math in the engine — this is
+// pure search over engine outputs.
+
+// One combo pill's value text: deltas for the dollar levers (reads like "spend
+// $850/mo less"), absolute for the age levers ("SS at 70").
+function comboPillValue(key, baseV, val){
+  if(key==='spend'){   const d=Math.round((val-baseV)/12); return (d<0?'−$':'+$')+Math.abs(d).toLocaleString('en-US')+'/mo'; }
+  if(key==='savings'){ const d=Math.round((val-baseV)/1000); return (d<0?'−$':'+$')+Math.abs(d)+'k/yr'; }
+  return String(val);  // ages: the claim/retire age itself
+}
+// The anchor pill describing the (held-fixed) goal, shown first on every card.
+function comboGoalPill(goalType, params){
+  if(goalType==='retire')   return { k:'Retire', v:String(params.age) };
+  if(goalType==='purchase') return { k:'Buy',    v:'$'+Math.round(params.amount/1000)+'k @'+params.age };
+  if(goalType==='gift')     return { k:'Gift',   v:'$'+Math.round(params.amount/1000)+'k/yr→'+params.toAge };
+  if(goalType==='legacy')   return { k:'Leave',  v:'≥$'+Math.round(params.amount/1000)+'k' };
+  return null;  // plain confidence goal has no extra anchor
+}
+// Build a combo record from a set of [key,value] moves: pill text + the blended
+// disruption score (rule 1 = biggest weighted stretch; rule 3 = total move).
+function makeCombo(soloBase, moves, pct, basePct, meta){
+  const items = moves.map(([k,v])=>{
+    const span = (meta[k].band.max - meta[k].band.min) || 1;
+    const norm = Math.abs(v - soloBase[k]) / span;
+    const cut  = (k==='spend' && v < soloBase[k]);     // the one move that hurts lifestyle
+    return { key:k, val:v, pv:comboPillValue(k, soloBase[k], v), cut,
+             wnorm: norm*(cut?COMBO_SPEND_CUT_W:1), norm };
+  });
+  return {
+    items, pct, deltaPts: pct - basePct,
+    disruption: Math.max(...items.map(m=>m.wnorm)),    // minimize the biggest stretch
+    spread:     items.reduce((s,m)=>s+m.norm,0),       // tie-break: least total move
+    pairKey:    moves.map(m=>m[0]).sort().join('+'),
+  };
+}
+
+async function runComboSolve(){
+  if(!solverResults || comboSearching) return;
+  comboSearching = true; comboResults = null; renderSolvePanel();
+  await new Promise(r=>setTimeout(r,0));     // let the spinner paint
+
+  // sharedPaths is already built by the solo solve, but guard anyway.
+  if(!sharedPaths){
+    resetSeed();
+    const horizon = plan.household.primary.planEndAge - plan.household.primary.currentAge;
+    sharedPaths = [];
+    for(let i=0;i<plan.simulation.iterations;i++) sharedPaths.push(generateReturnPath(horizon));
+  }
+
+  const R = solverResults;
+  const target   = R.targetPct;
+  const soloBase = JSON.parse(JSON.stringify(R.soloBase));
+  const score    = R.goalType==='legacy' ? (L)=>tryLegacyProb(L, R.params.amount) : trySuccess;
+  const pinned   = R.goalType==='retire' ? 'retireAge' : null;
+  const basePct  = score(soloBase);
+
+  // Candidate levers = solvable set minus the pinned one, pruned to those whose
+  // solo move actually helped, then capped to the most-promising few (cost).
+  let cand = SOLVE_KEYS.filter(k => k!==pinned);
+  const helpful = cand.filter(k=>{
+    const row = R.rows.find(r=>r.key===k);
+    return row && row.reachedPct > basePct + 0.3;
+  });
+  if(helpful.length >= 2) cand = helpful;
+  if(cand.length > COMBO_MAX_LEVERS){
+    cand = cand.slice().sort((a,b)=>
+      (R.rows.find(r=>r.key===b)?.reachedPct ?? 0) - (R.rows.find(r=>r.key===a)?.reachedPct ?? 0)
+    ).slice(0, COMBO_MAX_LEVERS);
+  }
+
+  // Per-candidate band + helpful direction (one pair of evals each).
+  const meta = {};
+  for(const k of cand){
+    await new Promise(r=>setTimeout(r,0));
+    const band  = solveBand(k, soloBase);
+    const baseV = soloBase[k];
+    const pLo = score({...soloBase,[k]:band.min});
+    const pHi = score({...soloBase,[k]:band.max});
+    meta[k] = { band, baseV, end: (pHi>=pLo) ? band.max : band.min };
+  }
+
+  // Sweep A toward its helpful end; at each step solve B to the gentlest value
+  // that clears target. Keep combos where BOTH levers actually moved.
+  // Ordered pairs: sweeping A→solve-B and B→solve-A trace different points on the
+  // same trade-off line, so we try both and keep the gentlest per unordered pair.
+  const combos = [];
+  for(let i=0;i<cand.length;i++){
+    for(let j=0;j<cand.length;j++){
+      if(i===j) continue;
+      const A=cand[i], B=cand[j], ma=meta[A], mb=meta[B], step=ma.band.step;
+      // Restrict B to its HELPFUL half (baseline → helpful end) so a solve can
+      // never push B backward to "make room" for A — both levers only ever help.
+      const bBand = mb.end >= mb.baseV
+        ? { min: mb.baseV, max: mb.band.max, step: mb.band.step }
+        : { min: mb.band.min, max: mb.baseV, step: mb.band.step };
+      for(const f of COMBO_A_FRACTIONS){
+        await new Promise(r=>setTimeout(r,0));
+        let aVal = Math.round((ma.baseV + f*(ma.end - ma.baseV))/step)*step;
+        aVal = Math.max(ma.band.min, Math.min(ma.band.max, aVal));
+        if(aVal === ma.baseV) continue;                         // A didn't move
+        if(score({...soloBase,[A]:aVal}) >= target) continue;   // A alone already clears it → not a real pairing
+        const res = solveLeverFor({...soloBase,[A]:aVal}, B, target, score, bBand);
+        if(!res || res.capped) continue;                        // pair can't reach target
+        if(res.value === mb.baseV) continue;                    // B didn't move → solo-A
+        combos.push(makeCombo(soloBase, [[A,aVal],[B,res.value]], res.reachedPct, basePct, meta));
+      }
+    }
+  }
+  // Gentlest first; keep one (the gentlest) per distinct lever-pair, top N.
+  combos.sort((x,y)=> x.disruption - y.disruption || x.spread - y.spread);
+  const seen = new Set(), top = [];
+  for(const c of combos){
+    if(seen.has(c.pairKey)) continue;
+    seen.add(c.pairKey); top.push(c);
+    if(top.length >= COMBO_MAX_CARDS) break;
+  }
+  comboResults = { goalType:R.goalType, params:R.params, target, basePct, soloBase,
+                   canLoad: R.canLoad, combos: top };
+  comboSearching = false;
+  renderSolvePanel();
+}
+
+function renderComboField(C){
+  if(!C.combos.length){
+    return `<div class="combo-field">
+      <div class="combo-head">No balanced pair reaches ${C.target}%.</div>
+      <div class="combo-empty">Even two moves together can't clear it within reasonable bands — ease the goal, or this plan needs a bigger change.</div></div>`;
+  }
+  const gp = comboGoalPill(C.goalType, C.params);
+  const cards = C.combos.map((c,idx)=>{
+    let pills = '';
+    if(gp) pills += `<span class="cpill pin"><span class="pk">${gp.k}</span><span class="pv">${gp.v}</span></span>`;
+    c.items.forEach((m,i)=>{
+      if(gp || i>0) pills += `<span class="cc-plus">+</span>`;
+      pills += `<span class="cpill ${m.cut?'cut':'move'}"><span class="pk">${COMBO_SHORT[m.key]||m.key}</span><span class="pv">${m.pv}</span></span>`;
+    });
+    return `<div class="combo-card${idx===0?' lead':''}">
+      <div class="cc-moves">${pills}</div>
+      <div class="cc-conf"><div class="cv">${c.pct.toFixed(0)}%</div><div class="ck">confidence</div><div class="cd">+${c.deltaPts.toFixed(0)} pts ✓</div></div>
+      <button class="cc-load" data-combo-idx="${idx}" ${C.canLoad?'':'disabled'}>Load</button>
+    </div>`;
+  }).join('');
+  return `<div class="combo-field">
+    <div class="combo-head">Balanced ways to reach ${C.goalType==='retire'?C.params.age:'the goal'} — two gentler moves instead of one big one:</div>
+    <div class="combo-sub">Each pair shares the load across two levers and still clears <b>${C.target}%</b>. Ordered least-disruptive first.</div>
+    ${cards}
+    <div class="combo-foot">The goal is held fixed; the engine searched pairs of the remaining levers through the same markets and kept the combinations where neither lever does all the work. Load any one as a new scenario column.</div>
+  </div>`;
 }
 
 // Scenarios are NAMED, SAVEABLE objects (the household-centric data root). They
@@ -2189,7 +2409,17 @@ document.addEventListener('click', e=>{
     solverFormOpen = false; renderSolvePanel(); return;
   }
   if(e.target.closest('#solve-clear-btn')){
-    solverResults = null; solverSearching = false; renderSolvePanel(); return;
+    solverResults = null; solverSearching = false;
+    comboResults = null; comboOpen = false; comboSearching = false;
+    renderSolvePanel(); return;
+  }
+  // Fold-down: open runs the (heavy) combo search once and caches it; toggle off
+  // just collapses. The cache is reused on re-open until the solo solve changes.
+  if(e.target.closest('#combo-toggle')){
+    comboOpen = !comboOpen;
+    if(comboOpen && !comboResults && !comboSearching) runComboSolve();  // renders itself
+    else renderSolvePanel();
+    return;
   }
   const loadBtn = e.target.closest('.solve-load');
   if(loadBtn && solverResults && solverResults.rows){
@@ -2204,6 +2434,23 @@ document.addEventListener('click', e=>{
     const cfg = LEVCFG.find(c=>c.key===row.key);
     scenarios.push({ name: `${cfg.name} solve`, base:false, lev, res:null });
     solverResults = null; solverSearching = false;
+    comboResults = null; comboOpen = false;
+    saveScenarios(); buildLevers(); renderBand(); renderSolvePanel(); plansDirty=true; runAll();
+  }
+  // Load a COMBO: the held-fixed soloBase with both lever moves applied.
+  const cLoadBtn = e.target.closest('.cc-load');
+  if(cLoadBtn && comboResults && comboResults.combos){
+    if(scenarios.length >= MAX_SCENARIOS) return;
+    const c = comboResults.combos[+cLoadBtn.dataset.comboIdx];
+    if(!c) return;
+    const lev = JSON.parse(JSON.stringify(comboResults.soloBase));
+    c.items.forEach(m => lev[m.key] = m.val);
+    syncPension(lev);
+    const nm = comboResults.goalType==='retire' ? `Retire ${comboResults.params.age}`
+             : c.items.map(m=>COMBO_SHORT[m.key]).join(' + ');
+    scenarios.push({ name: nm.slice(0,28), base:false, lev, res:null });
+    solverResults = null; solverSearching = false;
+    comboResults = null; comboOpen = false;
     saveScenarios(); buildLevers(); renderBand(); renderSolvePanel(); plansDirty=true; runAll();
   }
 });
