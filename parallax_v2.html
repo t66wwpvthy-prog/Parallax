@@ -80,11 +80,11 @@ background-size:auto,auto,auto,64px 64px,64px 64px,auto;}
 /* Cap the scenarios block so columns don't stretch across a wide monitor.
    ~210px per scenario + the 148px label gutter; centered. */
 .scn-scroll,.page[data-page="scenarios"] .cf-toggle,.page[data-page="scenarios"] .cf-drawer{max-width:1180px;width:100%;margin-left:auto;margin-right:auto}
-.page[data-page="scenarios"] .eyebrow{position:sticky;top:0;z-index:25;background:var(--bg);padding:20px 0 16px}
+.page[data-page="scenarios"] .eyebrow{position:sticky;top:0;z-index:25;background:rgba(30,61,43,.55);backdrop-filter:blur(18px) saturate(1.1);-webkit-backdrop-filter:blur(18px) saturate(1.1);padding:20px 0 16px}
 .scn-band{position:sticky;top:53px;z-index:20;display:grid;grid-template-columns:148px repeat(3,1fr);column-gap:14px}
 /* Opaque backdrop behind the WHOLE sticky band (not just a 10px lip) so scrolling
    lever rows can't bleed through the translucent glass column-cards. */
-.scn-band::before{content:'';position:absolute;left:0;right:0;top:-10px;bottom:0;background:var(--bg);z-index:-1}
+.scn-band::before{content:'';position:absolute;left:0;right:0;top:-10px;bottom:0;background:rgba(30,61,43,.55);backdrop-filter:blur(18px) saturate(1.1);-webkit-backdrop-filter:blur(18px) saturate(1.1);z-index:-1}
 .band-cell{padding:14px 14px 14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;min-height:172px}
 /* Each scenario is a floating glass column-card: circle (rounded top) → levers →
    median (rounded bottom). The label gutter stays transparent. Column-gap channels
@@ -223,6 +223,11 @@ background-size:auto,auto,auto,64px 64px,64px 64px,auto;}
 /* Inline type-in boxes for the dollar/age levers; width tuned per content. */
 .lev-val .lev-in{font-family:'Inter';font-size:16.5px;font-weight:500;color:inherit;background:transparent;border:none;border-radius:5px;width:78px;padding:1px 3px;outline:none;text-align:right;transition:background .15s}
 .lev-val .lev-in.age-in{width:34px;text-align:center}
+/* "Sell primary to fund" toggle on the Buy Property lever — its own line so it
+   doesn't crowd the amount/age boxes. Off = outline chip; on = gold fill. */
+.lev-fund{display:block;margin:5px 0 0;font-family:'Sora',sans-serif;font-size:9px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;padding:3px 8px;border-radius:6px;border:1px solid var(--rule-bright);background:transparent;color:var(--ink-faint);cursor:pointer;transition:border-color .15s,color .15s,background .15s}
+.lev-fund:hover{border-color:var(--gold-bright);color:var(--gold-bright)}
+.lev-fund.on{background:rgba(251,141,38,.18);border-color:transparent;color:var(--gold-bright)}
 /* Resting state = clean numbers + deltas (no bar clutter). The slider fades in
    when you hover/focus the cell, so drag-to-explore stays for live demos but the
    grid reads as a comparison table at a glance. Touch (no hover) keeps it shown. */
@@ -243,6 +248,20 @@ background-size:auto,auto,auto,64px 64px,64px 64px,auto;}
 .foot-cell:not(:first-child){background:var(--surface);border-radius:0 0 14px 14px}
 .foot-cell b{color:var(--ink);font-weight:500}
 
+/* Goals section on the Scenarios tab — a read-only mirror of the base-plan
+   goals. Same 148px + N-column grid as the levers so rows stay registered.
+   Quiet (no inputs, no sliders): it's a reflection of the plan, not a lever. */
+.scn-goals{display:grid;grid-template-columns:148px repeat(3,1fr);column-gap:14px}
+.sg-head{display:flex;align-items:center;padding:14px 14px 8px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);font-weight:600}
+.sg-head.sg-col{background:var(--surface)}
+.sg-name{display:flex;flex-direction:column;justify-content:center;padding:0 14px;min-height:46px;font-size:12px;color:var(--ink-mute);line-height:1.25}
+.sg-name .sg-win{font-size:10px;letter-spacing:.04em;color:var(--ink-faint);margin-top:2px}
+.sg-cell{display:flex;align-items:center;gap:6px;border-bottom:1px solid var(--rule-faint);padding:0 16px;min-height:46px;background:var(--surface);font-family:'Inter';font-size:15px;font-weight:500;color:var(--ink-mute)}
+.sg-cell .sg-tag{font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-faint);font-weight:500}
+.sg-total{display:flex;align-items:center;padding:0 14px;min-height:42px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);font-weight:500}
+.sg-tcell{display:flex;align-items:center;gap:6px;padding:0 16px;min-height:42px;background:var(--surface);font-family:'Inter';font-size:13.5px;font-weight:500;color:var(--ink)}
+.sg-empty{grid-column:1 / -1;padding:10px 14px;font-size:11.5px;color:var(--ink-faint);font-style:italic}
+
 /* Shared chart chrome (used by the Sequencing chart). */
 .chart-head{display:flex;align-items:baseline;gap:16px;margin-bottom:6px;flex:0 0 auto}
 .chart-title{font-size:15px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-bright);font-weight:600}
@@ -254,10 +273,23 @@ background-size:auto,auto,auto,64px 64px,64px 64px,auto;}
 
 /* SEQUENCING */
 .page[data-page="sequencing"]{padding-top:20px;overflow-y:auto}
-.seq-bar{flex:0 0 auto;display:flex;align-items:center;gap:14px;margin:14px 0}
+/* position+z so the Plan dropdown menu (which overflows the bar downward) paints
+   ABOVE the sibling .seq-chart — the chart's backdrop-filter gives it its own
+   stacking context and would otherwise cover the open menu. */
+.seq-bar{flex:0 0 auto;display:flex;align-items:center;gap:14px;margin:14px 0;position:relative;z-index:30}
 .seq-pick{display:flex;align-items:center;gap:10px;background:var(--surface);border-radius:10px;padding:8px 14px}
 .seq-pick .k{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-mute);font-weight:500}
-.seq-pick select{background:var(--surface-2);border:1px solid var(--rule-bright);color:var(--ink-bright);font-family:'Sora';font-size:12px;font-weight:500;letter-spacing:.04em;padding:6px 30px 6px 12px;border-radius:3px;outline:none;appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M0 0 L5 6 L10 0' fill='%239aa6b9'/></svg>");background-repeat:no-repeat;background-position:right 11px center;cursor:pointer}
+/* Custom Plan dropdown — replaces the native <select> whose open option list
+   was OS-rendered bright white (un-themeable, especially on macOS). */
+.seq-dd{position:relative}
+.seq-dd-btn{display:flex;align-items:center;gap:10px;background:var(--surface-2);border:1px solid var(--rule-bright);color:var(--ink-bright);font-family:'Sora',sans-serif;font-size:12px;font-weight:500;letter-spacing:.04em;padding:6px 12px;border-radius:6px;cursor:pointer;outline:none;transition:border-color .15s}
+.seq-dd-btn:hover,.seq-dd-btn[aria-expanded=true]{border-color:var(--gold-bright)}
+.seq-caret{color:var(--ink-mute);font-size:10px;line-height:1}
+.seq-dd-menu{position:absolute;top:calc(100% + 6px);left:0;min-width:100%;z-index:200;background:var(--surface-2);border:1px solid var(--rule-bright);border-radius:8px;padding:4px;box-shadow:0 18px 40px -16px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.06)}
+.seq-dd-menu[hidden]{display:none}
+.seq-dd-opt{font-family:'Sora',sans-serif;font-size:12px;font-weight:500;color:var(--ink);padding:7px 12px;border-radius:5px;cursor:pointer;white-space:nowrap;transition:background .12s,color .12s}
+.seq-dd-opt:hover{background:rgba(255,255,255,.06);color:var(--ink-bright)}
+.seq-dd-opt.sel{color:var(--gold-bright)}
 .seq-legend{margin-left:auto;display:flex;gap:16px;flex-wrap:wrap}
 .seq-legend .lg{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--ink-mute);font-family:'Sora';letter-spacing:.03em}
 .seq-legend .sw{display:inline-block;width:22px;border-top:3px solid;border-radius:2px}
@@ -453,9 +485,24 @@ background-size:auto,auto,auto,64px 64px,64px 64px,auto;}
 .ro-amt{flex:0 0 auto;font-family:'Inter';font-size:14px;font-weight:500;color:var(--ink);font-variant-numeric:tabular-nums}
 .ro-tag{flex:0 0 auto;font-family:'Sora';font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);font-weight:700;border:1px solid var(--rule-faint);border-radius:4px;padding:2px 5px}
 .er-num{width:34px;text-align:center;font-size:13px;font-weight:500;color:var(--ink);font-variant-numeric:tabular-nums}
+/* Kill the browser's native number spinners — their default bright-white
+   inc/dec windows clash with the paper/sage theme. Fields are type-in. */
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;appearance:none;margin:0}
+input[type=number]{-moz-appearance:textfield;appearance:textfield}
 .er-dash{color:var(--ink-faint)}
 .erow .row-x{flex:0 0 auto;width:18px;height:18px;border:none;background:transparent;color:var(--ink-faint);font-size:15px;line-height:1;cursor:pointer;border-radius:4px;padding:0}
 .erow .row-x:hover{color:var(--negative-bright);background:rgba(240,145,141,.08)}
+/* Income rows carry a second line (growth + taxable share); wrap so the divider
+   sits below the whole pair, not between the two lines. */
+.erow-wrap{border-bottom:1px solid var(--rule-faint)}
+.erow-wrap:last-of-type{border-bottom:none}
+.erow-wrap .erow{border-bottom:none}
+.er-extra{display:flex;align-items:center;gap:5px;padding:0 0 8px 2px;font-size:11px;color:var(--ink-mute)}
+.er-xk,.er-xs{font-size:11px;color:var(--ink-mute);white-space:nowrap}
+.er-xsep{color:var(--ink-faint);margin:0 3px}
+.er-extra .er-num{width:32px}
+.er-extra .er-gw{width:40px}
 
 /* Property card — name + value/basis + an optional mortgage sub-block. */
 .prop{margin:10px 0;padding:14px 16px;border-radius:14px;background:var(--surface)}
@@ -567,7 +614,7 @@ background-size:auto,auto,auto,64px 64px,64px 64px,auto;}
 
   /* Scenario comparison: scroll the band+levers+foot together horizontally so
      the % circles, sliders, and totals stay in the same three columns. */
-  .scn-band,.scn-levers,.scn-foot{min-width:620px}
+  .scn-band,.scn-levers,.scn-goals,.scn-foot{min-width:620px}
   .scn-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:4px}
   .scn-band{position:static;box-shadow:none}
   .scn-band::before{display:none}
@@ -644,31 +691,33 @@ background-size:auto,auto,auto,64px 64px,64px 64px,auto;}
 .g-slot.filled .g-rank{opacity:0}
 @keyframes absorb{0%{box-shadow:inset 0 0 0 2px rgba(251,141,38,.85),0 0 44px -6px rgba(251,141,38,.7)}100%{box-shadow:none}}
 .g-slot.flash{animation:absorb .5s ease-out}
-.g-card{position:absolute;z-index:2;cursor:grab;user-select:none;width:368px;height:72px;border-radius:14px;overflow:hidden;display:flex;align-items:center;gap:14px;padding:0 22px 0 28px;background:linear-gradient(152deg,rgba(96,134,108,.42),rgba(54,90,68,.42) 52%,rgba(36,64,48,.48));backdrop-filter:blur(20px) saturate(1.3);-webkit-backdrop-filter:blur(20px) saturate(1.3);box-shadow:inset 0 1px 0 rgba(255,255,255,.32),inset 0 0 0 1px rgba(255,255,255,.10),0 22px 40px -22px rgba(14,30,20,.6);transition:box-shadow .16s,transform .12s}
+.g-card{position:absolute;z-index:2;cursor:grab;user-select:none;width:410px;height:72px;border-radius:14px;overflow:hidden;display:flex;align-items:center;gap:14px;padding:0 22px 0 28px;background:linear-gradient(152deg,rgba(96,134,108,.42),rgba(54,90,68,.42) 52%,rgba(36,64,48,.48));backdrop-filter:blur(20px) saturate(1.3);-webkit-backdrop-filter:blur(20px) saturate(1.3);box-shadow:inset 0 1px 0 rgba(255,255,255,.32),inset 0 0 0 1px rgba(255,255,255,.10),0 22px 40px -22px rgba(14,30,20,.6);transition:box-shadow .16s,transform .12s}
 .g-card>*{position:relative;z-index:2}
 .g-card::before{content:'';position:absolute;inset:0;z-index:0;border-radius:inherit;pointer-events:none;background:linear-gradient(133deg,rgba(255,255,255,.2),rgba(255,255,255,.03) 32%,rgba(255,255,255,0) 58%)}
 .g-card::after{content:'';position:absolute;left:0;top:13px;bottom:13px;width:3px;z-index:1;border-radius:3px;background:linear-gradient(180deg,var(--gold-bright),rgba(196,123,49,.06))}
 .g-card:hover{transform:translateY(-2px);box-shadow:inset 0 1px 0 rgba(255,255,255,.4),inset 0 0 0 1px rgba(255,255,255,.14),0 28px 50px -20px rgba(14,30,20,.7)}
 .g-card.drag{cursor:grabbing;z-index:99;transform:scale(1.03);box-shadow:inset 0 1px 0 rgba(255,255,255,.46),inset 0 0 0 1px rgba(251,141,38,.4),0 40px 64px -18px rgba(14,30,20,.75),0 0 42px -12px rgba(251,141,38,.34)}
 .g-card.once{background:linear-gradient(152deg,rgba(150,110,60,.36),rgba(96,72,40,.36) 52%,rgba(60,48,30,.44));box-shadow:inset 0 1px 0 rgba(255,228,190,.34),inset 0 0 0 1px rgba(251,141,38,.3),0 22px 40px -22px rgba(40,24,8,.6)}
-.g-main{display:flex;flex-direction:column;gap:5px;min-width:0}
-.g-name{font-size:15px;font-weight:500;color:var(--ink-mute);white-space:nowrap;display:flex;align-items:center;gap:9px}
+.g-main{display:flex;flex-direction:column;gap:5px;min-width:0;flex:1 1 auto}
+.g-name{font-size:15px;font-weight:500;color:var(--ink-mute);white-space:nowrap;display:flex;align-items:center;gap:9px;min-width:0}
 .g-name .g-tag{font-size:9px;letter-spacing:.11em;text-transform:uppercase;font-weight:700;padding:3px 7px;border-radius:6px;background:rgba(251,141,38,.18);color:var(--gold-bright)}
 .g-kind{font-size:11px;color:var(--ink-faint);white-space:nowrap}
 .g-card.once .g-kind{color:rgba(251,141,38,.85)}
-.g-amt{margin-left:auto;display:flex;align-items:baseline;gap:1px;font-family:'Inter',sans-serif;font-variant-numeric:tabular-nums;font-size:24px;font-weight:700;color:var(--ink-bright);white-space:nowrap}
+.g-amt{margin-left:auto;flex:0 0 auto;display:flex;align-items:baseline;gap:1px;font-family:'Inter',sans-serif;font-variant-numeric:tabular-nums;font-size:22px;font-weight:700;color:var(--ink-bright);white-space:nowrap}
 .g-amt .g-per2{font-family:'Sora',sans-serif;font-size:13px;font-weight:500;color:var(--ink-faint);margin-left:3px}
 /* Inline-editable card fields — boxless inputs in the app's edit language
    (dashed underline on hover, copper on focus). The card stays the drag handle;
    pointerdown on any input/button is ignored so editing never starts a drag. */
 .g-addrow{display:flex;gap:10px}
 .g-add-sec{font-size:12.5px;color:var(--ink-mute)}
-.g-name-in{font-family:'Sora',sans-serif;font-size:15px;font-weight:500;color:var(--ink-bright);background:transparent;border:none;border-bottom:1px dashed transparent;outline:none;padding:1px 2px;width:140px;transition:border-color .15s,background .15s}
+/* Name fills the space left of the amount; long names (e.g. "College Tuition for
+   Sophie") ellipsis when idle and scroll within the field on focus. */
+.g-name-in{font-family:'Sora',sans-serif;font-size:14px;font-weight:500;color:var(--ink-bright);background:transparent;border:none;border-bottom:1px dashed transparent;outline:none;padding:1px 2px;flex:1 1 auto;min-width:0;text-overflow:ellipsis;transition:border-color .15s,background .15s}
 .g-name-in::placeholder{color:var(--ink-faint);font-style:italic}
 .g-name-in:hover{border-bottom-color:var(--rule-bright)}
 .g-name-in:focus{border-bottom-color:var(--gold-bright);background:rgba(251,141,38,.08)}
 .g-cur{font-family:'Inter',sans-serif;font-size:18px;font-weight:700;color:var(--ink-bright)}
-.g-amt-in{font-family:'Inter',sans-serif;font-variant-numeric:tabular-nums;font-size:24px;font-weight:700;color:var(--ink-bright);background:transparent;border:none;border-bottom:1px dashed transparent;outline:none;width:104px;text-align:right;padding:0 1px;transition:border-color .15s,background .15s}
+.g-amt-in{font-family:'Inter',sans-serif;font-variant-numeric:tabular-nums;font-size:22px;font-weight:700;color:var(--ink-bright);background:transparent;border:none;border-bottom:1px dashed transparent;outline:none;width:92px;text-align:right;padding:0 1px;transition:border-color .15s,background .15s}
 .g-amt-in:hover{border-bottom-color:var(--rule-bright)}
 .g-amt-in:focus{border-bottom-color:var(--gold-bright);background:rgba(251,141,38,.08)}
 .g-age-in{font-family:'Inter',sans-serif;font-variant-numeric:tabular-nums;font-size:11px;font-weight:600;color:var(--ink);background:transparent;border:none;border-bottom:1px dashed transparent;outline:none;width:30px;text-align:center;padding:0 1px;-moz-appearance:textfield;transition:border-color .15s,background .15s}
@@ -713,6 +762,10 @@ background-size:auto,auto,auto,64px 64px,64px 64px,auto;}
       <div class="scn-band" id="scn-band"></div>
       <div id="solve-panel"></div>
       <div class="scn-levers" id="scn-levers"></div>
+      <!-- Goals section: a READ-ONLY mirror of the base-plan goals, shown in
+           every scenario column so the advisor sees what each scenario carries.
+           Edited only on the Goals input page; columns reflect, never diverge. -->
+      <div class="scn-goals" id="scn-goals"></div>
       <div class="scn-foot" id="scn-foot"></div>
     </div>
     <!-- The Scenarios line chart was removed: it duplicated what the % circles +
@@ -731,7 +784,10 @@ background-size:auto,auto,auto,64px 64px,64px 64px,auto;}
     <div class="seq-bar">
       <div class="seq-pick">
         <span class="k">Plan</span>
-        <select id="seq-select"></select>
+        <div class="seq-dd" id="seq-dd">
+          <button type="button" class="seq-dd-btn" id="seq-dd-btn" aria-haspopup="listbox" aria-expanded="false"><span id="seq-dd-label"></span><span class="seq-caret">▾</span></button>
+          <div class="seq-dd-menu" id="seq-dd-menu" role="listbox" hidden></div>
+        </div>
       </div>
       <div class="seq-chips" id="seq-chips"></div>
     </div>
@@ -797,7 +853,7 @@ plan.goals = [
 // amortizes it (balance/rate/term) into a payment that runs until payoff; value
 // and purchasePrice are captured for a future sale event and are inert today.
 plan.properties = [
-  { name:'Primary residence', value:1200000, purchasePrice:520000,
+  { name:'Primary residence', value:1200000, purchasePrice:520000, purchaseYear:2012, commissionPct:5,
     mortgage:{ balance:280000, rate:5.5, termYears:9 } },
 ];
 // Two earners: one maxed (~$48k PIA at FRA), spouse a strong earner (~$30k).
@@ -813,6 +869,12 @@ plan.savings.annual      = 30000;
 // Snapshot's replacement-ratio gauge — a static diagnostic, not an engine
 // input. The engine drives accumulation off savings.annual, never this.
 plan.income.workingIncome = 300000;
+// A variable income stream showing the new per-stream controls: real growth
+// (here +1%/yr, indexed slightly above inflation) and a taxable share (70% —
+// the rest sheltered by depreciation). startAge–endAge bound when it's active.
+plan.income.other = [
+  { label:'Rental income', amount:18000, startAge:65, endAge:95, realGrowth:0.01, taxablePct:0.70 },
+];
 plan.simulation.iterations = 1000;
 
 // Scenario accent palette. Brass / steel-teal / dusty mauve are the core trio
@@ -831,6 +893,9 @@ function defaultLevers(){
     ssAge:      plan.income.socialSecurity.primary.claimAge,
     spend:      plan.expenses.living,
     eventAmt:   0, eventAge: 70,
+    // Buy-property what-if (amount + age + whether to fund it by selling the
+    // primary residence). Off by default — buyAmt 0 means no purchase.
+    buyAmt:     0, buyAge: 65, buyFromPrimary: false,
     risk:       plan.portfolio.riskProfile,
     savings:    plan.savings.annual,
     // pensionAge tracks retirement by DEFAULT (most people switch on a pension
@@ -838,7 +903,7 @@ function defaultLevers(){
     // earning). pensionAuto stays true until the advisor grabs the pension
     // slider, which frees it to hold any quoted age independently.
     pensionAuto: true,
-    pensionAge: (plan.income.pension && plan.income.pension.startAge) || 65
+    pensionAge: (plan.income.pension && plan.income.pension.startAge) || 65,
   };
   syncPension(L);
   return L;
@@ -1372,10 +1437,10 @@ function demoScenarios(){
   const s=[
     {name:'Baseline',   base:true,  lev:defaultLevers(), res:null},
     {name:'Scenario B', base:false, lev:defaultLevers(), res:null},
-    {name:'Scenario C', base:false, lev:defaultLevers(), res:null},
+    {name:'Aggressive', base:false, lev:defaultLevers(), res:null},
   ];
-  s[1].lev.retireAge = 67;
-  s[2].lev.risk      = 5;
+  s[1].lev.retireAge = 67;            // retire 2yr later — security improves
+  s[2].lev.risk      = 5;             // go aggressive — wealth line jumps, % may not
   return s;
 }
 let scenarios = loadScenarios() || demoScenarios();
@@ -1398,6 +1463,14 @@ function leversToOverrides(L){
   if(spendFrac > 0)      ov.spendBump = spendFrac;
   else if(spendFrac < 0) ov.spendCut  = -spendFrac;   // engine caps the cut at 50%
   if(L.eventAmt>0){ ov.lumpSum = L.eventAmt; ov.lumpSumYear = Math.max(0, L.eventAge - plan.household.primary.currentAge); }
+  // Buy-property what-if: when "fund by selling primary" is on AND the household
+  // owns a property, sell the primary (properties[0]) at the purchase age so the
+  // net proceeds offset the cost. The purchase outflow itself is injected as a
+  // one-time goal in planForScenario. Reuses the engine's assetSale override —
+  // no new engine math.
+  if(L.buyFromPrimary && L.buyAmt>0 && plan.properties && plan.properties.length){
+    ov.assetSale = { asset: 0, age: L.buyAge };
+  }
   if(L.savings !== plan.savings.annual) ov.savingsBump = (L.savings - plan.savings.annual)/Math.max(1,plan.savings.annual);
   // Pension: always pass the chosen age as an absolute override so the engine
   // looks up the entered benefit for THAT exact age (or pays 0 if no entry).
@@ -1417,6 +1490,16 @@ function planForScenario(L){
       startAge: plan.household.primary.currentAge,
       endAge: L.giftEndAge,
       colaPct: LONGRUN_INFLATION * 100
+    }]);
+  }
+  // Buy-property what-if: the purchase is a one-time outflow at buyAge, injected
+  // as a single-year goal (startAge===endAge). The engine applies goals in both
+  // the accumulation and retirement phases, so buying before OR after retirement
+  // works. The optional sale of the primary that funds it is an assetSale
+  // override (leversToOverrides). Both reuse existing engine paths.
+  if(L.buyAmt > 0 && L.buyAge != null){
+    p.goals = (p.goals || []).concat([{
+      name: 'Property purchase', amount: L.buyAmt, startAge: L.buyAge, endAge: L.buyAge
     }]);
   }
   return p;
@@ -1451,12 +1534,9 @@ const SUB_PAGES = {
    below empty sections (Real Assets, Liabilities are placeholders awaiting
    the engine's real-assets layer — committed but unused inputs would lie). */
 const BALANCE_SHEET = [
-  { head:'Investment accounts', subtotal:'invest', fields:[
-    {path:'portfolio.accounts.taxable.balance',     label:'Taxable brokerage', type:'money'},
-    {path:'portfolio.accounts.taxable.basisPct',    label:'cost basis',        type:'pct',   sub:true},
-    {path:'portfolio.accounts.traditional.balance', label:'Traditional / IRA', type:'money'},
-    {path:'portfolio.accounts.roth.balance',        label:'Roth IRA',          type:'money'},
-  ]},
+  // Core buckets render via renderCoreAccounts() (deletable rows), not these
+  // generic fields — so the section declares none.
+  { head:'Investment accounts', subtotal:'invest', fields:[] },
   { head:'Real assets',  fields:[], kind:'property',  add:'+ add a property or other real asset' },
   { head:'Liabilities',  liab:true, fields:[], kind:'liability', add:'+ add a loan or recurring obligation' },
 ];
@@ -1579,6 +1659,30 @@ function renderExtraAccounts(){
     `<div class="bs-row"><label>${a.type}<span class="acct-tag ${a.bucket}">${BUCKET_TAG[a.bucket]}</span></label><span class="bs-dots"></span>`
    +`<span class="field"><input class="acct-bal" data-type="money" data-acctidx="${i}" value="${(a.balance||0).toLocaleString('en-US')}"><button class="acct-x" data-acctidx="${i}" title="Remove">×</button></span></div>`
   ).join('');
+}
+// The three core engine buckets (taxable / traditional / roth), rendered as
+// deletable balance rows. "Delete" zeros the underlying balance and HIDES the
+// row entirely (an empty bucket shouldn't sit on the sheet as a $0 line). The
+// bucket still exists for the engine; to re-add money, use the picker above
+// (its accounts fold into the same bucket total). Taxable carries a cost-basis
+// sub-row that hides with it.
+function renderCoreAccounts(){
+  const defs = [
+    {bal:'portfolio.accounts.taxable.balance',     label:'Taxable brokerage', basis:'portfolio.accounts.taxable.basisPct'},
+    {bal:'portfolio.accounts.traditional.balance', label:'Traditional / IRA'},
+    {bal:'portfolio.accounts.roth.balance',        label:'Roth IRA'},
+  ];
+  return defs.map(d => {
+    const v = getPath(plan, d.bal) || 0;
+    if(v <= 0) return '';                        // removed/empty → off the sheet
+    const del = `<button class="acct-x" data-zeropath="${d.bal}"${d.basis?` data-zerobasis="${d.basis}"`:''} title="Remove">×</button>`;
+    let h = `<div class="bs-row"><label>${d.label}</label><span class="bs-dots"></span><span class="field"><span class="pre">$</span><input type="text" inputmode="numeric" data-path="${d.bal}" data-type="money" value="${v.toLocaleString('en-US')}">${del}</span></div>`;
+    if(d.basis){
+      const bv = Math.round((getPath(plan, d.basis)||0)*100);
+      h += `<div class="bs-row sub"><label>cost basis</label><span class="bs-dots"></span><span class="field"><input type="number" data-path="${d.basis}" data-type="pct" value="${bv}" step="1"><span class="pre">%</span></span></div>`;
+    }
+    return h;
+  }).join('');
 }
 function renderAcctPicker(){
   const rows = [['traditional','Pre-tax'],['roth','Roth'],['taxable','Taxable']].map(([b,lbl])=>{
@@ -1719,12 +1823,12 @@ function renderField(f, klass){
    row's defaults. (Goals share one array; recurring vs one-time is decided by
    the window: a one-time goal is a single-year window, startAge===endAge.) */
 const ROW_KINDS = {
-  income:    { arr:'income.other',   mk:()=>({ label:'', amount:0, startAge:65, endAge:75 }) },
+  income:    { arr:'income.other',   mk:()=>({ label:'', amount:0, startAge:65, endAge:75, realGrowth:0, taxablePct:1 }) },
   expense:   { arr:'expenses.extra', mk:()=>({ label:'', amount:0, startAge:65, endAge:80 }) },
   liability: { arr:'liabilities',    mk:()=>({ label:'', amount:0, startAge:65, endAge:75, colaPct:0 }) },
   goalRec:   { arr:'goals',          mk:()=>({ name:'',  amount:0, startAge:plan.household.primary.retirementAge, endAge:plan.household.primary.planEndAge }) },
   goalOnce:  { arr:'goals',          mk:()=>({ name:'',  amount:0, startAge:70, endAge:70 }) },
-  property:  { arr:'properties',     mk:()=>({ name:'',  value:0, purchasePrice:0, mortgage:{ balance:0, rate:0, termYears:0 } }) },
+  property:  { arr:'properties',     mk:()=>({ name:'',  value:0, purchasePrice:0, purchaseYear: new Date().getFullYear(), mortgage:{ balance:0, rate:0, termYears:0 } }) },
 };
 const money = (p,base,k)=>`<span class="er-amt"><span class="pre">$</span><input type="text" inputmode="numeric" data-path="${base}.${k}" data-type="money" value="${(getPath(plan,base+'.'+k)||0).toLocaleString('en-US')}"></span>`;
 const num   = (p,base,k,step)=>`<input class="er-num" type="number" step="${step||1}" data-path="${base}.${k}" data-type="num" value="${getPath(plan,base+'.'+k)}">`;
@@ -1736,6 +1840,23 @@ function flowRow(arr, i, nameKey, ph){
   const base = `${arr}.${i}`;
   return `<div class="erow">${name(plan,base,nameKey,ph)}${money(plan,base,'amount')}
     <span class="er-ages">age ${num(plan,base,'startAge')}<span class="er-dash">–</span>${num(plan,base,'endAge')}</span>${rmX(base)}</div>`;
+}
+// An income row = the flow row PLUS a compact second line for the two per-stream
+// controls: real growth/yr (signed — negative phases the stream down) and the
+// share taxed at the ordinary rate. gpct stores a signed fraction; pct a 0–1 one.
+function incomeRow(arr, i){
+  const base = `${arr}.${i}`;
+  const g = Math.round((getPath(plan, base+'.realGrowth')||0)*100);
+  const tRaw = getPath(plan, base+'.taxablePct');
+  const t = Math.round((tRaw==null?1:tRaw)*100);
+  const main = `<div class="erow">${name(plan,base,'label','Source')}${money(plan,base,'amount')}
+    <span class="er-ages">age ${num(plan,base,'startAge')}<span class="er-dash">–</span>${num(plan,base,'endAge')}</span>${rmX(base)}</div>`;
+  const extra = `<div class="er-extra">
+      <span class="er-xk">grows</span><input class="er-num er-gw" type="number" step="1" data-path="${base}.realGrowth" data-type="gpct" value="${g}"><span class="er-xs">%/yr real</span>
+      <span class="er-xsep">·</span>
+      <input class="er-num" type="number" step="1" data-path="${base}.taxablePct" data-type="pct" value="${t}"><span class="er-xs">% taxable</span>
+    </div>`;
+  return `<div class="erow-wrap">${main}${extra}</div>`;
 }
 // A recurring goal: name · amount · age window (from – to). Defaults to
 // retirement → plan-end (the old "lifelong"), but the end is now editable so a
@@ -1766,6 +1887,7 @@ function propRow(i){
     <div class="prop-grid">
       <label class="prop-f"><span class="er-k">Value</span>${money(plan,base,'value')}</label>
       <label class="prop-f"><span class="er-k">Purchase price</span>${money(plan,base,'purchasePrice')}</label>
+      <label class="prop-f"><span class="er-k">Purchase year</span><input class="er-num" type="number" step="1" min="1900" max="2099" data-path="${base}.purchaseYear" data-type="num" value="${getPath(plan,base+'.purchaseYear')||''}" style="width:52px"></label>
     </div>
     <div class="prop-mort">
       <span class="er-k">Mortgage</span>
@@ -1779,7 +1901,8 @@ function propRow(i){
 // Render every row of a flow kind backed by `arr`, with the trailing "+ add".
 function flowSection(arr, nameKey, ph, kind, addLabel){
   const list = getPath(plan, arr) || [];
-  let h = list.map((_,i)=>flowRow(arr,i,nameKey,ph)).join('');
+  const rowFn = (kind==='income') ? (i=>incomeRow(arr,i)) : (i=>flowRow(arr,i,nameKey,ph));
+  let h = list.map((_,i)=>rowFn(i)).join('');
   h += `<div class="hp-add" data-add="${kind}">${addLabel}</div>`;
   return h;
 }
@@ -1793,6 +1916,7 @@ function renderStatement(){
     secs.forEach(sec => {
       h += `<div class="bs-head">${sec.head}</div>`;
       if(sec.subtotal==='invest') h += renderAcctPicker();
+      if(sec.subtotal==='invest') h += renderCoreAccounts();
       (sec.fields||[]).forEach(f => {
         const rowCls = f.sub ? 'bs-row sub' : 'bs-row';
         h += `<div class="${rowCls}"><label>${f.label}</label><span class="bs-dots"></span><span class="field">${renderField(f)}</span></div>`;
@@ -2112,7 +2236,7 @@ function initGoalsBoard(){
   const board = $('#g-board'), traylab = $('#g-traylab'), lead = $('#g-lead');
   if(!board) return;
   const RANK_KEY='parallax.goals.rank';
-  const NSLOT=Math.max(6, list.length), CW=368, CH=72, GAP=14;
+  const NSLOT=Math.max(6, list.length), CW=410, CH=72, GAP=14;
   const SNAP='left .2s cubic-bezier(.2,.7,.2,1),top .2s cubic-bezier(.2,.7,.2,1),box-shadow .16s,transform .12s';
   const slots=[], cards=[];
   for(let i=0;i<NSLOT;i++){
@@ -2142,18 +2266,23 @@ function initGoalsBoard(){
   function saveRank(){
     try{ localStorage.setItem(RANK_KEY, JSON.stringify({n:list.length, order:slots.map(s=>s.card?s.card.idx:null)})); }catch{}
   }
-  // Ladder column (left) vs tray column (right); both X's are set by layout()
-  // and read by the drop logic so a drop is judged by REGION, not a tight radius.
-  let ladderX=140, trayX=0;
+  // Ladder column (the ranked priority list, left) vs the tray of goals still to
+  // place. The tray sits just right of the ladder and fills a column top→bottom,
+  // then wraps to a NEW column to the right when it runs out of vertical room —
+  // so adding goals never overflows below the board (no scroll). Both column
+  // origins are set by layout() and read by the drop logic (judged by region).
+  const COLGAP=42;
+  let ladderX=140, trayX=0, perCol=6;
   function layout(){
-    const W=board.clientWidth, H=board.clientHeight;
-    const totalH=NSLOT*CH+(NSLOT-1)*GAP;
-    const startY=Math.max(14,(H-totalH)/2);
-    trayX=Math.max(ladderX+CW+40, W-CW-58);
+    const H=board.clientHeight;
+    const startY=44;                                  // top-aligned so the column packs (room for labels above)
+    perCol=Math.max(1, Math.floor((H-startY-CH)/(CH+GAP))+1);
+    trayX=ladderX+CW+56;                              // first tray column, just right of the ladder
     slots.forEach((s,i)=>{ s.x=ladderX; s.y=startY+i*(CH+GAP); s.el.style.left=s.x+'px'; s.el.style.top=s.y+'px'; });
     traylab.style.left=trayX+'px'; traylab.style.top=(startY-28)+'px';
     cards.forEach((c,i)=>{
-      c.homeX=trayX; c.homeY=startY+i*(CH+GAP);
+      const col=Math.floor(i/perCol), row=i%perCol;   // fill down, then wrap right
+      c.homeX=trayX+col*(CW+COLGAP); c.homeY=startY+row*(CH+GAP);
       if(c.slot){ c.el.style.left=c.slot.x+'px'; c.el.style.top=c.slot.y+'px'; }
       else      { c.el.style.left=c.homeX+'px';  c.el.style.top=c.homeY+'px'; }
     });
@@ -2314,6 +2443,14 @@ $('#np-content').addEventListener('click', e => {
   }
   const rm = e.target.closest('.acct-x');
   if(rm){
+    // Core bucket: zero the balance (+ its basis) so the row drops off the sheet
+    // but the engine bucket survives. Picker-added accounts: splice from the list.
+    if(rm.dataset.zeropath){
+      setPath(plan, rm.dataset.zeropath, 0);
+      if(rm.dataset.zerobasis) setPath(plan, rm.dataset.zerobasis, 0);
+      commitPlanEdit();
+      return;
+    }
     const i = +rm.dataset.acctidx;
     if(plan.portfolio.extraAccounts) plan.portfolio.extraAccounts.splice(i, 1);
     commitPlanEdit();
@@ -2340,6 +2477,7 @@ $('#np-content').addEventListener('change', e => {
     else                    v = parseFloat(raw);
     if(!isFinite(v)) return;
     if(type==='pct')   v = Math.max(0, Math.min(100, v))/100;
+    if(type==='gpct')  v = Math.max(-20, Math.min(20, v))/100;   // signed growth %/yr
     if(type==='money'){ v = Math.max(0, Math.round(v)); e.target.value = v.toLocaleString('en-US'); }
     setPath(plan, path, v);
     // A one-time goal edits a single "at age": mirror it into endAge so the
@@ -2397,6 +2535,11 @@ const LEVCFG=[
   // One-time event carries BOTH an amount and an age; edit:'event' renders the
   // two type-in boxes (amount + age) alongside the amount slider.
   {key:'eventAmt',  name:'One-Time Event', min:0,max:500000,step:5000, edit:'event', fmt:(v,L)=>['$'+(v||0).toLocaleString('en-US'),'@ '+L.eventAge]},
+  // Buy a property — a one-time purchase at a chosen age, with an optional
+  // "fund by selling primary" toggle (shown only when the household owns one).
+  // A common what-if (vacation/second home), so it lives on the lever surface,
+  // not the base plan.
+  {key:'buyAmt',    name:'Buy Property',   min:0,max:2000000,step:25000, edit:'buy', fmt:(v,L)=>['$'+(v||0).toLocaleString('en-US'),'@ '+L.buyAge]},
   {key:'risk',      name:'Allocation',     min:1,max:5,step:1, fmt:v=>[RISK_LABELS[v],'']},
   {key:'savings',   name:'Savings / yr',   min:0,max:200000,step:1000, edit:'money', fmt:v=>['$'+v.toLocaleString('en-US'),'/yr']},
   // Pension snaps between the ages that actually have entered amounts (62, 65).
@@ -2413,7 +2556,6 @@ const LEVCFG=[
     const amt=m[v]; return (amt && amt>0) ? ['$'+amt.toLocaleString('en-US'),'@ '+v] : ['__needs__', v];
   }},
 ];
-
 let running=false;
 // Cached market bundle. Generated once, reused across Runs so that hitting Run
 // twice with no changes yields the EXACT same numbers (sampling noise was
@@ -2483,7 +2625,7 @@ function ring(pct){
 // adding/removing a scenario reflows all three rows together.
 function syncGridCols(){
   const tpl=`148px repeat(${scenarios.length},1fr)`;
-  ['#scn-band','#scn-levers','#scn-foot'].forEach(sel=>{
+  ['#scn-band','#scn-levers','#scn-goals','#scn-foot'].forEach(sel=>{
     const el=$(sel); if(el) el.style.gridTemplateColumns=tpl;
   });
 }
@@ -2533,7 +2675,7 @@ function levDelta(cfg, lev){
   const sign = d>0 ? '+' : '−', a = Math.abs(d);
   let txt;
   if(cfg.key==='spend')                 txt = `${sign}$${Math.round(a/12).toLocaleString('en-US')}/mo`;
-  else if(cfg.key==='savings' || cfg.key==='eventAmt') txt = `${sign}$${a.toLocaleString('en-US')}`;
+  else if(cfg.key==='savings' || cfg.key==='eventAmt' || cfg.key==='buyAmt') txt = `${sign}$${a.toLocaleString('en-US')}`;
   else if(cfg.key==='risk')             txt = `${sign}${a} lvl`;
   else /* ages */                       txt = `${sign}${a} yr`;
   return `<span class="lev-delta">${txt}</span>`;
@@ -2567,6 +2709,18 @@ function renderLevValue(cfg, lev){
     return `$<input class="lev-in" type="text" inputmode="numeric" data-edit="eventAmt" data-key="eventAmt" value="${(lev.eventAmt||0).toLocaleString('en-US')}">`
          + ` <span class="unit">@ age</span> `
          + `<input class="lev-in age-in" type="text" inputmode="numeric" data-edit="eventAge" data-key="eventAge" value="${lev.eventAge}">${d}`;
+  }
+  if(cfg.edit==='buy'){
+    // Amount + age, then (only when the household owns a property) a toggle to
+    // fund the purchase by selling the primary. The toggle is meaningful only
+    // once an amount is set, so it shows when buyAmt > 0.
+    let h = `$<input class="lev-in" type="text" inputmode="numeric" data-edit="buyAmt" data-key="buyAmt" value="${(lev.buyAmt||0).toLocaleString('en-US')}">`
+          + ` <span class="unit">@ age</span> `
+          + `<input class="lev-in age-in" type="text" inputmode="numeric" data-edit="buyAge" data-key="buyAge" value="${lev.buyAge}">${d}`;
+    if((plan.properties||[]).length && (lev.buyAmt||0) > 0){
+      h += `<button class="lev-fund${lev.buyFromPrimary?' on':''}" data-key="buyFromPrimary" title="Fund this purchase by selling the primary residence">↳ sell primary to fund</button>`;
+    }
+    return h;
   }
   // Discrete levers (ages / allocation): value + delta + stepper buttons.
   return `${val}${unit?` <span class="unit">${unit}</span>`:''}${d}${stepper(cfg, !d)}`;
@@ -2616,9 +2770,57 @@ function buildLevers(){
     });
   });
   $('#scn-levers').innerHTML=h;
+  renderScenGoals();
+}
+// Goals section — READ-ONLY mirror of the base-plan goals across every column.
+// Goals live in the base plan (single source of truth); each scenario carries
+// the same set, so the value is identical down each row. That sameness IS the
+// truth — the goal is funded in every scenario. Edited only on the Goals page.
+function renderScenGoals(){
+  const host=$('#scn-goals'); if(!host) return;
+  syncGridCols();
+  const goals=(Array.isArray(plan.goals)?plan.goals:[]).filter(g=>(g.amount||0)>0);
+  // Section header row: a gold "Goals" label in the gutter + a tinted header
+  // cell per column so the section reads as a block under the levers.
+  let h=`<div class="sg-head">Goals</div>`;
+  scenarios.forEach(s=>{ h+=`<div class="sg-head sg-col ${s.base?'base':''}"></div>`; });
+  if(!goals.length){
+    h+=`<div class="sg-empty">No goals yet — add them on the Goals page to see them here.</div>`;
+    host.innerHTML=h; return;
+  }
+  // One row per goal: name + age window in the gutter, the amount mirrored in
+  // every scenario column (recurring → /yr, single-year window → one-time).
+  let totRec=0, totOnce=0;
+  goals.forEach(g=>{
+    const once=(g.startAge===g.endAge);
+    const win = once ? `at age ${g.startAge}` : `age ${g.startAge}–${g.endAge}`;
+    const tag = once ? 'one-time' : '/yr';
+    if(once) totOnce+=(g.amount||0); else totRec+=(g.amount||0);
+    h+=`<div class="sg-name">${escHtml(g.name||'Goal')}<span class="sg-win">${win}</span></div>`;
+    scenarios.forEach(s=>{
+      h+=`<div class="sg-cell ${s.base?'base':''}">$${(g.amount||0).toLocaleString('en-US')}<span class="sg-tag">${tag}</span></div>`;
+    });
+  });
+  // Total row: recurring annual goal spend (the steady draw), with any one-time
+  // total noted alongside so a single spike isn't hidden inside the annual line.
+  const totTxt = `$${totRec.toLocaleString('en-US')}`
+    + (totOnce>0 ? ` <span class="sg-tag">+ $${totOnce.toLocaleString('en-US')} one-time</span>` : '');
+  h+=`<div class="sg-total">Annual goal spend</div>`;
+  scenarios.forEach(s=>{ h+=`<div class="sg-tcell ${s.base?'base':''}">${totTxt}</div>`; });
+  host.innerHTML=h;
 }
 // Stepper buttons for the discrete levers (delegated — survives rebuilds).
 $('#scn-levers').addEventListener('click', e=>{
+  // "Sell primary to fund" toggle on the Buy Property lever.
+  const fund=e.target.closest('.lev-fund');
+  if(fund){
+    const span=fund.closest('[id^="lv-"]'); if(!span) return;
+    const ci=+span.id.split('-')[1], L=scenarios[ci].lev;
+    L.buyFromPrimary=!L.buyFromPrimary;
+    updateCell(ci, LEVCFG.find(c=>c.key==='buyAmt'));
+    $('#status').textContent='Adjusted · Run to update'; saveScenarios();
+    return;
+  }
   const btn=e.target.closest('.step-btn'); if(!btn) return;
   const span=btn.closest('[id^="lv-"]'); if(!span) return;
   const ci=+span.id.split('-')[1], cfg=LEVCFG.find(c=>c.key===btn.dataset.key);
@@ -2799,6 +3001,13 @@ $('#scn-levers').addEventListener('change', e=>{
     const a=Math.round(num);
     const lo=plan.household.primary.currentAge, hi=plan.household.primary.planEndAge;
     if(isFinite(a)) L.eventAge=Math.max(lo,Math.min(hi,a));
+  } else if(edit==='buyAmt'){
+    L.buyAmt=isFinite(num)&&num>0?Math.round(num):0;
+    if(L.buyAmt===0) L.buyFromPrimary=false;     // no purchase → funding is moot
+  } else if(edit==='buyAge'){
+    const a=Math.round(num);
+    const lo=plan.household.primary.currentAge, hi=plan.household.primary.planEndAge;
+    if(isFinite(a)) L.buyAge=Math.max(lo,Math.min(hi,a));
   }
   // Refresh the cell (value + bar) — rebuilds the grid if the baseline moved.
   const dispCfg=LEVCFG.find(c=>c.key===span.id.split('-').slice(2).join('-'));
@@ -2929,7 +3138,8 @@ function renderCashflow(){
   // (a single-year spike) or a recurring goal feeds visibly through to the
   // cash flow instead of just inflating that year's withdrawal silently.
   const hasGoals = rowsByScen.some(rows => rows.some(r => r && r.goals > 0));
-  const cols = 3 + (hasRmd?1:0) + (hasGoals?1:0);
+  const hasLump  = rowsByScen.some(rows => rows.some(r => r && r.lumpSum > 0));
+  const cols = 3 + (hasRmd?1:0) + (hasGoals?1:0) + (hasLump?1:0);
   let h = '<table class="cf-table"><thead><tr><th class="age" rowspan="2">Age</th>';
   scenarios.forEach((s,i)=>{
     h += `<th class="scen ${gcls[i]}" colspan="${cols}" style="color:${colorFor(i)}">${escHtml(s.name)}</th>`;
@@ -2937,8 +3147,9 @@ function renderCashflow(){
   h += '</tr><tr>';
   scenarios.forEach((s,i)=>{
     h += `<th class="${gcls[i]}">Income</th><th class="${gcls[i]}">Withdraw</th>`;
-    if(hasRmd) h += `<th class="${gcls[i]}">RMD</th>`;
+    if(hasRmd)  h += `<th class="${gcls[i]}">RMD</th>`;
     if(hasGoals) h += `<th class="${gcls[i]}">Goals</th>`;
+    if(hasLump)  h += `<th class="${gcls[i]}">One-time</th>`;
     h += `<th class="${gcls[i]}">End Balance</th>`;
   });
   h += '</tr></thead><tbody>';
@@ -2962,10 +3173,12 @@ function renderCashflow(){
       const inc = (r.socialSecurity || 0) + (r.pension || 0) + (r.otherIncome || 0);
       h += `<td class="${gcls[i]}">${acc ? dash : cfMoney(inc)}</td>`;
       h += `<td class="${gcls[i]}">${acc ? dash : cfMoney(r.withdrawal || 0)}</td>`;
-      if(hasRmd) h += `<td class="${gcls[i]}">${(!acc && r.rmd > 0) ? cfMoney(r.rmd) : dash}</td>`;
+      if(hasRmd)  h += `<td class="${gcls[i]}">${(!acc && r.rmd > 0) ? cfMoney(r.rmd) : dash}</td>`;
       // Goals show in EVERY phase (even accumulation) so a pre-retirement
       // one-time goal still appears in its year.
       if(hasGoals) h += `<td class="${gcls[i]}">${(r.goals > 0) ? cfMoney(r.goals) : dash}</td>`;
+      // One-time event (Scenarios lever) — shows in whichever phase it lands.
+      if(hasLump)  h += `<td class="${gcls[i]}">${(r.lumpSum > 0) ? cfMoney(r.lumpSum) : dash}</td>`;
       h += `<td class="${gcls[i]}">${cfMoney(r.balance || 0)}</td>`;
     });
     h += '</tr>';
@@ -3003,13 +3216,33 @@ const SEQ_YEARS=[
   {y:2009, tag:'the recovery bull', c:'#a8c6c6', on:false},
 ];
 
+// Which scenario the Sequencing tab runs through the historical markets. Held
+// in JS (not a native select) so the open list can be fully themed.
+let seqPlanName=null;
 function buildSeqSelect(){
-  const sel=$('#seq-select'), cur=sel.value;
-  sel.innerHTML=scenarios.map(s=>`<option>${escHtml(s.name)}</option>`).join('');
-  if(cur && scenarios.some(s=>s.name===cur)) sel.value=cur;
-  sel.onchange=runSeq;
+  const menu=$('#seq-dd-menu'), label=$('#seq-dd-label'); if(!menu) return;
+  // Keep the current pick if it still exists; otherwise default to the first.
+  if(!seqPlanName || !scenarios.some(s=>s.name===seqPlanName)) seqPlanName=scenarios[0]?.name||'';
+  menu.innerHTML=scenarios.map(s=>
+    `<div class="seq-dd-opt${s.name===seqPlanName?' sel':''}" role="option" data-name="${escHtml(s.name)}">${escHtml(s.name)}</div>`).join('');
+  if(label) label.textContent=seqPlanName;
   buildSeqChips();
 }
+// One-time wiring for the custom Plan dropdown (the section markup is static, so
+// these elements exist at load — same as the old <select> did).
+(function initSeqDD(){
+  const btn=$('#seq-dd-btn'), menu=$('#seq-dd-menu'); if(!btn||!menu) return;
+  const close=()=>{ menu.hidden=true; btn.setAttribute('aria-expanded','false'); };
+  btn.addEventListener('click', e=>{
+    e.stopPropagation();
+    const open=menu.hidden; menu.hidden=!open; btn.setAttribute('aria-expanded', String(open));
+  });
+  menu.addEventListener('click', e=>{
+    const o=e.target.closest('.seq-dd-opt'); if(!o) return;
+    seqPlanName=o.dataset.name; close(); buildSeqSelect(); runSeq();
+  });
+  document.addEventListener('click', ()=>{ if(!menu.hidden) close(); });
+})();
 // Market chips double as the selector AND the legend: lit = shown as a line.
 function buildSeqChips(){
   const box=$('#seq-chips'); if(!box) return;
@@ -3046,7 +3279,7 @@ function retireNowClone(p, ov, curAge, retAge, accumYears, envelope){
   return rp;
 }
 function runSeq(){
-  const sel=$('#seq-select'); const s=scenarios.find(x=>x.name===sel.value)||scenarios[0];
+  const s=scenarios.find(x=>x.name===seqPlanName)||scenarios[0];
   // Sequence the chosen scenario FAITHFULLY: allocation via the plan clone, every
   // other lever via the same overrides mapping the Scenarios tab uses.
   const p=planForScenario(s.lev);
@@ -3182,7 +3415,7 @@ $$('.htab').forEach(t=>t.onclick=()=>{
   // Returning to Scenarios after a base-plan edit re-runs the engine so the
   // columns reflect the new source; otherwise just redraw.
   if(t.dataset.page==='scenarios'){ if(plansDirty){ plansDirty=false; runAll(); } }
-  if(t.dataset.page==='sequencing') runSeq();
+  if(t.dataset.page==='sequencing'){ buildSeqSelect(); runSeq(); }
   if(t.dataset.page==='net-worth') renderInputs();
 });
 // Net Worth sub-nav: switch the active sub-page, persist, re-render.

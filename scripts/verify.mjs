@@ -183,8 +183,15 @@ try {
     const m = await page.evaluate(() => ({
       band: document.querySelectorAll('.scn-band svg circle').length,
       status: document.querySelector('#status')?.textContent || '',
+      goalRows: document.querySelectorAll('#scn-goals .sg-name').length,
+      goalCells: document.querySelectorAll('#scn-goals .sg-cell').length,
+      goalTotal: document.querySelector('#scn-goals .sg-tcell')?.textContent || '',
     }));
     if(m.band < 1) throw new Error(`scenarios did not render (band circles=${m.band}, status="${m.status}")`);
+    // Goals section: the demo plan has ≥1 goal, mirrored across every column.
+    if(m.goalRows < 1) throw new Error(`scenarios goals section rendered no goal rows (goalRows=${m.goalRows})`);
+    if(m.goalCells < m.goalRows) throw new Error(`goals not mirrored into columns (cells=${m.goalCells}, rows=${m.goalRows})`);
+    if(!m.goalTotal.startsWith('$')) throw new Error(`goals total row missing a dollar figure (got "${m.goalTotal}")`);
     await page.screenshot({ path: `${OUT}/03-scenarios.png`, fullPage: true });
   });
 

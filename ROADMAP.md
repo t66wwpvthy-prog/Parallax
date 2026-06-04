@@ -15,7 +15,7 @@ Status tags: **NEXT** · **BIG** (own session) · **PARKED** · **SKIP** · ✅ 
 - [ ] **LTC cost escalation** — ~3–5%/yr above CPI; currently flat real.
 - [ ] **One-time INFLOW support** — home relocation/downsizing; current lumpSum is outflow-only. (Engine change.)
 - [ ] **Real assets in engine** — homes/property/business → "sell X to fund Y." **BIG**
-- [ ] **Tax-planning engine** — Roth conversions, bracket mgmt, IRMAA, RMDs, **contribution-side deduction** (pre-tax lowers current taxable income; Roth doesn't). Its own engine. **BIG**
+- [ ] **Tax-planning engine** — Roth conversions, bracket mgmt, IRMAA, RMDs, **contribution-side deduction** (pre-tax lowers current taxable income; Roth doesn't). Its own engine. **BIG · NEXT (build tonight) → full scope in §L**
 - [ ] **Map the other engines we'll need** (tax, estate, …) before building piecemeal.
 - [ ] Cleanup: `ASSET_STATS[k].mean` computed but unused — deletable (doctrine #2).
 
@@ -100,6 +100,56 @@ Status tags: **NEXT** · **BIG** (own session) · **PARKED** · **SKIP** · ✅ 
 - [ ] **Goals page interesting layout** — not the ledger style (end-date windows already built; visual redesign pinned). Two directions: (a) **timeline** — goals as bars on an age axis + stacked annual-spend curve (mocked 2026-06-04); (b) **priority board** (Nathan's idea) — drag-to-reorder floating translucent goal cards, capture-then-rank by priority (concepts zip on main).
 - [ ] **Open:** demo mortgage keep (84.9%) vs paid-off (~86.5%); Net Worth → Assets as the wider column.
 - [x] ✅ Done this session: add-row workflow · engine-native mortgages + amortization · mortgage→Liabilities mirror · recurring-goal end dates · Inflows+Outflows→Cash Flow tab · Snapshot to own tab · replacement-ratio = guaranteed only · cash-flow age/ sticky/ $0→"—" fixes · no-bright-white + glass-everywhere pass.
+
+## L. TAX ENGINE — NEXT (build tonight) · scoped 2026-06-04
+
+The next BIG undertaking. Replace the flat-rate stub with a real progressive
+tax computation — its own pure module the engine calls per year. **Major change
+to the truth source → agreed explicitly with Nathan.** Design surface mapped
+below so tonight starts warm. Decisions tagged **DECIDE** are Nathan's calls.
+
+### Current state (grounded in engine.js, not guessed)
+- Tax is a **flat-rate stub**: `plan.taxes = { ordinary: 22, capitalGains: 15 }`
+  (`engine.js:440`). `resolveInputs` turns these into `taxRates.ordinary/.capitalGains`
+  (`813–816`), scaled by the `taxMult` stress override.
+- Applied in three places: traditional withdrawals at `ordinary` (`fundGap` `33`),
+  taxable gains at `capitalGains` on the *average embedded gain* (`26–35`), and
+  **Social Security at a flat 85% × ordinary** (`engine.js:985`).
+- **No brackets, no standard deduction, no filing status, no SS provisional-income
+  tiers, no IRMAA, no NIIT, no state tax.** Every dollar taxed at one blended rate.
+- Real-dollar engine: brackets/deduction/IRMAA thresholds are nominal-statutory →
+  must be handled against the engine's today's-dollars amounts (the asset-sale code
+  at `681–713` already shows the real↔nominal bridge pattern to reuse).
+
+### What "the tax engine" computes (target)
+A per-year `computeTax(income, filingStatus, year)` that takes the year's gross
+sources — traditional/RMD distributions, taxable SS, pension, ordinary other-income,
+realized cap-gains — and returns total federal tax via **progressive brackets +
+standard deduction**, with cap-gains stacked on top of ordinary at the 0/15/20 tiers.
+
+### DECIDE — Nathan's calls (the fork that changes scope)
+1. **Fidelity tier** — (a) brackets + standard deduction + SS provisional tiers
+   [the core, ~80% of the value], (b) + IRMAA Medicare surcharges + NIIT 3.8%,
+   (c) + state income tax. Pick how far for v1.
+2. **Filing status** — MFJ only first (matches the couples demo), or single + MFJ?
+3. **Bracket basis** — pin 2025 statutory brackets/deduction, held flat-real
+   (simplest, defensible in a real-dollar engine), or inflate thresholds yearly?
+4. **Roth conversions** — model in v1 (a conversion lever filling a target bracket),
+   or ship the progressive base first and add conversions as phase 2?
+5. **SS taxability** — implement the real 0/50/85% provisional-income tiers (replaces
+   the flat 85%), confirmed in scope for v1?
+
+### Build approach (when decided)
+- New pure module (e.g. `tax.js`) with bracket tables + `computeTax()`; engine imports
+  it exactly like it imports nothing today (keep it isolated, unit-tested separately).
+- Engine swaps the three flat-rate call sites to feed gross sources into `computeTax`.
+  `fundGap`'s gross-up loop becomes the hard part — withdrawals must gross-up against a
+  *marginal* rate, not a flat one (iterate to the bracket the draw lands in).
+- `engine.test.js` MUST stay green; add a `tax.test.js` locking each bracket boundary,
+  the standard deduction, the SS tiers, and cap-gains stacking against hand-computed
+  IRS figures. **No number ships unverified against a real return.**
+- Pairs with banked items already in the roadmap: contribution-side deduction (line 12),
+  §121 home-sale exclusion (§K), `taxClass` on income streams (§K).
 
 ---
 
