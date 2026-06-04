@@ -928,7 +928,7 @@ function runSinglePath(p, returnPath){
       rows.push({
         year: y+1, age, source: rp.y, returnRate: r, phase: 'accum',
         socialSecurity: 0, otherIncome: 0, pension: 0, withdrawal: 0, assetSale: saleProceeds,
-        expenses: 0, goals: 0, liabilities: 0, taxes: 0, savings: p.savingsAnnual,
+        expenses: 0, goals: 0, liabilities: 0, taxes: 0, savings: p.savingsAnnual, lumpSum: lumpA,
         startBalance: startBalanceA, wdRate: 0,
         netCashflow: p.savingsAnnual - lumpA + saleProceeds,
         balance: endBalanceA, failed: false,
@@ -1084,7 +1084,7 @@ function runSinglePath(p, returnPath){
       realReturnUsed: r,
       socialSecurity: ssInc, otherIncome: oiInc, pension: penInc, withdrawal,
       rmd: rmdForced, assetSale: saleProceeds,
-      expenses, goals: goalsY, liabilities: liabCost, taxes: totalTax + rmdTax,
+      expenses, goals: goalsY, liabilities: liabCost, taxes: totalTax + rmdTax, lumpSum: lumpY,
       startBalance, wdRate,
       netCashflow: (ssInc + oiInc + penInc + saleProceeds) - (expenses + goalsY + liabCost + totalTax + rmdTax),
       balance: endBalance, failed,
