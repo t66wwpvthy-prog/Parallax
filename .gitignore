@@ -5,6 +5,7 @@ variant-*.html
 _mock_*.html
 _mock_assets/
 _*.mjs
+_*.css
 .cache/
 
 # Reference screenshots (inspiration / competitor UI) are deliberately tracked.
