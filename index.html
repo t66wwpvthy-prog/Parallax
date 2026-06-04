@@ -467,6 +467,11 @@ background-size:auto,auto,auto,64px 64px,64px 64px,auto;}
 .ro-amt{flex:0 0 auto;font-family:'Inter';font-size:14px;font-weight:500;color:var(--ink);font-variant-numeric:tabular-nums}
 .ro-tag{flex:0 0 auto;font-family:'Sora';font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);font-weight:700;border:1px solid var(--rule-faint);border-radius:4px;padding:2px 5px}
 .er-num{width:34px;text-align:center;font-size:13px;font-weight:500;color:var(--ink);font-variant-numeric:tabular-nums}
+/* Kill the browser's native number spinners — their default bright-white
+   inc/dec windows clash with the paper/sage theme. Fields are type-in. */
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;appearance:none;margin:0}
+input[type=number]{-moz-appearance:textfield;appearance:textfield}
 .er-dash{color:var(--ink-faint)}
 .erow .row-x{flex:0 0 auto;width:18px;height:18px;border:none;background:transparent;color:var(--ink-faint);font-size:15px;line-height:1;cursor:pointer;border-radius:4px;padding:0}
 .erow .row-x:hover{color:var(--negative-bright);background:rgba(240,145,141,.08)}
@@ -702,6 +707,18 @@ background-size:auto,auto,auto,64px 64px,64px 64px,auto;}
 .g-card .row-x.g-del{position:absolute;top:7px;right:9px;width:18px;height:18px;line-height:1;font-size:14px;opacity:0;z-index:5;transition:opacity .15s,color .15s}
 .g-card:hover .row-x.g-del{opacity:.6}
 .g-card .row-x.g-del:hover{opacity:1;color:var(--negative-bright)}
+/* Real-estate goal toggle + the "fund with sale of primary?" prompt. */
+.g-re{font-family:'Sora',sans-serif;font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;padding:2px 7px;border-radius:6px;border:1px solid var(--rule-bright);background:transparent;color:var(--ink-faint);cursor:pointer;transition:border-color .15s,color .15s,background .15s;vertical-align:middle}
+.g-re:hover{border-color:var(--gold-bright);color:var(--gold-bright)}
+.g-re.on{background:rgba(251,141,38,.18);border-color:transparent;color:var(--gold-bright)}
+.g-fund{font-size:10px;color:var(--gold-bright);margin-left:6px;vertical-align:middle}
+.g-pop{position:absolute;z-index:120;width:300px;padding:13px 15px;border-radius:12px;background:linear-gradient(152deg,rgba(40,60,50,.97),rgba(28,44,36,.98));backdrop-filter:blur(20px) saturate(1.3);-webkit-backdrop-filter:blur(20px) saturate(1.3);box-shadow:inset 0 1px 0 rgba(255,255,255,.18),inset 0 0 0 1px rgba(255,255,255,.12),0 30px 60px -18px rgba(0,0,0,.7)}
+.g-pop-q{font-family:'Sora',sans-serif;font-size:13px;line-height:1.45;color:var(--ink);margin-bottom:11px}
+.g-pop-q b{color:var(--ink-bright);font-weight:600}
+.g-pop-b{display:flex;gap:8px}
+.g-pop-b button{font-family:'Sora',sans-serif;font-size:12px;font-weight:600;padding:6px 13px;border-radius:7px;cursor:pointer;border:1px solid var(--rule-bright);background:transparent;color:var(--ink-mute);transition:transform .12s,border-color .15s}
+.g-pop-b button:hover{transform:translateY(-1px)}
+.g-pop-yes{border-color:transparent!important;background:var(--gold-bright)!important;color:#1c130a!important}
 </style>
 </head>
 <body>
@@ -2207,9 +2224,6 @@ function defaultLevers(){
     // slider, which frees it to hold any quoted age independently.
     pensionAuto: true,
     pensionAge: (plan.income.pension && plan.income.pension.startAge) || 65,
-    // Earmarked-asset sale. Off sentinel = currentAge−1 (renders "Keep"); any
-    // value ≥ currentAge is a sale age. Targets the first property.
-    sellAge: plan.household.primary.currentAge - 1
   };
   syncPension(L);
   return L;
@@ -2743,13 +2757,10 @@ function demoScenarios(){
   const s=[
     {name:'Baseline',   base:true,  lev:defaultLevers(), res:null},
     {name:'Scenario B', base:false, lev:defaultLevers(), res:null},
-    {name:'Sell home',  base:false, lev:defaultLevers(), res:null},
+    {name:'Aggressive', base:false, lev:defaultLevers(), res:null},
   ];
-  s[1].lev.retireAge = 67;
-  // Scenario C demonstrates the earmarked-asset sale: sell the home at 72 and
-  // watch the success circle move — the Baseline keeps it (no sale baked in).
-  if(plan.properties && plan.properties.length) s[2].lev.sellAge = 72;
-  else s[2].lev.risk = 5;
+  s[1].lev.retireAge = 67;            // retire 2yr later — security improves
+  s[2].lev.risk      = 5;             // go aggressive — wealth line jumps, % may not
   return s;
 }
 let scenarios = loadScenarios() || demoScenarios();
@@ -2776,10 +2787,14 @@ function leversToOverrides(L){
   // Pension: always pass the chosen age as an absolute override so the engine
   // looks up the entered benefit for THAT exact age (or pays 0 if no entry).
   ov.pensionStartAge = L.pensionAge;
-  // Earmarked-asset sale — emitted ONLY when an age is chosen (≥ currentAge), so
-  // the Baseline (sellAge = off) carries no sale and stays clean.
-  if(L.sellAge != null && L.sellAge >= plan.household.primary.currentAge){
-    ov.assetSale = { asset: 0, age: L.sellAge };
+  // Real-estate goal funded by selling the primary residence. This is NOT a
+  // scenario lever — it's a plan-level property of a goal the advisor flagged
+  // "fund with sale of primary" (Goals board). When such a goal exists and the
+  // household owns a property, the primary (properties[0]) is sold at the goal's
+  // age so the net proceeds offset the purchase. Shared across all scenarios.
+  const reGoal = (plan.goals || []).find(g => g.fundFromPrimary && g.startAge != null);
+  if(reGoal && plan.properties && plan.properties.length){
+    ov.assetSale = { asset: 0, age: reGoal.startAge };
   }
   return ov;
 }
@@ -2830,12 +2845,9 @@ const SUB_PAGES = {
    below empty sections (Real Assets, Liabilities are placeholders awaiting
    the engine's real-assets layer — committed but unused inputs would lie). */
 const BALANCE_SHEET = [
-  { head:'Investment accounts', subtotal:'invest', fields:[
-    {path:'portfolio.accounts.taxable.balance',     label:'Taxable brokerage', type:'money'},
-    {path:'portfolio.accounts.taxable.basisPct',    label:'cost basis',        type:'pct',   sub:true},
-    {path:'portfolio.accounts.traditional.balance', label:'Traditional / IRA', type:'money'},
-    {path:'portfolio.accounts.roth.balance',        label:'Roth IRA',          type:'money'},
-  ]},
+  // Core buckets render via renderCoreAccounts() (deletable rows), not these
+  // generic fields — so the section declares none.
+  { head:'Investment accounts', subtotal:'invest', fields:[] },
   { head:'Real assets',  fields:[], kind:'property',  add:'+ add a property or other real asset' },
   { head:'Liabilities',  liab:true, fields:[], kind:'liability', add:'+ add a loan or recurring obligation' },
 ];
@@ -2958,6 +2970,30 @@ function renderExtraAccounts(){
     `<div class="bs-row"><label>${a.type}<span class="acct-tag ${a.bucket}">${BUCKET_TAG[a.bucket]}</span></label><span class="bs-dots"></span>`
    +`<span class="field"><input class="acct-bal" data-type="money" data-acctidx="${i}" value="${(a.balance||0).toLocaleString('en-US')}"><button class="acct-x" data-acctidx="${i}" title="Remove">×</button></span></div>`
   ).join('');
+}
+// The three core engine buckets (taxable / traditional / roth), rendered as
+// deletable balance rows. "Delete" zeros the underlying balance and HIDES the
+// row entirely (an empty bucket shouldn't sit on the sheet as a $0 line). The
+// bucket still exists for the engine; to re-add money, use the picker above
+// (its accounts fold into the same bucket total). Taxable carries a cost-basis
+// sub-row that hides with it.
+function renderCoreAccounts(){
+  const defs = [
+    {bal:'portfolio.accounts.taxable.balance',     label:'Taxable brokerage', basis:'portfolio.accounts.taxable.basisPct'},
+    {bal:'portfolio.accounts.traditional.balance', label:'Traditional / IRA'},
+    {bal:'portfolio.accounts.roth.balance',        label:'Roth IRA'},
+  ];
+  return defs.map(d => {
+    const v = getPath(plan, d.bal) || 0;
+    if(v <= 0) return '';                        // removed/empty → off the sheet
+    const del = `<button class="acct-x" data-zeropath="${d.bal}"${d.basis?` data-zerobasis="${d.basis}"`:''} title="Remove">×</button>`;
+    let h = `<div class="bs-row"><label>${d.label}</label><span class="bs-dots"></span><span class="field"><span class="pre">$</span><input type="text" inputmode="numeric" data-path="${d.bal}" data-type="money" value="${v.toLocaleString('en-US')}">${del}</span></div>`;
+    if(d.basis){
+      const bv = Math.round((getPath(plan, d.basis)||0)*100);
+      h += `<div class="bs-row sub"><label>cost basis</label><span class="bs-dots"></span><span class="field"><input type="number" data-path="${d.basis}" data-type="pct" value="${bv}" step="1"><span class="pre">%</span></span></div>`;
+    }
+    return h;
+  }).join('');
 }
 function renderAcctPicker(){
   const rows = [['traditional','Pre-tax'],['roth','Roth'],['taxable','Taxable']].map(([b,lbl])=>{
@@ -3190,6 +3226,7 @@ function renderStatement(){
     secs.forEach(sec => {
       h += `<div class="bs-head">${sec.head}</div>`;
       if(sec.subtotal==='invest') h += renderAcctPicker();
+      if(sec.subtotal==='invest') h += renderCoreAccounts();
       (sec.fields||[]).forEach(f => {
         const rowCls = f.sub ? 'bs-row sub' : 'bs-row';
         h += `<div class="${rowCls}"><label>${f.label}</label><span class="bs-dots"></span><span class="field">${renderField(f)}</span></div>`;
@@ -3449,6 +3486,7 @@ function goalsView(){
   const list = (Array.isArray(plan.goals)?plan.goals:[]).map((g,i)=>({
     i, name:g.name||'', amount:g.amount||0,
     once:g.startAge===g.endAge, startAge:g.startAge, endAge:g.endAge,
+    realEstate:!!g.realEstate, fundFromPrimary:!!g.fundFromPrimary,
   }));
   return {
     list,
@@ -3494,9 +3532,15 @@ function goalCardHTML(g){
   const ages = g.once
     ? `Lands once · age <input class="g-age-in" data-f="startAge" data-sync="endAge" data-type="num" value="${g.startAge}">`
     : `Recurring · ages <input class="g-age-in" data-f="startAge" data-type="num" value="${g.startAge}">–<input class="g-age-in" data-f="endAge" data-type="num" value="${g.endAge}">`;
+  // Real-estate toggle: marks the goal a property purchase. When it's on AND the
+  // household owns a property, "↳ sells primary" shows once funding is confirmed
+  // (the prompt fires on toggle-on — see initGoalsBoard).
+  const hasProp = (plan.properties||[]).length > 0;
+  const reChip = `<button class="g-re${g.realEstate?' on':''}" data-re title="Mark this goal as a real-estate purchase">Real estate</button>`;
+  const fundChip = (g.realEstate && hasProp && g.fundFromPrimary) ? `<span class="g-fund">↳ sells primary</span>` : '';
   return `<div class="g-main">
        <div class="g-name"><input class="g-name-in" data-f="name" data-type="text" value="${escHtml(g.name)}" placeholder="Goal name">${tag}</div>
-       <div class="g-kind">${ages}</div>
+       <div class="g-kind">${ages} ${reChip}${fundChip}</div>
      </div>
      <div class="g-amt"><span class="g-cur">$</span><input class="g-amt-in" data-f="amount" data-type="money" inputmode="numeric" value="${amtStr}">${per}</div>
      <button class="row-x g-del" data-rmpath="goals.${g.i}" title="Remove this goal">×</button>`;
@@ -3578,6 +3622,48 @@ function initGoalsBoard(){
     refreshHero();
     reseedScenarios(); buildLevers(); sharedPaths=null; plansDirty=true;
     $('#status').textContent='Plan edited · open Scenarios';
+  });
+
+  // ── Real-estate toggle + "fund with sale of primary?" prompt ──
+  // Rebuild one card in place (preserves drag rank — no board rebuild) and
+  // re-run the scenario seed so the assetSale flows through next Run.
+  const closePop = ()=> board.querySelectorAll('.g-pop').forEach(p=>p.remove());
+  const refreshCard = i => {
+    const card = cards.find(c=>c.idx===i); if(!card) return;
+    card.el.innerHTML = goalCardHTML(goalsView().list.find(g=>g.i===i));
+  };
+  const afterGoalEdit = ()=>{ refreshHero(); reseedScenarios(); buildLevers(); sharedPaths=null; plansDirty=true; $('#status').textContent='Plan edited · open Scenarios'; };
+  // Prompt anchored just below the card; appended to the board so it escapes the
+  // card's overflow:hidden. Only ever offered when a property exists to sell.
+  const promptPrimary = (cardEl, i)=>{
+    closePop();
+    const primary = (plan.properties||[])[0]; if(!primary) return;
+    const pop=document.createElement('div'); pop.className='g-pop';
+    pop.innerHTML=`<div class="g-pop-q">Fund this purchase by selling <b>${escHtml(primary.name||'the primary residence')}</b>?</div>
+      <div class="g-pop-b"><button class="g-pop-yes" data-i="${i}">Yes, sell it</button><button class="g-pop-no">Keep it</button></div>`;
+    board.appendChild(pop);
+    const W=board.clientWidth;
+    pop.style.left=Math.min(cardEl.offsetLeft, W-320)+'px';
+    pop.style.top=(cardEl.offsetTop+CH+8)+'px';
+  };
+  board.addEventListener('click', e=>{
+    const re = e.target.closest('.g-re');
+    if(re){
+      e.stopPropagation();
+      const i=+re.closest('.g-card').dataset.i; const g=plan.goals[i]; if(!g) return;
+      g.realEstate=!g.realEstate;
+      if(!g.realEstate){ g.fundFromPrimary=false; closePop(); }
+      refreshCard(i); afterGoalEdit();
+      // Turning it ON with a property on the books → pop the funding prompt.
+      if(g.realEstate && (plan.properties||[]).length){
+        promptPrimary(cards.find(c=>c.idx===i).el, i);
+      }
+      return;
+    }
+    const yes=e.target.closest('.g-pop-yes');
+    if(yes){ e.stopPropagation(); const i=+yes.dataset.i; if(plan.goals[i]) plan.goals[i].fundFromPrimary=true; closePop(); refreshCard(i); afterGoalEdit(); return; }
+    const no=e.target.closest('.g-pop-no');
+    if(no){ e.stopPropagation(); closePop(); return; }
   });
 
   // ── Drag / snap / swap (skip when the pointer lands on an editable control) ──
@@ -3711,6 +3797,14 @@ $('#np-content').addEventListener('click', e => {
   }
   const rm = e.target.closest('.acct-x');
   if(rm){
+    // Core bucket: zero the balance (+ its basis) so the row drops off the sheet
+    // but the engine bucket survives. Picker-added accounts: splice from the list.
+    if(rm.dataset.zeropath){
+      setPath(plan, rm.dataset.zeropath, 0);
+      if(rm.dataset.zerobasis) setPath(plan, rm.dataset.zerobasis, 0);
+      commitPlanEdit();
+      return;
+    }
     const i = +rm.dataset.acctidx;
     if(plan.portfolio.extraAccounts) plan.portfolio.extraAccounts.splice(i, 1);
     commitPlanEdit();
@@ -3779,11 +3873,6 @@ function levRange(cfg){
     if(a.length) return { min:a[0], max:a[a.length-1], step:1 };
     return { min:62, max:65, step:1 };
   }
-  // Sale lever: min = currentAge−1 (the "Keep" / off state), max = plan end.
-  if(cfg.key==='sellAge'){
-    const c=plan.household.primary.currentAge, e=plan.household.primary.planEndAge;
-    return { min:c-1, max:e, step:1 };
-  }
   return { min:cfg.min, max:cfg.max, step:cfg.step };
 }
 
@@ -3816,18 +3905,6 @@ const LEVCFG=[
     const amt=m[v]; return (amt && amt>0) ? ['$'+amt.toLocaleString('en-US'),'@ '+v] : ['__needs__', v];
   }},
 ];
-// Earmarked-asset sale lever — only shown when there's a property to sell. A
-// discrete stepper: "Keep" (off) → a sale age. Net proceeds (value − mortgage −
-// commission − cap-gains) flow into the portfolio via the assetSale override, so
-// you can stand a "sell at 72" column next to a "keep" Baseline. (See engine.js.)
-if(plan.properties && plan.properties.length && plan.properties[0]){
-  LEVCFG.push({
-    key:'sellAge', name:'Sell '+(plan.properties[0].name||'asset'),
-    min:0, max:120, step:1,                              // real range is dynamic (levRange)
-    fmt:v => (v <= plan.household.primary.currentAge-1) ? ['Keep',''] : ['age '+v,'']
-  });
-}
-
 let running=false;
 // Cached market bundle. Generated once, reused across Runs so that hitting Run
 // twice with no changes yields the EXACT same numbers (sampling noise was
@@ -3942,9 +4019,6 @@ function renderBand(){
 function levDelta(cfg, lev){
   const baseLev = scenarios.find(s=>s.base)?.lev;
   if(!baseLev || lev===baseLev) return '';
-  // The sale lever's "delta" isn't a year count (Keep→age 72 isn't "+8 yr"); the
-  // value text ("Keep" vs "age 72") already reads the difference. Skip the pill.
-  if(cfg.key==='sellAge') return '';
   const d = (lev[cfg.key]||0) - (baseLev[cfg.key]||0);
   if(!d) return '';
   const sign = d>0 ? '+' : '−', a = Math.abs(d);
