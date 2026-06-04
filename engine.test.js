@@ -187,6 +187,27 @@ test('a one-time goal (startAge===endAge) charges exactly one year', () => {
   assert.strictEqual(m.rows.find(r => r.age === 69).goals, 0, 'nothing after');
 });
 
+test('a pre-retirement goal (college) charges in working years and lowers wealth', () => {
+  // A goal whose window sits ENTIRELY in the accumulation phase used to be
+  // silently dropped — the accum rows hardcoded goals:0 and never funded it.
+  const base = JSON.parse(JSON.stringify(defaultPlan));
+  base.household.primary = { currentAge: 55, retirementAge: 65, planEndAge: 90 };
+  base.goals = [];
+  const withGoal = JSON.parse(JSON.stringify(base));
+  withGoal.goals = [{ name:'College', amount:50000, startAge:58, endAge:61 }];
+  const m0 = runHistoricalPath(base,     1995, 'taxable-first');
+  const m1 = runHistoricalPath(withGoal, 1995, 'taxable-first');
+  // The goal lands in each of its four working years…
+  assert.strictEqual(m1.rows.find(r => r.age === 57).goals, 0,     'nothing before the window');
+  assert.strictEqual(m1.rows.find(r => r.age === 58).goals, 50000, 'full hit in the first college year');
+  assert.strictEqual(m1.rows.find(r => r.age === 61).goals, 50000, 'full hit in the last college year');
+  assert.strictEqual(m1.rows.find(r => r.age === 62).goals, 0,     'nothing after the window');
+  // …and it actually draws the portfolio down (same returns, less ending wealth).
+  const end0 = m0.rows[m0.rows.length - 1].balance;
+  const end1 = m1.rows[m1.rows.length - 1].balance;
+  assert.ok(end1 < end0, 'the funded college goal leaves less ending wealth');
+});
+
 test('a legacy { vacation, property, gifts } goals object still resolves', () => {
   const p = JSON.parse(JSON.stringify(defaultPlan));
   p.goals = { vacation: 15000, property: 10000, gifts: 5000 };

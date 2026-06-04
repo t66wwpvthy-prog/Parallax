@@ -910,8 +910,16 @@ function runSinglePath(p, returnPath){
       // traditional, then Roth. (Simplification: principal only, no cap-gains tax
       // on the sale — small vs the outlay and consistent with the accum model.)
       const lumpA = (p.lumpSum > 0 && y === p.lumpSumYear) ? p.lumpSum : 0;
-      if(lumpA > 0){
-        let rem = lumpA;
+      // Goals in working years (e.g. college funding) are real outlays too — a
+      // pre-retirement goal used to be silently dropped (charged only after
+      // retirement). Same window logic as the retirement phase; funded by the
+      // same liquidation order as a lump outlay (salary covers recurring costs,
+      // a goal draws down the portfolio).
+      let goalsA = 0;
+      for(const g of p.goals){ if(age >= g.startAge && age <= g.endAge) goalsA += g.amount; }
+      const outlayA = lumpA + goalsA;
+      if(outlayA > 0){
+        let rem = outlayA;
         if(rem > 0 && accounts.taxable.balance > 0){
           const take = Math.min(accounts.taxable.balance, rem);
           accounts.taxable.basis *= (accounts.taxable.balance - take) / accounts.taxable.balance;
@@ -928,9 +936,9 @@ function runSinglePath(p, returnPath){
       rows.push({
         year: y+1, age, source: rp.y, returnRate: r, phase: 'accum',
         socialSecurity: 0, otherIncome: 0, pension: 0, withdrawal: 0, assetSale: saleProceeds,
-        expenses: 0, goals: 0, liabilities: 0, taxes: 0, savings: p.savingsAnnual, lumpSum: lumpA,
+        expenses: 0, goals: goalsA, liabilities: 0, taxes: 0, savings: p.savingsAnnual, lumpSum: lumpA,
         startBalance: startBalanceA, wdRate: 0,
-        netCashflow: p.savingsAnnual - lumpA + saleProceeds,
+        netCashflow: p.savingsAnnual - lumpA - goalsA + saleProceeds,
         balance: endBalanceA, failed: false,
         accountBreakdown: { taxable: 0, traditional: 0, roth: 0 },
         accountBalances: { taxable: accounts.taxable.balance, traditional: accounts.traditional.balance, roth: accounts.roth.balance },
