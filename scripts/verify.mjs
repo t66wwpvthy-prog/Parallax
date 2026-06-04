@@ -65,7 +65,9 @@ try {
   launchOpts.args = ['--no-sandbox'];
   const b = await chromium.launch({ ...launchOpts, headless: true });
   const page = await b.newPage();
-  await page.setViewport({ width: 1400, height: 900 });
+  // Insane-fidelity capture: 1920×1080 at 3× device-scale = 5760×3240 PNGs,
+  // well past 4K. Every screenshot this probe writes is now ultra-res.
+  await page.setViewport({ width: 1920, height: 1080, deviceScaleFactor: 3 });
   const errs = [];
   page.on('pageerror', e => errs.push('PAGE: ' + e.message));
   page.on('console',  m => { if(m.type()==='error') errs.push('CON: ' + m.text()); });
