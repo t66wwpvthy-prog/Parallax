@@ -598,7 +598,62 @@ background-size:auto,auto,auto,64px 64px,64px 64px,auto;}
   .cf-scroll{max-height:none}
   .cf-toggle{justify-content:stretch}
   .cf-toggle button{width:100%}
+
+  /* Goals board on a phone: ladder + tray stack into one scrolling column,
+     so the absolute-positioned canvas becomes a simple flow of cards. */
+  #np-content.g-mode{min-height:0}
+  .g-board{min-height:520px}
 }
+/* ===== Goals priority board — ghost slots + tray (approved design) =========
+   The Goals sub-page is NOT the ledger; it's a prioritisation board. Cards read
+   straight from plan.goals (recurring → /yr, one-time → tag). Drag a card onto a
+   ghost slot to rank it; it absorbs with a copper flash. Swap, not bounce. The
+   board only renders when the Goals sub-tab is active, so the flex-fill rule is
+   scoped to #np-content.g-mode and never disturbs the other Net Worth pages. */
+#np-content.g-mode{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
+.g-hero{flex:0 0 auto;display:flex;align-items:flex-end;justify-content:space-between;padding:8px 4px 18px;max-width:1240px}
+.g-eyebrow{font-size:12px;letter-spacing:.24em;text-transform:uppercase;color:var(--ink-mute);font-weight:600}
+.g-big{font-family:'Inter',sans-serif;font-variant-numeric:tabular-nums;font-size:56px;font-weight:700;color:var(--gold-bright);line-height:.94;margin-top:9px}
+.g-big .g-per{font-family:'Sora',sans-serif;font-size:19px;font-weight:500;color:var(--ink-faint);margin-left:11px}
+.g-meta{margin-top:12px;font-size:13.5px;color:var(--ink-faint)}
+.g-meta b{color:var(--ink);font-weight:600}
+.g-actions{display:flex;flex-direction:column;align-items:flex-end;gap:13px;padding-bottom:4px}
+.g-add{display:inline-flex;align-items:center;gap:9px;font-family:'Sora';font-size:13.5px;color:var(--ink);cursor:pointer;padding:11px 21px;border-radius:12px;border:1px dashed rgba(251,141,38,.45);background:rgba(255,255,255,.03);transition:.18s}
+.g-add:hover{border-color:var(--gold-bright);color:var(--gold-bright);background:rgba(251,141,38,.08)}
+.g-plus{font-size:18px;line-height:1}
+.g-legend{display:flex;gap:18px;font-size:12.5px;color:var(--ink-faint)}
+.g-legend span{display:inline-flex;align-items:center;gap:7px}
+.g-legend i{width:9px;height:9px;border-radius:50%}
+.g-legend i.rec{background:var(--teal-bright)} .g-legend i.once{background:var(--gold-bright)}
+.g-board{flex:1 1 auto;min-height:0;position:relative;border-radius:18px;overflow:hidden;box-shadow:inset 0 0 0 1px var(--rule-faint);background:linear-gradient(180deg,rgba(255,255,255,.016),transparent 38%)}
+.g-board::before{content:'';position:absolute;inset:0;pointer-events:none;z-index:0;border-radius:inherit;background-image:linear-gradient(90deg,rgba(255,255,255,.015) 1px,transparent 1px),linear-gradient(180deg,rgba(255,255,255,.015) 1px,transparent 1px);background-size:64px 64px}
+.g-axis{position:absolute;left:14px;top:14px;bottom:14px;width:104px;z-index:1;pointer-events:none}
+.g-axis .g-spine{position:absolute;left:30px;top:30px;bottom:30px;width:3px;border-radius:3px;background:linear-gradient(180deg,var(--gold-bright),rgba(196,123,49,.5) 50%,rgba(196,123,49,.08))}
+.g-axis .g-cap{position:absolute;left:2px;width:112px;font-size:10px;letter-spacing:.13em;text-transform:uppercase;font-weight:700;line-height:1.35}
+.g-axis .top{top:8px;color:var(--gold-bright)} .g-axis .bot{bottom:8px;color:var(--ink-faint)}
+.g-traylab{position:absolute;z-index:1;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-faint);font-weight:600}
+.g-empty{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:1;text-align:center;color:var(--ink-faint);font-size:13.5px;max-width:320px;line-height:1.5}
+.g-slot{position:absolute;z-index:1;border-radius:14px;border:1.5px dashed rgba(230,238,234,.13);background:rgba(255,255,255,.01);transition:border-color .16s,background .16s,box-shadow .16s}
+.g-slot .g-rank{position:absolute;left:18px;top:50%;transform:translateY(-50%);font-family:'Inter',sans-serif;font-size:15px;font-weight:700;color:var(--ink-ghost)}
+.g-slot.hot{border-color:rgba(251,141,38,.75);background:rgba(251,141,38,.07);box-shadow:inset 0 0 0 1px rgba(251,141,38,.35),0 0 28px -8px rgba(251,141,38,.5)}
+.g-slot.filled{border-color:transparent;background:transparent}
+.g-slot.filled .g-rank{opacity:0}
+@keyframes absorb{0%{box-shadow:inset 0 0 0 2px rgba(251,141,38,.85),0 0 44px -6px rgba(251,141,38,.7)}100%{box-shadow:none}}
+.g-slot.flash{animation:absorb .5s ease-out}
+.g-card{position:absolute;z-index:2;cursor:grab;user-select:none;width:368px;height:72px;border-radius:14px;overflow:hidden;display:flex;align-items:center;gap:14px;padding:0 22px 0 28px;background:linear-gradient(152deg,rgba(96,134,108,.42),rgba(54,90,68,.42) 52%,rgba(36,64,48,.48));backdrop-filter:blur(20px) saturate(1.3);-webkit-backdrop-filter:blur(20px) saturate(1.3);box-shadow:inset 0 1px 0 rgba(255,255,255,.32),inset 0 0 0 1px rgba(255,255,255,.10),0 22px 40px -22px rgba(14,30,20,.6);transition:box-shadow .16s,transform .12s}
+.g-card>*{position:relative;z-index:2}
+.g-card::before{content:'';position:absolute;inset:0;z-index:0;border-radius:inherit;pointer-events:none;background:linear-gradient(133deg,rgba(255,255,255,.2),rgba(255,255,255,.03) 32%,rgba(255,255,255,0) 58%)}
+.g-card::after{content:'';position:absolute;left:0;top:13px;bottom:13px;width:3px;z-index:1;border-radius:3px;background:linear-gradient(180deg,var(--gold-bright),rgba(196,123,49,.06))}
+.g-card:hover{transform:translateY(-2px);box-shadow:inset 0 1px 0 rgba(255,255,255,.4),inset 0 0 0 1px rgba(255,255,255,.14),0 28px 50px -20px rgba(14,30,20,.7)}
+.g-card.drag{cursor:grabbing;z-index:99;transform:scale(1.03);box-shadow:inset 0 1px 0 rgba(255,255,255,.46),inset 0 0 0 1px rgba(251,141,38,.4),0 40px 64px -18px rgba(14,30,20,.75),0 0 42px -12px rgba(251,141,38,.34)}
+.g-card.once{background:linear-gradient(152deg,rgba(150,110,60,.36),rgba(96,72,40,.36) 52%,rgba(60,48,30,.44));box-shadow:inset 0 1px 0 rgba(255,228,190,.34),inset 0 0 0 1px rgba(251,141,38,.3),0 22px 40px -22px rgba(40,24,8,.6)}
+.g-main{display:flex;flex-direction:column;gap:5px;min-width:0}
+.g-name{font-size:15px;font-weight:500;color:var(--ink-mute);white-space:nowrap;display:flex;align-items:center;gap:9px}
+.g-name .g-tag{font-size:9px;letter-spacing:.11em;text-transform:uppercase;font-weight:700;padding:3px 7px;border-radius:6px;background:rgba(251,141,38,.18);color:var(--gold-bright)}
+.g-kind{font-size:11px;color:var(--ink-faint);white-space:nowrap}
+.g-card.once .g-kind{color:rgba(251,141,38,.85)}
+.g-amt{margin-left:auto;font-family:'Inter',sans-serif;font-variant-numeric:tabular-nums;font-size:24px;font-weight:700;color:var(--ink-bright);white-space:nowrap}
+.g-amt .g-per2{font-family:'Sora',sans-serif;font-size:13px;font-weight:500;color:var(--ink-faint);margin-left:3px}
 </style>
 </head>
 <body>
@@ -2575,7 +2630,7 @@ const RISK_NAMES={1:'Conservative',2:'Mod-Cons',3:'Moderate',4:'Mod-Agg',5:'Aggr
 const SUB_PAGES = {
   'balance-sheet': { label:'Net Worth', layout:'statement' },
   'cashflow':      { label:'Cash Flow', layout:'hybrid', totLabel:'Annual income' },
-  'goals':         { label:'Goals',     layout:'hybrid', totLabel:'Annual goal spend' },
+  'goals':         { label:'Goals',     layout:'board',  totLabel:'Annual goal spend' },
   'snapshot':      { label:'Snapshot',  layout:'snapshot' },
 };
 
@@ -3175,6 +3230,125 @@ function renderSnapshot(){
   return `<div class="snap">${incomeFloor}${withdrawal}${taxLocation}${replacement}</div>`;
 }
 
+/* ── Goals board (the approved prioritisation surface) ─────────────
+   The Goals sub-tab is NOT the ledger — it's a board. Each card is a VIEW of a
+   plan.goals entry: recurring goals (startAge≠endAge) carry a /yr tag; one-time
+   goals (startAge===endAge) get a copper card + ONE-TIME tag. The hero sums the
+   recurring goals (annual goal spend) and notes any one-time total. Drag a card
+   onto a ghost slot to rank it (absorb + copper flash; swap, not bounce). The
+   ranking is a planning/conversation surface — it adds NO engine math. */
+function goalsView(){
+  const list = (Array.isArray(plan.goals)?plan.goals:[]).map((g,i)=>({
+    i, name:g.name||'New goal', amount:g.amount||0,
+    once:g.startAge===g.endAge, startAge:g.startAge, endAge:g.endAge,
+  }));
+  return {
+    list,
+    recurring: list.filter(g=>!g.once).reduce((s,g)=>s+g.amount,0),
+    oneTime:   list.filter(g=> g.once).reduce((s,g)=>s+g.amount,0),
+  };
+}
+// Compact card amount: $12K / $7.5K / $40K; full dollars under $1,000.
+const gAmt = v => v>=1000 ? '$'+(v/1000).toLocaleString('en-US',{maximumFractionDigits:1})+'K'
+                          : '$'+(v||0).toLocaleString('en-US');
+function renderGoalsBoard(){
+  const {list, recurring, oneTime} = goalsView();
+  const oneTimeMeta = oneTime>0 ? ` &nbsp;&middot;&nbsp; <b>${fmtMoney(oneTime)}</b> one-time planned` : '';
+  const empty = list.length ? '' : `<div class="g-empty">No goals yet — add one to start prioritising.</div>`;
+  return `<div class="g-hero">
+      <div class="g-lead">
+        <div class="g-eyebrow">Annual goal spend</div>
+        <div class="g-big">${fmtMoney(recurring)}<span class="g-per">/ year</span></div>
+        <div class="g-meta">today's dollars${oneTimeMeta}</div>
+      </div>
+      <div class="g-actions">
+        <div class="g-add" data-add="goalRec"><span class="g-plus">+</span> Add a goal</div>
+        <div class="g-legend"><span><i class="rec"></i>Recurring</span><span><i class="once"></i>One-time</span></div>
+      </div>
+    </div>
+    <div class="g-board" id="g-board">
+      <div class="g-axis"><div class="g-spine"></div><div class="g-cap top">Must<br>fund &#8593;</div><div class="g-cap bot">&#8595; If we<br>can</div></div>
+      <div class="g-traylab" id="g-traylab">Goals to place</div>
+      ${empty}
+    </div>`;
+}
+// Build slots + draggable cards into the rendered shell and wire the pointer
+// drag/snap/swap. Called after renderInputs() injects the board markup.
+function initGoalsBoard(){
+  const {list} = goalsView();
+  const board = $('#g-board'), traylab = $('#g-traylab');
+  if(!board) return;
+  const NSLOT=Math.max(6, list.length), CW=368, CH=72, GAP=14;
+  const SNAP='left .2s cubic-bezier(.2,.7,.2,1),top .2s cubic-bezier(.2,.7,.2,1),box-shadow .16s,transform .12s';
+  const slots=[], cards=[];
+  for(let i=0;i<NSLOT;i++){
+    const s=document.createElement('div'); s.className='g-slot';
+    s.style.width=CW+'px'; s.style.height=CH+'px';
+    s.innerHTML='<span class="g-rank">'+(i+1)+'</span>';
+    board.appendChild(s); slots.push({el:s,x:0,y:0,card:null});
+  }
+  list.forEach((g,i)=>{
+    const el=document.createElement('div'); el.className='g-card'+(g.once?' once':'');
+    const per = g.once ? '' : '<span class="g-per2">/yr</span>';
+    const tag = g.once ? '<span class="g-tag">One-time</span>' : '';
+    const note = g.once ? `Lands once · age ${g.startAge}` : `Recurring · ages ${g.startAge}–${g.endAge}`;
+    el.innerHTML='<div class="g-main"><div class="g-name">'+escHtml(g.name)+tag+'</div><div class="g-kind">'+note+'</div></div><div class="g-amt">'+gAmt(g.amount)+per+'</div>';
+    board.appendChild(el);
+    const c={el,slot:null,fromSlot:null,homeX:0,homeY:0,idx:i}; el._c=c; cards.push(c);
+  });
+  function layout(){
+    const W=board.clientWidth, H=board.clientHeight;
+    const totalH=NSLOT*CH+(NSLOT-1)*GAP;
+    const startY=Math.max(14,(H-totalH)/2);
+    const ladderX=140, trayX=Math.max(ladderX+CW+40, W-CW-58);
+    slots.forEach((s,i)=>{ s.x=ladderX; s.y=startY+i*(CH+GAP); s.el.style.left=s.x+'px'; s.el.style.top=s.y+'px'; });
+    traylab.style.left=trayX+'px'; traylab.style.top=(startY-28)+'px';
+    cards.forEach((c,i)=>{
+      c.homeX=trayX; c.homeY=startY+i*(CH+GAP);
+      if(c.slot){ c.el.style.left=c.slot.x+'px'; c.el.style.top=c.slot.y+'px'; }
+      else      { c.el.style.left=c.homeX+'px';  c.el.style.top=c.homeY+'px'; }
+    });
+  }
+  layout();
+  // Re-layout on board resize; one observer at a time (renderInputs disconnects).
+  window.__gObs = new ResizeObserver(layout); window.__gObs.observe(board);
+  let active=null,offX=0,offY=0;
+  const nearestSlot=(cx,cy)=>{ let best=null,bd=1e9; slots.forEach(s=>{ const sx=s.x+CW/2,sy=s.y+CH/2,d=Math.hypot(cx-sx,cy-sy); if(d<175&&d<bd){bd=d;best=s;} }); return best; };
+  const moveTo=(c,x,y)=>{ c.el.style.transition=SNAP; c.el.style.left=x+'px'; c.el.style.top=y+'px'; };
+  const fillSlot=(c,s,flash)=>{ s.card=c; c.slot=s; s.el.classList.add('filled'); if(flash){ s.el.classList.add('flash'); setTimeout(()=>s.el.classList.remove('flash'),520); } };
+  board.addEventListener('pointerdown',e=>{
+    const el=e.target.closest('.g-card'); if(!el) return;
+    active=el._c; active.fromSlot=active.slot; el.classList.add('drag');
+    el.style.transition='box-shadow .16s,transform .12s'; el.setPointerCapture(e.pointerId);
+    offX=e.clientX-el.offsetLeft; offY=e.clientY-el.offsetTop;
+    if(active.slot){ active.slot.card=null; active.slot.el.classList.remove('filled'); active.slot=null; }
+  });
+  board.addEventListener('pointermove',e=>{
+    if(!active) return;
+    const W=board.clientWidth,H=board.clientHeight;
+    const nx=Math.max(8,Math.min(e.clientX-offX,W-CW-8)), ny=Math.max(8,Math.min(e.clientY-offY,H-CH-8));
+    active.el.style.left=nx+'px'; active.el.style.top=ny+'px';
+    const hit=nearestSlot(nx+CW/2,ny+CH/2);
+    slots.forEach(s=>s.el.classList.toggle('hot',s===hit));
+  });
+  board.addEventListener('pointerup',()=>{
+    if(!active) return;
+    const a=active,el=a.el,cx=el.offsetLeft+CW/2,cy=el.offsetTop+CH/2;
+    const hit=nearestSlot(cx,cy);
+    if(hit){
+      if(hit.card){ const other=hit.card;
+        if(a.fromSlot){ moveTo(other,a.fromSlot.x,a.fromSlot.y); fillSlot(other,a.fromSlot,false); }
+        else          { moveTo(other,other.homeX,other.homeY); other.slot=null; }
+      }
+      moveTo(a,hit.x,hit.y); fillSlot(a,hit,true);
+    }else{
+      if(a.fromSlot){ moveTo(a,a.fromSlot.x,a.fromSlot.y); fillSlot(a,a.fromSlot,false); }
+      else          { moveTo(a,a.homeX,a.homeY); a.slot=null; }
+    }
+    el.classList.remove('drag'); slots.forEach(s=>s.el.classList.remove('hot')); active=null;
+  });
+}
+
 /* ── Sub-page render + wiring ─────────────────────────────────────
    One renderInputs() drives whichever sub-page is active. Re-renders on
    sub-nav click, on field change, and on row delete — same wiring pattern
@@ -3183,13 +3357,19 @@ function renderSnapshot(){
 function renderInputs(){
   // sub-nav active state
   $$('#np-subnav .stab').forEach(b => b.classList.toggle('on', b.dataset.sub===activeSub));
+  // Drop any prior board resize-observer before the shell is replaced.
+  if(window.__gObs){ window.__gObs.disconnect(); window.__gObs=null; }
   const layout = SUB_PAGES[activeSub].layout;
+  const np = $('#np-content');
+  np.classList.toggle('g-mode', layout==='board');
   // Snapshot is its own diagnostic page again — embedding it on the Net Worth
   // page made that page too busy to read.
   const html = layout==='statement' ? renderStatement()
              : layout==='snapshot'  ? `<div class="np-snapshot-page">${renderSnapshot()}</div>`
+             : layout==='board'     ? renderGoalsBoard()
              :                        renderHybrid(activeSub);
-  $('#np-content').innerHTML = html;
+  np.innerHTML = html;
+  if(layout==='board') initGoalsBoard();
 }
 // ── Net Worth input bindings — delegated on the stable #np-content ────────────
 // Input listeners are set once here so re-renders via renderInputs() (which

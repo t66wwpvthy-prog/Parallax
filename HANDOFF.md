@@ -1,11 +1,24 @@
-# HANDOFF — Goals priority board (sage), approved design
+# HANDOFF — Goals priority board (sage), WIRED INTO THE LIVE APP
 
 **Date:** 2026-06-04 · **Working branch:** `claude/gifted-feynman-X1wqg`.
 
-## Status: design APPROVED by Nathan ("stunning"), not yet wired into the live app.
-The approved Goals-tab redesign is saved as a tracked prototype: **`goals-board.html`**
-(self-contained, static demo data, no engine). Open it in a browser — cards drag and
-the interaction is live.
+## Status: WIRED IN. The Goals sub-tab now renders the approved board, live.
+`parallax_v2.html` → Household → **Goals** is no longer the ledger; it's the priority
+board, reading real `plan.goals` (recurring → /yr card, one-time → copper ONE-TIME
+card). Hero sums the recurring goals (annual goal spend) + notes the one-time total.
+Drag/snap/swap works. Screenshot-verified at 5760×3240 (`verify-out/02-goals.png`).
+- New code in `parallax_v2.html`: `renderGoalsBoard()` + `initGoalsBoard()` + the
+  `#np-content.g-mode` flex-fill + `.g-*` CSS; `SUB_PAGES.goals.layout='board'`;
+  `renderInputs()` dispatches board + tears down the resize-observer on re-render.
+- The approved standalone prototype **`goals-board.html`** is kept as a reference.
+
+### ⚠️ Known gap — flag for Nathan (next step, NOT a bug)
+The board is a VIEW + a prioritisation interaction. Cards are **not yet editable on
+the board** (no inline name/amount/age edit), and the drag rank is **not persisted /
+not fed to the engine** (the engine has no goal-priority lever). The old ledger's
+inline editing is gone from the Goals tab. Goal amounts/ages can still be changed by
+editing `plan.goals` — but the on-card edit affordance is the clear next build. The
+old `renderHybrid('goals')` path + `recGoalRow`/`onceGoalRow` are now dead (harmless).
 
 ## What the design is (all screenshot-verified at 5760×3240)
 The Goals tab as a **priority board**, built on the REAL app chrome (PARALLAX header +
@@ -28,27 +41,17 @@ Content is OUR real `plan.goals` (Travel $12K/yr, Home improvements $5K/yr, Gift
 $5K/yr — all 65–95; New car $40K one-time at 72 → annual goal spend $22K). The board is
 a VIEW of those entries — no new math.
 
-## ⚠️ Branch hazard — read before shipping
-The branches have DIVERGED. **Do not push this branch to `main`** without reconciling:
-- `origin/main` = **sage** theme (`Re-theme to light sage glass` + `Brighter sage ground`)
-  — this is what GitHub Pages serves live.
-- This branch `claude/gifted-feynman-X1wqg` = still the **old Aurora bronze** theme, and
-  carries 3 commits main lacks (incl. `c42bd52` Cash Flow Goals column).
-- Pushing this branch to main as-is would **roll the live site back off sage.**
+## Branch hazard — RESOLVED
+The earlier Aurora-vs-sage divergence is reconciled: `origin/main` (sage) was merged
+into this branch, the Cash Flow Goals column survived, and both branch + `main` ship
+the sage theme. Keep pushing to BOTH (Pages serves `main`).
 
-Reconcile path (next session): bring this branch up to `origin/main` (rebase/merge so it
-gets the sage theme + the code-audit), confirm the Cash Flow Goals column survives, THEN
-wire the board into the live Goals view.
-
-## Next step — wire it into the live app
-The live Goals view renders into `#np-content` (inside `.page[data-page="net-worth"]`
-under `.subnav`), currently the **ledger** (RECURRING table + ONE-TIME + annual spend).
-Replace that with the priority board:
-1. Reconcile branch to sage `main` first (see hazard above).
-2. Port `goals-board.html`'s board markup/CSS/JS into `parallax_v2.html`, reading real
-   `plan.goals` instead of the hardcoded demo array; map recurring→/yr, one-time→tag.
-3. `node scripts/verify.mjs` (now renders at 5760×3240), LOOK at the shots.
-4. Build + ship to BOTH branches (`/ship`).
+## Next step — make the board goals editable
+The board is wired in as a VIEW. The natural follow-up: bring editing back ONTO the
+board (inline name/amount/age on each card, or a quick edit affordance), so the Goals
+tab is a full replacement for the old ledger — not just a prettier display. Optional:
+persist the drag rank somewhere meaningful (today it's purely visual; the engine has no
+goal-priority lever, so this is a product decision, not a wiring one).
 
 ## Verify (mock-first; LOOK at pixels)
 `verify.mjs` now captures at 1920×1080 @ 3× = **5760×3240**. The throwaway shot harnesses
@@ -59,5 +62,4 @@ fidelity; outputs land in `verify-out/` (gitignored).
 - **Verify by pixels, not assumptions** — logic checks lie; render and look before claiming.
 - Mock-first → screenshot → approve → then touch the live HTML.
 - Engine is the single truth source; the UI only views/levers it, never new math.
-- Push to BOTH the working branch and `main` (Pages serves `main`) — but NOT before the
-  branch is reconciled to sage.
+- Push to BOTH the working branch and `main` (Pages serves `main`).
