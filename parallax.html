@@ -243,6 +243,20 @@ background-size:auto,auto,auto,64px 64px,64px 64px,auto;}
 .foot-cell:not(:first-child){background:var(--surface);border-radius:0 0 14px 14px}
 .foot-cell b{color:var(--ink);font-weight:500}
 
+/* Goals section on the Scenarios tab — a read-only mirror of the base-plan
+   goals. Same 148px + N-column grid as the levers so rows stay registered.
+   Quiet (no inputs, no sliders): it's a reflection of the plan, not a lever. */
+.scn-goals{display:grid;grid-template-columns:148px repeat(3,1fr);column-gap:14px}
+.sg-head{display:flex;align-items:center;padding:14px 14px 8px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);font-weight:600}
+.sg-head.sg-col{background:var(--surface)}
+.sg-name{display:flex;flex-direction:column;justify-content:center;padding:0 14px;min-height:46px;font-size:12px;color:var(--ink-mute);line-height:1.25}
+.sg-name .sg-win{font-size:10px;letter-spacing:.04em;color:var(--ink-faint);margin-top:2px}
+.sg-cell{display:flex;align-items:center;gap:6px;border-bottom:1px solid var(--rule-faint);padding:0 16px;min-height:46px;background:var(--surface);font-family:'Inter';font-size:15px;font-weight:500;color:var(--ink-mute)}
+.sg-cell .sg-tag{font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-faint);font-weight:500}
+.sg-total{display:flex;align-items:center;padding:0 14px;min-height:42px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);font-weight:500}
+.sg-tcell{display:flex;align-items:center;gap:6px;padding:0 16px;min-height:42px;background:var(--surface);font-family:'Inter';font-size:13.5px;font-weight:500;color:var(--ink)}
+.sg-empty{grid-column:1 / -1;padding:10px 14px;font-size:11.5px;color:var(--ink-faint);font-style:italic}
+
 /* Shared chart chrome (used by the Sequencing chart). */
 .chart-head{display:flex;align-items:baseline;gap:16px;margin-bottom:6px;flex:0 0 auto}
 .chart-title{font-size:15px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-bright);font-weight:600}
@@ -577,7 +591,7 @@ background-size:auto,auto,auto,64px 64px,64px 64px,auto;}
 
   /* Scenario comparison: scroll the band+levers+foot together horizontally so
      the % circles, sliders, and totals stay in the same three columns. */
-  .scn-band,.scn-levers,.scn-foot{min-width:620px}
+  .scn-band,.scn-levers,.scn-goals,.scn-foot{min-width:620px}
   .scn-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:4px}
   .scn-band{position:static;box-shadow:none}
   .scn-band::before{display:none}
@@ -723,6 +737,10 @@ background-size:auto,auto,auto,64px 64px,64px 64px,auto;}
       <div class="scn-band" id="scn-band"></div>
       <div id="solve-panel"></div>
       <div class="scn-levers" id="scn-levers"></div>
+      <!-- Goals section: a READ-ONLY mirror of the base-plan goals, shown in
+           every scenario column so the advisor sees what each scenario carries.
+           Edited only on the Goals input page; columns reflect, never diverge. -->
+      <div class="scn-goals" id="scn-goals"></div>
       <div class="scn-foot" id="scn-foot"></div>
     </div>
     <!-- The Scenarios line chart was removed: it duplicated what the % circles +
@@ -3879,7 +3897,7 @@ function ring(pct){
 // adding/removing a scenario reflows all three rows together.
 function syncGridCols(){
   const tpl=`148px repeat(${scenarios.length},1fr)`;
-  ['#scn-band','#scn-levers','#scn-foot'].forEach(sel=>{
+  ['#scn-band','#scn-levers','#scn-goals','#scn-foot'].forEach(sel=>{
     const el=$(sel); if(el) el.style.gridTemplateColumns=tpl;
   });
 }
@@ -4015,6 +4033,44 @@ function buildLevers(){
     });
   });
   $('#scn-levers').innerHTML=h;
+  renderScenGoals();
+}
+// Goals section — READ-ONLY mirror of the base-plan goals across every column.
+// Goals live in the base plan (single source of truth); each scenario carries
+// the same set, so the value is identical down each row. That sameness IS the
+// truth — the goal is funded in every scenario. Edited only on the Goals page.
+function renderScenGoals(){
+  const host=$('#scn-goals'); if(!host) return;
+  syncGridCols();
+  const goals=(Array.isArray(plan.goals)?plan.goals:[]).filter(g=>(g.amount||0)>0);
+  // Section header row: a gold "Goals" label in the gutter + a tinted header
+  // cell per column so the section reads as a block under the levers.
+  let h=`<div class="sg-head">Goals</div>`;
+  scenarios.forEach(s=>{ h+=`<div class="sg-head sg-col ${s.base?'base':''}"></div>`; });
+  if(!goals.length){
+    h+=`<div class="sg-empty">No goals yet — add them on the Goals page to see them here.</div>`;
+    host.innerHTML=h; return;
+  }
+  // One row per goal: name + age window in the gutter, the amount mirrored in
+  // every scenario column (recurring → /yr, single-year window → one-time).
+  let totRec=0, totOnce=0;
+  goals.forEach(g=>{
+    const once=(g.startAge===g.endAge);
+    const win = once ? `at age ${g.startAge}` : `age ${g.startAge}–${g.endAge}`;
+    const tag = once ? 'one-time' : '/yr';
+    if(once) totOnce+=(g.amount||0); else totRec+=(g.amount||0);
+    h+=`<div class="sg-name">${escHtml(g.name||'Goal')}<span class="sg-win">${win}</span></div>`;
+    scenarios.forEach(s=>{
+      h+=`<div class="sg-cell ${s.base?'base':''}">$${(g.amount||0).toLocaleString('en-US')}<span class="sg-tag">${tag}</span></div>`;
+    });
+  });
+  // Total row: recurring annual goal spend (the steady draw), with any one-time
+  // total noted alongside so a single spike isn't hidden inside the annual line.
+  const totTxt = `$${totRec.toLocaleString('en-US')}`
+    + (totOnce>0 ? ` <span class="sg-tag">+ $${totOnce.toLocaleString('en-US')} one-time</span>` : '');
+  h+=`<div class="sg-total">Annual goal spend</div>`;
+  scenarios.forEach(s=>{ h+=`<div class="sg-tcell ${s.base?'base':''}">${totTxt}</div>`; });
+  host.innerHTML=h;
 }
 // Stepper buttons for the discrete levers (delegated — survives rebuilds).
 $('#scn-levers').addEventListener('click', e=>{
