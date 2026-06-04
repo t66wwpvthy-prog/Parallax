@@ -9,3 +9,4 @@ _*.mjs
 !reference/
 !reference/**
 verify-out/
+.claude/.last-sent-index
