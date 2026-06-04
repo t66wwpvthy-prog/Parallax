@@ -337,3 +337,38 @@ test('empty liabilities = byte-identical to before (no regression)', () => {
   const explicit = runHistoricalPath(p, 1973, 'taxable-first');
   assert.strictEqual(withEmpty.terminalBalance, explicit.terminalBalance, 'no liabilities → unchanged');
 });
+
+// ── Healthcare: separate from lifestyle spending ─────────────────────────────
+// Healthcare is NOT discretionary — the spend lever must not move it.
+// It grows at its own real rate (healthcareRealGrowth) from retirement forward.
+test('spendBump does NOT scale healthcare costs', () => {
+  const base = JSON.parse(JSON.stringify(defaultPlan));
+  base.household.primary = { currentAge: 65, retirementAge: 65, planEndAge: 95 };
+  base.expenses.living = 100000;
+  base.expenses.healthcare = 15000;
+  base.expenses.healthcareRealGrowth = 0;   // disable growth for isolation
+  const rBase   = resolveInputs(base, {});
+  const rBumped = resolveInputs(base, { spendBump: 0.50 });
+  assert.strictEqual(rBumped.expenses.healthcare, 15000,
+    'healthcare must NOT be scaled by spendBump');
+  assert.ok(Math.abs(rBumped.expenses.living - 150000) < 1e-6,
+    'lifestyle spending IS scaled by spendBump');
+  assert.strictEqual(rBase.expenses.healthcare, 15000, 'base healthcare untouched');
+});
+
+test('healthcare real growth raises costs over retirement years', () => {
+  const p = JSON.parse(JSON.stringify(defaultPlan));
+  p.household.primary = { currentAge: 65, retirementAge: 65, planEndAge: 95 };
+  p.expenses.healthcareRealGrowth = 0.03;  // 3% above CPI
+  const m = runHistoricalPath(p, 1995, 'taxable-first');
+  // After 10 years of retirement (age 75), healthcare in the row should be
+  // noticeably higher than at retirement (age 65). We read it from the expenses
+  // row delta — not exact because other expense components are flat, but the
+  // total expenses at 75 must exceed those at 65 by more than a rounding error.
+  // (expenses = living + housing + debt + healthcare*growth + extras)
+  const at65 = m.rows.find(r => r.age === 65).expenses;
+  const at75 = m.rows.find(r => r.age === 75).expenses;
+  const expectedHealthcareDelta = p.expenses.healthcare * (Math.pow(1.03, 10) - 1);
+  assert.ok(at75 > at65 + expectedHealthcareDelta * 0.9,
+    'healthcare real growth must lift total expenses over retirement');
+});
