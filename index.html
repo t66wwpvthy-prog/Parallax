@@ -678,31 +678,33 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield}
 .g-slot.filled .g-rank{opacity:0}
 @keyframes absorb{0%{box-shadow:inset 0 0 0 2px rgba(251,141,38,.85),0 0 44px -6px rgba(251,141,38,.7)}100%{box-shadow:none}}
 .g-slot.flash{animation:absorb .5s ease-out}
-.g-card{position:absolute;z-index:2;cursor:grab;user-select:none;width:368px;height:72px;border-radius:14px;overflow:hidden;display:flex;align-items:center;gap:14px;padding:0 22px 0 28px;background:linear-gradient(152deg,rgba(96,134,108,.42),rgba(54,90,68,.42) 52%,rgba(36,64,48,.48));backdrop-filter:blur(20px) saturate(1.3);-webkit-backdrop-filter:blur(20px) saturate(1.3);box-shadow:inset 0 1px 0 rgba(255,255,255,.32),inset 0 0 0 1px rgba(255,255,255,.10),0 22px 40px -22px rgba(14,30,20,.6);transition:box-shadow .16s,transform .12s}
+.g-card{position:absolute;z-index:2;cursor:grab;user-select:none;width:410px;height:72px;border-radius:14px;overflow:hidden;display:flex;align-items:center;gap:14px;padding:0 22px 0 28px;background:linear-gradient(152deg,rgba(96,134,108,.42),rgba(54,90,68,.42) 52%,rgba(36,64,48,.48));backdrop-filter:blur(20px) saturate(1.3);-webkit-backdrop-filter:blur(20px) saturate(1.3);box-shadow:inset 0 1px 0 rgba(255,255,255,.32),inset 0 0 0 1px rgba(255,255,255,.10),0 22px 40px -22px rgba(14,30,20,.6);transition:box-shadow .16s,transform .12s}
 .g-card>*{position:relative;z-index:2}
 .g-card::before{content:'';position:absolute;inset:0;z-index:0;border-radius:inherit;pointer-events:none;background:linear-gradient(133deg,rgba(255,255,255,.2),rgba(255,255,255,.03) 32%,rgba(255,255,255,0) 58%)}
 .g-card::after{content:'';position:absolute;left:0;top:13px;bottom:13px;width:3px;z-index:1;border-radius:3px;background:linear-gradient(180deg,var(--gold-bright),rgba(196,123,49,.06))}
 .g-card:hover{transform:translateY(-2px);box-shadow:inset 0 1px 0 rgba(255,255,255,.4),inset 0 0 0 1px rgba(255,255,255,.14),0 28px 50px -20px rgba(14,30,20,.7)}
 .g-card.drag{cursor:grabbing;z-index:99;transform:scale(1.03);box-shadow:inset 0 1px 0 rgba(255,255,255,.46),inset 0 0 0 1px rgba(251,141,38,.4),0 40px 64px -18px rgba(14,30,20,.75),0 0 42px -12px rgba(251,141,38,.34)}
 .g-card.once{background:linear-gradient(152deg,rgba(150,110,60,.36),rgba(96,72,40,.36) 52%,rgba(60,48,30,.44));box-shadow:inset 0 1px 0 rgba(255,228,190,.34),inset 0 0 0 1px rgba(251,141,38,.3),0 22px 40px -22px rgba(40,24,8,.6)}
-.g-main{display:flex;flex-direction:column;gap:5px;min-width:0}
-.g-name{font-size:15px;font-weight:500;color:var(--ink-mute);white-space:nowrap;display:flex;align-items:center;gap:9px}
+.g-main{display:flex;flex-direction:column;gap:5px;min-width:0;flex:1 1 auto}
+.g-name{font-size:15px;font-weight:500;color:var(--ink-mute);white-space:nowrap;display:flex;align-items:center;gap:9px;min-width:0}
 .g-name .g-tag{font-size:9px;letter-spacing:.11em;text-transform:uppercase;font-weight:700;padding:3px 7px;border-radius:6px;background:rgba(251,141,38,.18);color:var(--gold-bright)}
 .g-kind{font-size:11px;color:var(--ink-faint);white-space:nowrap}
 .g-card.once .g-kind{color:rgba(251,141,38,.85)}
-.g-amt{margin-left:auto;display:flex;align-items:baseline;gap:1px;font-family:'Inter',sans-serif;font-variant-numeric:tabular-nums;font-size:24px;font-weight:700;color:var(--ink-bright);white-space:nowrap}
+.g-amt{margin-left:auto;flex:0 0 auto;display:flex;align-items:baseline;gap:1px;font-family:'Inter',sans-serif;font-variant-numeric:tabular-nums;font-size:22px;font-weight:700;color:var(--ink-bright);white-space:nowrap}
 .g-amt .g-per2{font-family:'Sora',sans-serif;font-size:13px;font-weight:500;color:var(--ink-faint);margin-left:3px}
 /* Inline-editable card fields — boxless inputs in the app's edit language
    (dashed underline on hover, copper on focus). The card stays the drag handle;
    pointerdown on any input/button is ignored so editing never starts a drag. */
 .g-addrow{display:flex;gap:10px}
 .g-add-sec{font-size:12.5px;color:var(--ink-mute)}
-.g-name-in{font-family:'Sora',sans-serif;font-size:15px;font-weight:500;color:var(--ink-bright);background:transparent;border:none;border-bottom:1px dashed transparent;outline:none;padding:1px 2px;width:140px;transition:border-color .15s,background .15s}
+/* Name fills the space left of the amount; long names (e.g. "College Tuition for
+   Sophie") ellipsis when idle and scroll within the field on focus. */
+.g-name-in{font-family:'Sora',sans-serif;font-size:14px;font-weight:500;color:var(--ink-bright);background:transparent;border:none;border-bottom:1px dashed transparent;outline:none;padding:1px 2px;flex:1 1 auto;min-width:0;text-overflow:ellipsis;transition:border-color .15s,background .15s}
 .g-name-in::placeholder{color:var(--ink-faint);font-style:italic}
 .g-name-in:hover{border-bottom-color:var(--rule-bright)}
 .g-name-in:focus{border-bottom-color:var(--gold-bright);background:rgba(251,141,38,.08)}
 .g-cur{font-family:'Inter',sans-serif;font-size:18px;font-weight:700;color:var(--ink-bright)}
-.g-amt-in{font-family:'Inter',sans-serif;font-variant-numeric:tabular-nums;font-size:24px;font-weight:700;color:var(--ink-bright);background:transparent;border:none;border-bottom:1px dashed transparent;outline:none;width:104px;text-align:right;padding:0 1px;transition:border-color .15s,background .15s}
+.g-amt-in{font-family:'Inter',sans-serif;font-variant-numeric:tabular-nums;font-size:22px;font-weight:700;color:var(--ink-bright);background:transparent;border:none;border-bottom:1px dashed transparent;outline:none;width:92px;text-align:right;padding:0 1px;transition:border-color .15s,background .15s}
 .g-amt-in:hover{border-bottom-color:var(--rule-bright)}
 .g-amt-in:focus{border-bottom-color:var(--gold-bright);background:rgba(251,141,38,.08)}
 .g-age-in{font-family:'Inter',sans-serif;font-variant-numeric:tabular-nums;font-size:11px;font-weight:600;color:var(--ink);background:transparent;border:none;border-bottom:1px dashed transparent;outline:none;width:30px;text-align:center;padding:0 1px;-moz-appearance:textfield;transition:border-color .15s,background .15s}
@@ -3552,7 +3554,7 @@ function initGoalsBoard(){
   const board = $('#g-board'), traylab = $('#g-traylab'), lead = $('#g-lead');
   if(!board) return;
   const RANK_KEY='parallax.goals.rank';
-  const NSLOT=Math.max(6, list.length), CW=368, CH=72, GAP=14;
+  const NSLOT=Math.max(6, list.length), CW=410, CH=72, GAP=14;
   const SNAP='left .2s cubic-bezier(.2,.7,.2,1),top .2s cubic-bezier(.2,.7,.2,1),box-shadow .16s,transform .12s';
   const slots=[], cards=[];
   for(let i=0;i<NSLOT;i++){
@@ -3582,18 +3584,23 @@ function initGoalsBoard(){
   function saveRank(){
     try{ localStorage.setItem(RANK_KEY, JSON.stringify({n:list.length, order:slots.map(s=>s.card?s.card.idx:null)})); }catch{}
   }
-  // Ladder column (left) vs tray column (right); both X's are set by layout()
-  // and read by the drop logic so a drop is judged by REGION, not a tight radius.
-  let ladderX=140, trayX=0;
+  // Ladder column (the ranked priority list, left) vs the tray of goals still to
+  // place. The tray sits just right of the ladder and fills a column top→bottom,
+  // then wraps to a NEW column to the right when it runs out of vertical room —
+  // so adding goals never overflows below the board (no scroll). Both column
+  // origins are set by layout() and read by the drop logic (judged by region).
+  const COLGAP=42;
+  let ladderX=140, trayX=0, perCol=6;
   function layout(){
-    const W=board.clientWidth, H=board.clientHeight;
-    const totalH=NSLOT*CH+(NSLOT-1)*GAP;
-    const startY=Math.max(14,(H-totalH)/2);
-    trayX=Math.max(ladderX+CW+40, W-CW-58);
+    const H=board.clientHeight;
+    const startY=44;                                  // top-aligned so the column packs (room for labels above)
+    perCol=Math.max(1, Math.floor((H-startY-CH)/(CH+GAP))+1);
+    trayX=ladderX+CW+56;                              // first tray column, just right of the ladder
     slots.forEach((s,i)=>{ s.x=ladderX; s.y=startY+i*(CH+GAP); s.el.style.left=s.x+'px'; s.el.style.top=s.y+'px'; });
     traylab.style.left=trayX+'px'; traylab.style.top=(startY-28)+'px';
     cards.forEach((c,i)=>{
-      c.homeX=trayX; c.homeY=startY+i*(CH+GAP);
+      const col=Math.floor(i/perCol), row=i%perCol;   // fill down, then wrap right
+      c.homeX=trayX+col*(CW+COLGAP); c.homeY=startY+row*(CH+GAP);
       if(c.slot){ c.el.style.left=c.slot.x+'px'; c.el.style.top=c.slot.y+'px'; }
       else      { c.el.style.left=c.homeX+'px';  c.el.style.top=c.homeY+'px'; }
     });
