@@ -12,13 +12,20 @@ Drag/snap/swap works. Screenshot-verified at 5760×3240 (`verify-out/02-goals.pn
   `renderInputs()` dispatches board + tears down the resize-observer on re-render.
 - The approved standalone prototype **`goals-board.html`** is kept as a reference.
 
-### ⚠️ Known gap — flag for Nathan (next step, NOT a bug)
-The board is a VIEW + a prioritisation interaction. Cards are **not yet editable on
-the board** (no inline name/amount/age edit), and the drag rank is **not persisted /
-not fed to the engine** (the engine has no goal-priority lever). The old ledger's
-inline editing is gone from the Goals tab. Goal amounts/ages can still be changed by
-editing `plan.goals` — but the on-card edit affordance is the clear next build. The
-old `renderHybrid('goals')` path + `recGoalRow`/`onceGoalRow` are now dead (harmless).
+### Status — the Goals page is COMPLETE (view + edit + add + delete + rank)
+The board fully replaces the ledger and is a real input page:
+- **Edit on the card** — name, amount, and age window / at-age are inline inputs
+  (boxless, dashed-underline → copper on focus). Value edits write straight to
+  `plan.goals`, update the hero live, and reseed scenarios — WITHOUT rebuilding the
+  board, so the drag rank is preserved.
+- **Add** — "+ Add a goal" (recurring) and "+ One-time" push real, editable cards.
+- **Delete** — the × on each card removes it.
+- **Rank** — drag onto a ghost slot to prioritise; persisted in localStorage and
+  restored on re-render / tab-switch (reset only when goals are added/removed, since
+  indices shift). It is a planning/conversation cue — the engine has no goal-priority
+  lever, so the rank feeds NO math (by design).
+- The old `renderHybrid('goals')` path + `recGoalRow`/`onceGoalRow` are now dead
+  (harmless) and can be cleaned up later.
 
 ## What the design is (all screenshot-verified at 5760×3240)
 The Goals tab as a **priority board**, built on the REAL app chrome (PARALLAX header +
