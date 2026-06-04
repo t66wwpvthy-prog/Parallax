@@ -223,6 +223,11 @@ background-size:auto,auto,auto,64px 64px,64px 64px,auto;}
 /* Inline type-in boxes for the dollar/age levers; width tuned per content. */
 .lev-val .lev-in{font-family:'Inter';font-size:16.5px;font-weight:500;color:inherit;background:transparent;border:none;border-radius:5px;width:78px;padding:1px 3px;outline:none;text-align:right;transition:background .15s}
 .lev-val .lev-in.age-in{width:34px;text-align:center}
+/* "Sell primary to fund" toggle on the Buy Property lever — its own line so it
+   doesn't crowd the amount/age boxes. Off = outline chip; on = gold fill. */
+.lev-fund{display:block;margin:5px 0 0;font-family:'Sora',sans-serif;font-size:9px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;padding:3px 8px;border-radius:6px;border:1px solid var(--rule-bright);background:transparent;color:var(--ink-faint);cursor:pointer;transition:border-color .15s,color .15s,background .15s}
+.lev-fund:hover{border-color:var(--gold-bright);color:var(--gold-bright)}
+.lev-fund.on{background:rgba(251,141,38,.18);border-color:transparent;color:var(--gold-bright)}
 /* Resting state = clean numbers + deltas (no bar clutter). The slider fades in
    when you hover/focus the cell, so drag-to-explore stays for live demos but the
    grid reads as a comparison table at a glance. Touch (no hover) keeps it shown. */
@@ -707,18 +712,6 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield}
 .g-card .row-x.g-del{position:absolute;top:7px;right:9px;width:18px;height:18px;line-height:1;font-size:14px;opacity:0;z-index:5;transition:opacity .15s,color .15s}
 .g-card:hover .row-x.g-del{opacity:.6}
 .g-card .row-x.g-del:hover{opacity:1;color:var(--negative-bright)}
-/* Real-estate goal toggle + the "fund with sale of primary?" prompt. */
-.g-re{font-family:'Sora',sans-serif;font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;padding:2px 7px;border-radius:6px;border:1px solid var(--rule-bright);background:transparent;color:var(--ink-faint);cursor:pointer;transition:border-color .15s,color .15s,background .15s;vertical-align:middle}
-.g-re:hover{border-color:var(--gold-bright);color:var(--gold-bright)}
-.g-re.on{background:rgba(251,141,38,.18);border-color:transparent;color:var(--gold-bright)}
-.g-fund{font-size:10px;color:var(--gold-bright);margin-left:6px;vertical-align:middle}
-.g-pop{position:absolute;z-index:120;width:300px;padding:13px 15px;border-radius:12px;background:linear-gradient(152deg,rgba(40,60,50,.97),rgba(28,44,36,.98));backdrop-filter:blur(20px) saturate(1.3);-webkit-backdrop-filter:blur(20px) saturate(1.3);box-shadow:inset 0 1px 0 rgba(255,255,255,.18),inset 0 0 0 1px rgba(255,255,255,.12),0 30px 60px -18px rgba(0,0,0,.7)}
-.g-pop-q{font-family:'Sora',sans-serif;font-size:13px;line-height:1.45;color:var(--ink);margin-bottom:11px}
-.g-pop-q b{color:var(--ink-bright);font-weight:600}
-.g-pop-b{display:flex;gap:8px}
-.g-pop-b button{font-family:'Sora',sans-serif;font-size:12px;font-weight:600;padding:6px 13px;border-radius:7px;cursor:pointer;border:1px solid var(--rule-bright);background:transparent;color:var(--ink-mute);transition:transform .12s,border-color .15s}
-.g-pop-b button:hover{transform:translateY(-1px)}
-.g-pop-yes{border-color:transparent!important;background:var(--gold-bright)!important;color:#1c130a!important}
 </style>
 </head>
 <body>
@@ -2216,6 +2209,9 @@ function defaultLevers(){
     ssAge:      plan.income.socialSecurity.primary.claimAge,
     spend:      plan.expenses.living,
     eventAmt:   0, eventAge: 70,
+    // Buy-property what-if (amount + age + whether to fund it by selling the
+    // primary residence). Off by default — buyAmt 0 means no purchase.
+    buyAmt:     0, buyAge: 65, buyFromPrimary: false,
     risk:       plan.portfolio.riskProfile,
     savings:    plan.savings.annual,
     // pensionAge tracks retirement by DEFAULT (most people switch on a pension
@@ -2783,19 +2779,18 @@ function leversToOverrides(L){
   if(spendFrac > 0)      ov.spendBump = spendFrac;
   else if(spendFrac < 0) ov.spendCut  = -spendFrac;   // engine caps the cut at 50%
   if(L.eventAmt>0){ ov.lumpSum = L.eventAmt; ov.lumpSumYear = Math.max(0, L.eventAge - plan.household.primary.currentAge); }
+  // Buy-property what-if: when "fund by selling primary" is on AND the household
+  // owns a property, sell the primary (properties[0]) at the purchase age so the
+  // net proceeds offset the cost. The purchase outflow itself is injected as a
+  // one-time goal in planForScenario. Reuses the engine's assetSale override —
+  // no new engine math.
+  if(L.buyFromPrimary && L.buyAmt>0 && plan.properties && plan.properties.length){
+    ov.assetSale = { asset: 0, age: L.buyAge };
+  }
   if(L.savings !== plan.savings.annual) ov.savingsBump = (L.savings - plan.savings.annual)/Math.max(1,plan.savings.annual);
   // Pension: always pass the chosen age as an absolute override so the engine
   // looks up the entered benefit for THAT exact age (or pays 0 if no entry).
   ov.pensionStartAge = L.pensionAge;
-  // Real-estate goal funded by selling the primary residence. This is NOT a
-  // scenario lever — it's a plan-level property of a goal the advisor flagged
-  // "fund with sale of primary" (Goals board). When such a goal exists and the
-  // household owns a property, the primary (properties[0]) is sold at the goal's
-  // age so the net proceeds offset the purchase. Shared across all scenarios.
-  const reGoal = (plan.goals || []).find(g => g.fundFromPrimary && g.startAge != null);
-  if(reGoal && plan.properties && plan.properties.length){
-    ov.assetSale = { asset: 0, age: reGoal.startAge };
-  }
   return ov;
 }
 /* Risk lever changes the profile -> needs a plan clone, not an override.
@@ -2811,6 +2806,16 @@ function planForScenario(L){
       startAge: plan.household.primary.currentAge,
       endAge: L.giftEndAge,
       colaPct: LONGRUN_INFLATION * 100
+    }]);
+  }
+  // Buy-property what-if: the purchase is a one-time outflow at buyAge, injected
+  // as a single-year goal (startAge===endAge). The engine applies goals in both
+  // the accumulation and retirement phases, so buying before OR after retirement
+  // works. The optional sale of the primary that funds it is an assetSale
+  // override (leversToOverrides). Both reuse existing engine paths.
+  if(L.buyAmt > 0 && L.buyAge != null){
+    p.goals = (p.goals || []).concat([{
+      name: 'Property purchase', amount: L.buyAmt, startAge: L.buyAge, endAge: L.buyAge
     }]);
   }
   return p;
@@ -3487,7 +3492,6 @@ function goalsView(){
   const list = (Array.isArray(plan.goals)?plan.goals:[]).map((g,i)=>({
     i, name:g.name||'', amount:g.amount||0,
     once:g.startAge===g.endAge, startAge:g.startAge, endAge:g.endAge,
-    realEstate:!!g.realEstate, fundFromPrimary:!!g.fundFromPrimary,
   }));
   return {
     list,
@@ -3533,15 +3537,9 @@ function goalCardHTML(g){
   const ages = g.once
     ? `Lands once · age <input class="g-age-in" data-f="startAge" data-sync="endAge" data-type="num" value="${g.startAge}">`
     : `Recurring · ages <input class="g-age-in" data-f="startAge" data-type="num" value="${g.startAge}">–<input class="g-age-in" data-f="endAge" data-type="num" value="${g.endAge}">`;
-  // Real-estate toggle: marks the goal a property purchase. When it's on AND the
-  // household owns a property, "↳ sells primary" shows once funding is confirmed
-  // (the prompt fires on toggle-on — see initGoalsBoard).
-  const hasProp = (plan.properties||[]).length > 0;
-  const reChip = `<button class="g-re${g.realEstate?' on':''}" data-re title="Mark this goal as a real-estate purchase">Real estate</button>`;
-  const fundChip = (g.realEstate && hasProp && g.fundFromPrimary) ? `<span class="g-fund">↳ sells primary</span>` : '';
   return `<div class="g-main">
        <div class="g-name"><input class="g-name-in" data-f="name" data-type="text" value="${escHtml(g.name)}" placeholder="Goal name">${tag}</div>
-       <div class="g-kind">${ages} ${reChip}${fundChip}</div>
+       <div class="g-kind">${ages}</div>
      </div>
      <div class="g-amt"><span class="g-cur">$</span><input class="g-amt-in" data-f="amount" data-type="money" inputmode="numeric" value="${amtStr}">${per}</div>
      <button class="row-x g-del" data-rmpath="goals.${g.i}" title="Remove this goal">×</button>`;
@@ -3623,48 +3621,6 @@ function initGoalsBoard(){
     refreshHero();
     reseedScenarios(); buildLevers(); sharedPaths=null; plansDirty=true;
     $('#status').textContent='Plan edited · open Scenarios';
-  });
-
-  // ── Real-estate toggle + "fund with sale of primary?" prompt ──
-  // Rebuild one card in place (preserves drag rank — no board rebuild) and
-  // re-run the scenario seed so the assetSale flows through next Run.
-  const closePop = ()=> board.querySelectorAll('.g-pop').forEach(p=>p.remove());
-  const refreshCard = i => {
-    const card = cards.find(c=>c.idx===i); if(!card) return;
-    card.el.innerHTML = goalCardHTML(goalsView().list.find(g=>g.i===i));
-  };
-  const afterGoalEdit = ()=>{ refreshHero(); reseedScenarios(); buildLevers(); sharedPaths=null; plansDirty=true; $('#status').textContent='Plan edited · open Scenarios'; };
-  // Prompt anchored just below the card; appended to the board so it escapes the
-  // card's overflow:hidden. Only ever offered when a property exists to sell.
-  const promptPrimary = (cardEl, i)=>{
-    closePop();
-    const primary = (plan.properties||[])[0]; if(!primary) return;
-    const pop=document.createElement('div'); pop.className='g-pop';
-    pop.innerHTML=`<div class="g-pop-q">Fund this purchase by selling <b>${escHtml(primary.name||'the primary residence')}</b>?</div>
-      <div class="g-pop-b"><button class="g-pop-yes" data-i="${i}">Yes, sell it</button><button class="g-pop-no">Keep it</button></div>`;
-    board.appendChild(pop);
-    const W=board.clientWidth;
-    pop.style.left=Math.min(cardEl.offsetLeft, W-320)+'px';
-    pop.style.top=(cardEl.offsetTop+CH+8)+'px';
-  };
-  board.addEventListener('click', e=>{
-    const re = e.target.closest('.g-re');
-    if(re){
-      e.stopPropagation();
-      const i=+re.closest('.g-card').dataset.i; const g=plan.goals[i]; if(!g) return;
-      g.realEstate=!g.realEstate;
-      if(!g.realEstate){ g.fundFromPrimary=false; closePop(); }
-      refreshCard(i); afterGoalEdit();
-      // Turning it ON with a property on the books → pop the funding prompt.
-      if(g.realEstate && (plan.properties||[]).length){
-        promptPrimary(cards.find(c=>c.idx===i).el, i);
-      }
-      return;
-    }
-    const yes=e.target.closest('.g-pop-yes');
-    if(yes){ e.stopPropagation(); const i=+yes.dataset.i; if(plan.goals[i]) plan.goals[i].fundFromPrimary=true; closePop(); refreshCard(i); afterGoalEdit(); return; }
-    const no=e.target.closest('.g-pop-no');
-    if(no){ e.stopPropagation(); closePop(); return; }
   });
 
   // ── Drag / snap / swap (skip when the pointer lands on an editable control) ──
@@ -3890,6 +3846,11 @@ const LEVCFG=[
   // One-time event carries BOTH an amount and an age; edit:'event' renders the
   // two type-in boxes (amount + age) alongside the amount slider.
   {key:'eventAmt',  name:'One-Time Event', min:0,max:500000,step:5000, edit:'event', fmt:(v,L)=>['$'+(v||0).toLocaleString('en-US'),'@ '+L.eventAge]},
+  // Buy a property — a one-time purchase at a chosen age, with an optional
+  // "fund by selling primary" toggle (shown only when the household owns one).
+  // A common what-if (vacation/second home), so it lives on the lever surface,
+  // not the base plan.
+  {key:'buyAmt',    name:'Buy Property',   min:0,max:2000000,step:25000, edit:'buy', fmt:(v,L)=>['$'+(v||0).toLocaleString('en-US'),'@ '+L.buyAge]},
   {key:'risk',      name:'Allocation',     min:1,max:5,step:1, fmt:v=>[RISK_LABELS[v],'']},
   {key:'savings',   name:'Savings / yr',   min:0,max:200000,step:1000, edit:'money', fmt:v=>['$'+v.toLocaleString('en-US'),'/yr']},
   // Pension snaps between the ages that actually have entered amounts (62, 65).
@@ -4025,7 +3986,7 @@ function levDelta(cfg, lev){
   const sign = d>0 ? '+' : '−', a = Math.abs(d);
   let txt;
   if(cfg.key==='spend')                 txt = `${sign}$${Math.round(a/12).toLocaleString('en-US')}/mo`;
-  else if(cfg.key==='savings' || cfg.key==='eventAmt') txt = `${sign}$${a.toLocaleString('en-US')}`;
+  else if(cfg.key==='savings' || cfg.key==='eventAmt' || cfg.key==='buyAmt') txt = `${sign}$${a.toLocaleString('en-US')}`;
   else if(cfg.key==='risk')             txt = `${sign}${a} lvl`;
   else /* ages */                       txt = `${sign}${a} yr`;
   return `<span class="lev-delta">${txt}</span>`;
@@ -4059,6 +4020,18 @@ function renderLevValue(cfg, lev){
     return `$<input class="lev-in" type="text" inputmode="numeric" data-edit="eventAmt" data-key="eventAmt" value="${(lev.eventAmt||0).toLocaleString('en-US')}">`
          + ` <span class="unit">@ age</span> `
          + `<input class="lev-in age-in" type="text" inputmode="numeric" data-edit="eventAge" data-key="eventAge" value="${lev.eventAge}">${d}`;
+  }
+  if(cfg.edit==='buy'){
+    // Amount + age, then (only when the household owns a property) a toggle to
+    // fund the purchase by selling the primary. The toggle is meaningful only
+    // once an amount is set, so it shows when buyAmt > 0.
+    let h = `$<input class="lev-in" type="text" inputmode="numeric" data-edit="buyAmt" data-key="buyAmt" value="${(lev.buyAmt||0).toLocaleString('en-US')}">`
+          + ` <span class="unit">@ age</span> `
+          + `<input class="lev-in age-in" type="text" inputmode="numeric" data-edit="buyAge" data-key="buyAge" value="${lev.buyAge}">${d}`;
+    if((plan.properties||[]).length && (lev.buyAmt||0) > 0){
+      h += `<button class="lev-fund${lev.buyFromPrimary?' on':''}" data-key="buyFromPrimary" title="Fund this purchase by selling the primary residence">↳ sell primary to fund</button>`;
+    }
+    return h;
   }
   // Discrete levers (ages / allocation): value + delta + stepper buttons.
   return `${val}${unit?` <span class="unit">${unit}</span>`:''}${d}${stepper(cfg, !d)}`;
@@ -4149,6 +4122,16 @@ function renderScenGoals(){
 }
 // Stepper buttons for the discrete levers (delegated — survives rebuilds).
 $('#scn-levers').addEventListener('click', e=>{
+  // "Sell primary to fund" toggle on the Buy Property lever.
+  const fund=e.target.closest('.lev-fund');
+  if(fund){
+    const span=fund.closest('[id^="lv-"]'); if(!span) return;
+    const ci=+span.id.split('-')[1], L=scenarios[ci].lev;
+    L.buyFromPrimary=!L.buyFromPrimary;
+    updateCell(ci, LEVCFG.find(c=>c.key==='buyAmt'));
+    $('#status').textContent='Adjusted · Run to update'; saveScenarios();
+    return;
+  }
   const btn=e.target.closest('.step-btn'); if(!btn) return;
   const span=btn.closest('[id^="lv-"]'); if(!span) return;
   const ci=+span.id.split('-')[1], cfg=LEVCFG.find(c=>c.key===btn.dataset.key);
@@ -4329,6 +4312,13 @@ $('#scn-levers').addEventListener('change', e=>{
     const a=Math.round(num);
     const lo=plan.household.primary.currentAge, hi=plan.household.primary.planEndAge;
     if(isFinite(a)) L.eventAge=Math.max(lo,Math.min(hi,a));
+  } else if(edit==='buyAmt'){
+    L.buyAmt=isFinite(num)&&num>0?Math.round(num):0;
+    if(L.buyAmt===0) L.buyFromPrimary=false;     // no purchase → funding is moot
+  } else if(edit==='buyAge'){
+    const a=Math.round(num);
+    const lo=plan.household.primary.currentAge, hi=plan.household.primary.planEndAge;
+    if(isFinite(a)) L.buyAge=Math.max(lo,Math.min(hi,a));
   }
   // Refresh the cell (value + bar) — rebuilds the grid if the baseline moved.
   const dispCfg=LEVCFG.find(c=>c.key===span.id.split('-').slice(2).join('-'));
