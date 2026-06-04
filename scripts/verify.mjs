@@ -61,9 +61,8 @@ try {
   const CONTAINER_CHROME = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
   if (existsSync(CONTAINER_CHROME)) {
     launchOpts.executablePath = CONTAINER_CHROME;
-    launchOpts.args = ['--no-sandbox'];
   }
-  launchOpts.args = [...(launchOpts.args || []), '--no-sandbox'];
+  launchOpts.args = ['--no-sandbox'];
   const b = await chromium.launch({ ...launchOpts, headless: true });
   const page = await b.newPage();
   await page.setViewport({ width: 1400, height: 900 });
