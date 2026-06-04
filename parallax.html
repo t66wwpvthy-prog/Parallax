@@ -3352,11 +3352,14 @@ function initGoalsBoard(){
   function saveRank(){
     try{ localStorage.setItem(RANK_KEY, JSON.stringify({n:list.length, order:slots.map(s=>s.card?s.card.idx:null)})); }catch{}
   }
+  // Ladder column (left) vs tray column (right); both X's are set by layout()
+  // and read by the drop logic so a drop is judged by REGION, not a tight radius.
+  let ladderX=140, trayX=0;
   function layout(){
     const W=board.clientWidth, H=board.clientHeight;
     const totalH=NSLOT*CH+(NSLOT-1)*GAP;
     const startY=Math.max(14,(H-totalH)/2);
-    const ladderX=140, trayX=Math.max(ladderX+CW+40, W-CW-58);
+    trayX=Math.max(ladderX+CW+40, W-CW-58);
     slots.forEach((s,i)=>{ s.x=ladderX; s.y=startY+i*(CH+GAP); s.el.style.left=s.x+'px'; s.el.style.top=s.y+'px'; });
     traylab.style.left=trayX+'px'; traylab.style.top=(startY-28)+'px';
     cards.forEach((c,i)=>{
@@ -3392,7 +3395,15 @@ function initGoalsBoard(){
 
   // ── Drag / snap / swap (skip when the pointer lands on an editable control) ──
   let active=null,offX=0,offY=0;
-  const nearestSlot=(cx,cy)=>{ let best=null,bd=1e9; slots.forEach(s=>{ const sx=s.x+CW/2,sy=s.y+CH/2,d=Math.hypot(cx-sx,cy-sy); if(d<175&&d<bd){bd=d;best=s;} }); return best; };
+  // Drop by REGION, not a radius: if the card's centre sits on the ladder side of
+  // the midline between the two columns, it lands in the nearest slot by height
+  // (so a near-miss still ranks, never bounces); on the tray side it un-ranks.
+  const dropTarget=(cx,cy)=>{
+    if(cx >= (ladderX+CW + trayX)/2) return null;        // tray side → unplaced
+    let best=slots[0],bd=1e9;                             // ladder side → nearest by Y
+    slots.forEach(s=>{ const d=Math.abs(cy-(s.y+CH/2)); if(d<bd){bd=d;best=s;} });
+    return best;
+  };
   const moveTo=(c,x,y)=>{ c.el.style.transition=SNAP; c.el.style.left=x+'px'; c.el.style.top=y+'px'; };
   const fillSlot=(c,s,flash)=>{ s.card=c; c.slot=s; s.el.classList.add('filled'); if(flash){ s.el.classList.add('flash'); setTimeout(()=>s.el.classList.remove('flash'),520); } };
   board.addEventListener('pointerdown',e=>{
@@ -3408,13 +3419,13 @@ function initGoalsBoard(){
     const W=board.clientWidth,H=board.clientHeight;
     const nx=Math.max(8,Math.min(e.clientX-offX,W-CW-8)), ny=Math.max(8,Math.min(e.clientY-offY,H-CH-8));
     active.el.style.left=nx+'px'; active.el.style.top=ny+'px';
-    const hit=nearestSlot(nx+CW/2,ny+CH/2);
+    const hit=dropTarget(nx+CW/2,ny+CH/2);
     slots.forEach(s=>s.el.classList.toggle('hot',s===hit));
   });
   board.addEventListener('pointerup',()=>{
     if(!active) return;
     const a=active,el=a.el,cx=el.offsetLeft+CW/2,cy=el.offsetTop+CH/2;
-    const hit=nearestSlot(cx,cy);
+    const hit=dropTarget(cx,cy);
     if(hit){
       if(hit.card){ const other=hit.card;
         if(a.fromSlot){ moveTo(other,a.fromSlot.x,a.fromSlot.y); fillSlot(other,a.fromSlot,false); }
