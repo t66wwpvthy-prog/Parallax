@@ -419,8 +419,14 @@ const plan = {
   // engine amortizes the mortgage ({ balance, rate %, termYears }) into a fixed
   // annual payment that runs as a liability until payoff (startAge + termYears),
   // eroding in real terms like any fixed-nominal debt. `value` (current) and
-  // `purchasePrice` (cost basis) are captured for a FUTURE sale event (cap-gains
-  // on sale) and are INERT today — they touch no current calculation. Empty default.
+  // `purchasePrice` (cost basis) stay INERT until a sale is triggered.
+  //   commissionPct: total agent commission deducted from gross proceeds (default
+  //     5%; set 0 for a business or FSBO sale).
+  //   appreciation: real growth/yr of the asset's value until sale (default 0 =
+  //     holds today's value in real terms).
+  // The SALE itself is never stored here — it's an `assetSale` OVERRIDE applied
+  // per scenario ({ asset: <index>, age: <saleAge> }), so the Baseline never
+  // carries it and there's nothing to "zero out" to compare sell-vs-keep.
   properties: [],
   ltc:        { amount: 0, onsetAge: 85 },   // flat long-term-care cost ($/yr) from onsetAge onward
   // goals — an ARRAY of spend goals ({ name, amount, startAge, endAge }). A recurring
@@ -449,6 +455,21 @@ function annualMortgagePayment(balance, ratePct, termYears){
   const monthly = (mr < 1e-9) ? P / N : (P * mr) / (1 - Math.pow(1 + mr, -N));
   return monthly * 12;
 }
+
+// Remaining NOMINAL balance of an amortizing loan after `yearsElapsed`. Mirrors
+// annualMortgagePayment's monthly compounding so the payoff figure when a
+// property is SOLD mid-term reconciles with the payment that's been running.
+function mortgageBalanceRemaining(balance, ratePct, termYears, yearsElapsed){
+  const P = Math.max(0, balance || 0);
+  const yrs = Math.max(0, termYears || 0);
+  if(P <= 0 || yrs <= 0) return 0;
+  const mr = (Math.max(0, ratePct || 0) / 12) / 100;
+  const N  = yrs * 12;
+  const n  = Math.max(0, Math.min(N, Math.round((yearsElapsed || 0) * 12)));
+  if(mr < 1e-9) return P * (1 - n / N);                       // 0% = straight-line
+  return P * (Math.pow(1 + mr, N) - Math.pow(1 + mr, n)) / (Math.pow(1 + mr, N) - 1);
+}
+
 
 
 // Seeded RNG (mulberry32). The bootstrap draws are deterministic so identical
@@ -652,6 +673,46 @@ function resolveInputs(plan, ov){
   const pensionAmount = penBase;
   const ltc           = plan.ltc || {};
 
+  // ── Earmarked-asset sale (override-only; never baked into the base plan) ──────
+  // ov.assetSale = { asset: <index into plan.properties>, age: <sale age> }. We
+  // resolve the NET proceeds here (deterministic — no market randomness), in
+  // NOMINAL dollars at the sale year, then deflate to today's dollars for the
+  // real-dollar sim. Cap-gains is computed on the NOMINAL appreciation (the
+  // real-world basis is historical cost, so inflation is part of the taxable
+  // gain). The #5 primary-residence exclusion will subtract from the gain here.
+  const capGainsRate = (plan.taxes.capitalGains * (1 + (ov.taxMult || 0))) / 100;
+  const saleAsset = (ov.assetSale && ov.assetSale.age != null) ? ov.assetSale.asset : -1;
+  const saleAge   = (saleAsset >= 0) ? ov.assetSale.age : null;
+  let assetSale = null;
+  if(saleAsset >= 0){
+    const pr = (plan.properties || [])[saleAsset];
+    if(pr && saleAge >= curAge){
+      const k        = saleAge - curAge;                       // years from now to sale
+      const f        = Math.pow(1 + LONGRUN_INFLATION, k);     // nominal/real bridge
+      const apprec   = (pr.appreciation || 0);                 // real appreciation/yr (v1 default 0)
+      const realPrice= Math.max(0, pr.value || 0) * Math.pow(1 + apprec, k);   // today's $ at sale
+      const nomPrice = realPrice * f;                          // nominal at sale
+      const commPct  = Math.max(0, Math.min(1, (pr.commissionPct == null ? 5 : pr.commissionPct) / 100));
+      const nomComm  = nomPrice * commPct;
+      const M        = pr.mortgage || {};
+      const mStart   = (M.startAge != null ? M.startAge : curAge);
+      const nomPayoff= mortgageBalanceRemaining(M.balance, M.rate || 0, M.termYears, saleAge - mStart);
+      const basis    = Math.max(0, pr.purchasePrice || 0);     // nominal historical cost
+      const exclusion= Math.max(0, (ov.saleExclusion || 0));   // #5: §121 primary-residence (nominal)
+      const nomGain  = Math.max(0, (nomPrice - nomComm) - basis - exclusion);
+      const nomTax   = nomGain * capGainsRate;
+      const nomNet   = Math.max(0, nomPrice - nomPayoff - nomComm - nomTax);
+      assetSale = {
+        age: saleAge, asset: saleAsset,
+        netProceeds:  nomNet / f,                              // back to today's dollars
+        grossReal:    realPrice,
+        capGainsTax:  nomTax / f,
+        commission:   nomComm / f,
+        mortgagePayoff: nomPayoff / f
+      };
+    }
+  }
+
   return {
     currentAge: plan.household.primary.currentAge,
     retirementAge,
@@ -708,18 +769,24 @@ function resolveInputs(plan, ov){
         colaReal: ((L.colaPct || 0) / 100) - LONGRUN_INFLATION
       })),
       ...(plan.properties || [])
-        .filter(pr => pr && pr.mortgage && (pr.mortgage.balance > 0) && (pr.mortgage.termYears > 0))
-        .map(pr => {
+        .map((pr, idx) => ({ pr, idx }))
+        .filter(({pr}) => pr && pr.mortgage && (pr.mortgage.balance > 0) && (pr.mortgage.termYears > 0))
+        .map(({pr, idx}) => {
           const M = pr.mortgage;
           const start = (M.startAge != null ? M.startAge : curAge);
+          let endAge = start + M.termYears;          // payoff
+          // If THIS property is sold before payoff, the mortgage is settled from
+          // the proceeds — payments stop at the sale.
+          if(idx === saleAsset && saleAge != null && saleAge < endAge) endAge = saleAge;
           return {
             amount:   annualMortgagePayment(M.balance, M.rate || 0, M.termYears),
             startAge: start,
-            endAge:   start + M.termYears,            // payoff
+            endAge,
             colaReal: -LONGRUN_INFLATION              // fixed-nominal payment erodes in real terms
           };
         })
     ],
+    assetSale,   // resolved net-proceeds object, or null when no sale override
     healthcareMult: 1 + (ov.healthcareAdj || 0),
     healthcareRealGrowth: Math.max(0, plan.expenses.healthcareRealGrowth ?? 0.02),
     // Goals — normalized to an array of flat-real timed entries. A legacy
@@ -801,6 +868,17 @@ function runSinglePath(p, returnPath){
     const rp  = returnPath[y];
     const r   = ((rp && rp.proxyReturn != null) ? rp.proxyReturn : weightedAssetReturn(rp, p.portfolio.weights)) + p.returnAdj;
 
+    // ── Earmarked-asset sale ──────────────────────────────────────────────
+    // Net proceeds land in the TAXABLE sleeve as after-tax cash (basis = full
+    // proceeds) at the sale age, then invest and compound from here forward —
+    // works in either phase. Applied via the assetSale override only; the base
+    // plan is never mutated, so the Baseline column never sees it.
+    const saleProceeds = (p.assetSale && age === p.assetSale.age) ? p.assetSale.netProceeds : 0;
+    if(saleProceeds > 0){
+      accounts.taxable.balance += saleProceeds;
+      accounts.taxable.basis   += saleProceeds;
+    }
+
     // ── ACCUMULATION PHASE (age < retirementAge) ──────────────────────────
     // Still working: portfolio grows and receives savings; no retirement
     // spending, withdrawals, income, or tax events yet. Contributions land in
@@ -842,10 +920,10 @@ function runSinglePath(p, returnPath){
       if(peakBalance > 0){ const dd = (peakBalance - endBalanceA) / peakBalance; if(dd > maxDrawdown) maxDrawdown = dd; }
       rows.push({
         year: y+1, age, source: rp.y, returnRate: r, phase: 'accum',
-        socialSecurity: 0, otherIncome: 0, pension: 0, withdrawal: 0,
+        socialSecurity: 0, otherIncome: 0, pension: 0, withdrawal: 0, assetSale: saleProceeds,
         expenses: 0, goals: 0, liabilities: 0, taxes: 0, savings: p.savingsAnnual,
         startBalance: startBalanceA, wdRate: 0,
-        netCashflow: p.savingsAnnual - lumpA,
+        netCashflow: p.savingsAnnual - lumpA + saleProceeds,
         balance: endBalanceA, failed: false,
         accountBreakdown: { taxable: 0, traditional: 0, roth: 0 },
         accountBalances: { taxable: accounts.taxable.balance, traditional: accounts.traditional.balance, roth: accounts.roth.balance },
@@ -998,10 +1076,10 @@ function runSinglePath(p, returnPath){
       inflationRate: (rp && rp.proxyInflationRate != null) ? rp.proxyInflationRate : null,
       realReturnUsed: r,
       socialSecurity: ssInc, otherIncome: oiInc, pension: penInc, withdrawal,
-      rmd: rmdForced,
+      rmd: rmdForced, assetSale: saleProceeds,
       expenses, goals: goalsY, liabilities: liabCost, taxes: totalTax + rmdTax,
       startBalance, wdRate,
-      netCashflow: (ssInc + oiInc + penInc) - (expenses + goalsY + liabCost + totalTax + rmdTax),
+      netCashflow: (ssInc + oiInc + penInc + saleProceeds) - (expenses + goalsY + liabCost + totalTax + rmdTax),
       balance: endBalance, failed,
       accountBreakdown: { ...funding.breakdown },
       accountBalances: {

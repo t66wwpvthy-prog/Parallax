@@ -1178,8 +1178,14 @@ const plan = {
   // engine amortizes the mortgage ({ balance, rate %, termYears }) into a fixed
   // annual payment that runs as a liability until payoff (startAge + termYears),
   // eroding in real terms like any fixed-nominal debt. `value` (current) and
-  // `purchasePrice` (cost basis) are captured for a FUTURE sale event (cap-gains
-  // on sale) and are INERT today — they touch no current calculation. Empty default.
+  // `purchasePrice` (cost basis) stay INERT until a sale is triggered.
+  //   commissionPct: total agent commission deducted from gross proceeds (default
+  //     5%; set 0 for a business or FSBO sale).
+  //   appreciation: real growth/yr of the asset's value until sale (default 0 =
+  //     holds today's value in real terms).
+  // The SALE itself is never stored here — it's an `assetSale` OVERRIDE applied
+  // per scenario ({ asset: <index>, age: <saleAge> }), so the Baseline never
+  // carries it and there's nothing to "zero out" to compare sell-vs-keep.
   properties: [],
   ltc:        { amount: 0, onsetAge: 85 },   // flat long-term-care cost ($/yr) from onsetAge onward
   // goals — an ARRAY of spend goals ({ name, amount, startAge, endAge }). A recurring
@@ -1208,6 +1214,21 @@ function annualMortgagePayment(balance, ratePct, termYears){
   const monthly = (mr < 1e-9) ? P / N : (P * mr) / (1 - Math.pow(1 + mr, -N));
   return monthly * 12;
 }
+
+// Remaining NOMINAL balance of an amortizing loan after `yearsElapsed`. Mirrors
+// annualMortgagePayment's monthly compounding so the payoff figure when a
+// property is SOLD mid-term reconciles with the payment that's been running.
+function mortgageBalanceRemaining(balance, ratePct, termYears, yearsElapsed){
+  const P = Math.max(0, balance || 0);
+  const yrs = Math.max(0, termYears || 0);
+  if(P <= 0 || yrs <= 0) return 0;
+  const mr = (Math.max(0, ratePct || 0) / 12) / 100;
+  const N  = yrs * 12;
+  const n  = Math.max(0, Math.min(N, Math.round((yearsElapsed || 0) * 12)));
+  if(mr < 1e-9) return P * (1 - n / N);                       // 0% = straight-line
+  return P * (Math.pow(1 + mr, N) - Math.pow(1 + mr, n)) / (Math.pow(1 + mr, N) - 1);
+}
+
 
 
 // Seeded RNG (mulberry32). The bootstrap draws are deterministic so identical
@@ -1411,6 +1432,46 @@ function resolveInputs(plan, ov){
   const pensionAmount = penBase;
   const ltc           = plan.ltc || {};
 
+  // ── Earmarked-asset sale (override-only; never baked into the base plan) ──────
+  // ov.assetSale = { asset: <index into plan.properties>, age: <sale age> }. We
+  // resolve the NET proceeds here (deterministic — no market randomness), in
+  // NOMINAL dollars at the sale year, then deflate to today's dollars for the
+  // real-dollar sim. Cap-gains is computed on the NOMINAL appreciation (the
+  // real-world basis is historical cost, so inflation is part of the taxable
+  // gain). The #5 primary-residence exclusion will subtract from the gain here.
+  const capGainsRate = (plan.taxes.capitalGains * (1 + (ov.taxMult || 0))) / 100;
+  const saleAsset = (ov.assetSale && ov.assetSale.age != null) ? ov.assetSale.asset : -1;
+  const saleAge   = (saleAsset >= 0) ? ov.assetSale.age : null;
+  let assetSale = null;
+  if(saleAsset >= 0){
+    const pr = (plan.properties || [])[saleAsset];
+    if(pr && saleAge >= curAge){
+      const k        = saleAge - curAge;                       // years from now to sale
+      const f        = Math.pow(1 + LONGRUN_INFLATION, k);     // nominal/real bridge
+      const apprec   = (pr.appreciation || 0);                 // real appreciation/yr (v1 default 0)
+      const realPrice= Math.max(0, pr.value || 0) * Math.pow(1 + apprec, k);   // today's $ at sale
+      const nomPrice = realPrice * f;                          // nominal at sale
+      const commPct  = Math.max(0, Math.min(1, (pr.commissionPct == null ? 5 : pr.commissionPct) / 100));
+      const nomComm  = nomPrice * commPct;
+      const M        = pr.mortgage || {};
+      const mStart   = (M.startAge != null ? M.startAge : curAge);
+      const nomPayoff= mortgageBalanceRemaining(M.balance, M.rate || 0, M.termYears, saleAge - mStart);
+      const basis    = Math.max(0, pr.purchasePrice || 0);     // nominal historical cost
+      const exclusion= Math.max(0, (ov.saleExclusion || 0));   // #5: §121 primary-residence (nominal)
+      const nomGain  = Math.max(0, (nomPrice - nomComm) - basis - exclusion);
+      const nomTax   = nomGain * capGainsRate;
+      const nomNet   = Math.max(0, nomPrice - nomPayoff - nomComm - nomTax);
+      assetSale = {
+        age: saleAge, asset: saleAsset,
+        netProceeds:  nomNet / f,                              // back to today's dollars
+        grossReal:    realPrice,
+        capGainsTax:  nomTax / f,
+        commission:   nomComm / f,
+        mortgagePayoff: nomPayoff / f
+      };
+    }
+  }
+
   return {
     currentAge: plan.household.primary.currentAge,
     retirementAge,
@@ -1467,18 +1528,24 @@ function resolveInputs(plan, ov){
         colaReal: ((L.colaPct || 0) / 100) - LONGRUN_INFLATION
       })),
       ...(plan.properties || [])
-        .filter(pr => pr && pr.mortgage && (pr.mortgage.balance > 0) && (pr.mortgage.termYears > 0))
-        .map(pr => {
+        .map((pr, idx) => ({ pr, idx }))
+        .filter(({pr}) => pr && pr.mortgage && (pr.mortgage.balance > 0) && (pr.mortgage.termYears > 0))
+        .map(({pr, idx}) => {
           const M = pr.mortgage;
           const start = (M.startAge != null ? M.startAge : curAge);
+          let endAge = start + M.termYears;          // payoff
+          // If THIS property is sold before payoff, the mortgage is settled from
+          // the proceeds — payments stop at the sale.
+          if(idx === saleAsset && saleAge != null && saleAge < endAge) endAge = saleAge;
           return {
             amount:   annualMortgagePayment(M.balance, M.rate || 0, M.termYears),
             startAge: start,
-            endAge:   start + M.termYears,            // payoff
+            endAge,
             colaReal: -LONGRUN_INFLATION              // fixed-nominal payment erodes in real terms
           };
         })
     ],
+    assetSale,   // resolved net-proceeds object, or null when no sale override
     healthcareMult: 1 + (ov.healthcareAdj || 0),
     healthcareRealGrowth: Math.max(0, plan.expenses.healthcareRealGrowth ?? 0.02),
     // Goals — normalized to an array of flat-real timed entries. A legacy
@@ -1560,6 +1627,17 @@ function runSinglePath(p, returnPath){
     const rp  = returnPath[y];
     const r   = ((rp && rp.proxyReturn != null) ? rp.proxyReturn : weightedAssetReturn(rp, p.portfolio.weights)) + p.returnAdj;
 
+    // ── Earmarked-asset sale ──────────────────────────────────────────────
+    // Net proceeds land in the TAXABLE sleeve as after-tax cash (basis = full
+    // proceeds) at the sale age, then invest and compound from here forward —
+    // works in either phase. Applied via the assetSale override only; the base
+    // plan is never mutated, so the Baseline column never sees it.
+    const saleProceeds = (p.assetSale && age === p.assetSale.age) ? p.assetSale.netProceeds : 0;
+    if(saleProceeds > 0){
+      accounts.taxable.balance += saleProceeds;
+      accounts.taxable.basis   += saleProceeds;
+    }
+
     // ── ACCUMULATION PHASE (age < retirementAge) ──────────────────────────
     // Still working: portfolio grows and receives savings; no retirement
     // spending, withdrawals, income, or tax events yet. Contributions land in
@@ -1601,10 +1679,10 @@ function runSinglePath(p, returnPath){
       if(peakBalance > 0){ const dd = (peakBalance - endBalanceA) / peakBalance; if(dd > maxDrawdown) maxDrawdown = dd; }
       rows.push({
         year: y+1, age, source: rp.y, returnRate: r, phase: 'accum',
-        socialSecurity: 0, otherIncome: 0, pension: 0, withdrawal: 0,
+        socialSecurity: 0, otherIncome: 0, pension: 0, withdrawal: 0, assetSale: saleProceeds,
         expenses: 0, goals: 0, liabilities: 0, taxes: 0, savings: p.savingsAnnual,
         startBalance: startBalanceA, wdRate: 0,
-        netCashflow: p.savingsAnnual - lumpA,
+        netCashflow: p.savingsAnnual - lumpA + saleProceeds,
         balance: endBalanceA, failed: false,
         accountBreakdown: { taxable: 0, traditional: 0, roth: 0 },
         accountBalances: { taxable: accounts.taxable.balance, traditional: accounts.traditional.balance, roth: accounts.roth.balance },
@@ -1757,10 +1835,10 @@ function runSinglePath(p, returnPath){
       inflationRate: (rp && rp.proxyInflationRate != null) ? rp.proxyInflationRate : null,
       realReturnUsed: r,
       socialSecurity: ssInc, otherIncome: oiInc, pension: penInc, withdrawal,
-      rmd: rmdForced,
+      rmd: rmdForced, assetSale: saleProceeds,
       expenses, goals: goalsY, liabilities: liabCost, taxes: totalTax + rmdTax,
       startBalance, wdRate,
-      netCashflow: (ssInc + oiInc + penInc) - (expenses + goalsY + liabCost + totalTax + rmdTax),
+      netCashflow: (ssInc + oiInc + penInc + saleProceeds) - (expenses + goalsY + liabCost + totalTax + rmdTax),
       balance: endBalance, failed,
       accountBreakdown: { ...funding.breakdown },
       accountBalances: {
@@ -2044,7 +2122,7 @@ plan.goals = [
 // amortizes it (balance/rate/term) into a payment that runs until payoff; value
 // and purchasePrice are captured for a future sale event and are inert today.
 plan.properties = [
-  { name:'Primary residence', value:1200000, purchasePrice:520000,
+  { name:'Primary residence', value:1200000, purchasePrice:520000, commissionPct:5,
     mortgage:{ balance:280000, rate:5.5, termYears:9 } },
 ];
 // Two earners: one maxed (~$48k PIA at FRA), spouse a strong earner (~$30k).
@@ -2091,7 +2169,10 @@ function defaultLevers(){
     // earning). pensionAuto stays true until the advisor grabs the pension
     // slider, which frees it to hold any quoted age independently.
     pensionAuto: true,
-    pensionAge: (plan.income.pension && plan.income.pension.startAge) || 65
+    pensionAge: (plan.income.pension && plan.income.pension.startAge) || 65,
+    // Earmarked-asset sale. Off sentinel = currentAge−1 (renders "Keep"); any
+    // value ≥ currentAge is a sale age. Targets the first property.
+    sellAge: plan.household.primary.currentAge - 1
   };
   syncPension(L);
   return L;
@@ -2625,10 +2706,13 @@ function demoScenarios(){
   const s=[
     {name:'Baseline',   base:true,  lev:defaultLevers(), res:null},
     {name:'Scenario B', base:false, lev:defaultLevers(), res:null},
-    {name:'Scenario C', base:false, lev:defaultLevers(), res:null},
+    {name:'Sell home',  base:false, lev:defaultLevers(), res:null},
   ];
   s[1].lev.retireAge = 67;
-  s[2].lev.risk      = 5;
+  // Scenario C demonstrates the earmarked-asset sale: sell the home at 72 and
+  // watch the success circle move — the Baseline keeps it (no sale baked in).
+  if(plan.properties && plan.properties.length) s[2].lev.sellAge = 72;
+  else s[2].lev.risk = 5;
   return s;
 }
 let scenarios = loadScenarios() || demoScenarios();
@@ -2655,6 +2739,11 @@ function leversToOverrides(L){
   // Pension: always pass the chosen age as an absolute override so the engine
   // looks up the entered benefit for THAT exact age (or pays 0 if no entry).
   ov.pensionStartAge = L.pensionAge;
+  // Earmarked-asset sale — emitted ONLY when an age is chosen (≥ currentAge), so
+  // the Baseline (sellAge = off) carries no sale and stays clean.
+  if(L.sellAge != null && L.sellAge >= plan.household.primary.currentAge){
+    ov.assetSale = { asset: 0, age: L.sellAge };
+  }
   return ov;
 }
 /* Risk lever changes the profile -> needs a plan clone, not an override.
@@ -3640,6 +3729,11 @@ function levRange(cfg){
     if(a.length) return { min:a[0], max:a[a.length-1], step:1 };
     return { min:62, max:65, step:1 };
   }
+  // Sale lever: min = currentAge−1 (the "Keep" / off state), max = plan end.
+  if(cfg.key==='sellAge'){
+    const c=plan.household.primary.currentAge, e=plan.household.primary.planEndAge;
+    return { min:c-1, max:e, step:1 };
+  }
   return { min:cfg.min, max:cfg.max, step:cfg.step };
 }
 
@@ -3672,6 +3766,17 @@ const LEVCFG=[
     const amt=m[v]; return (amt && amt>0) ? ['$'+amt.toLocaleString('en-US'),'@ '+v] : ['__needs__', v];
   }},
 ];
+// Earmarked-asset sale lever — only shown when there's a property to sell. A
+// discrete stepper: "Keep" (off) → a sale age. Net proceeds (value − mortgage −
+// commission − cap-gains) flow into the portfolio via the assetSale override, so
+// you can stand a "sell at 72" column next to a "keep" Baseline. (See engine.js.)
+if(plan.properties && plan.properties.length && plan.properties[0]){
+  LEVCFG.push({
+    key:'sellAge', name:'Sell '+(plan.properties[0].name||'asset'),
+    min:0, max:120, step:1,                              // real range is dynamic (levRange)
+    fmt:v => (v <= plan.household.primary.currentAge-1) ? ['Keep',''] : ['age '+v,'']
+  });
+}
 
 let running=false;
 // Cached market bundle. Generated once, reused across Runs so that hitting Run
@@ -3787,6 +3892,9 @@ function renderBand(){
 function levDelta(cfg, lev){
   const baseLev = scenarios.find(s=>s.base)?.lev;
   if(!baseLev || lev===baseLev) return '';
+  // The sale lever's "delta" isn't a year count (Keep→age 72 isn't "+8 yr"); the
+  // value text ("Keep" vs "age 72") already reads the difference. Skip the pill.
+  if(cfg.key==='sellAge') return '';
   const d = (lev[cfg.key]||0) - (baseLev[cfg.key]||0);
   if(!d) return '';
   const sign = d>0 ? '+' : '−', a = Math.abs(d);

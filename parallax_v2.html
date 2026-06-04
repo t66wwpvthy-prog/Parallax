@@ -803,7 +803,7 @@ plan.goals = [
 // amortizes it (balance/rate/term) into a payment that runs until payoff; value
 // and purchasePrice are captured for a future sale event and are inert today.
 plan.properties = [
-  { name:'Primary residence', value:1200000, purchasePrice:520000,
+  { name:'Primary residence', value:1200000, purchasePrice:520000, commissionPct:5,
     mortgage:{ balance:280000, rate:5.5, termYears:9 } },
 ];
 // Two earners: one maxed (~$48k PIA at FRA), spouse a strong earner (~$30k).
@@ -850,7 +850,10 @@ function defaultLevers(){
     // earning). pensionAuto stays true until the advisor grabs the pension
     // slider, which frees it to hold any quoted age independently.
     pensionAuto: true,
-    pensionAge: (plan.income.pension && plan.income.pension.startAge) || 65
+    pensionAge: (plan.income.pension && plan.income.pension.startAge) || 65,
+    // Earmarked-asset sale. Off sentinel = currentAge−1 (renders "Keep"); any
+    // value ≥ currentAge is a sale age. Targets the first property.
+    sellAge: plan.household.primary.currentAge - 1
   };
   syncPension(L);
   return L;
@@ -1384,10 +1387,13 @@ function demoScenarios(){
   const s=[
     {name:'Baseline',   base:true,  lev:defaultLevers(), res:null},
     {name:'Scenario B', base:false, lev:defaultLevers(), res:null},
-    {name:'Scenario C', base:false, lev:defaultLevers(), res:null},
+    {name:'Sell home',  base:false, lev:defaultLevers(), res:null},
   ];
   s[1].lev.retireAge = 67;
-  s[2].lev.risk      = 5;
+  // Scenario C demonstrates the earmarked-asset sale: sell the home at 72 and
+  // watch the success circle move — the Baseline keeps it (no sale baked in).
+  if(plan.properties && plan.properties.length) s[2].lev.sellAge = 72;
+  else s[2].lev.risk = 5;
   return s;
 }
 let scenarios = loadScenarios() || demoScenarios();
@@ -1414,6 +1420,11 @@ function leversToOverrides(L){
   // Pension: always pass the chosen age as an absolute override so the engine
   // looks up the entered benefit for THAT exact age (or pays 0 if no entry).
   ov.pensionStartAge = L.pensionAge;
+  // Earmarked-asset sale — emitted ONLY when an age is chosen (≥ currentAge), so
+  // the Baseline (sellAge = off) carries no sale and stays clean.
+  if(L.sellAge != null && L.sellAge >= plan.household.primary.currentAge){
+    ov.assetSale = { asset: 0, age: L.sellAge };
+  }
   return ov;
 }
 /* Risk lever changes the profile -> needs a plan clone, not an override.
@@ -2399,6 +2410,11 @@ function levRange(cfg){
     if(a.length) return { min:a[0], max:a[a.length-1], step:1 };
     return { min:62, max:65, step:1 };
   }
+  // Sale lever: min = currentAge−1 (the "Keep" / off state), max = plan end.
+  if(cfg.key==='sellAge'){
+    const c=plan.household.primary.currentAge, e=plan.household.primary.planEndAge;
+    return { min:c-1, max:e, step:1 };
+  }
   return { min:cfg.min, max:cfg.max, step:cfg.step };
 }
 
@@ -2431,6 +2447,17 @@ const LEVCFG=[
     const amt=m[v]; return (amt && amt>0) ? ['$'+amt.toLocaleString('en-US'),'@ '+v] : ['__needs__', v];
   }},
 ];
+// Earmarked-asset sale lever — only shown when there's a property to sell. A
+// discrete stepper: "Keep" (off) → a sale age. Net proceeds (value − mortgage −
+// commission − cap-gains) flow into the portfolio via the assetSale override, so
+// you can stand a "sell at 72" column next to a "keep" Baseline. (See engine.js.)
+if(plan.properties && plan.properties.length && plan.properties[0]){
+  LEVCFG.push({
+    key:'sellAge', name:'Sell '+(plan.properties[0].name||'asset'),
+    min:0, max:120, step:1,                              // real range is dynamic (levRange)
+    fmt:v => (v <= plan.household.primary.currentAge-1) ? ['Keep',''] : ['age '+v,'']
+  });
+}
 
 let running=false;
 // Cached market bundle. Generated once, reused across Runs so that hitting Run
@@ -2546,6 +2573,9 @@ function renderBand(){
 function levDelta(cfg, lev){
   const baseLev = scenarios.find(s=>s.base)?.lev;
   if(!baseLev || lev===baseLev) return '';
+  // The sale lever's "delta" isn't a year count (Keep→age 72 isn't "+8 yr"); the
+  // value text ("Keep" vs "age 72") already reads the difference. Skip the pill.
+  if(cfg.key==='sellAge') return '';
   const d = (lev[cfg.key]||0) - (baseLev[cfg.key]||0);
   if(!d) return '';
   const sign = d>0 ? '+' : '−', a = Math.abs(d);
