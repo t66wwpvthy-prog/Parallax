@@ -30,6 +30,10 @@
   /* Named aliases from Nathan's spec (point at the same refined roles). */
   --sage-text-primary:#F4F6F0; --sage-text-value:#E5D9C4; --sage-accent-clay:#D9A07E;
   --sage-border-muted:#BDCDC0; --sage-accent-bronze-muted:#BFA78F;
+  /* Probability band colors — applied ONLY to ring stroke/arc/dot/%text/glow */
+  --sangria:#5E1916; --sangria-rgb:94,25,22;
+  --bronze-band:#D8B371; --bronze-band-rgb:216,179,113;
+  --deep-green:#7AA76C; --deep-green-rgb:122,167,108;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;background:var(--bg);font-family:'Sora',sans-serif;color:var(--ink);font-size:14px;-webkit-font-smoothing:antialiased;overflow:hidden}
@@ -2183,11 +2187,14 @@ function initGoalsBoard(){
   function saveRank(){
     try{ localStorage.setItem(RANK_KEY, JSON.stringify({n:list.length, order:slots.map(s=>s.card?s.card.idx:null)})); }catch{}
   }
+  // Ladder column (left) vs tray column (right); both X's are set by layout()
+  // and read by the drop logic so a drop is judged by REGION, not a tight radius.
+  let ladderX=140, trayX=0;
   function layout(){
     const W=board.clientWidth, H=board.clientHeight;
     const totalH=NSLOT*CH+(NSLOT-1)*GAP;
     const startY=Math.max(14,(H-totalH)/2);
-    const ladderX=140, trayX=Math.max(ladderX+CW+40, W-CW-58);
+    trayX=Math.max(ladderX+CW+40, W-CW-58);
     slots.forEach((s,i)=>{ s.x=ladderX; s.y=startY+i*(CH+GAP); s.el.style.left=s.x+'px'; s.el.style.top=s.y+'px'; });
     traylab.style.left=trayX+'px'; traylab.style.top=(startY-28)+'px';
     cards.forEach((c,i)=>{
@@ -2223,7 +2230,15 @@ function initGoalsBoard(){
 
   // ── Drag / snap / swap (skip when the pointer lands on an editable control) ──
   let active=null,offX=0,offY=0;
-  const nearestSlot=(cx,cy)=>{ let best=null,bd=1e9; slots.forEach(s=>{ const sx=s.x+CW/2,sy=s.y+CH/2,d=Math.hypot(cx-sx,cy-sy); if(d<175&&d<bd){bd=d;best=s;} }); return best; };
+  // Drop by REGION, not a radius: if the card's centre sits on the ladder side of
+  // the midline between the two columns, it lands in the nearest slot by height
+  // (so a near-miss still ranks, never bounces); on the tray side it un-ranks.
+  const dropTarget=(cx,cy)=>{
+    if(cx >= (ladderX+CW + trayX)/2) return null;        // tray side → unplaced
+    let best=slots[0],bd=1e9;                             // ladder side → nearest by Y
+    slots.forEach(s=>{ const d=Math.abs(cy-(s.y+CH/2)); if(d<bd){bd=d;best=s;} });
+    return best;
+  };
   const moveTo=(c,x,y)=>{ c.el.style.transition=SNAP; c.el.style.left=x+'px'; c.el.style.top=y+'px'; };
   const fillSlot=(c,s,flash)=>{ s.card=c; c.slot=s; s.el.classList.add('filled'); if(flash){ s.el.classList.add('flash'); setTimeout(()=>s.el.classList.remove('flash'),520); } };
   board.addEventListener('pointerdown',e=>{
@@ -2239,13 +2254,13 @@ function initGoalsBoard(){
     const W=board.clientWidth,H=board.clientHeight;
     const nx=Math.max(8,Math.min(e.clientX-offX,W-CW-8)), ny=Math.max(8,Math.min(e.clientY-offY,H-CH-8));
     active.el.style.left=nx+'px'; active.el.style.top=ny+'px';
-    const hit=nearestSlot(nx+CW/2,ny+CH/2);
+    const hit=dropTarget(nx+CW/2,ny+CH/2);
     slots.forEach(s=>s.el.classList.toggle('hot',s===hit));
   });
   board.addEventListener('pointerup',()=>{
     if(!active) return;
     const a=active,el=a.el,cx=el.offsetLeft+CW/2,cy=el.offsetTop+CH/2;
-    const hit=nearestSlot(cx,cy);
+    const hit=dropTarget(cx,cy);
     if(hit){
       if(hit.card){ const other=hit.card;
         if(a.fromSlot){ moveTo(other,a.fromSlot.x,a.fromSlot.y); fillSlot(other,a.fromSlot,false); }
@@ -2253,8 +2268,10 @@ function initGoalsBoard(){
       }
       moveTo(a,hit.x,hit.y); fillSlot(a,hit,true);
     }else{
-      if(a.fromSlot){ moveTo(a,a.fromSlot.x,a.fromSlot.y); fillSlot(a,a.fromSlot,false); }
-      else          { moveTo(a,a.homeX,a.homeY); a.slot=null; }
+      // Dropped clear of every slot → return it to the tray (un-rank it). The
+      // slot it came from was already cleared on pointerdown, so this both
+      // re-homes the card and frees its old slot.
+      moveTo(a,a.homeX,a.homeY); a.slot=null;
     }
     el.classList.remove('drag'); slots.forEach(s=>s.el.classList.remove('hot')); active=null;
     saveRank();
@@ -2512,7 +2529,7 @@ function runAll(){
 // Success ring color band: steel-teal (strong) / brass (caution) /
 // clay (at risk). No green — matches the Obsidian Brass result tokens.
 // Ring band matches the % number: deep green / bronze gold / deep burgundy.
-function ringColor(pct){ return pct>=85?'#2d5a40':pct>=70?'#D9A07E':'#d4706a'; }
+function ringColor(pct){ return pct>=80?'#7AA76C':pct>=71?'#D8B371':'#5E1916'; }
 function ring(pct){
   // SVG fills its .circle-wrap via viewBox, so the ring size is controlled by
   // CSS (one place). Thin stroke near the edge leaves room for the % number.
@@ -2537,7 +2554,7 @@ function renderBand(){
   let h=`<div class="band-cell label"><span>Scenario</span></div>`;
   scenarios.forEach((s,ci)=>{
     const sr=s.res?s.res.successRate:0;
-    const col= sr>=85?'#8FAA77':sr>=70?'var(--gold-bright)':'var(--negative-bright)';
+    const col= sr>=80?'#7AA76C':sr>=71?'#D8B371':'#5E1916';
     // Header: a small identity dot (column color) + the name. Baseline's name is
     // locked (the anchor); other scenarios render an inline editable field so the
     // advisor can label them ("Retire at 62"). A ✕ removes non-baseline columns.
