@@ -1951,12 +1951,9 @@ plan.simulation.iterations = 1000;
 const SCEN_PALETTE=['#9a7322','#3f6b78','#7d5a82','#6f7a52','#9a5a3f'];
 const colorFor=i=>SCEN_PALETTE[i % SCEN_PALETTE.length];
 const MAX_SCENARIOS=5;
-// Back-compat alias for code that still reads COLHEX by index.
-const COLHEX=SCEN_PALETTE;
-
 /* The three scenario columns. Each holds lever values + its last engine result.
    lever values are the ACTUAL planning values (age, $, etc.), not slider ticks. */
-const RISK_LABELS={1:'30 / 70',2:'44 / 56',3:'59 / 41',4:'73 / 27',5:'88 / 12'};
+const RISK_LABELS={1:'30 / 70',2:'45 / 55',3:'60 / 40',4:'75 / 25',5:'90 / 10'};
 function defaultLevers(){
   const L={
     retireAge:  plan.household.primary.retirementAge,
