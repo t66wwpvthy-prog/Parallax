@@ -14,14 +14,26 @@
      the panels to a translucent sage tint that lets the bright ground through. */
   --bg-deep:#1a3526; --bg:#1e3d2b;
   --surface:rgba(170,210,180,.18); --surface-2:rgba(183,221,195,.13); --surface-3:rgba(160,200,175,.12);
-  --rule:rgba(225,247,232,.20); --rule-bright:rgba(235,250,240,.34); --rule-faint:rgba(225,247,232,.10);
-  --ink:#f5f8f6; --ink-bright:#ffffff; --ink-mute:#9bb8a8; --ink-faint:rgba(230,238,234,.58); --ink-ghost:rgba(220,240,228,.24);
-  --gold:#c47b31; --gold-bright:#fb8d26; --gold-deep:#aa692a; --gold-glow:rgba(196,123,49,.24);
+  --rule:rgba(189,205,192,.22); --rule-bright:rgba(189,205,192,.38); --rule-faint:rgba(189,205,192,.12);
+  --ink:#F4F6F0; --ink-bright:#FBFCF7; --ink-mute:#BDCDC0; --ink-faint:rgba(244,246,240,.55); --ink-ghost:rgba(244,246,240,.26);
+  /* Accent system (refined sage). The historic --gold tokens now carry "Soft
+     Desert Clay" / "Muted Warm Bronze" so every existing accent rule re-themes
+     in place — NO saturated orange anywhere. Clay is for small emphasis only. */
+  --gold:#D9A07E; --gold-bright:#E3B194; --gold-deep:#BFA78F; --gold-glow:rgba(217,160,126,.22);
   --teal:#8cc69e; --teal-bright:#b3ded7; --teal-deep:#6aa882; --teal-glow:rgba(140,198,158,.16);
   --positive:#8ad39e; --positive-bright:#a6e0b8;
-  --clay:#df876e;
+  --clay:#D9A07E;
   --negative:#d4706a; --negative-bright:#e08a7a;
-  --s1:#fb8d26; --s2:#82daa1; --s3:#b3ded7;
+  --s1:#D9A07E; --s2:#82daa1; --s3:#b3ded7;
+  /* Hero financial values — Muted Champagne (never orange). */
+  --champagne:#E5D9C4;
+  /* Named aliases from Nathan's spec (point at the same refined roles). */
+  --sage-text-primary:#F4F6F0; --sage-text-value:#E5D9C4; --sage-accent-clay:#D9A07E;
+  --sage-border-muted:#BDCDC0; --sage-accent-bronze-muted:#BFA78F;
+  /* Probability band colors — applied ONLY to ring stroke/arc/dot/%text/glow */
+  --sangria:#5E1916; --sangria-rgb:94,25,22;
+  --bronze-band:#D8B371; --bronze-band-rgb:216,179,113;
+  --deep-green:#7AA76C; --deep-green-rgb:122,167,108;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;background:var(--bg);font-family:'Sora',sans-serif;color:var(--ink);font-size:14px;-webkit-font-smoothing:antialiased;overflow:hidden}
@@ -55,7 +67,7 @@ background-size:auto,auto,auto,64px 64px,64px 64px,auto;}
 .htab:hover{color:var(--ink)} .htab.on{color:var(--ink-bright);font-weight:600;border-bottom-color:var(--gold)}
 .hdr-right{margin-left:auto;display:flex;align-items:center;gap:16px}
 .status{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-mute)}
-.run-btn{padding:9px 22px;background:linear-gradient(180deg,var(--gold-bright),var(--gold));color:#06121a;border:none;border-radius:3px;font-family:'Sora';font-weight:700;font-size:10.5px;letter-spacing:.26em;text-transform:uppercase;cursor:pointer;box-shadow:0 6px 18px -8px rgba(214,170,89,.5)}
+.run-btn{padding:9px 22px;background:linear-gradient(180deg,var(--gold-bright),var(--gold));color:#06121a;border:none;border-radius:3px;font-family:'Sora';font-weight:700;font-size:10.5px;letter-spacing:.26em;text-transform:uppercase;cursor:pointer;box-shadow:0 6px 18px -8px rgba(217,160,126,.45)}
 .run-btn:active{transform:translateY(1px)} .run-btn:disabled{filter:saturate(.3) brightness(.7);cursor:wait}
 
 .page{flex:1 1 auto;min-height:0;display:none;flex-direction:column;padding:0 28px 22px}
@@ -321,8 +333,8 @@ background-size:auto,auto,auto,64px 64px,64px 64px,auto;}
 .np-snapshot-page .cov-legend,.np-snapshot-page .seg-legend{font-size:10px;margin-top:6px}
 .np-gutter{position:sticky;top:0}
 .np-gutter .lbl{font-family:'Sora';font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-faint);font-weight:600;margin-bottom:4px}
-.np-gutter .big-num{font-family:'Inter';font-size:30px;line-height:1.05;font-weight:600;color:var(--ink-bright);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
-.np-gutter .big-num.teal{color:var(--gold)}
+.np-gutter .big-num{font-family:'Inter';font-size:30px;line-height:1.05;font-weight:600;color:var(--champagne);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.np-gutter .big-num.teal{color:var(--champagne)}
 .np-gutter .big-sub{font-family:'Sora';font-size:11px;color:var(--ink-mute);margin-top:5px;font-weight:500;line-height:1.4}
 .np-gutter .gut-rule{border:none;border-top:1px solid var(--rule-faint);margin:20px 0 14px}
 .np-gutter .row{display:flex;justify-content:space-between;align-items:baseline;padding:5px 0;font-size:12.5px;color:var(--ink-mute);font-family:'Sora';font-weight:500}
@@ -472,8 +484,8 @@ background-size:auto,auto,auto,64px 64px,64px 64px,auto;}
 .snap{max-width:1100px;display:grid;grid-template-columns:1fr 1fr;gap:28px;align-items:start}
 .metric{display:flex;flex-direction:column;gap:20px;padding:26px 28px 30px;border-radius:14px;background:var(--surface)}
 .m-eye{font-family:'Sora';font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-faint);font-weight:600;margin-bottom:10px}
-.m-hero{font-family:'Inter';font-size:46px;line-height:1;font-weight:700;color:var(--ink-mute);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
-.m-hero.teal{color:var(--ink-mute)} .m-hero.gold{color:var(--gold)} .m-hero.clay{color:var(--ink-faint)}
+.m-hero{font-family:'Inter';font-size:46px;line-height:1;font-weight:700;color:var(--champagne);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.m-hero.teal{color:var(--champagne)} .m-hero.gold{color:var(--champagne)} .m-hero.clay{color:var(--champagne)}
 .m-sub{font-family:'Sora';font-size:12.5px;color:var(--ink-mute);margin-top:8px;font-weight:500;line-height:1.45}
 /* Floating stat rows — labels above Inter numbers, no bar */
 .stat-row{display:flex;gap:22px;flex-wrap:wrap;margin-top:2px}
@@ -493,7 +505,7 @@ background-size:auto,auto,auto,64px 64px,64px 64px,auto;}
 .wr-zones{display:flex;gap:0;border-radius:8px;overflow:hidden;border:1px solid var(--rule-faint)}
 .wr-zone{flex:1;padding:9px 0;text-align:center;font-family:'Sora';font-size:10.5px;letter-spacing:.1em;font-weight:700;text-transform:uppercase;color:var(--ink-faint);background:transparent;transition:background .15s}
 .wr-zone.active-teal{background:rgba(42,100,72,.55);color:#82daa1}
-.wr-zone.active-gold{background:rgba(100,65,18,.55);color:#fb8d26}
+.wr-zone.active-gold{background:rgba(110,90,60,.45);color:#E5D9C4}
 .wr-zone.active-clay{background:rgba(100,45,40,.55);color:#e08a7a}
 .g-note{margin-top:30px;font-family:'Sora';font-size:12.5px;color:var(--ink-mute);font-weight:500;line-height:1.5}
 .g-note b{font-family:'Inter';color:var(--ink-bright);font-weight:600}
@@ -501,7 +513,7 @@ background-size:auto,auto,auto,64px 64px,64px 64px,auto;}
 .seg{height:40px;border-radius:6px;overflow:hidden;display:flex;box-shadow:inset 0 0 0 1px var(--rule)}
 .seg div{display:flex;align-items:center;justify-content:center;color:#fff;font-family:'Inter';font-size:13px;font-weight:600;min-width:0;overflow:hidden}
 .seg .s-tax{background:linear-gradient(180deg,#4a7a8a,#345c6a)}
-.seg .s-def{background:linear-gradient(180deg,#c47b31,#8a5522)}
+.seg .s-def{background:linear-gradient(180deg,#BFA78F,#8f7a5f)}
 .seg .s-roth{background:linear-gradient(180deg,#3d7a5a,#2c5c42)}
 
 /* Year-by-year cash-flow drawer on the Scenarios page. Three scenarios side
@@ -807,7 +819,7 @@ plan.simulation.iterations = 1000;
 // (matches --s1/2/3); two more earthy tones extend it when the advisor adds a
 // 4th/5th scenario. colorFor() cycles the palette so any count gets a color.
 // No green here (reserved for the success language) and no mint.
-const SCEN_PALETTE=['#c47b31','#82daa1','#b3ded7','#b45991','#e68169'];
+const SCEN_PALETTE=['#D9A07E','#82daa1','#b3ded7','#b45991','#BFA78F'];
 const colorFor=i=>SCEN_PALETTE[i % SCEN_PALETTE.length];
 const MAX_SCENARIOS=5;
 /* The three scenario columns. Each holds lever values + its last engine result.
@@ -2455,7 +2467,7 @@ function runAll(){
 // Success ring color band: steel-teal (strong) / brass (caution) /
 // clay (at risk). No green — matches the Obsidian Brass result tokens.
 // Ring band matches the % number: deep green / bronze gold / deep burgundy.
-function ringColor(pct){ return pct>=85?'#2d5a40':pct>=70?'#c47b31':'#d4706a'; }
+function ringColor(pct){ return pct>=80?'#7AA76C':pct>=71?'#D8B371':'#5E1916'; }
 function ring(pct){
   // SVG fills its .circle-wrap via viewBox, so the ring size is controlled by
   // CSS (one place). Thin stroke near the edge leaves room for the % number.
@@ -2480,7 +2492,7 @@ function renderBand(){
   let h=`<div class="band-cell label"><span>Scenario</span></div>`;
   scenarios.forEach((s,ci)=>{
     const sr=s.res?s.res.successRate:0;
-    const col= sr>=85?'#8FAA77':sr>=70?'var(--gold-bright)':'var(--negative-bright)';
+    const col= sr>=80?'#7AA76C':sr>=71?'#D8B371':'#5E1916';
     // Header: a small identity dot (column color) + the name. Baseline's name is
     // locked (the anchor); other scenarios render an inline editable field so the
     // advisor can label them ("Retire at 62"). A ✕ removes non-baseline columns.
@@ -2985,7 +2997,7 @@ const SEQ_YEARS=[
   {y:1966, tag:'the lost decade',   c:'#b3ded7', on:true },
   {y:1973, tag:'stagflation',       c:'#82daa1', on:true },
   {y:1987, tag:'Black Monday',      c:'#bdecca', on:false},
-  {y:1995, tag:'the 90s boom',      c:'#fb8d26', on:true },
+  {y:1995, tag:'the 90s boom',      c:'#D9A07E', on:true },
   {y:2000, tag:'dot-com crash',     c:'#e68169', on:true },
   {y:2008, tag:'financial crisis',  c:'#6dd091', on:false},
   {y:2009, tag:'the recovery bull', c:'#a8c6c6', on:false},
