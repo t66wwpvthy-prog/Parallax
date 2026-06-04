@@ -97,7 +97,7 @@ Status tags: **NEXT** · **BIG** (own session) · **PARKED** · **SKIP** · ✅ 
 - [ ] **Sustainable-withdrawal solve** — safe annual draw framed as "sustainable withdrawal," not income. (Pairs with B Solve-For + C max-withdrawal tile.)
 - [ ] **Income-stream COLA** — variable income is flat-real; let fixed annuities erode.
 - [ ] **Rolling-period analysis (extended block bootstrap)** — sweep every real contiguous historical window, not just named Sequencing years. (Also in CLAUDE.md.)
-- [ ] **Goals page interesting layout** — not the ledger style (end-date windows already built; visual redesign pinned).
+- [ ] **Goals page interesting layout** — not the ledger style (end-date windows already built; visual redesign pinned). Two directions: (a) **timeline** — goals as bars on an age axis + stacked annual-spend curve (mocked 2026-06-04); (b) **priority board** (Nathan's idea) — drag-to-reorder floating translucent goal cards, capture-then-rank by priority (concepts zip on main).
 - [ ] **Open:** demo mortgage keep (84.9%) vs paid-off (~86.5%); Net Worth → Assets as the wider column.
 - [x] ✅ Done this session: add-row workflow · engine-native mortgages + amortization · mortgage→Liabilities mirror · recurring-goal end dates · Inflows+Outflows→Cash Flow tab · Snapshot to own tab · replacement-ratio = guaranteed only · cash-flow age/ sticky/ $0→"—" fixes · no-bright-white + glass-everywhere pass.
 

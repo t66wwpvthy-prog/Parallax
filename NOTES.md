@@ -247,7 +247,17 @@ PARKED — engine / model:
 PARKED — design:
 - GOALS page interesting layout (NOT the ledger style used for cash flow / net
   worth). End-date windows on recurring goals are already built; the visual
-  redesign is pinned.
+  redesign is pinned. Two directions on the table:
+    (a) TIMELINE — goals as bars on an age axis + a stacked annual-goal-spend
+        curve that peaks where goals overlap (the interaction). Mocked
+        2026-06-04 (goals_mock.html study); shows when/how long/how much.
+    (b) PRIORITY BOARD (Nathan's idea, 2026-06-04) — interactive, MOVEABLE
+        goals page: each goal is a floating translucent soft-edged card that
+        the advisor + client can DRAG to re-order / rank by PRIORITY. Capture
+        everything first, then organize. Could carry a priority rank into the
+        engine later (fund high-priority goals first when money is tight).
+        Note: Nathan uploaded design concepts —
+        parallax_goals_bronze_practical_hybrid_concepts_v2_FULLRES.zip (on main).
 
 OPEN DECISIONS:
 - Demo mortgage: keep (baseline 84.9%) vs strip to a paid-off house (~86.5%).
