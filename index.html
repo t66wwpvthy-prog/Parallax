@@ -276,7 +276,17 @@ background-size:auto,auto,auto,64px 64px,64px 64px,auto;}
 .seq-bar{flex:0 0 auto;display:flex;align-items:center;gap:14px;margin:14px 0}
 .seq-pick{display:flex;align-items:center;gap:10px;background:var(--surface);border-radius:10px;padding:8px 14px}
 .seq-pick .k{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-mute);font-weight:500}
-.seq-pick select{background:var(--surface-2);border:1px solid var(--rule-bright);color:var(--ink-bright);font-family:'Sora';font-size:12px;font-weight:500;letter-spacing:.04em;padding:6px 30px 6px 12px;border-radius:3px;outline:none;appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M0 0 L5 6 L10 0' fill='%239aa6b9'/></svg>");background-repeat:no-repeat;background-position:right 11px center;cursor:pointer}
+/* Custom Plan dropdown — replaces the native <select> whose open option list
+   was OS-rendered bright white (un-themeable, especially on macOS). */
+.seq-dd{position:relative}
+.seq-dd-btn{display:flex;align-items:center;gap:10px;background:var(--surface-2);border:1px solid var(--rule-bright);color:var(--ink-bright);font-family:'Sora',sans-serif;font-size:12px;font-weight:500;letter-spacing:.04em;padding:6px 12px;border-radius:6px;cursor:pointer;outline:none;transition:border-color .15s}
+.seq-dd-btn:hover,.seq-dd-btn[aria-expanded=true]{border-color:var(--gold-bright)}
+.seq-caret{color:var(--ink-mute);font-size:10px;line-height:1}
+.seq-dd-menu{position:absolute;top:calc(100% + 6px);left:0;min-width:100%;z-index:200;background:var(--surface-2);border:1px solid var(--rule-bright);border-radius:8px;padding:4px;box-shadow:0 18px 40px -16px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.06)}
+.seq-dd-menu[hidden]{display:none}
+.seq-dd-opt{font-family:'Sora',sans-serif;font-size:12px;font-weight:500;color:var(--ink);padding:7px 12px;border-radius:5px;cursor:pointer;white-space:nowrap;transition:background .12s,color .12s}
+.seq-dd-opt:hover{background:rgba(255,255,255,.06);color:var(--ink-bright)}
+.seq-dd-opt.sel{color:var(--gold-bright)}
 .seq-legend{margin-left:auto;display:flex;gap:16px;flex-wrap:wrap}
 .seq-legend .lg{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--ink-mute);font-family:'Sora';letter-spacing:.03em}
 .seq-legend .sw{display:inline-block;width:22px;border-top:3px solid;border-radius:2px}
@@ -771,7 +781,10 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield}
     <div class="seq-bar">
       <div class="seq-pick">
         <span class="k">Plan</span>
-        <select id="seq-select"></select>
+        <div class="seq-dd" id="seq-dd">
+          <button type="button" class="seq-dd-btn" id="seq-dd-btn" aria-haspopup="listbox" aria-expanded="false"><span id="seq-dd-label"></span><span class="seq-caret">▾</span></button>
+          <div class="seq-dd-menu" id="seq-dd-menu" role="listbox" hidden></div>
+        </div>
       </div>
       <div class="seq-chips" id="seq-chips"></div>
     </div>
@@ -4534,13 +4547,33 @@ const SEQ_YEARS=[
   {y:2009, tag:'the recovery bull', c:'#a8c6c6', on:false},
 ];
 
+// Which scenario the Sequencing tab runs through the historical markets. Held
+// in JS (not a native select) so the open list can be fully themed.
+let seqPlanName=null;
 function buildSeqSelect(){
-  const sel=$('#seq-select'), cur=sel.value;
-  sel.innerHTML=scenarios.map(s=>`<option>${escHtml(s.name)}</option>`).join('');
-  if(cur && scenarios.some(s=>s.name===cur)) sel.value=cur;
-  sel.onchange=runSeq;
+  const menu=$('#seq-dd-menu'), label=$('#seq-dd-label'); if(!menu) return;
+  // Keep the current pick if it still exists; otherwise default to the first.
+  if(!seqPlanName || !scenarios.some(s=>s.name===seqPlanName)) seqPlanName=scenarios[0]?.name||'';
+  menu.innerHTML=scenarios.map(s=>
+    `<div class="seq-dd-opt${s.name===seqPlanName?' sel':''}" role="option" data-name="${escHtml(s.name)}">${escHtml(s.name)}</div>`).join('');
+  if(label) label.textContent=seqPlanName;
   buildSeqChips();
 }
+// One-time wiring for the custom Plan dropdown (the section markup is static, so
+// these elements exist at load — same as the old <select> did).
+(function initSeqDD(){
+  const btn=$('#seq-dd-btn'), menu=$('#seq-dd-menu'); if(!btn||!menu) return;
+  const close=()=>{ menu.hidden=true; btn.setAttribute('aria-expanded','false'); };
+  btn.addEventListener('click', e=>{
+    e.stopPropagation();
+    const open=menu.hidden; menu.hidden=!open; btn.setAttribute('aria-expanded', String(open));
+  });
+  menu.addEventListener('click', e=>{
+    const o=e.target.closest('.seq-dd-opt'); if(!o) return;
+    seqPlanName=o.dataset.name; close(); buildSeqSelect(); runSeq();
+  });
+  document.addEventListener('click', ()=>{ if(!menu.hidden) close(); });
+})();
 // Market chips double as the selector AND the legend: lit = shown as a line.
 function buildSeqChips(){
   const box=$('#seq-chips'); if(!box) return;
@@ -4577,7 +4610,7 @@ function retireNowClone(p, ov, curAge, retAge, accumYears, envelope){
   return rp;
 }
 function runSeq(){
-  const sel=$('#seq-select'); const s=scenarios.find(x=>x.name===sel.value)||scenarios[0];
+  const s=scenarios.find(x=>x.name===seqPlanName)||scenarios[0];
   // Sequence the chosen scenario FAITHFULLY: allocation via the plan clone, every
   // other lever via the same overrides mapping the Scenarios tab uses.
   const p=planForScenario(s.lev);
@@ -4713,7 +4746,7 @@ $$('.htab').forEach(t=>t.onclick=()=>{
   // Returning to Scenarios after a base-plan edit re-runs the engine so the
   // columns reflect the new source; otherwise just redraw.
   if(t.dataset.page==='scenarios'){ if(plansDirty){ plansDirty=false; runAll(); } }
-  if(t.dataset.page==='sequencing') runSeq();
+  if(t.dataset.page==='sequencing'){ buildSeqSelect(); runSeq(); }
   if(t.dataset.page==='net-worth') renderInputs();
 });
 // Net Worth sub-nav: switch the active sub-page, persist, re-render.
