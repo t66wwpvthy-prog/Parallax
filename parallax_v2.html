@@ -1440,7 +1440,6 @@ const HH_FIELDS = [
 /* ── Hybrid columns: each sub-page has a LEFT and a RIGHT column.
    Each item carries name + path + type, and an optional meta() that draws
    from the live plan (e.g. "claim at 67" reads the actual claim age). */
-const meta = fn => fn;
 const HYBRID = {
   // Income and expenses live on ONE page (Cash Flow). Income = Fixed (SS, pension)
   // + Variable. Expenses = Essential only — discretionary spending is modeled as
@@ -2196,7 +2195,10 @@ $('#np-content').addEventListener('click', e => {
     if(!acctSel) return;
     const amtEl = $('#np-content .acct-amt');
     const bal = parseFloat(String(amtEl ? amtEl.value : '').replace(/[^0-9.]/g, ''));
-    if(!isFinite(bal) || bal <= 0){ if(amtEl) amtEl.focus(); return; }
+    if(!isFinite(bal) || bal <= 0){
+      if(amtEl){ amtEl.focus(); amtEl.style.outline='2px solid var(--negative)'; setTimeout(()=>amtEl.style.outline='',1500); }
+      return;
+    }
     if(!plan.portfolio.extraAccounts) plan.portfolio.extraAccounts = [];
     plan.portfolio.extraAccounts.push({ type: acctSel.label, bucket: acctSel.bucket, balance: Math.round(bal) });
     acctSel = null;
@@ -2574,10 +2576,23 @@ $('#solve-panel').addEventListener('submit', e=>{
   const goalType = $('#sf-goal')?.value || 'confidence';
   const num = id => parseInt(($(id)?.value||'').replace(/[^0-9]/g,''), 10);
   const params = { pct };
-  if(goalType==='retire'){        params.age = num('#sf-p-age'); if(!isFinite(params.age)) return; }
-  else if(goalType==='purchase'){ params.amount = num('#sf-p-amount'); params.age = num('#sf-p-age'); if(!isFinite(params.amount)||!isFinite(params.age)) return; }
-  else if(goalType==='gift'){     params.amount = num('#sf-p-amount'); params.toAge = num('#sf-p-toage'); if(!isFinite(params.amount)||!isFinite(params.toAge)) return; }
-  else if(goalType==='legacy'){   params.amount = num('#sf-p-amount'); if(!isFinite(params.amount)) return; }
+  const {currentAge, planEndAge} = plan.household.primary;
+  const flashAge = id => { const el=$(id); if(el){ el.style.outline='2px solid var(--negative)'; el.focus(); setTimeout(()=>el.style.outline='',1500); } };
+  if(goalType==='retire'){
+    params.age = num('#sf-p-age');
+    if(!isFinite(params.age)) return;
+    if(params.age <= currentAge || params.age > planEndAge){ flashAge('#sf-p-age'); return; }
+  } else if(goalType==='purchase'){
+    params.amount = num('#sf-p-amount'); params.age = num('#sf-p-age');
+    if(!isFinite(params.amount)||!isFinite(params.age)) return;
+    if(params.age <= currentAge || params.age > planEndAge){ flashAge('#sf-p-age'); return; }
+  } else if(goalType==='gift'){
+    params.amount = num('#sf-p-amount'); params.toAge = num('#sf-p-toage');
+    if(!isFinite(params.amount)||!isFinite(params.toAge)) return;
+    if(params.toAge <= currentAge || params.toAge > planEndAge){ flashAge('#sf-p-toage'); return; }
+  } else if(goalType==='legacy'){
+    params.amount = num('#sf-p-amount'); if(!isFinite(params.amount)) return;
+  }
   runSolve(goalType, params);
 });
 // Solver panel: Cancel (form), Clear (results), and per-lever "Load" actions.
