@@ -1456,7 +1456,11 @@ function resolveInputs(plan, ov){
       const M        = pr.mortgage || {};
       const mStart   = (M.startAge != null ? M.startAge : curAge);
       const nomPayoff= mortgageBalanceRemaining(M.balance, M.rate || 0, M.termYears, saleAge - mStart);
-      const basis    = Math.max(0, pr.purchasePrice || 0);     // nominal historical cost
+      // Cost basis = entered purchasePrice. If none is entered, fall back to the
+      // current value (→ zero modeled gain) rather than basis 0 (which would tax
+      // the ENTIRE price as gain) — we don't invent a gain we can't substantiate.
+      const basis    = (pr.purchasePrice != null && pr.purchasePrice > 0)
+                         ? pr.purchasePrice : Math.max(0, pr.value || 0);
       const exclusion= Math.max(0, (ov.saleExclusion || 0));   // #5: §121 primary-residence (nominal)
       const nomGain  = Math.max(0, (nomPrice - nomComm) - basis - exclusion);
       const nomTax   = nomGain * capGainsRate;
@@ -1535,8 +1539,11 @@ function resolveInputs(plan, ov){
           const start = (M.startAge != null ? M.startAge : curAge);
           let endAge = start + M.termYears;          // payoff
           // If THIS property is sold before payoff, the mortgage is settled from
-          // the proceeds — payments stop at the sale.
-          if(idx === saleAsset && saleAge != null && saleAge < endAge) endAge = saleAge;
+          // the proceeds. Payments stop the year BEFORE the sale (endAge = saleAge−1):
+          // the remaining balance at the sale is the payoff we deduct from proceeds
+          // (computed at saleAge−mStart years elapsed), so paying in the sale year too
+          // would double-count that year's payment.
+          if(idx === saleAsset && saleAge != null && saleAge <= endAge) endAge = saleAge - 1;
           return {
             amount:   annualMortgagePayment(M.balance, M.rate || 0, M.termYears),
             startAge: start,

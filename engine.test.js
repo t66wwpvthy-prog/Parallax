@@ -478,6 +478,9 @@ test('selling mid-mortgage stops the payments at the sale and nets out the payof
   // Sell at 70 (5 of 10 yrs elapsed): remaining nominal payoff = 250,000.
   const sold = runHistoricalPath(p, 1995, 'taxable-first', undefined, { assetSale: { asset: 0, age: 70 } });
   assert.ok(sold.rows.find(r => r.age === 69).liabilities > 0, 'mortgage paid while held');
+  // The SALE YEAR pays no mortgage: the payoff (deducted from proceeds) already
+  // settles the remaining balance — paying again here would double-count it.
+  assert.strictEqual(sold.rows.find(r => r.age === 70).liabilities, 0, 'no mortgage payment in the sale year');
   assert.strictEqual(sold.rows.find(r => r.age === 72).liabilities, 0, 'mortgage stops after the sale');
   // Net is lower than the unmortgaged case because the payoff is deducted.
   const free = resolveInputs(houseplan(), { assetSale: { asset: 0, age: 70 } }).assetSale.netProceeds;
@@ -485,6 +488,16 @@ test('selling mid-mortgage stops the payments at the sale and nets out the payof
   assert.ok(Math.abs(mort.mortgagePayoff - 250000 / Math.pow(1.025, 5)) < 1,
     'payoff = remaining balance, deflated to today\'s dollars');
   assert.ok(mort.netProceeds < free, 'the mortgage payoff reduces net proceeds');
+});
+
+test('a property with no entered cost basis assumes basis = value (no phantom gain)', () => {
+  const p = houseplan();
+  delete p.properties[0].purchasePrice;          // basis not entered
+  const r = resolveInputs(p, { assetSale: { asset: 0, age: 65 } }).assetSale;
+  // No basis → fall back to value → zero gain → zero cap-gains tax (NOT the whole
+  // price taxed). With 0% commission and k=0, net = full value.
+  assert.strictEqual(r.capGainsTax, 0, 'no substantiated basis → no invented gain');
+  assert.ok(Math.abs(r.netProceeds - 1000000) < 1, 'net = full value when no gain and no costs');
 });
 
 test('selling an asset can rescue a plan that would otherwise run dry', () => {
