@@ -768,8 +768,9 @@ plan.portfolio.accounts.taxable.balance      = 800000;
 plan.portfolio.accounts.traditional.balance  = 1600000;
 plan.portfolio.accounts.roth.balance         = 400000;
 plan.portfolio.accounts.taxable.basisPct     = 0.55;
-plan.expenses.living     = 205000;
-plan.expenses.healthcare = 12000;
+plan.expenses.living                = 205000;
+plan.expenses.healthcare            = 12000;
+plan.expenses.healthcareRealGrowth  = 0.02;   // 2% above CPI (historical avg)
 // Goals are now an ARRAY: recurring goals (lifelong window 0–999) live in the
 // left column; a one-time goal is a single-year window (startAge===endAge).
 plan.goals = [
@@ -1474,8 +1475,9 @@ const HYBRID = {
     ]},
     right: { head:'Expenses', groups:[
       { head:'Essential', items:[
-        {path:'expenses.living',     name:'Living',     type:'money', meta:()=>'Housing, utilities, food, transport'},
+        {path:'expenses.living',     name:'Lifestyle',  type:'money', meta:()=>'Housing, utilities, food, transport'},
         {path:'expenses.healthcare', name:'Healthcare', type:'money', meta:()=>'Premiums + out-of-pocket'},
+        {path:'expenses.healthcareRealGrowth', name:'Healthcare inflation', type:'pct', meta:()=>'Annual growth above CPI (default 2%)'},
       ] },
     ]},
   },
@@ -2368,7 +2370,7 @@ const LEVCFG=[
   // shorthand. Step values stay round so the slider snaps cleanly.
   // Spending is stored ANNUAL (the engine's unit) but shown/edited MONTHLY —
   // clients know their monthly number off-hand. edit:'monthly' wires the box.
-  {key:'spend',     name:'Monthly Spending',min:80000,max:360000,step:1200, edit:'monthly', fmt:v=>['$'+Math.round(v/12).toLocaleString('en-US'),'/mo']},
+  {key:'spend',     name:'Lifestyle Spending',min:80000,max:360000,step:1200, edit:'monthly', fmt:v=>['$'+Math.round(v/12).toLocaleString('en-US'),'/mo']},
   // One-time event carries BOTH an amount and an age; edit:'event' renders the
   // two type-in boxes (amount + age) alongside the amount slider.
   {key:'eventAmt',  name:'One-Time Event', min:0,max:500000,step:5000, edit:'event', fmt:(v,L)=>['$'+(v||0).toLocaleString('en-US'),'@ '+L.eventAge]},
