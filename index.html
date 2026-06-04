@@ -12,19 +12,19 @@
      The mock's "light sage" comes from a big bright sage card filling the view;
      Parallax has no such card, so we carry that light into the body ground + lift
      the panels to a translucent sage tint that lets the bright ground through. */
-  --bg-deep:#1a3526; --bg:#1e3d2b;
-  --surface:rgba(170,210,180,.18); --surface-2:rgba(183,221,195,.13); --surface-3:rgba(160,200,175,.12);
-  --rule:rgba(189,205,192,.22); --rule-bright:rgba(189,205,192,.38); --rule-faint:rgba(189,205,192,.12);
-  --ink:#F4F6F0; --ink-bright:#FBFCF7; --ink-mute:#BDCDC0; --ink-faint:rgba(244,246,240,.55); --ink-ghost:rgba(244,246,240,.26);
+  --bg-deep:#0e2a35; --bg:#103340;
+  --surface:rgba(150,205,216,.15); --surface-2:rgba(165,214,224,.11); --surface-3:rgba(145,200,212,.10);
+  --rule:rgba(200,224,228,.22); --rule-bright:rgba(200,224,228,.40); --rule-faint:rgba(200,224,228,.12);
+  --ink:#F1FAFB; --ink-bright:#FBFEFF; --ink-mute:#AFC9CE; --ink-faint:rgba(241,250,251,.55); --ink-ghost:rgba(241,250,251,.26);
   /* Accent system (refined sage). The historic --gold tokens now carry "Soft
      Desert Clay" / "Muted Warm Bronze" so every existing accent rule re-themes
      in place — NO saturated orange anywhere. Clay is for small emphasis only. */
-  --gold:#D9A07E; --gold-bright:#E3B194; --gold-deep:#BFA78F; --gold-glow:rgba(217,160,126,.22);
-  --teal:#8cc69e; --teal-bright:#b3ded7; --teal-deep:#6aa882; --teal-glow:rgba(140,198,158,.16);
-  --positive:#8ad39e; --positive-bright:#a6e0b8;
+  --gold:#dd9a55; --gold-bright:#efab5e; --gold-deep:#c0926a; --gold-glow:rgba(221,154,82,.24);
+  --teal:#7fcdb6; --teal-bright:#b6e6e0; --teal-deep:#5fae9a; --teal-glow:rgba(127,205,182,.16);
+  --positive:#82d3b0; --positive-bright:#a6e0c8;
   --clay:#D9A07E;
   --negative:#d4706a; --negative-bright:#e08a7a;
-  --s1:#D9A07E; --s2:#82daa1; --s3:#b3ded7;
+  --s1:#efab5e; --s2:#82daa1; --s3:#9bd8e6;
   /* Hero financial values — Muted Champagne (never orange). */
   --champagne:#E5D9C4;
   /* Named aliases from Nathan's spec (point at the same refined roles). */
@@ -37,14 +37,16 @@
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;background:var(--bg);font-family:'Sora',sans-serif;color:var(--ink);font-size:14px;-webkit-font-smoothing:antialiased;overflow:hidden}
-body{background-color:#1e3d2b;background-image:
-  radial-gradient(circle at 54% 20%, rgba(190,230,202,.68), transparent 48%),
-  radial-gradient(circle at 80% 38%, rgba(155,200,170,.48), transparent 40%),
-  radial-gradient(circle at 20% 75%, rgba(145,190,162,.34), transparent 44%),
-  linear-gradient(90deg, rgba(255,255,255,.018) 1px, transparent 1px),
-  linear-gradient(180deg, rgba(255,255,255,.018) 1px, transparent 1px),
-  linear-gradient(135deg,#1a3828 0%,#2a4a38 48%,#1e3d2b 100%);
-background-size:auto,auto,auto,64px 64px,64px 64px,auto;}
+body{background-color:#103340;background-image:
+  radial-gradient(46% 42% at 28% 24%, rgba(126,228,238,.42), transparent 72%),
+  radial-gradient(44% 44% at 56% 20%, rgba(150,236,228,.30), transparent 72%),
+  radial-gradient(50% 48% at 80% 40%, rgba(96,206,226,.34), transparent 74%),
+  radial-gradient(58% 50% at 46% 102%, rgba(70,178,196,.26), transparent 76%),
+  radial-gradient(38% 42% at 92% 88%, rgba(232,170,92,.12), transparent 72%),
+  linear-gradient(90deg, rgba(255,255,255,.016) 1px, transparent 1px),
+  linear-gradient(180deg, rgba(255,255,255,.016) 1px, transparent 1px),
+  linear-gradient(152deg,#0a2531 0%,#123c4a 52%,#0b2c39 100%);
+background-size:auto,auto,auto,auto,auto,64px 64px,64px 64px,auto;}
 .wrap{height:100vh;display:flex;flex-direction:column;overflow:hidden}
 
 /* ─── GLASS LAYER ───────────────────────────────────────────────────
@@ -54,13 +56,16 @@ background-size:auto,auto,auto,64px 64px,64px 64px,auto;}
 .solve-panel,.acct-picker,.metric,.cf-drawer,.seq-pick,.seq-chart,.seq-print,.prop{
   backdrop-filter:blur(16px) saturate(1.15);
   -webkit-backdrop-filter:blur(16px) saturate(1.15);
-  background-image:linear-gradient(155deg,rgba(183,221,195,.10),rgba(183,221,195,0) 52%);
+  background-image:linear-gradient(150deg,rgba(176,224,232,.12),rgba(176,224,232,0) 56%);
   /* No hard border — the glass edge is a whisper-faint full inset ring + a
      brighter top rim-light, with a soft drop shadow for lift. */
-  box-shadow:0 22px 48px -24px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.14), inset 0 0 0 1px rgba(255,255,255,.05);
+  box-shadow:0 28px 56px -26px rgba(0,0,0,.58), 0 6px 18px -10px rgba(0,0,0,.4),
+    inset 0 1px 0 rgba(255,255,255,.30), inset 1px 0 0 rgba(255,255,255,.13),
+    inset -1px 0 0 rgba(255,255,255,.06), inset 0 -1px 0 rgba(255,255,255,.05),
+    inset 0 0 0 1px rgba(255,255,255,.05);
 }
 
-.hdr{display:flex;align-items:center;gap:18px;padding:13px 28px;border-bottom:1px solid var(--rule);background:rgba(28,56,40,.42);backdrop-filter:blur(20px) saturate(1.1);-webkit-backdrop-filter:blur(20px) saturate(1.1);flex:0 0 auto;position:relative;z-index:50}
+.hdr{display:flex;align-items:center;gap:18px;padding:13px 28px;border-bottom:1px solid var(--rule);background:rgba(14,40,50,.46);backdrop-filter:blur(20px) saturate(1.1);-webkit-backdrop-filter:blur(20px) saturate(1.1);flex:0 0 auto;position:relative;z-index:50}
 .wordmark{font-size:15px;font-weight:600;letter-spacing:.30em;text-transform:uppercase;color:var(--ink-bright)}
 .hdr-tabs{display:flex;margin-left:24px}
 .htab{background:none;border:none;border-bottom:2px solid transparent;color:var(--ink-mute);cursor:pointer;font-family:'Sora';font-size:12px;letter-spacing:.2em;text-transform:uppercase;padding:6px 20px;font-weight:500;transition:color .2s,border-color .2s}
@@ -80,11 +85,11 @@ background-size:auto,auto,auto,64px 64px,64px 64px,auto;}
 /* Cap the scenarios block so columns don't stretch across a wide monitor.
    ~210px per scenario + the 148px label gutter; centered. */
 .scn-scroll,.page[data-page="scenarios"] .cf-toggle,.page[data-page="scenarios"] .cf-drawer{max-width:1180px;width:100%;margin-left:auto;margin-right:auto}
-.page[data-page="scenarios"] .eyebrow{position:sticky;top:0;z-index:25;background:rgba(30,61,43,.55);backdrop-filter:blur(18px) saturate(1.1);-webkit-backdrop-filter:blur(18px) saturate(1.1);padding:20px 0 16px}
+.page[data-page="scenarios"] .eyebrow{position:sticky;top:0;z-index:25;background:rgba(14,42,52,.58);backdrop-filter:blur(18px) saturate(1.1);-webkit-backdrop-filter:blur(18px) saturate(1.1);padding:20px 0 16px}
 .scn-band{position:sticky;top:53px;z-index:20;display:grid;grid-template-columns:148px repeat(3,1fr);column-gap:14px}
 /* Opaque backdrop behind the WHOLE sticky band (not just a 10px lip) so scrolling
    lever rows can't bleed through the translucent glass column-cards. */
-.scn-band::before{content:'';position:absolute;left:0;right:0;top:-10px;bottom:0;background:rgba(30,61,43,.55);backdrop-filter:blur(18px) saturate(1.1);-webkit-backdrop-filter:blur(18px) saturate(1.1);z-index:-1}
+.scn-band::before{content:'';position:absolute;left:0;right:0;top:-10px;bottom:0;background:rgba(14,42,52,.58);backdrop-filter:blur(18px) saturate(1.1);-webkit-backdrop-filter:blur(18px) saturate(1.1);z-index:-1}
 .band-cell{padding:14px 14px 14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;min-height:172px}
 /* Each scenario is a floating glass column-card: circle (rounded top) → levers →
    median (rounded bottom). The label gutter stays transparent. Column-gap channels
@@ -248,6 +253,28 @@ background-size:auto,auto,auto,64px 64px,64px 64px,auto;}
 .foot-cell:not(:first-child){background:var(--surface);border-radius:0 0 14px 14px}
 .foot-cell b{color:var(--ink);font-weight:500}
 
+/* ── Scenario columns = floating frosted-glass tubes ──
+   A scenario "column" is cells spread across four grids (band / levers / goals /
+   foot) that abut to form one column. We frost every column-fill cell and run
+   continuous bright side-rails down it; the band gets the rounded top + a top
+   rim-light, the foot the rounded bottom + a soft drop-shadow — so each column
+   reads as one translucent box floating over the luminous ground. The label
+   gutter cells (.label / .lev-name / .sg-name / first foot cell) stay clear. */
+.band-cell:not(.label),.lev-cell,.sg-head.sg-col,.sg-cell,.sg-tcell,.foot-cell:not(:first-child){
+  backdrop-filter:blur(18px) saturate(1.2);
+  -webkit-backdrop-filter:blur(18px) saturate(1.2);
+  box-shadow:inset 1px 0 0 rgba(255,255,255,.14), inset -1px 0 0 rgba(255,255,255,.06);
+}
+.band-cell:not(.label){
+  box-shadow:inset 1px 0 0 rgba(255,255,255,.14), inset -1px 0 0 rgba(255,255,255,.06),
+             inset 0 1px 0 rgba(255,255,255,.32);
+}
+.foot-cell:not(:first-child){
+  box-shadow:inset 1px 0 0 rgba(255,255,255,.14), inset -1px 0 0 rgba(255,255,255,.06),
+             inset 0 -1px 0 rgba(255,255,255,.09),
+             0 30px 52px -34px rgba(0,0,0,.62);
+}
+
 /* Goals section on the Scenarios tab — a read-only mirror of the base-plan
    goals. Same 148px + N-column grid as the levers so rows stay registered.
    Quiet (no inputs, no sliders): it's a reflection of the plan, not a lever. */
@@ -349,7 +376,7 @@ background-size:auto,auto,auto,64px 64px,64px 64px,auto;}
 .np-snapshot-page .snap{display:flex;flex-direction:column;gap:0;max-width:560px;
   background:var(--surface);border-radius:14px;padding:2px 24px;
   backdrop-filter:blur(16px) saturate(1.15);-webkit-backdrop-filter:blur(16px) saturate(1.15);
-  background-image:linear-gradient(155deg,rgba(183,221,195,.10),rgba(183,221,195,0) 52%);
+  background-image:linear-gradient(150deg,rgba(176,224,232,.12),rgba(176,224,232,0) 56%);
   box-shadow:0 22px 48px -24px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.14),inset 0 0 0 1px rgba(255,255,255,.05)}
 .np-snapshot-page .metric{background:none;background-image:none;backdrop-filter:none;-webkit-backdrop-filter:none;
   box-shadow:none;border-radius:0;padding:16px 0;gap:8px;border-top:1px solid var(--rule-faint)}
@@ -585,7 +612,7 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield}
 .cf-table td.dim{color:var(--ink-faint)}
 /* Alternating per-scenario column tint in the cash-flow table — two faint
    washes that cycle regardless of how many scenarios there are. */
-.cf-g0{background:rgba(90,160,120,.04)} .cf-g1{background:rgba(196,123,49,.04)}
+.cf-g0{background:rgba(110,196,210,.04)} .cf-g1{background:rgba(221,154,82,.04)}
 .cf-table tr.retire td{border-top:1px dashed var(--gold);}
 .cf-table tr.retire td.age::after{content:'  retire';color:var(--gold);font-size:10px;font-weight:500;letter-spacing:.1em}
 
@@ -691,7 +718,7 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield}
 .g-slot.filled .g-rank{opacity:0}
 @keyframes absorb{0%{box-shadow:inset 0 0 0 2px rgba(251,141,38,.85),0 0 44px -6px rgba(251,141,38,.7)}100%{box-shadow:none}}
 .g-slot.flash{animation:absorb .5s ease-out}
-.g-card{position:absolute;z-index:2;cursor:grab;user-select:none;width:410px;height:72px;border-radius:14px;overflow:hidden;display:flex;align-items:center;gap:14px;padding:0 22px 0 28px;background:linear-gradient(152deg,rgba(96,134,108,.42),rgba(54,90,68,.42) 52%,rgba(36,64,48,.48));backdrop-filter:blur(20px) saturate(1.3);-webkit-backdrop-filter:blur(20px) saturate(1.3);box-shadow:inset 0 1px 0 rgba(255,255,255,.32),inset 0 0 0 1px rgba(255,255,255,.10),0 22px 40px -22px rgba(14,30,20,.6);transition:box-shadow .16s,transform .12s}
+.g-card{position:absolute;z-index:2;cursor:grab;user-select:none;width:410px;height:72px;border-radius:14px;overflow:hidden;display:flex;align-items:center;gap:14px;padding:0 22px 0 28px;background:linear-gradient(152deg,rgba(70,150,166,.40),rgba(40,100,120,.40) 52%,rgba(26,72,90,.46));backdrop-filter:blur(20px) saturate(1.3);-webkit-backdrop-filter:blur(20px) saturate(1.3);box-shadow:inset 0 1px 0 rgba(255,255,255,.32),inset 0 0 0 1px rgba(255,255,255,.10),0 22px 40px -22px rgba(14,30,20,.6);transition:box-shadow .16s,transform .12s}
 .g-card>*{position:relative;z-index:2}
 .g-card::before{content:'';position:absolute;inset:0;z-index:0;border-radius:inherit;pointer-events:none;background:linear-gradient(133deg,rgba(255,255,255,.2),rgba(255,255,255,.03) 32%,rgba(255,255,255,0) 58%)}
 .g-card::after{content:'';position:absolute;left:0;top:13px;bottom:13px;width:3px;z-index:1;border-radius:3px;background:linear-gradient(180deg,var(--gold-bright),rgba(196,123,49,.06))}
@@ -2215,7 +2242,7 @@ plan.simulation.iterations = 1000;
 // (matches --s1/2/3); two more earthy tones extend it when the advisor adds a
 // 4th/5th scenario. colorFor() cycles the palette so any count gets a color.
 // No green here (reserved for the success language) and no mint.
-const SCEN_PALETTE=['#D9A07E','#82daa1','#b3ded7','#b45991','#BFA78F'];
+const SCEN_PALETTE=['#efab5e','#82daa1','#9bd8e6','#c98bd0','#BFA78F'];
 const colorFor=i=>SCEN_PALETTE[i % SCEN_PALETTE.length];
 const MAX_SCENARIOS=5;
 /* The three scenario columns. Each holds lever values + its last engine result.
@@ -3944,15 +3971,17 @@ function runAll(){
 // clay (at risk). No green — matches the Obsidian Brass result tokens.
 // Ring band matches the % number: deep green / bronze gold / deep burgundy.
 function ringColor(pct){ return pct>=80?'#7AA76C':pct>=71?'#D8B371':'#5E1916'; }
+// Locked band hue at lower opacity for the ring glow (same hue, never a new color).
+function ringGlow(pct){ return pct>=80?'rgba(122,167,108,.55)':pct>=71?'rgba(216,179,113,.55)':'rgba(94,25,22,.5)'; }
 function ring(pct){
   // SVG fills its .circle-wrap via viewBox, so the ring size is controlled by
   // CSS (one place). Thin stroke near the edge leaves room for the % number.
   const r=45,c=2*Math.PI*r,off=c*(1-pct/100);
-  const col=ringColor(pct);
+  const col=ringColor(pct), glow=ringGlow(pct);
   return `<svg viewBox="0 0 100 100" width="100%" height="100%">
     <circle cx="50" cy="50" r="${r}" fill="none" stroke="rgba(255,255,255,.13)" stroke-width="4"/>
     <circle cx="50" cy="50" r="${r}" fill="none" stroke="${col}" stroke-width="4" stroke-linecap="round"
-      stroke-dasharray="${c}" stroke-dashoffset="${off}" transform="rotate(-90 50 50)" style="transition:stroke-dashoffset .7s cubic-bezier(.4,0,.2,1)"/></svg>`;
+      stroke-dasharray="${c}" stroke-dashoffset="${off}" transform="rotate(-90 50 50)" style="transition:stroke-dashoffset .7s cubic-bezier(.4,0,.2,1);filter:drop-shadow(0 0 4px ${glow})"/></svg>`;
 }
 // The band / levers / foot are CSS grids whose column count must match the
 // number of scenarios. One place sets it (label gutter + N equal columns) so
@@ -3972,7 +4001,9 @@ function renderBand(){
     // Header: a small identity dot (column color) + the name. Baseline's name is
     // locked (the anchor); other scenarios render an inline editable field so the
     // advisor can label them ("Retire at 62"). A ✕ removes non-baseline columns.
-    const dot=`<span class="col-dot" style="background:${colorFor(ci)}"></span>`;
+    // Dot carries the locked band color (same hue as the ring/% — a status cue,
+    // not a per-column identity color).
+    const dot=`<span class="col-dot" style="background:${col};box-shadow:0 0 8px ${ringGlow(sr)}"></span>`;
     const nameEl = s.base
       ? `<span class="col-name base-tag">${dot}${escHtml(s.name)}</span>`
       : `<span class="col-name">${dot}<input class="col-rename" data-col="${ci}" value="${escHtml(s.name)}" maxlength="28" aria-label="Scenario name"><button class="col-x" data-col="${ci}" title="Remove scenario">✕</button></span>`;
