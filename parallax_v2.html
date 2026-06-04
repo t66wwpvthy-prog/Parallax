@@ -2198,8 +2198,10 @@ function initGoalsBoard(){
       }
       moveTo(a,hit.x,hit.y); fillSlot(a,hit,true);
     }else{
-      if(a.fromSlot){ moveTo(a,a.fromSlot.x,a.fromSlot.y); fillSlot(a,a.fromSlot,false); }
-      else          { moveTo(a,a.homeX,a.homeY); a.slot=null; }
+      // Dropped clear of every slot → return it to the tray (un-rank it). The
+      // slot it came from was already cleared on pointerdown, so this both
+      // re-homes the card and frees its old slot.
+      moveTo(a,a.homeX,a.homeY); a.slot=null;
     }
     el.classList.remove('drag'); slots.forEach(s=>s.el.classList.remove('hot')); active=null;
     saveRank();
