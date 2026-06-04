@@ -709,6 +709,9 @@ plan.goals = [
   { name:'Travel',            amount:12000, startAge:65, endAge:95 },
   { name:'Home improvements', amount:5000,  startAge:65, endAge:95 },
   { name:'Gifts',             amount:5000,  startAge:65, endAge:95 },
+  // A ONE-TIME goal (single-year window): shows as a spike in the Goals
+  // cash-flow column the year it lands, then gone.
+  { name:'New car',           amount:40000, startAge:72, endAge:72 },
 ];
 // Demo real asset: a primary residence with a remaining mortgage. The engine
 // amortizes it (balance/rate/term) into a payment that runs until payoff; value
@@ -2628,7 +2631,11 @@ function renderCashflow(){
   }
   const gcls = scenarios.map((_,i)=>`cf-g${i%2}`);
   const hasRmd = rowsByScen.some(rows => rows.some(r => r && r.rmd > 0));
-  const cols = hasRmd ? 4 : 3;
+  // Show a Goals column whenever any year has goal spend — so a one-time goal
+  // (a single-year spike) or a recurring goal feeds visibly through to the
+  // cash flow instead of just inflating that year's withdrawal silently.
+  const hasGoals = rowsByScen.some(rows => rows.some(r => r && r.goals > 0));
+  const cols = 3 + (hasRmd?1:0) + (hasGoals?1:0);
   let h = '<table class="cf-table"><thead><tr><th class="age" rowspan="2">Age</th>';
   scenarios.forEach((s,i)=>{
     h += `<th class="scen ${gcls[i]}" colspan="${cols}" style="color:${colorFor(i)}">${escHtml(s.name)}</th>`;
@@ -2637,6 +2644,7 @@ function renderCashflow(){
   scenarios.forEach((s,i)=>{
     h += `<th class="${gcls[i]}">Income</th><th class="${gcls[i]}">Withdraw</th>`;
     if(hasRmd) h += `<th class="${gcls[i]}">RMD</th>`;
+    if(hasGoals) h += `<th class="${gcls[i]}">Goals</th>`;
     h += `<th class="${gcls[i]}">End Balance</th>`;
   });
   h += '</tr></thead><tbody>';
@@ -2661,6 +2669,9 @@ function renderCashflow(){
       h += `<td class="${gcls[i]}">${acc ? dash : cfMoney(inc)}</td>`;
       h += `<td class="${gcls[i]}">${acc ? dash : cfMoney(r.withdrawal || 0)}</td>`;
       if(hasRmd) h += `<td class="${gcls[i]}">${(!acc && r.rmd > 0) ? cfMoney(r.rmd) : dash}</td>`;
+      // Goals show in EVERY phase (even accumulation) so a pre-retirement
+      // one-time goal still appears in its year.
+      if(hasGoals) h += `<td class="${gcls[i]}">${(r.goals > 0) ? cfMoney(r.goals) : dash}</td>`;
       h += `<td class="${gcls[i]}">${cfMoney(r.balance || 0)}</td>`;
     });
     h += '</tr>';
