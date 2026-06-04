@@ -80,11 +80,11 @@ background-size:auto,auto,auto,64px 64px,64px 64px,auto;}
 /* Cap the scenarios block so columns don't stretch across a wide monitor.
    ~210px per scenario + the 148px label gutter; centered. */
 .scn-scroll,.page[data-page="scenarios"] .cf-toggle,.page[data-page="scenarios"] .cf-drawer{max-width:1180px;width:100%;margin-left:auto;margin-right:auto}
-.page[data-page="scenarios"] .eyebrow{position:sticky;top:0;z-index:25;background:var(--bg);padding:20px 0 16px}
+.page[data-page="scenarios"] .eyebrow{position:sticky;top:0;z-index:25;background:rgba(30,61,43,.55);backdrop-filter:blur(18px) saturate(1.1);-webkit-backdrop-filter:blur(18px) saturate(1.1);padding:20px 0 16px}
 .scn-band{position:sticky;top:53px;z-index:20;display:grid;grid-template-columns:148px repeat(3,1fr);column-gap:14px}
 /* Opaque backdrop behind the WHOLE sticky band (not just a 10px lip) so scrolling
    lever rows can't bleed through the translucent glass column-cards. */
-.scn-band::before{content:'';position:absolute;left:0;right:0;top:-10px;bottom:0;background:var(--bg);z-index:-1}
+.scn-band::before{content:'';position:absolute;left:0;right:0;top:-10px;bottom:0;background:rgba(30,61,43,.55);backdrop-filter:blur(18px) saturate(1.1);-webkit-backdrop-filter:blur(18px) saturate(1.1);z-index:-1}
 .band-cell{padding:14px 14px 14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;min-height:172px}
 /* Each scenario is a floating glass column-card: circle (rounded top) → levers →
    median (rounded bottom). The label gutter stays transparent. Column-gap channels
@@ -2176,7 +2176,7 @@ plan.goals = [
 // amortizes it (balance/rate/term) into a payment that runs until payoff; value
 // and purchasePrice are captured for a future sale event and are inert today.
 plan.properties = [
-  { name:'Primary residence', value:1200000, purchasePrice:520000, commissionPct:5,
+  { name:'Primary residence', value:1200000, purchasePrice:520000, purchaseYear:2012, commissionPct:5,
     mortgage:{ balance:280000, rate:5.5, termYears:9 } },
 ];
 // Two earners: one maxed (~$48k PIA at FRA), spouse a strong earner (~$30k).
@@ -3139,7 +3139,7 @@ const ROW_KINDS = {
   liability: { arr:'liabilities',    mk:()=>({ label:'', amount:0, startAge:65, endAge:75, colaPct:0 }) },
   goalRec:   { arr:'goals',          mk:()=>({ name:'',  amount:0, startAge:plan.household.primary.retirementAge, endAge:plan.household.primary.planEndAge }) },
   goalOnce:  { arr:'goals',          mk:()=>({ name:'',  amount:0, startAge:70, endAge:70 }) },
-  property:  { arr:'properties',     mk:()=>({ name:'',  value:0, purchasePrice:0, mortgage:{ balance:0, rate:0, termYears:0 } }) },
+  property:  { arr:'properties',     mk:()=>({ name:'',  value:0, purchasePrice:0, purchaseYear: new Date().getFullYear(), mortgage:{ balance:0, rate:0, termYears:0 } }) },
 };
 const money = (p,base,k)=>`<span class="er-amt"><span class="pre">$</span><input type="text" inputmode="numeric" data-path="${base}.${k}" data-type="money" value="${(getPath(plan,base+'.'+k)||0).toLocaleString('en-US')}"></span>`;
 const num   = (p,base,k,step)=>`<input class="er-num" type="number" step="${step||1}" data-path="${base}.${k}" data-type="num" value="${getPath(plan,base+'.'+k)}">`;
@@ -3198,6 +3198,7 @@ function propRow(i){
     <div class="prop-grid">
       <label class="prop-f"><span class="er-k">Value</span>${money(plan,base,'value')}</label>
       <label class="prop-f"><span class="er-k">Purchase price</span>${money(plan,base,'purchasePrice')}</label>
+      <label class="prop-f"><span class="er-k">Purchase year</span><input class="er-num" type="number" step="1" min="1900" max="2099" data-path="${base}.purchaseYear" data-type="num" value="${getPath(plan,base+'.purchaseYear')||''}" style="width:52px"></label>
     </div>
     <div class="prop-mort">
       <span class="er-k">Mortgage</span>
