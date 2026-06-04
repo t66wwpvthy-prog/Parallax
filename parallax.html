@@ -452,6 +452,16 @@ background-size:auto,auto,auto,64px 64px,64px 64px,auto;}
 .er-dash{color:var(--ink-faint)}
 .erow .row-x{flex:0 0 auto;width:18px;height:18px;border:none;background:transparent;color:var(--ink-faint);font-size:15px;line-height:1;cursor:pointer;border-radius:4px;padding:0}
 .erow .row-x:hover{color:var(--negative-bright);background:rgba(240,145,141,.08)}
+/* Income rows carry a second line (growth + taxable share); wrap so the divider
+   sits below the whole pair, not between the two lines. */
+.erow-wrap{border-bottom:1px solid var(--rule-faint)}
+.erow-wrap:last-of-type{border-bottom:none}
+.erow-wrap .erow{border-bottom:none}
+.er-extra{display:flex;align-items:center;gap:5px;padding:0 0 8px 2px;font-size:11px;color:var(--ink-mute)}
+.er-xk,.er-xs{font-size:11px;color:var(--ink-mute);white-space:nowrap}
+.er-xsep{color:var(--ink-faint);margin:0 3px}
+.er-extra .er-num{width:32px}
+.er-extra .er-gw{width:40px}
 
 /* Property card — name + value/basis + an optional mortgage sub-block. */
 .prop{margin:10px 0;padding:14px 16px;border-radius:14px;background:var(--surface)}
@@ -1132,9 +1142,16 @@ const plan = {
     socialSecurity: { primary: { pia: 36000, claimAge: 67 }, spouse: null },
     // Other income — an ARRAY of variable / time-limited streams (rental, part-time,
     // a fixed-period annuity). Each: { label, amount ($/yr, today's dollars),
-    // startAge, endAge }. Applied flat-real (today's-dollars maintained) and taxed
-    // at the ordinary rate. Empty by default. A legacy single {amount,startAge,endAge}
-    // object is still accepted (wrapped into a one-element array).
+    // startAge, endAge, realGrowth, taxablePct }.
+    //   realGrowth: per-stream REAL growth/yr from its own startAge. 0 = flat real
+    //     (the legacy default). Positive = rises above inflation (rent indexed up);
+    //     NEGATIVE = phases down in real terms (part-time wind-down).
+    //   taxablePct: share taxed at the ordinary rate. 1 = fully taxable (legacy
+    //     default); <1 models partly/fully tax-free income (return of capital,
+    //     muni interest, gifts received).
+    // Both default to the prior flat-real, fully-taxed behavior, so existing plans
+    // are unchanged. A legacy single {amount,startAge,endAge} object is still
+    // accepted (wrapped into a one-element array).
     other:          [],
     // Pension: a DISCRETE benefit-by-age map taken straight off the plan statement
     // ({ age: annualBenefit, ... }) — the advisor enters only ages they actually
@@ -1408,14 +1425,17 @@ function resolveInputs(plan, ov){
     },
     returnAdj: (ov.returnAdj || 0) / 100,
     ss: ssBenefits,   // array of { amount, startAge } in the primary's age frame
-    // Other income — normalized to an array of flat-real timed streams. Accepts a
-    // legacy single object too.
+    // Other income — normalized to an array of timed streams, each carrying its
+    // own real growth and taxable share (both defaulting to the legacy flat-real,
+    // fully-taxed behavior). Accepts a legacy single object too.
     otherIncome: (Array.isArray(plan.income.other) ? plan.income.other
                   : (plan.income.other ? [plan.income.other] : []))
       .map(o => ({
-        amount:   Math.max(0, o.amount || 0),
-        startAge: (o.startAge != null ? o.startAge : 0),
-        endAge:   (o.endAge   != null ? o.endAge   : 999)
+        amount:     Math.max(0, o.amount || 0),
+        startAge:   (o.startAge != null ? o.startAge : 0),
+        endAge:     (o.endAge   != null ? o.endAge   : 999),
+        realGrowth: (o.realGrowth || 0),
+        taxablePct: (o.taxablePct == null ? 1 : Math.max(0, Math.min(1, o.taxablePct)))
       })),
     pension:        { amount: pensionAmount, startAge: penStartAge, colaReal: penColaReal },
     ltc:            { amount: Math.max(0, (ltc.amount || 0) * (1 + (ov.ltcAdj || 0))), onsetAge: (ltc.onsetAge != null ? ltc.onsetAge : 999) },
@@ -1597,8 +1617,16 @@ function runSinglePath(p, returnPath){
     // person's benefit that has started by this age (primary + spouse).
     let ssInc = 0;
     for(const b of p.ss){ if(age >= b.startAge) ssInc += b.amount; }
-    let oiInc = 0;
-    for(const o of p.otherIncome){ if(age >= o.startAge && age <= o.endAge) oiInc += o.amount; }
+    // Each stream grows in REAL terms from its own startAge (0 = flat real,
+    // negative = phases down) and contributes only its taxable share to tax.
+    let oiInc = 0, oiTaxable = 0;
+    for(const o of p.otherIncome){
+      if(age >= o.startAge && age <= o.endAge){
+        const amt = o.amount * Math.pow(1 + o.realGrowth, age - o.startAge);
+        oiInc     += amt;
+        oiTaxable += amt * o.taxablePct;
+      }
+    }
     const penInc = (p.pension && age >= p.pension.startAge)
                    ? p.pension.amount * Math.pow(1 + (p.pension.colaReal || 0), age - p.pension.startAge) : 0;
     const ltcCost = (p.ltc && age >= p.ltc.onsetAge) ? p.ltc.amount : 0;
@@ -1618,9 +1646,10 @@ function runSinglePath(p, returnPath){
         ? s + L.amount * Math.pow(1 + L.colaReal, age - L.startAge)
         : s, 0);
 
-    // Tax on external income: 85% of SS, 100% of OI, 100% of pension, at the ordinary rate.
+    // Tax on external income: 85% of SS, the taxable share of OI, 100% of pension,
+    // at the ordinary rate.
     const taxOnSS    = ssInc * 0.85 * p.taxRates.ordinary;
-    const taxOnOI    = oiInc * p.taxRates.ordinary;
+    const taxOnOI    = oiTaxable * p.taxRates.ordinary;
     const taxOnPen   = penInc * p.taxRates.ordinary;
     const taxOnInc   = taxOnSS + taxOnOI + taxOnPen;
     const netInc     = (ssInc + oiInc + penInc) - taxOnInc;
@@ -2031,6 +2060,12 @@ plan.savings.annual      = 30000;
 // Snapshot's replacement-ratio gauge — a static diagnostic, not an engine
 // input. The engine drives accumulation off savings.annual, never this.
 plan.income.workingIncome = 300000;
+// A variable income stream showing the new per-stream controls: real growth
+// (here +1%/yr, indexed slightly above inflation) and a taxable share (70% —
+// the rest sheltered by depreciation). startAge–endAge bound when it's active.
+plan.income.other = [
+  { label:'Rental income', amount:18000, startAge:65, endAge:95, realGrowth:0.01, taxablePct:0.70 },
+];
 plan.simulation.iterations = 1000;
 
 // Scenario accent palette. Brass / steel-teal / dusty mauve are the core trio
@@ -2937,7 +2972,7 @@ function renderField(f, klass){
    row's defaults. (Goals share one array; recurring vs one-time is decided by
    the window: a one-time goal is a single-year window, startAge===endAge.) */
 const ROW_KINDS = {
-  income:    { arr:'income.other',   mk:()=>({ label:'', amount:0, startAge:65, endAge:75 }) },
+  income:    { arr:'income.other',   mk:()=>({ label:'', amount:0, startAge:65, endAge:75, realGrowth:0, taxablePct:1 }) },
   expense:   { arr:'expenses.extra', mk:()=>({ label:'', amount:0, startAge:65, endAge:80 }) },
   liability: { arr:'liabilities',    mk:()=>({ label:'', amount:0, startAge:65, endAge:75, colaPct:0 }) },
   goalRec:   { arr:'goals',          mk:()=>({ name:'',  amount:0, startAge:plan.household.primary.retirementAge, endAge:plan.household.primary.planEndAge }) },
@@ -2954,6 +2989,23 @@ function flowRow(arr, i, nameKey, ph){
   const base = `${arr}.${i}`;
   return `<div class="erow">${name(plan,base,nameKey,ph)}${money(plan,base,'amount')}
     <span class="er-ages">age ${num(plan,base,'startAge')}<span class="er-dash">–</span>${num(plan,base,'endAge')}</span>${rmX(base)}</div>`;
+}
+// An income row = the flow row PLUS a compact second line for the two per-stream
+// controls: real growth/yr (signed — negative phases the stream down) and the
+// share taxed at the ordinary rate. gpct stores a signed fraction; pct a 0–1 one.
+function incomeRow(arr, i){
+  const base = `${arr}.${i}`;
+  const g = Math.round((getPath(plan, base+'.realGrowth')||0)*100);
+  const tRaw = getPath(plan, base+'.taxablePct');
+  const t = Math.round((tRaw==null?1:tRaw)*100);
+  const main = `<div class="erow">${name(plan,base,'label','Source')}${money(plan,base,'amount')}
+    <span class="er-ages">age ${num(plan,base,'startAge')}<span class="er-dash">–</span>${num(plan,base,'endAge')}</span>${rmX(base)}</div>`;
+  const extra = `<div class="er-extra">
+      <span class="er-xk">grows</span><input class="er-num er-gw" type="number" step="1" data-path="${base}.realGrowth" data-type="gpct" value="${g}"><span class="er-xs">%/yr real</span>
+      <span class="er-xsep">·</span>
+      <input class="er-num" type="number" step="1" data-path="${base}.taxablePct" data-type="pct" value="${t}"><span class="er-xs">% taxable</span>
+    </div>`;
+  return `<div class="erow-wrap">${main}${extra}</div>`;
 }
 // A recurring goal: name · amount · age window (from – to). Defaults to
 // retirement → plan-end (the old "lifelong"), but the end is now editable so a
@@ -2997,7 +3049,8 @@ function propRow(i){
 // Render every row of a flow kind backed by `arr`, with the trailing "+ add".
 function flowSection(arr, nameKey, ph, kind, addLabel){
   const list = getPath(plan, arr) || [];
-  let h = list.map((_,i)=>flowRow(arr,i,nameKey,ph)).join('');
+  const rowFn = (kind==='income') ? (i=>incomeRow(arr,i)) : (i=>flowRow(arr,i,nameKey,ph));
+  let h = list.map((_,i)=>rowFn(i)).join('');
   h += `<div class="hp-add" data-add="${kind}">${addLabel}</div>`;
   return h;
 }
@@ -3545,6 +3598,7 @@ $('#np-content').addEventListener('change', e => {
     else                    v = parseFloat(raw);
     if(!isFinite(v)) return;
     if(type==='pct')   v = Math.max(0, Math.min(100, v))/100;
+    if(type==='gpct')  v = Math.max(-20, Math.min(20, v))/100;   // signed growth %/yr
     if(type==='money'){ v = Math.max(0, Math.round(v)); e.target.value = v.toLocaleString('en-US'); }
     setPath(plan, path, v);
     // A one-time goal edits a single "at age": mirror it into endAge so the

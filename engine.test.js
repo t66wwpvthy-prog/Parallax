@@ -372,3 +372,47 @@ test('healthcare real growth raises costs over retirement years', () => {
   assert.ok(at75 > at65 + expectedHealthcareDelta * 0.9,
     'healthcare real growth must lift total expenses over retirement');
 });
+
+// ── Other income: per-stream real growth and taxable share ──────────────────
+// A stream grows in REAL terms from its own startAge (negative = phases down),
+// and only its taxable share is taxed at the ordinary rate. Both default to the
+// legacy flat-real, fully-taxed behavior.
+test('other-income streams default to flat-real, fully taxable', () => {
+  const p = JSON.parse(JSON.stringify(defaultPlan));
+  p.income.other = [{ label:'Rent', amount:12000, startAge:65, endAge:80 }];
+  const r = resolveInputs(p, {});
+  assert.strictEqual(r.otherIncome[0].realGrowth, 0, 'no real growth by default');
+  assert.strictEqual(r.otherIncome[0].taxablePct, 1, 'fully taxable by default');
+});
+
+test('other-income realGrowth compounds the stream (negative phases it down)', () => {
+  const p = JSON.parse(JSON.stringify(defaultPlan));
+  p.household.primary = { currentAge: 65, retirementAge: 65, planEndAge: 95 };
+  p.income.other = [
+    { label:'Rental',    amount:24000, startAge:65, endAge:95, realGrowth: 0.03 },  // rises
+    { label:'Part-time', amount:24000, startAge:65, endAge:95, realGrowth:-0.10 },  // winds down
+  ];
+  const m = runHistoricalPath(p, 1995, 'taxable-first');
+  const oi65 = m.rows.find(r => r.age === 65).otherIncome;
+  const oi75 = m.rows.find(r => r.age === 75).otherIncome;
+  const expect75 = 24000 * Math.pow(1.03, 10) + 24000 * Math.pow(0.90, 10);
+  assert.ok(Math.abs(oi65 - 48000) < 1e-6, 'both streams at base in the first year');
+  assert.ok(Math.abs(oi75 - expect75) < 1.0,
+    `at 75 the grown + decayed streams should sum to ~${expect75.toFixed(0)}, got ${oi75.toFixed(0)}`);
+});
+
+test('a partly tax-free stream is taxed less than a fully-taxable one (higher ending wealth)', () => {
+  const mk = taxablePct => {
+    const p = JSON.parse(JSON.stringify(defaultPlan));
+    p.household.primary = { currentAge: 65, retirementAge: 65, planEndAge: 95 };
+    p.income.other = [{ label:'Annuity', amount:60000, startAge:65, endAge:95, taxablePct }];
+    return runHistoricalPath(p, 1995, 'taxable-first');
+  };
+  const fully = mk(1);
+  const half  = mk(0.5);
+  assert.ok(half.terminalBalance > fully.terminalBalance + 1,
+    'lower taxable share → less tax → higher ending wealth');
+  assert.strictEqual(half.rows.find(r => r.age === 70).otherIncome,
+                     fully.rows.find(r => r.age === 70).otherIncome,
+    'taxablePct changes tax only, not the gross income shown');
+});

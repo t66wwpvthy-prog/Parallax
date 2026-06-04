@@ -383,9 +383,16 @@ const plan = {
     socialSecurity: { primary: { pia: 36000, claimAge: 67 }, spouse: null },
     // Other income — an ARRAY of variable / time-limited streams (rental, part-time,
     // a fixed-period annuity). Each: { label, amount ($/yr, today's dollars),
-    // startAge, endAge }. Applied flat-real (today's-dollars maintained) and taxed
-    // at the ordinary rate. Empty by default. A legacy single {amount,startAge,endAge}
-    // object is still accepted (wrapped into a one-element array).
+    // startAge, endAge, realGrowth, taxablePct }.
+    //   realGrowth: per-stream REAL growth/yr from its own startAge. 0 = flat real
+    //     (the legacy default). Positive = rises above inflation (rent indexed up);
+    //     NEGATIVE = phases down in real terms (part-time wind-down).
+    //   taxablePct: share taxed at the ordinary rate. 1 = fully taxable (legacy
+    //     default); <1 models partly/fully tax-free income (return of capital,
+    //     muni interest, gifts received).
+    // Both default to the prior flat-real, fully-taxed behavior, so existing plans
+    // are unchanged. A legacy single {amount,startAge,endAge} object is still
+    // accepted (wrapped into a one-element array).
     other:          [],
     // Pension: a DISCRETE benefit-by-age map taken straight off the plan statement
     // ({ age: annualBenefit, ... }) — the advisor enters only ages they actually
@@ -659,14 +666,17 @@ function resolveInputs(plan, ov){
     },
     returnAdj: (ov.returnAdj || 0) / 100,
     ss: ssBenefits,   // array of { amount, startAge } in the primary's age frame
-    // Other income — normalized to an array of flat-real timed streams. Accepts a
-    // legacy single object too.
+    // Other income — normalized to an array of timed streams, each carrying its
+    // own real growth and taxable share (both defaulting to the legacy flat-real,
+    // fully-taxed behavior). Accepts a legacy single object too.
     otherIncome: (Array.isArray(plan.income.other) ? plan.income.other
                   : (plan.income.other ? [plan.income.other] : []))
       .map(o => ({
-        amount:   Math.max(0, o.amount || 0),
-        startAge: (o.startAge != null ? o.startAge : 0),
-        endAge:   (o.endAge   != null ? o.endAge   : 999)
+        amount:     Math.max(0, o.amount || 0),
+        startAge:   (o.startAge != null ? o.startAge : 0),
+        endAge:     (o.endAge   != null ? o.endAge   : 999),
+        realGrowth: (o.realGrowth || 0),
+        taxablePct: (o.taxablePct == null ? 1 : Math.max(0, Math.min(1, o.taxablePct)))
       })),
     pension:        { amount: pensionAmount, startAge: penStartAge, colaReal: penColaReal },
     ltc:            { amount: Math.max(0, (ltc.amount || 0) * (1 + (ov.ltcAdj || 0))), onsetAge: (ltc.onsetAge != null ? ltc.onsetAge : 999) },
@@ -848,8 +858,16 @@ function runSinglePath(p, returnPath){
     // person's benefit that has started by this age (primary + spouse).
     let ssInc = 0;
     for(const b of p.ss){ if(age >= b.startAge) ssInc += b.amount; }
-    let oiInc = 0;
-    for(const o of p.otherIncome){ if(age >= o.startAge && age <= o.endAge) oiInc += o.amount; }
+    // Each stream grows in REAL terms from its own startAge (0 = flat real,
+    // negative = phases down) and contributes only its taxable share to tax.
+    let oiInc = 0, oiTaxable = 0;
+    for(const o of p.otherIncome){
+      if(age >= o.startAge && age <= o.endAge){
+        const amt = o.amount * Math.pow(1 + o.realGrowth, age - o.startAge);
+        oiInc     += amt;
+        oiTaxable += amt * o.taxablePct;
+      }
+    }
     const penInc = (p.pension && age >= p.pension.startAge)
                    ? p.pension.amount * Math.pow(1 + (p.pension.colaReal || 0), age - p.pension.startAge) : 0;
     const ltcCost = (p.ltc && age >= p.ltc.onsetAge) ? p.ltc.amount : 0;
@@ -869,9 +887,10 @@ function runSinglePath(p, returnPath){
         ? s + L.amount * Math.pow(1 + L.colaReal, age - L.startAge)
         : s, 0);
 
-    // Tax on external income: 85% of SS, 100% of OI, 100% of pension, at the ordinary rate.
+    // Tax on external income: 85% of SS, the taxable share of OI, 100% of pension,
+    // at the ordinary rate.
     const taxOnSS    = ssInc * 0.85 * p.taxRates.ordinary;
-    const taxOnOI    = oiInc * p.taxRates.ordinary;
+    const taxOnOI    = oiTaxable * p.taxRates.ordinary;
     const taxOnPen   = penInc * p.taxRates.ordinary;
     const taxOnInc   = taxOnSS + taxOnOI + taxOnPen;
     const netInc     = (ssInc + oiInc + penInc) - taxOnInc;
