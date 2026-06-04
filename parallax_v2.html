@@ -644,8 +644,28 @@ background-size:auto,auto,auto,64px 64px,64px 64px,auto;}
 .g-name .g-tag{font-size:9px;letter-spacing:.11em;text-transform:uppercase;font-weight:700;padding:3px 7px;border-radius:6px;background:rgba(251,141,38,.18);color:var(--gold-bright)}
 .g-kind{font-size:11px;color:var(--ink-faint);white-space:nowrap}
 .g-card.once .g-kind{color:rgba(251,141,38,.85)}
-.g-amt{margin-left:auto;font-family:'Inter',sans-serif;font-variant-numeric:tabular-nums;font-size:24px;font-weight:700;color:var(--ink-bright);white-space:nowrap}
+.g-amt{margin-left:auto;display:flex;align-items:baseline;gap:1px;font-family:'Inter',sans-serif;font-variant-numeric:tabular-nums;font-size:24px;font-weight:700;color:var(--ink-bright);white-space:nowrap}
 .g-amt .g-per2{font-family:'Sora',sans-serif;font-size:13px;font-weight:500;color:var(--ink-faint);margin-left:3px}
+/* Inline-editable card fields — boxless inputs in the app's edit language
+   (dashed underline on hover, copper on focus). The card stays the drag handle;
+   pointerdown on any input/button is ignored so editing never starts a drag. */
+.g-addrow{display:flex;gap:10px}
+.g-add-sec{font-size:12.5px;color:var(--ink-mute)}
+.g-name-in{font-family:'Sora',sans-serif;font-size:15px;font-weight:500;color:var(--ink-bright);background:transparent;border:none;border-bottom:1px dashed transparent;outline:none;padding:1px 2px;width:140px;transition:border-color .15s,background .15s}
+.g-name-in::placeholder{color:var(--ink-faint);font-style:italic}
+.g-name-in:hover{border-bottom-color:var(--rule-bright)}
+.g-name-in:focus{border-bottom-color:var(--gold-bright);background:rgba(251,141,38,.08)}
+.g-cur{font-family:'Inter',sans-serif;font-size:18px;font-weight:700;color:var(--ink-bright)}
+.g-amt-in{font-family:'Inter',sans-serif;font-variant-numeric:tabular-nums;font-size:24px;font-weight:700;color:var(--ink-bright);background:transparent;border:none;border-bottom:1px dashed transparent;outline:none;width:104px;text-align:right;padding:0 1px;transition:border-color .15s,background .15s}
+.g-amt-in:hover{border-bottom-color:var(--rule-bright)}
+.g-amt-in:focus{border-bottom-color:var(--gold-bright);background:rgba(251,141,38,.08)}
+.g-age-in{font-family:'Inter',sans-serif;font-variant-numeric:tabular-nums;font-size:11px;font-weight:600;color:var(--ink);background:transparent;border:none;border-bottom:1px dashed transparent;outline:none;width:30px;text-align:center;padding:0 1px;-moz-appearance:textfield;transition:border-color .15s,background .15s}
+.g-age-in::-webkit-outer-spin-button,.g-age-in::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.g-age-in:hover{border-bottom-color:var(--rule-bright)}
+.g-age-in:focus{border-bottom-color:var(--gold-bright);background:rgba(251,141,38,.08)}
+.g-card .row-x.g-del{position:absolute;top:7px;right:9px;width:18px;height:18px;line-height:1;font-size:14px;opacity:0;z-index:5;transition:opacity .15s,color .15s}
+.g-card:hover .row-x.g-del{opacity:.6}
+.g-card .row-x.g-del:hover{opacity:1;color:var(--negative-bright)}
 </style>
 </head>
 <body>
@@ -2016,7 +2036,7 @@ function renderSnapshot(){
    ranking is a planning/conversation surface — it adds NO engine math. */
 function goalsView(){
   const list = (Array.isArray(plan.goals)?plan.goals:[]).map((g,i)=>({
-    i, name:g.name||'New goal', amount:g.amount||0,
+    i, name:g.name||'', amount:g.amount||0,
     once:g.startAge===g.endAge, startAge:g.startAge, endAge:g.endAge,
   }));
   return {
@@ -2025,21 +2045,23 @@ function goalsView(){
     oneTime:   list.filter(g=> g.once).reduce((s,g)=>s+g.amount,0),
   };
 }
-// Compact card amount: $12K / $7.5K / $40K; full dollars under $1,000.
-const gAmt = v => v>=1000 ? '$'+(v/1000).toLocaleString('en-US',{maximumFractionDigits:1})+'K'
-                          : '$'+(v||0).toLocaleString('en-US');
-function renderGoalsBoard(){
-  const {list, recurring, oneTime} = goalsView();
+function goalsHeroHTML(){
+  const {recurring, oneTime} = goalsView();
   const oneTimeMeta = oneTime>0 ? ` &nbsp;&middot;&nbsp; <b>${fmtMoney(oneTime)}</b> one-time planned` : '';
+  return `<div class="g-eyebrow">Annual goal spend</div>
+    <div class="g-big">${fmtMoney(recurring)}<span class="g-per">/ year</span></div>
+    <div class="g-meta">today's dollars${oneTimeMeta}</div>`;
+}
+function renderGoalsBoard(){
+  const {list} = goalsView();
   const empty = list.length ? '' : `<div class="g-empty">No goals yet — add one to start prioritising.</div>`;
   return `<div class="g-hero">
-      <div class="g-lead">
-        <div class="g-eyebrow">Annual goal spend</div>
-        <div class="g-big">${fmtMoney(recurring)}<span class="g-per">/ year</span></div>
-        <div class="g-meta">today's dollars${oneTimeMeta}</div>
-      </div>
+      <div class="g-lead" id="g-lead">${goalsHeroHTML()}</div>
       <div class="g-actions">
-        <div class="g-add" data-add="goalRec"><span class="g-plus">+</span> Add a goal</div>
+        <div class="g-addrow">
+          <div class="g-add" data-add="goalRec"><span class="g-plus">+</span> Add a goal</div>
+          <div class="g-add g-add-sec" data-add="goalOnce"><span class="g-plus">+</span> One-time</div>
+        </div>
         <div class="g-legend"><span><i class="rec"></i>Recurring</span><span><i class="once"></i>One-time</span></div>
       </div>
     </div>
@@ -2049,12 +2071,33 @@ function renderGoalsBoard(){
       ${empty}
     </div>`;
 }
-// Build slots + draggable cards into the rendered shell and wire the pointer
-// drag/snap/swap. Called after renderInputs() injects the board markup.
+// One editable goal card. Cards are the FULL editable surface (name, amount,
+// age window / at-age) and the prioritisation handle — drag the body, edit the
+// fields. Each field is a data-path-free input handled locally so value edits
+// update in place (preserving the drag rank); add/remove route through the
+// shared #np-content handlers (a structural change, so a rebuild is fine).
+function goalCardHTML(g){
+  const tag = g.once ? '<span class="g-tag">One-time</span>' : '';
+  const per = g.once ? '' : '<span class="g-per2">/yr</span>';
+  const amtStr = (g.amount||0).toLocaleString('en-US');
+  const ages = g.once
+    ? `Lands once · age <input class="g-age-in" data-f="startAge" data-sync="endAge" data-type="num" value="${g.startAge}">`
+    : `Recurring · ages <input class="g-age-in" data-f="startAge" data-type="num" value="${g.startAge}">–<input class="g-age-in" data-f="endAge" data-type="num" value="${g.endAge}">`;
+  return `<div class="g-main">
+       <div class="g-name"><input class="g-name-in" data-f="name" data-type="text" value="${escHtml(g.name)}" placeholder="Goal name">${tag}</div>
+       <div class="g-kind">${ages}</div>
+     </div>
+     <div class="g-amt"><span class="g-cur">$</span><input class="g-amt-in" data-f="amount" data-type="money" inputmode="numeric" value="${amtStr}">${per}</div>
+     <button class="row-x g-del" data-rmpath="goals.${g.i}" title="Remove this goal">×</button>`;
+}
+// Build slots + editable, draggable cards into the rendered shell; wire pointer
+// drag/snap/swap, inline editing, and rank persistence. Called after
+// renderInputs() injects the board markup.
 function initGoalsBoard(){
   const {list} = goalsView();
-  const board = $('#g-board'), traylab = $('#g-traylab');
+  const board = $('#g-board'), traylab = $('#g-traylab'), lead = $('#g-lead');
   if(!board) return;
+  const RANK_KEY='parallax.goals.rank';
   const NSLOT=Math.max(6, list.length), CW=368, CH=72, GAP=14;
   const SNAP='left .2s cubic-bezier(.2,.7,.2,1),top .2s cubic-bezier(.2,.7,.2,1),box-shadow .16s,transform .12s';
   const slots=[], cards=[];
@@ -2064,15 +2107,27 @@ function initGoalsBoard(){
     s.innerHTML='<span class="g-rank">'+(i+1)+'</span>';
     board.appendChild(s); slots.push({el:s,x:0,y:0,card:null});
   }
-  list.forEach((g,i)=>{
+  list.forEach((g)=>{
     const el=document.createElement('div'); el.className='g-card'+(g.once?' once':'');
-    const per = g.once ? '' : '<span class="g-per2">/yr</span>';
-    const tag = g.once ? '<span class="g-tag">One-time</span>' : '';
-    const note = g.once ? `Lands once · age ${g.startAge}` : `Recurring · ages ${g.startAge}–${g.endAge}`;
-    el.innerHTML='<div class="g-main"><div class="g-name">'+escHtml(g.name)+tag+'</div><div class="g-kind">'+note+'</div></div><div class="g-amt">'+gAmt(g.amount)+per+'</div>';
+    el.dataset.i=g.i; el.innerHTML=goalCardHTML(g);
     board.appendChild(el);
-    const c={el,slot:null,fromSlot:null,homeX:0,homeY:0,idx:i}; el._c=c; cards.push(c);
+    const c={el,slot:null,fromSlot:null,homeX:0,homeY:0,idx:g.i}; el._c=c; cards.push(c);
   });
+  // Restore a saved rank only if the goal COUNT is unchanged — add/remove shifts
+  // indices, so a structural change cleanly resets the board to the tray.
+  try{
+    const saved=JSON.parse(localStorage.getItem(RANK_KEY)||'null');
+    if(saved && saved.n===list.length && Array.isArray(saved.order)){
+      saved.order.forEach((gi,si)=>{
+        if(gi==null) return;
+        const c=cards.find(c=>c.idx===gi), s=slots[si];
+        if(c && s && !s.card && c.slot===null){ s.card=c; c.slot=s; s.el.classList.add('filled'); }
+      });
+    }
+  }catch{}
+  function saveRank(){
+    try{ localStorage.setItem(RANK_KEY, JSON.stringify({n:list.length, order:slots.map(s=>s.card?s.card.idx:null)})); }catch{}
+  }
   function layout(){
     const W=board.clientWidth, H=board.clientHeight;
     const totalH=NSLOT*CH+(NSLOT-1)*GAP;
@@ -2089,11 +2144,35 @@ function initGoalsBoard(){
   layout();
   // Re-layout on board resize; one observer at a time (renderInputs disconnects).
   window.__gObs = new ResizeObserver(layout); window.__gObs.observe(board);
+
+  // ── Inline editing (local; preserves the drag rank — no board rebuild) ──
+  const refreshHero=()=>{ if(lead) lead.innerHTML=goalsHeroHTML(); };
+  board.addEventListener('input', e=>{
+    const inp=e.target.closest('[data-f]'); if(!inp) return;
+    e.stopPropagation();                       // don't double-fire the global liveCommas
+    if(inp.classList.contains('g-amt-in')) liveCommas(inp);
+  });
+  board.addEventListener('change', e=>{
+    const inp=e.target.closest('[data-f]'); if(!inp) return;
+    e.stopPropagation();                       // value edits stay local (rank intact)
+    const i=+inp.closest('.g-card').dataset.i, f=inp.dataset.f, type=inp.dataset.type;
+    let val;
+    if(type==='money')    val=Math.round(parseFloat(String(inp.value).replace(/[^0-9.]/g,''))||0);
+    else if(type==='num') val=parseInt(inp.value,10)||0;
+    else                  val=inp.value;
+    if(plan.goals[i]){ plan.goals[i][f]=val; if(inp.dataset.sync) plan.goals[i][inp.dataset.sync]=val; }
+    refreshHero();
+    reseedScenarios(); buildLevers(); sharedPaths=null; plansDirty=true;
+    $('#status').textContent='Plan edited · open Scenarios';
+  });
+
+  // ── Drag / snap / swap (skip when the pointer lands on an editable control) ──
   let active=null,offX=0,offY=0;
   const nearestSlot=(cx,cy)=>{ let best=null,bd=1e9; slots.forEach(s=>{ const sx=s.x+CW/2,sy=s.y+CH/2,d=Math.hypot(cx-sx,cy-sy); if(d<175&&d<bd){bd=d;best=s;} }); return best; };
   const moveTo=(c,x,y)=>{ c.el.style.transition=SNAP; c.el.style.left=x+'px'; c.el.style.top=y+'px'; };
   const fillSlot=(c,s,flash)=>{ s.card=c; c.slot=s; s.el.classList.add('filled'); if(flash){ s.el.classList.add('flash'); setTimeout(()=>s.el.classList.remove('flash'),520); } };
   board.addEventListener('pointerdown',e=>{
+    if(e.target.closest('input,button,select')) return;   // let edits/delete work
     const el=e.target.closest('.g-card'); if(!el) return;
     active=el._c; active.fromSlot=active.slot; el.classList.add('drag');
     el.style.transition='box-shadow .16s,transform .12s'; el.setPointerCapture(e.pointerId);
@@ -2123,6 +2202,7 @@ function initGoalsBoard(){
       else          { moveTo(a,a.homeX,a.homeY); a.slot=null; }
     }
     el.classList.remove('drag'); slots.forEach(s=>s.el.classList.remove('hot')); active=null;
+    saveRank();
   });
 }
 
