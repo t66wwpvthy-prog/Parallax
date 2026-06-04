@@ -8,34 +8,31 @@
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
 <style>
 :root{
-  /* AURORA GLASS re-skin. Engine + layout untouched — only these theme tokens
-     flip from the old "paper" palette to Aurora (dark purple glass). Every
-     variable NAME is preserved, so all existing rules re-theme in place. */
-  --bg-deep:#160F08; --bg:#1A130B;
-  /* Glass surfaces — translucent bronze so the gradient bleeds through; the blur
-     + inner rim (added on the panel classes) is what makes them read as glass. */
-  --surface:rgba(40,28,19,.44); --surface-2:rgba(255,255,255,.07); --surface-3:rgba(50,37,26,.38);
-  --rule:rgba(255,255,255,.14); --rule-bright:rgba(255,255,255,.26); --rule-faint:rgba(255,255,255,.08);
-  /* No pure white anywhere — the brightest ink is a warm off-white. Hierarchy
-     comes from weight / size / the gold accent, never from a brighter white. */
-  --ink:#E9DFD0; --ink-bright:#F4EDE1; --ink-mute:#B3A48F; --ink-faint:rgba(231,221,205,.50); --ink-ghost:rgba(231,221,205,.24);
-  --gold:#D2943C; --gold-bright:#E6AE55; --gold-deep:#A9762C; --gold-glow:rgba(210,148,60,.24);
-  --teal:#86A7C5; --teal-bright:#A3BFD8; --teal-deep:#6588A6; --teal-glow:rgba(134,167,197,.16);
-  /* Result language: muted sage (strong) / bronze (caution, via --gold) /
-     distressed coral (at-risk) — all muted, no neon. */
-  --positive:#7FB58F; --positive-bright:#97C9A4;
-  --clay:#D87D6B;
-  --negative:#CF7468; --negative-bright:#DE8979;
-  --s1:#D2943C; --s2:#86A7C5; --s3:#A576D6;
+  /* SAGE GLASS — luminous sage ground, sage green glass, copper accent.
+     The mock's "light sage" comes from a big bright sage card filling the view;
+     Parallax has no such card, so we carry that light into the body ground + lift
+     the panels to a translucent sage tint that lets the bright ground through. */
+  --bg-deep:#13241d; --bg:#16271f;
+  --surface:rgba(150,190,165,.13); --surface-2:rgba(183,221,195,.10); --surface-3:rgba(150,190,165,.09);
+  --rule:rgba(225,247,232,.20); --rule-bright:rgba(235,250,240,.34); --rule-faint:rgba(225,247,232,.10);
+  --ink:#f5f8f6; --ink-bright:#ffffff; --ink-mute:#9bb8a8; --ink-faint:rgba(230,238,234,.58); --ink-ghost:rgba(220,240,228,.24);
+  --gold:#c47b31; --gold-bright:#fb8d26; --gold-deep:#aa692a; --gold-glow:rgba(196,123,49,.24);
+  --teal:#8cc69e; --teal-bright:#b3ded7; --teal-deep:#6aa882; --teal-glow:rgba(140,198,158,.16);
+  --positive:#8ad39e; --positive-bright:#a6e0b8;
+  --clay:#df876e;
+  --negative:#d4706a; --negative-bright:#e08a7a;
+  --s1:#fb8d26; --s2:#82daa1; --s3:#b3ded7;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;background:var(--bg);font-family:'Sora',sans-serif;color:var(--ink);font-size:14px;-webkit-font-smoothing:antialiased;overflow:hidden}
-body{background-color:#1A130B;background-image:
-  radial-gradient(circle at 78% 7%, rgba(150,122,86,.55), transparent 48%),
-  radial-gradient(circle at 33% 30%, rgba(103,84,64,.32), transparent 42%),
-  radial-gradient(circle at 11% 88%, rgba(18,12,7,.55), transparent 34%),
-  radial-gradient(circle at 90% 92%, rgba(18,12,7,.45), transparent 36%),
-  linear-gradient(165deg,#2A2014,#221A11 45%,#1A130B 78%,#120C06);}
+body{background-color:#16271f;background-image:
+  radial-gradient(circle at 52% 22%, rgba(205,235,212,.40), transparent 46%),
+  radial-gradient(circle at 80% 40%, rgba(150,190,165,.28), transparent 38%),
+  radial-gradient(circle at 22% 78%, rgba(140,185,158,.20), transparent 42%),
+  linear-gradient(90deg, rgba(255,255,255,.022) 1px, transparent 1px),
+  linear-gradient(180deg, rgba(255,255,255,.022) 1px, transparent 1px),
+  linear-gradient(135deg,#15281f 0%,#22392f 48%,#16271f 100%);
+background-size:auto,auto,auto,64px 64px,64px 64px,auto;}
 .wrap{height:100vh;display:flex;flex-direction:column;overflow:hidden}
 
 /* ─── GLASS LAYER ───────────────────────────────────────────────────
@@ -45,13 +42,13 @@ body{background-color:#1A130B;background-image:
 .solve-panel,.acct-picker,.metric,.cf-drawer,.seq-pick,.seq-chart,.seq-print,.prop{
   backdrop-filter:blur(16px) saturate(1.15);
   -webkit-backdrop-filter:blur(16px) saturate(1.15);
-  background-image:linear-gradient(155deg,rgba(255,255,255,.08),rgba(255,255,255,0) 52%);
+  background-image:linear-gradient(155deg,rgba(183,221,195,.10),rgba(183,221,195,0) 52%);
   /* No hard border — the glass edge is a whisper-faint full inset ring + a
      brighter top rim-light, with a soft drop shadow for lift. */
   box-shadow:0 22px 48px -24px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.14), inset 0 0 0 1px rgba(255,255,255,.05);
 }
 
-.hdr{display:flex;align-items:center;gap:18px;padding:13px 28px;border-bottom:1px solid var(--rule);background:rgba(26,19,11,.55);backdrop-filter:blur(20px) saturate(1.1);-webkit-backdrop-filter:blur(20px) saturate(1.1);flex:0 0 auto;position:relative;z-index:50}
+.hdr{display:flex;align-items:center;gap:18px;padding:13px 28px;border-bottom:1px solid var(--rule);background:rgba(20,38,30,.50);backdrop-filter:blur(20px) saturate(1.1);-webkit-backdrop-filter:blur(20px) saturate(1.1);flex:0 0 auto;position:relative;z-index:50}
 .wordmark{font-size:15px;font-weight:600;letter-spacing:.30em;text-transform:uppercase;color:var(--ink-bright)}
 .hdr-tabs{display:flex;margin-left:24px}
 .htab{background:none;border:none;border-bottom:2px solid transparent;color:var(--ink-mute);cursor:pointer;font-family:'Sora';font-size:12px;letter-spacing:.2em;text-transform:uppercase;padding:6px 20px;font-weight:500;transition:color .2s,border-color .2s}
@@ -106,7 +103,7 @@ body{background-color:#1A130B;background-image:
 /* Same idiom as every other input in the app: dashed underline, transparent,
    gold on focus. Just bigger. */
 .sf-box{font-family:'Inter';font-size:19px;font-weight:500;color:var(--ink);background:rgba(255,255,255,.05);border:none;border-radius:6px;padding:3px 6px;outline:none;width:64px;text-align:right;-moz-appearance:textfield;transition:background .15s}
-.sf-box:focus{background:rgba(214,170,89,.13)}
+.sf-box:focus{background:rgba(196,123,49,.13)}
 .sf-box::-webkit-outer-spin-button,.sf-box::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .sf-box:hover{border-bottom-color:var(--gold)}
 .sf-box:focus{border-bottom:1px solid var(--gold)}
@@ -210,7 +207,7 @@ body{background-color:#1A130B;background-image:
 /* No spreadsheet underlines — editability shows as a soft glassy fill on
    hover/focus instead, keeping the levers in the glass language. */
 .lev-val .pen-in:hover,.lev-val .lev-in:hover{background:rgba(255,255,255,.05)}
-.lev-val .pen-in:focus,.lev-val .lev-in:focus{background:rgba(214,170,89,.13)}
+.lev-val .pen-in:focus,.lev-val .lev-in:focus{background:rgba(196,123,49,.13)}
 /* Inline type-in boxes for the dollar/age levers; width tuned per content. */
 .lev-val .lev-in{font-family:'Inter';font-size:16.5px;font-weight:500;color:inherit;background:transparent;border:none;border-radius:5px;width:78px;padding:1px 3px;outline:none;text-align:right;transition:background .15s}
 .lev-val .lev-in.age-in{width:34px;text-align:center}
@@ -308,7 +305,7 @@ body{background-color:#1A130B;background-image:
 .np-snapshot-page .snap{display:flex;flex-direction:column;gap:0;max-width:560px;
   background:var(--surface);border-radius:14px;padding:2px 24px;
   backdrop-filter:blur(16px) saturate(1.15);-webkit-backdrop-filter:blur(16px) saturate(1.15);
-  background-image:linear-gradient(155deg,rgba(255,255,255,.08),rgba(255,255,255,0) 52%);
+  background-image:linear-gradient(155deg,rgba(183,221,195,.10),rgba(183,221,195,0) 52%);
   box-shadow:0 22px 48px -24px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.14),inset 0 0 0 1px rgba(255,255,255,.05)}
 .np-snapshot-page .metric{background:none;background-image:none;backdrop-filter:none;-webkit-backdrop-filter:none;
   box-shadow:none;border-radius:0;padding:16px 0;gap:8px;border-top:1px solid var(--rule-faint)}
@@ -376,14 +373,14 @@ body{background-color:#1A130B;background-image:
 /* Typed-account picker (Option A — bucket rows) + added-account rows + tags */
 .bs-row .acct-tag{font-family:'Sora';font-size:8.5px;letter-spacing:.06em;text-transform:uppercase;font-weight:600;padding:2px 6px;border-radius:20px;margin-left:9px}
 .acct-tag.traditional{color:var(--teal-deep);background:rgba(63,107,120,.10)}
-.acct-tag.roth{color:#4f7a3c;background:rgba(79,122,60,.12)}
+.acct-tag.roth{color:#6aa882;background:rgba(106,168,130,.12)}
 .acct-tag.taxable{color:var(--gold-deep);background:rgba(154,115,34,.10)}
 .acct-picker{margin:12px 0 4px;background:var(--surface);border-radius:14px;padding:14px 16px}
 .acct-picker h5{font-family:'Sora';font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-mute);font-weight:600;margin-bottom:11px}
 .acct-brow{display:flex;align-items:flex-start;gap:14px;padding:5px 0;border-bottom:1px solid var(--rule-faint)}
 .acct-brow:last-of-type{border-bottom:none}
 .acct-blabel{width:60px;font-family:'Sora';font-size:9px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;padding-top:6px;flex:none}
-.acct-blabel.traditional{color:var(--teal-deep)} .acct-blabel.roth{color:#4f7a3c} .acct-blabel.taxable{color:var(--gold-deep)}
+.acct-blabel.traditional{color:var(--teal-deep)} .acct-blabel.roth{color:#6aa882} .acct-blabel.taxable{color:var(--gold-deep)}
 .acct-chips{display:flex;flex-wrap:wrap;gap:6px}
 .acct-chip{border:1px solid var(--rule-faint);border-radius:8px;padding:4px 9px;font-family:'Sora';font-size:11.5px;background:var(--surface-2);cursor:pointer;color:var(--ink)}
 .acct-chip:hover{border-color:var(--gold-bright)}
@@ -495,17 +492,17 @@ body{background-color:#1A130B;background-image:
    The coloured hero number already carries the meaning; this just names the zone. */
 .wr-zones{display:flex;gap:0;border-radius:8px;overflow:hidden;border:1px solid var(--rule-faint)}
 .wr-zone{flex:1;padding:9px 0;text-align:center;font-family:'Sora';font-size:10.5px;letter-spacing:.1em;font-weight:700;text-transform:uppercase;color:var(--ink-faint);background:transparent;transition:background .15s}
-.wr-zone.active-teal{background:#2e5e4e;color:#a9d5cf}
-.wr-zone.active-gold{background:#4a3a10;color:#f0c773}
-.wr-zone.active-clay{background:#4a1f1d;color:#f0918d}
+.wr-zone.active-teal{background:rgba(42,100,72,.55);color:#82daa1}
+.wr-zone.active-gold{background:rgba(100,65,18,.55);color:#fb8d26}
+.wr-zone.active-clay{background:rgba(100,45,40,.55);color:#e08a7a}
 .g-note{margin-top:30px;font-family:'Sora';font-size:12.5px;color:var(--ink-mute);font-weight:500;line-height:1.5}
 .g-note b{font-family:'Inter';color:var(--ink-bright);font-weight:600}
 /* segmented proportion bar (tax location) */
 .seg{height:40px;border-radius:6px;overflow:hidden;display:flex;box-shadow:inset 0 0 0 1px var(--rule)}
 .seg div{display:flex;align-items:center;justify-content:center;color:#fff;font-family:'Inter';font-size:13px;font-weight:600;min-width:0;overflow:hidden}
-.seg .s-tax{background:linear-gradient(180deg,#52646E,#3C4A52)}
-.seg .s-def{background:linear-gradient(180deg,#9A7A45,#73572F)}
-.seg .s-roth{background:linear-gradient(180deg,#4E6A58,#3A5042)}
+.seg .s-tax{background:linear-gradient(180deg,#4a7a8a,#345c6a)}
+.seg .s-def{background:linear-gradient(180deg,#c47b31,#8a5522)}
+.seg .s-roth{background:linear-gradient(180deg,#3d7a5a,#2c5c42)}
 
 /* Year-by-year cash-flow drawer on the Scenarios page. Three scenarios side
    by side; each scenario's columns are softly tinted in its line color so the
@@ -529,7 +526,7 @@ body{background-color:#1A130B;background-image:
 .cf-table td.dim{color:var(--ink-faint)}
 /* Alternating per-scenario column tint in the cash-flow table — two faint
    washes that cycle regardless of how many scenarios there are. */
-.cf-g0{background:rgba(63,107,120,.045)} .cf-g1{background:rgba(154,115,34,.05)}
+.cf-g0{background:rgba(90,160,120,.04)} .cf-g1{background:rgba(196,123,49,.04)}
 .cf-table tr.retire td{border-top:1px dashed var(--gold);}
 .cf-table tr.retire td.age::after{content:'  retire';color:var(--gold);font-size:10px;font-weight:500;letter-spacing:.1em}
 
@@ -1945,7 +1942,7 @@ plan.simulation.iterations = 1000;
 // (matches --s1/2/3); two more earthy tones extend it when the advisor adds a
 // 4th/5th scenario. colorFor() cycles the palette so any count gets a color.
 // No green here (reserved for the success language) and no mint.
-const SCEN_PALETTE=['#9a7322','#3f6b78','#7d5a82','#6f7a52','#9a5a3f'];
+const SCEN_PALETTE=['#c47b31','#82daa1','#b3ded7','#b45991','#e68169'];
 const colorFor=i=>SCEN_PALETTE[i % SCEN_PALETTE.length];
 const MAX_SCENARIOS=5;
 /* The three scenario columns. Each holds lever values + its last engine result.
@@ -3392,7 +3389,7 @@ function runAll(){
 // Success ring color band: steel-teal (strong) / brass (caution) /
 // clay (at risk). No green — matches the Obsidian Brass result tokens.
 // Ring band matches the % number: deep green / bronze gold / deep burgundy.
-function ringColor(pct){ return pct>=85?'#384820':pct>=70?'#B5803B':'#A8534A'; }
+function ringColor(pct){ return pct>=85?'#2d5a40':pct>=70?'#c47b31':'#d4706a'; }
 function ring(pct){
   // SVG fills its .circle-wrap via viewBox, so the ring size is controlled by
   // CSS (one place). Thin stroke near the edge leaves room for the % number.
@@ -3745,7 +3742,7 @@ function fmtM(v){ if(!isFinite(v)||v<=0) return '$0'; if(v>=1e6) return '$'+(v/1
 // Plot margins inside the viewBox (leaves room for axis labels).
 const PADL=78, PADR=14, PADT=12, PADB=30;
 // Chart axis colors, matched to the light-theme tokens (--rule-faint / --ink-faint).
-const GRID='#e8e2d5', AXIS_INK='#8a93a0';
+const GRID='rgba(230,246,235,.18)', AXIS_INK='rgba(226,232,232,.78)';
 // Smooth a series of [x,y] points into a path using Catmull-Rom -> bezier.
 // Tension kept low so the line stays trackable, not wavy ("toddler-drawn").
 // Monotone cubic interpolation (Fritsch–Carlson). Unlike Catmull-Rom it CANNOT
@@ -3897,14 +3894,14 @@ function renderCashflow(){
 // candy-bright. Default four (slate-blue / teal-green / brass / rust) are picked
 // to be maximally distinct from each other on the cream paper.
 const SEQ_YEARS=[
-  {y:1929, tag:'Great Depression',  c:'#7d4a6b', on:false},  // plum
-  {y:1966, tag:'the lost decade',   c:'#3f566b', on:true },  // deep slate blue
-  {y:1973, tag:'stagflation',       c:'#357a5e', on:true },  // deep teal-green
-  {y:1987, tag:'Black Monday',      c:'#4a6f7a', on:false},  // steel
-  {y:1995, tag:'the 90s boom',      c:'#a8742a', on:true },  // antique brass
-  {y:2000, tag:'dot-com crash',     c:'#99513f', on:true },  // deep rust
-  {y:2008, tag:'financial crisis',  c:'#8c4a5a', on:false},  // claret
-  {y:2009, tag:'the recovery bull', c:'#4f9d72', on:false},  // fresh green
+  {y:1929, tag:'Great Depression',  c:'#b45991', on:false},
+  {y:1966, tag:'the lost decade',   c:'#b3ded7', on:true },
+  {y:1973, tag:'stagflation',       c:'#82daa1', on:true },
+  {y:1987, tag:'Black Monday',      c:'#bdecca', on:false},
+  {y:1995, tag:'the 90s boom',      c:'#fb8d26', on:true },
+  {y:2000, tag:'dot-com crash',     c:'#e68169', on:true },
+  {y:2008, tag:'financial crisis',  c:'#6dd091', on:false},
+  {y:2009, tag:'the recovery bull', c:'#a8c6c6', on:false},
 ];
 
 function buildSeqSelect(){
