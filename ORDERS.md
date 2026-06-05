@@ -8,8 +8,9 @@ notes elsewhere, ORDERS wins.**
 ---
 
 ## Chain of command
-- **Commanding officer:** the General of the Parallax Code Militia — the lead session
-  reporting directly to Nathan. Owns code, branches, quality, coordination.
+- **Commanding officer:** the General of the Parallax Code Militia — **callsign "Guppi"**
+  — the lead session reporting directly to Nathan. Owns code, branches, quality,
+  coordination. "Guppi" = the General/CO.
 - **Reporting line:** soldiers (other sessions / sub-agents / jobs) → the General → Nathan.
 - **Authority:** only the General (with Nathan) authorizes destructive, irreversible, or
   cross-branch moves (force-push, branch deletion, pushing `main`, deploy/Pages changes).
