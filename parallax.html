@@ -639,6 +639,7 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield}
 .cf-pill:hover{border-color:var(--rule-bright);color:var(--ink)}
 .cf-pill.on{font-weight:700}
 .cf-table .cf-rmd{color:var(--ink-mute);font-style:italic}
+.cf-table .cf-pos{color:var(--positive)} .cf-table .cf-neg{color:var(--negative)}
 .cf-scroll{max-height:460px;overflow:auto}
 .cf-empty{padding:26px 18px;color:var(--ink-mute);font-family:'Sora';font-size:13px;text-align:center}
 .cf-table{width:100%;border-collapse:collapse;font-family:'Inter';font-size:12px;font-variant-numeric:tabular-nums}
@@ -4665,6 +4666,11 @@ function cfMoney(v){
   if(n === 0) return '$0';
   return '$' + Math.abs(n).toLocaleString('en-US');
 }
+// Annual portfolio return — the market's contribution that year. % is the real
+// return used by the engine; $ is that return applied to the year's start balance
+// (today's dollars), so good/bad sequencing reads straight off the table.
+function cfRetPct(r){ if(!isFinite(r)) return '—'; const p = r*100; return (p>=0?'+':'−') + Math.abs(p).toFixed(1) + '%'; }
+function cfGain(v){ if(!isFinite(v) || Math.round(v)===0) return '$0'; return (v<0?'−':'+') + '$' + Math.abs(Math.round(v)).toLocaleString('en-US'); }
 let cfCompare = null;   // original index of the 2nd (comparison) scenario shown
 function renderCashflow(){
   const drawer = $('#cf-drawer');
@@ -4694,7 +4700,7 @@ function renderCashflow(){
   // cash flow instead of just inflating that year's withdrawal silently.
   const hasGoals = rowsByScen.some(rows => rows.some(r => r && r.goals > 0));
   const hasLump  = rowsByScen.some(rows => rows.some(r => r && r.lumpSum > 0));
-  const cols = 3 + (hasRmd?1:0) + (hasGoals?1:0) + (hasLump?1:0);
+  const cols = 5 + (hasRmd?1:0) + (hasGoals?1:0) + (hasLump?1:0);   // +Return %, +Return $
   let h = '<table class="cf-table"><thead><tr><th class="age" rowspan="2">Age</th>';
   shown.forEach((si,pos)=>{
     h += `<th class="scen ${gcls[pos]}" colspan="${cols}" style="color:${colorFor(si)}">${escHtml(scenarios[si].name)}</th>`;
@@ -4705,6 +4711,7 @@ function renderCashflow(){
     if(hasRmd)  h += `<th class="${gcls[pos]} cf-rmd" title="Gross required minimum — already part of Withdraw, not additional">RMD</th>`;
     if(hasGoals) h += `<th class="${gcls[pos]}">Goals</th>`;
     if(hasLump)  h += `<th class="${gcls[pos]}">One-time</th>`;
+    h += `<th class="${gcls[pos]}">Return %</th><th class="${gcls[pos]}">Return $</th>`;
     h += `<th class="${gcls[pos]}">End Balance</th>`;
   });
   h += '</tr></thead><tbody>';
@@ -4733,6 +4740,11 @@ function renderCashflow(){
       if(hasGoals) h += `<td class="${gcls[pos]}">${(r.goals > 0) ? cfMoney(r.goals) : dash}</td>`;
       // One-time event (Scenarios lever) — shows in whichever phase it lands.
       if(hasLump)  h += `<td class="${gcls[pos]}">${(r.lumpSum > 0) ? cfMoney(r.lumpSum) : dash}</td>`;
+      // Portfolio return (% and $) — shown in every phase; the market acts on the
+      // balance whether you're still saving or drawing down.
+      const rr = r.realReturnUsed, gain = (r.startBalance || 0) * rr, rc = rr >= 0 ? 'cf-pos' : 'cf-neg';
+      h += `<td class="${gcls[pos]} ${isFinite(rr)?rc:''}">${isFinite(rr) ? cfRetPct(rr) : dash}</td>`;
+      h += `<td class="${gcls[pos]} ${isFinite(rr)?rc:''}">${isFinite(rr) ? cfGain(gain) : dash}</td>`;
       h += `<td class="${gcls[pos]}">${cfMoney(r.balance || 0)}</td>`;
     });
     h += '</tr>';
