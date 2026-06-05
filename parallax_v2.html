@@ -3595,5 +3595,152 @@ renderSolvePanel();
 renderInputs();
 runAll();   // first iteration runs immediately so the tool opens populated
 </script>
+
+<!-- ════════════════ SUGGEST MODE (review/annotate overlay) ════════════════
+     Self-contained. Tap any element to pin a note; captures its location and,
+     for inputs, an optional before→after value. Persists in localStorage.
+     "Copy for Guppi" puts a clean structured list on the clipboard. -->
+<style>
+#sg-fab{position:fixed;right:16px;bottom:16px;z-index:9500;font-family:'Sora',sans-serif;font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:var(--gold-bright);background:linear-gradient(180deg,rgba(40,32,18,.92),rgba(26,20,11,.94));border:1px solid var(--rule-bright);border-radius:22px;padding:10px 16px;cursor:pointer;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);box-shadow:0 6px 20px rgba(0,0,0,.45)}
+#sg-fab:hover{color:var(--gold);border-color:var(--gold)}
+body.sg-on #sg-fab{display:none}
+#sg-bar{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:9500;display:none;align-items:center;gap:9px;font-family:'Sora';font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink);background:linear-gradient(180deg,rgba(34,27,15,.97),rgba(22,17,10,.97));border:1px solid var(--rule-bright);border-radius:14px;padding:8px 9px 8px 15px;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);box-shadow:0 8px 26px rgba(0,0,0,.5)}
+body.sg-on #sg-bar{display:flex}
+#sg-bar .sg-count{color:var(--gold-bright);font-weight:700}
+.sg-btn{font-family:'Sora';font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:var(--ink-mute);background:transparent;border:1px solid var(--rule);border-radius:9px;padding:6px 11px;cursor:pointer;white-space:nowrap}
+.sg-btn:hover{color:var(--ink-bright);border-color:var(--rule-bright)}
+.sg-btn.primary{color:#1a1408;background:linear-gradient(180deg,var(--gold-bright),var(--gold-deep));border-color:var(--gold-deep)}
+.sg-btn.primary:hover{filter:brightness(1.06)}
+body.sg-on .wrap *{cursor:crosshair}
+.sg-pin{position:fixed;z-index:9400;width:20px;height:20px;margin:-10px 0 0 -10px;border-radius:50%;background:radial-gradient(circle at 35% 30%,var(--gold-bright),var(--gold-deep));border:1.5px solid #1a1408;color:#1a1408;font-family:'Inter',sans-serif;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.5)}
+#sg-pop{position:fixed;z-index:9600;width:300px;max-width:calc(100vw - 24px);background:linear-gradient(180deg,rgba(36,29,16,.98),rgba(24,19,11,.99));border:1px solid var(--rule-bright);border-radius:14px;padding:14px;-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);box-shadow:0 14px 40px rgba(0,0,0,.6);display:none;font-family:'Sora'}
+#sg-pop.on{display:block}
+#sg-pop .sg-loc{font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:var(--gold-bright);font-weight:600;line-height:1.45;margin-bottom:6px}
+#sg-pop .sg-cur{font-family:'Inter';font-size:12px;color:var(--ink-mute);margin-bottom:2px}
+#sg-pop label{display:block;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);margin:10px 0 4px}
+#sg-pop textarea,#sg-pop .sg-newval{width:100%;font-family:'Inter';font-size:16px;color:var(--ink-bright);background:rgba(0,0,0,.28);border:1px solid var(--rule);border-radius:8px;padding:8px;outline:none}
+#sg-pop textarea{min-height:62px;resize:vertical}
+#sg-pop textarea:focus,#sg-pop .sg-newval:focus{border-color:var(--gold)}
+#sg-pop .sg-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:11px}
+#sg-toast{position:fixed;left:50%;bottom:66px;transform:translateX(-50%);z-index:9700;background:rgba(20,16,9,.96);border:1px solid var(--gold);border-radius:10px;color:var(--gold-bright);font-family:'Sora';font-size:11px;letter-spacing:.07em;padding:9px 16px;opacity:0;transition:opacity .25s;pointer-events:none}
+#sg-toast.on{opacity:1}
+</style>
+<button id="sg-fab" title="Suggest edits — tap things and leave notes">&#9998; Suggest</button>
+<div id="sg-bar">
+  <span><span class="sg-count">0</span>&nbsp;notes</span>
+  <button class="sg-btn primary" id="sg-copy">Copy for Guppi</button>
+  <button class="sg-btn" id="sg-dl">Download</button>
+  <button class="sg-btn" id="sg-clear">Clear</button>
+  <button class="sg-btn" id="sg-done">Done</button>
+</div>
+<div id="sg-pop"></div>
+<div id="sg-toast"></div>
+<script>
+(function(){
+  const KEY='parallax_suggest_v1';
+  let notes=[]; try{ notes=JSON.parse(localStorage.getItem(KEY)||'[]')||[] }catch{}
+  let on=false, seq=notes.reduce((m,n)=>Math.max(m,n.id),0), ivl=null;
+  const q=s=>document.querySelector(s);
+  const fab=q('#sg-fab'),bar=q('#sg-bar'),pop=q('#sg-pop'),toast=q('#sg-toast');
+  const nice={'net-worth':'Household','scenarios':'Scenarios','sequencing':'Sequencing'};
+  const save=()=>{ try{ localStorage.setItem(KEY,JSON.stringify(notes)) }catch{} };
+  const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const activePage=()=>document.querySelector('.htab.on')?.dataset.page||'';
+  function colName(el){ const c=el.closest('[data-col]'); if(!c)return''; const i=+c.dataset.col;
+    const names=[...document.querySelectorAll('.col-name')].map(n=>n.textContent.replace(/[✕✎]/g,'').trim());
+    return names[i]||('Column '+(i+1)); }
+  function rowLabel(el){ const g=el.closest('.scn-levers,.scn-goals,.scn-foot'); if(!g)return'';
+    let ch=el; while(ch&&ch.parentElement!==g) ch=ch.parentElement;
+    let s=ch; while(s){ if(s.classList&&s.classList.contains('lev-name')) return s.textContent.trim(); s=s.previousElementSibling; } return''; }
+  function nwHead(el){ if(activePage()!=='net-worth')return''; let node=el;
+    while(node&&node!==document.body){ let s=node; while(s){ if(s.classList&&s.classList.contains('bs-head')) return s.textContent.trim(); s=s.previousElementSibling; } node=node.parentElement; } return''; }
+  function curValue(el){ if(el.matches('input,textarea')) return (el.value||'').trim(); if(el.matches('select')) return el.value||''; return''; }
+  function selfDesc(el){
+    if(el.matches('input,textarea')){ const v=curValue(el); const ph=el.placeholder||el.getAttribute('aria-label')||''; return (ph?ph+' ':'field ')+(v?('= '+v):'(empty)'); }
+    if(el.matches('select')) return 'dropdown = '+(el.value||'');
+    let t=(el.getAttribute('aria-label')||el.title||el.textContent||'').replace(/\s+/g,' ').trim();
+    if(t.length>46)t=t.slice(0,46)+'…'; return t||el.tagName.toLowerCase(); }
+  function locator(el){ const parts=[nice[activePage()]||'App'];
+    const c=colName(el); if(c)parts.push(c);
+    const r=rowLabel(el); if(r)parts.push(r);
+    const h=nwHead(el); if(h&&!r)parts.push(h);
+    parts.push(selfDesc(el)); return parts.filter(Boolean).join(' ▸ '); }
+  function cssPath(el){ const root=el.closest('.page')||document.body; const seg=[]; let n=el;
+    while(n&&n!==root&&seg.length<7){ let i=1,s=n; while((s=s.previousElementSibling)){ if(s.tagName===n.tagName)i++; }
+      seg.unshift(n.tagName.toLowerCase()+':nth-of-type('+i+')'); n=n.parentElement; }
+    const pg=root.dataset?.page; return (pg?'.page[data-page="'+pg+'"] ':'')+seg.join(' > '); }
+  let editingId=null;
+  function openPop(el,cx,cy,existing){
+    editingId=existing?existing.id:null;
+    const loc=existing?existing.locator:locator(el);
+    const cur=existing?existing.value:curValue(el);
+    const isInput=existing?existing.isInput:el.matches('input,textarea,select');
+    pop.innerHTML=`<div class="sg-loc">${esc(loc)}</div>`
+      +(cur?`<div class="sg-cur">now: ${esc(cur)}</div>`:'')
+      +(isInput?`<label>Change value to (optional)</label><input class="sg-newval" value="${esc(existing&&existing.newValue||'')}" placeholder="leave blank to keep">`:'')
+      +`<label>Your note</label><textarea placeholder="what should change here?">${esc(existing&&existing.note||'')}</textarea>`
+      +`<div class="sg-actions">`+(existing?`<button class="sg-btn" id="sg-del">Delete</button>`:'')
+      +`<button class="sg-btn" id="sg-cancel">Cancel</button><button class="sg-btn primary" id="sg-savenote">Save</button></div>`;
+    pop.classList.add('on');
+    const w=pop.offsetWidth,h=pop.offsetHeight;
+    pop.style.left=Math.min(Math.max(12,cx-w/2),innerWidth-w-12)+'px';
+    pop.style.top=Math.min(Math.max(12,cy+14),innerHeight-h-12)+'px';
+    const ta=pop.querySelector('textarea'); ta&&ta.focus();
+    pop.querySelector('#sg-savenote').onclick=()=>{
+      const note=pop.querySelector('textarea').value.trim();
+      const nvEl=pop.querySelector('.sg-newval'); const newValue=nvEl?nvEl.value.trim():'';
+      if(!note&&!newValue){ closePop(); return; }
+      if(editingId){ const n=notes.find(x=>x.id===editingId); n.note=note; n.newValue=newValue; }
+      else notes.push({id:++seq,page:activePage(),locator:loc,value:cur,newValue,note,isInput,path:cssPath(el),ts:Date.now()});
+      save(); render(); closePop();
+    };
+    pop.querySelector('#sg-cancel').onclick=closePop;
+    const del=pop.querySelector('#sg-del'); if(del) del.onclick=()=>{ notes=notes.filter(x=>x.id!==editingId); save(); render(); closePop(); };
+  }
+  function closePop(){ pop.classList.remove('on'); editingId=null; }
+  function render(){
+    bar.querySelector('.sg-count').textContent=notes.length;
+    document.querySelectorAll('.sg-pin').forEach(p=>p.remove());
+    if(!on)return;
+    notes.forEach((n,idx)=>{
+      let el=null; try{ el=n.path?document.querySelector(n.path):null }catch{}
+      if(!el)return; const r=el.getBoundingClientRect();
+      if((r.width===0&&r.height===0)||r.bottom<0||r.top>innerHeight)return;
+      const pin=document.createElement('div'); pin.className='sg-pin'; pin.textContent=idx+1;
+      pin.style.left=(r.right-4)+'px'; pin.style.top=(r.top+6)+'px';
+      pin.onclick=e=>{ e.preventDefault(); e.stopPropagation(); openPop(el,r.right,r.top,n); };
+      document.body.appendChild(pin);
+    });
+  }
+  const isUI=t=>t.closest('#sg-bar,#sg-pop,#sg-fab,.sg-pin,#sg-toast');
+  const isNav=t=>t.closest('.htab,.stab');
+  document.addEventListener('click',e=>{ if(!on)return; if(isUI(e.target))return; if(isNav(e.target)){ setTimeout(render,60); return; }
+    e.preventDefault(); e.stopPropagation(); openPop(e.target,e.clientX,e.clientY,null); },true);
+  ['mousedown','pointerdown','touchstart'].forEach(ev=>document.addEventListener(ev,e=>{
+    if(!on)return; if(isUI(e.target)||isNav(e.target))return; e.preventDefault(); e.stopPropagation(); },true));
+  let rt; const reflow=()=>{ cancelAnimationFrame(rt); rt=requestAnimationFrame(render); };
+  addEventListener('scroll',reflow,true); addEventListener('resize',reflow);
+  function toastMsg(m){ toast.textContent=m; toast.classList.add('on'); clearTimeout(toast._t); toast._t=setTimeout(()=>toast.classList.remove('on'),1800); }
+  function payload(){ const d=new Date().toLocaleString(); let o='PARALLAX — edit suggestions ('+notes.length+')  ·  '+d+'\n\n';
+    notes.forEach((n,i)=>{ o+=(i+1)+'. ['+n.locator+']\n';
+      if(n.newValue)o+='   value: '+(n.value||'—')+'  →  '+n.newValue+'\n';
+      if(n.note)o+='   ▸ '+n.note+'\n'; o+='\n'; }); return o; }
+  async function copyOut(){ if(!notes.length){ toastMsg('No notes yet'); return; } const t=payload();
+    try{ await navigator.clipboard.writeText(t); toastMsg('Copied — paste to Guppi'); }
+    catch{ const ta=document.createElement('textarea'); ta.value=t; ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta); ta.focus(); ta.select();
+      try{ document.execCommand('copy'); toastMsg('Copied — paste to Guppi'); }catch{ toastMsg('Copy failed — use Download'); } ta.remove(); } }
+  q('#sg-copy').onclick=copyOut;
+  q('#sg-dl').onclick=()=>{ if(!notes.length){ toastMsg('No notes yet'); return; }
+    const b=new Blob([payload()],{type:'text/plain'}); const a=document.createElement('a');
+    a.href=URL.createObjectURL(b); a.download='parallax-suggestions.txt'; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),2000); };
+  q('#sg-clear').onclick=()=>{ if(!notes.length)return; if(confirm('Clear all '+notes.length+' suggestions?')){ notes=[]; save(); render(); } };
+  q('#sg-done').onclick=()=>setOn(false);
+  function setOn(v){ on=v; document.body.classList.toggle('sg-on',v); if(!v)closePop(); render();
+    if(v){ toastMsg('Suggest mode — tap anything to leave a note'); ivl=setInterval(render,700); }
+    else { clearInterval(ivl); ivl=null; } }
+  fab.onclick=()=>setOn(true);
+  render();
+})();
+</script>
 </body>
 </html>
