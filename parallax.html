@@ -2751,6 +2751,7 @@ function makeCombo(soloBase, moves, pct, basePct, meta){
     disruption: Math.max(...items.map(m=>m.wnorm)),    // minimize the biggest stretch
     spread:     items.reduce((s,m)=>s+m.norm,0),       // tie-break: least total move
     pairKey:    moves.map(m=>m[0]).sort().join('+'),
+    pillKey:    items.map(m=>m.key+'='+m.pv).sort().join('|'),   // identity by what the card SHOWS
   };
 }
 
@@ -2826,14 +2827,33 @@ async function runComboSolve(){
       }
     }
   }
-  // Gentlest first; keep one (the gentlest) per distinct lever-pair, top N.
+  // Gentlest first, then pick for VARIETY. Pass 1 takes the gentlest of each
+  // distinct lever-pair (so different pairs show when they exist). Pass 2 fills
+  // any remaining slots with additional distinct balance-points along those
+  // trade-offs (e.g. retire-a-bit-more+save-less vs retire-less+save-more), so a
+  // single viable pair — common when the goal pins a lever — still surfaces
+  // several real choices instead of just one. Exact-duplicate move sets dedup'd.
   combos.sort((x,y)=> x.disruption - y.disruption || x.spread - y.spread);
-  const seen = new Set(), top = [];
-  for(const c of combos){
-    if(seen.has(c.pairKey)) continue;
-    seen.add(c.pairKey); top.push(c);
+  const top = [], seenPair = new Set(), seenPill = new Set();
+  for(const c of combos){                                   // pass 1 — pair variety
     if(top.length >= COMBO_MAX_CARDS) break;
+    if(seenPair.has(c.pairKey)) continue;
+    seenPair.add(c.pairKey); seenPill.add(c.pillKey); top.push(c);
   }
+  // A candidate is redundant if a kept combo on the SAME pair is gentler on every
+  // axis (disruption AND total move) and at least as effective — that's a strictly
+  // worse plan, not a real alternative. Dedup also by what the card SHOWS (pillKey)
+  // so two combos that round to identical pills never both appear.
+  const dominated = c => top.some(k => k.pairKey===c.pairKey
+    && k.pct >= c.pct - 0.3
+    && k.disruption <= c.disruption + 1e-9
+    && k.spread     <= c.spread + 1e-9);
+  for(const c of combos){                                   // pass 2 — extra balance points
+    if(top.length >= COMBO_MAX_CARDS) break;
+    if(seenPill.has(c.pillKey) || dominated(c)) continue;
+    seenPill.add(c.pillKey); top.push(c);
+  }
+  top.sort((x,y)=> x.disruption - y.disruption || x.spread - y.spread);
   comboResults = { goalType:R.goalType, params:R.params, target, basePct, soloBase,
                    canLoad: R.canLoad, combos: top };
   comboSearching = false;

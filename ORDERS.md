@@ -55,6 +55,7 @@ notes elsewhere, ORDERS wins.**
 `exciting-lovelace-5dOpY`, `exciting-lovelace-S3qhW`, `hopeful-euler`.
 
 ## Status log — append one line per finished unit (newest on top)
+- 2026-06-05 · General · canonical+main · Combo solver fix (QA-reviewed): was showing 1 option when goal pinned a lever; now surfaces up to 3 distinct balance-points (pair variety + extra trade-off points), with display-value + dominance dedup so no duplicate/strictly-worse card. Engine untouched, 38/38.
 - 2026-06-05 · General · canonical+main · Logo enlarged in header (48→80px desktop, 60px mobile) — prominent brand anchor, tabs/RUN still comfortable.
 - 2026-06-05 · General · canonical+main · RMD display fix (QA-reviewed): engine exposes gross required RMD (rmdRequired, additive, no math change); cash-flow shows it as its own column from age 73 in every scenario, italic+labeled as already-in-Withdraw to prevent over-counting. Cash flow now 2 columns (Baseline + selectable). Engine 40 assertions / 38 tests pass.
 - 2026-06-05 · General · canonical+main · Sequencing chart hover (crosshair + dots + tooltip) + end-of-path $ labels; HTML overlay over the non-uniform SVG. Polish: smaller axis fonts, bigger market chips, brighter low-% sangria ring. Engine 38/38.
