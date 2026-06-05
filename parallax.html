@@ -1926,9 +1926,17 @@ function runSinglePath(p, returnPath){
     returnProduct *= (1 + r);
     if(y < 10) first10Product *= (1 + r);
 
-    // Mid-year withdrawal factor — spreads withdrawals across the year while
-    // the balance is earning the annual return. Same formula as the original
-    // single-account engine; we just apply it per-account now.
+    // Mid-year withdrawal factor (derivation — do NOT "simplify" this away).
+    // We pull withdrawal/12 each month; each monthly pull then compounds at the
+    // monthly rate (1+r)^(1/12) for the remaining months of the year. Summing that
+    // geometric series, the full-year drag of the annual withdrawal W is
+    //   W/12 * factor,  where  factor = r / ((1+r)^(1/12) - 1).
+    // This sits between start-of-year (factor 1*12) and end-of-year (factor→ lower)
+    // timing — i.e. the realistic "spread across the year" assumption. As r→0 the
+    // ratio is 0/0 but its limit is 12 (no compounding), so we hard-set 12 below
+    // the 1e-7 guard. A flat start- or end-of-year withdrawal would bias every
+    // projection, so keep this. Same formula as the original single-account engine;
+    // we just apply it per-account now.
     const factor = Math.abs(r) < 1e-7 ? 12 : r / (Math.pow(1 + r, 1/12) - 1);
 
     // Capture the START-of-year values for basis math. We need these before
@@ -3689,8 +3697,8 @@ function goalCardHTML(g){
   const per = g.once ? '' : '<span class="g-per2">/yr</span>';
   const amtStr = (g.amount||0).toLocaleString('en-US');
   const ages = g.once
-    ? `Lands once · age <input class="g-age-in" data-f="startAge" data-sync="endAge" data-type="num" value="${g.startAge}">`
-    : `Recurring · ages <input class="g-age-in" data-f="startAge" data-type="num" value="${g.startAge}">–<input class="g-age-in" data-f="endAge" data-type="num" value="${g.endAge}">`;
+    ? `Lands once · age <input class="g-age-in" data-f="startAge" data-sync="endAge" data-type="num" value="${Number(g.startAge)||0}">`
+    : `Recurring · ages <input class="g-age-in" data-f="startAge" data-type="num" value="${Number(g.startAge)||0}">–<input class="g-age-in" data-f="endAge" data-type="num" value="${Number(g.endAge)||0}">`;
   return `<div class="g-main">
        <div class="g-name"><input class="g-name-in" data-f="name" data-type="text" value="${escHtml(g.name)}" placeholder="Goal name">${tag}</div>
        <div class="g-kind">${ages}</div>
@@ -3975,6 +3983,7 @@ $('#np-content').addEventListener('change', e => {
     if(type==='pct')   v = Math.max(0, Math.min(100, v))/100;
     if(type==='taxpct')v = Math.max(0, Math.min(60, Math.round(v)));   // whole % (engine /100)
     if(type==='gpct')  v = Math.max(-20, Math.min(20, v))/100;   // signed growth %/yr
+    if(type==='age')   v = Math.max(1, Math.min(120, Math.round(v)));   // sane age bounds → no garbage horizon
     if(type==='money'){ v = Math.max(0, Math.round(v)); e.target.value = v.toLocaleString('en-US'); }
     setPath(plan, path, v);
     // A one-time goal edits a single "at age": mirror it into endAge so the
@@ -4093,11 +4102,11 @@ function runAll(){
           const p=planForScenario(s.lev);
           const ov=leversToOverrides(s.lev);
           s.res=runSimulation(p, ov, sharedPaths);
-        }catch(err){ s.res=null; failed++; console.error('Scenario failed:', s.name, err); }
+        }catch(err){ s.res=null; failed++; if(window.PXDEBUG) console.error('Scenario failed:', s.name, err); }
       });
       renderBand(); renderSolvePanel(); renderFoot(); renderCashflow(); buildSeqSelect(); runSeq();
       $('#status').textContent = failed ? `Complete · ${failed} scenario${failed>1?'s':''} could not run` : 'Complete';
-    }catch(e){ $('#status').textContent='Error'; console.error(e); }
+    }catch(e){ $('#status').textContent='Error'; if(window.PXDEBUG) console.error(e); }
     btn.disabled=false; running=false;
   },20);
 }
@@ -4164,7 +4173,7 @@ function renderBand(){
   let h=`<div class="band-cell label"><span>Scenario</span></div>`;
   scenarios.forEach((s,ci)=>{
     const sr=s.res?s.res.successRate:0;
-    const col= sr>=80?'#7AA76C':sr>=71?'#D8B371':'#5E1916';
+    const col= ringColor(sr);   // %-number + dot share the exact ring band color
     // Header: a small identity dot (column color) + the name. Baseline's name is
     // locked (the anchor); other scenarios render an inline editable field so the
     // advisor can label them ("Retire at 62"). A ✕ removes non-baseline columns.

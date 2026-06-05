@@ -1010,9 +1010,17 @@ function runSinglePath(p, returnPath){
     returnProduct *= (1 + r);
     if(y < 10) first10Product *= (1 + r);
 
-    // Mid-year withdrawal factor — spreads withdrawals across the year while
-    // the balance is earning the annual return. Same formula as the original
-    // single-account engine; we just apply it per-account now.
+    // Mid-year withdrawal factor (derivation — do NOT "simplify" this away).
+    // We pull withdrawal/12 each month; each monthly pull then compounds at the
+    // monthly rate (1+r)^(1/12) for the remaining months of the year. Summing that
+    // geometric series, the full-year drag of the annual withdrawal W is
+    //   W/12 * factor,  where  factor = r / ((1+r)^(1/12) - 1).
+    // This sits between start-of-year (factor 1*12) and end-of-year (factor→ lower)
+    // timing — i.e. the realistic "spread across the year" assumption. As r→0 the
+    // ratio is 0/0 but its limit is 12 (no compounding), so we hard-set 12 below
+    // the 1e-7 guard. A flat start- or end-of-year withdrawal would bias every
+    // projection, so keep this. Same formula as the original single-account engine;
+    // we just apply it per-account now.
     const factor = Math.abs(r) < 1e-7 ? 12 : r / (Math.pow(1 + r, 1/12) - 1);
 
     // Capture the START-of-year values for basis math. We need these before

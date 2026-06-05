@@ -55,6 +55,7 @@ notes elsewhere, ORDERS wins.**
 `exciting-lovelace-5dOpY`, `exciting-lovelace-S3qhW`, `hopeful-euler`.
 
 ## Status log — append one line per finished unit (newest on top)
+- 2026-06-05 · General · canonical+main · Audit quick-wins: age inputs clamped [1,120] (no garbage horizon); goal age fields Number-coerced (no attr injection); console.error gated behind window.PXDEBUG; engine withdrawal-factor derivation documented (comment only). Ring %-number + dot now match the ring band color (uses ringColor). Engine 38/38.
 - 2026-06-05 · General · canonical+main · Cash-flow Return % + Return $ columns (real return on start balance; signed + green/red), shows sequencing directly. Pure view of engine field (realReturnUsed), no engine change.
 - 2026-06-05 · General · canonical+main · Combo solver fix (QA-reviewed): was showing 1 option when goal pinned a lever; now surfaces up to 3 distinct balance-points (pair variety + extra trade-off points), with display-value + dominance dedup so no duplicate/strictly-worse card. Engine untouched, 38/38.
 - 2026-06-05 · General · canonical+main · Logo enlarged in header (48→80px desktop, 60px mobile) — prominent brand anchor, tabs/RUN still comfortable.
