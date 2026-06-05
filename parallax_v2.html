@@ -12,21 +12,21 @@
      The mock's "light sage" comes from a big bright sage card filling the view;
      Parallax has no such card, so we carry that light into the body ground + lift
      the panels to a translucent sage tint that lets the bright ground through. */
-  --bg-deep:#0e2a35; --bg:#103340;
-  --surface:rgba(150,205,216,.15); --surface-2:rgba(165,214,224,.11); --surface-3:rgba(145,200,212,.10);
-  --rule:rgba(200,224,228,.22); --rule-bright:rgba(200,224,228,.40); --rule-faint:rgba(200,224,228,.12);
+  --bg-deep:#1a3526; --bg:#1e3d2b;
+  --surface:rgba(170,210,180,.18); --surface-2:rgba(183,221,195,.13); --surface-3:rgba(160,200,175,.12);
+  --rule:rgba(189,205,192,.22); --rule-bright:rgba(189,205,192,.38); --rule-faint:rgba(189,205,192,.12);
   /* All lettering is muted champagne now — no bright white anywhere (Nathan's rule).
      Three warm tiers keep hierarchy without ever reaching pure white. */
   --ink:#E5D9C4; --ink-bright:#F0E7D6; --ink-mute:#C4B7A1; --ink-faint:rgba(229,217,196,.55); --ink-ghost:rgba(229,217,196,.26);
   /* Accent system (refined sage). The historic --gold tokens now carry "Soft
      Desert Clay" / "Muted Warm Bronze" so every existing accent rule re-themes
      in place — NO saturated orange anywhere. Clay is for small emphasis only. */
-  --gold:#c2906a; --gold-bright:#d8a884; --gold-deep:#a87a5c; --gold-glow:rgba(194,144,106,.20);
-  --teal:#7fcdb6; --teal-bright:#b6e6e0; --teal-deep:#5fae9a; --teal-glow:rgba(127,205,182,.16);
-  --positive:#82d3b0; --positive-bright:#a6e0c8;
+  --gold:#D9A07E; --gold-bright:#E3B194; --gold-deep:#BFA78F; --gold-glow:rgba(217,160,126,.22);
+  --teal:#8cc69e; --teal-bright:#b3ded7; --teal-deep:#6aa882; --teal-glow:rgba(140,198,158,.16);
+  --positive:#8ad39e; --positive-bright:#a6e0b8;
   --clay:#D9A07E;
   --negative:#d4706a; --negative-bright:#e08a7a;
-  --s1:#d8a884; --s2:#82daa1; --s3:#9bd8e6;
+  --s1:#D9A07E; --s2:#82daa1; --s3:#b3ded7;
   /* Hero financial values — Muted Champagne (never orange). */
   --champagne:#E5D9C4;
   /* Named aliases from Nathan's spec (point at the same refined roles). */
@@ -67,7 +67,7 @@ background-size:auto,auto,auto,auto,auto,64px 64px,64px 64px,auto;}
     inset 0 0 0 1px rgba(255,255,255,.05);
 }
 
-.hdr{display:flex;align-items:center;gap:18px;padding:13px 28px;border-bottom:1px solid var(--rule);background:rgba(14,40,50,.46);backdrop-filter:blur(20px) saturate(1.1);-webkit-backdrop-filter:blur(20px) saturate(1.1);flex:0 0 auto;position:relative;z-index:50}
+.hdr{display:flex;align-items:center;gap:18px;padding:13px 28px;border-bottom:1px solid var(--rule);background:rgba(28,56,40,.42);backdrop-filter:blur(20px) saturate(1.1);-webkit-backdrop-filter:blur(20px) saturate(1.1);flex:0 0 auto;position:relative;z-index:50}
 .wordmark{font-size:15px;font-weight:600;letter-spacing:.30em;text-transform:uppercase;color:var(--ink-bright)}
 .hdr-tabs{display:flex;margin-left:24px}
 .htab{background:none;border:none;border-bottom:2px solid transparent;color:var(--ink-mute);cursor:pointer;font-family:'Sora';font-size:12px;letter-spacing:.2em;text-transform:uppercase;padding:6px 20px;font-weight:500;transition:color .2s,border-color .2s}
@@ -87,11 +87,11 @@ background-size:auto,auto,auto,auto,auto,64px 64px,64px 64px,auto;}
 /* Cap the scenarios block so columns don't stretch across a wide monitor.
    ~210px per scenario + the 148px label gutter; centered. */
 .scn-scroll,.page[data-page="scenarios"] .cf-toggle,.page[data-page="scenarios"] .cf-drawer{max-width:1180px;width:100%;margin-left:auto;margin-right:auto}
-.page[data-page="scenarios"] .eyebrow{position:sticky;top:0;z-index:25;background:rgba(14,42,52,.58);backdrop-filter:blur(18px) saturate(1.1);-webkit-backdrop-filter:blur(18px) saturate(1.1);padding:20px 0 16px}
+.page[data-page="scenarios"] .eyebrow{position:sticky;top:0;z-index:25;background:rgba(28,56,40,.58);backdrop-filter:blur(18px) saturate(1.1);-webkit-backdrop-filter:blur(18px) saturate(1.1);padding:20px 0 16px}
 .scn-band{position:sticky;top:53px;z-index:20;display:grid;grid-template-columns:148px repeat(3,1fr);column-gap:14px}
 /* Opaque backdrop behind the WHOLE sticky band (not just a 10px lip) so scrolling
    lever rows can't bleed through the translucent glass column-cards. */
-.scn-band::before{content:'';position:absolute;left:0;right:0;top:-10px;bottom:0;background:rgba(14,42,52,.58);backdrop-filter:blur(18px) saturate(1.1);-webkit-backdrop-filter:blur(18px) saturate(1.1);z-index:-1}
+.scn-band::before{content:'';position:absolute;left:0;right:0;top:-10px;bottom:0;background:rgba(28,56,40,.58);backdrop-filter:blur(18px) saturate(1.1);-webkit-backdrop-filter:blur(18px) saturate(1.1);z-index:-1}
 .band-cell{padding:14px 14px 14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;min-height:172px}
 /* Each scenario is a floating glass column-card: circle (rounded top) → levers →
    median (rounded bottom). The label gutter stays transparent. Column-gap channels
