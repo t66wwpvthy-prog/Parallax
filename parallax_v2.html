@@ -15,7 +15,9 @@
   --bg-deep:#0e2a35; --bg:#103340;
   --surface:rgba(150,205,216,.15); --surface-2:rgba(165,214,224,.11); --surface-3:rgba(145,200,212,.10);
   --rule:rgba(200,224,228,.22); --rule-bright:rgba(200,224,228,.40); --rule-faint:rgba(200,224,228,.12);
-  --ink:#F1FAFB; --ink-bright:#FBFEFF; --ink-mute:#AFC9CE; --ink-faint:rgba(241,250,251,.55); --ink-ghost:rgba(241,250,251,.26);
+  /* All lettering is muted champagne now — no bright white anywhere (Nathan's rule).
+     Three warm tiers keep hierarchy without ever reaching pure white. */
+  --ink:#E5D9C4; --ink-bright:#F0E7D6; --ink-mute:#C4B7A1; --ink-faint:rgba(229,217,196,.55); --ink-ghost:rgba(229,217,196,.26);
   /* Accent system (refined sage). The historic --gold tokens now carry "Soft
      Desert Clay" / "Muted Warm Bronze" so every existing accent rule re-themes
      in place — NO saturated orange anywhere. Clay is for small emphasis only. */
@@ -28,7 +30,7 @@
   /* Hero financial values — Muted Champagne (never orange). */
   --champagne:#E5D9C4;
   /* Named aliases from Nathan's spec (point at the same refined roles). */
-  --sage-text-primary:#F4F6F0; --sage-text-value:#E5D9C4; --sage-accent-clay:#D9A07E;
+  --sage-text-primary:#E5D9C4; --sage-text-value:#E5D9C4; --sage-accent-clay:#D9A07E;
   --sage-border-muted:#BDCDC0; --sage-accent-bronze-muted:#BFA78F;
   /* Probability band colors — applied ONLY to ring stroke/arc/dot/%text/glow */
   --sangria:#5E1916; --sangria-rgb:94,25,22;
@@ -536,7 +538,7 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield}
 /* Property card — name + value/basis + an optional mortgage sub-block. */
 .prop{margin:10px 0;padding:14px 16px;border-radius:14px;background:var(--surface)}
 .prop-top{display:flex;align-items:center;gap:10px;margin-bottom:9px}
-.prop-name{flex:1 1 auto;background:transparent;border:none;border-bottom:1px dashed var(--rule-faint);font-family:'Sora';font-size:14px;font-weight:600;color:var(--ink);outline:none;padding:1px}
+.prop-name{flex:1 1 auto;background:transparent;border:none;border-bottom:1px dashed var(--rule-faint);font-family:'Sora';font-size:14px;font-weight:500;color:var(--ink);outline:none;padding:1px}
 .prop-name:focus{border-bottom:1px solid var(--gold)}
 .prop .row-x{width:18px;height:18px;border:none;background:transparent;color:var(--ink-faint);font-size:15px;cursor:pointer;border-radius:4px;padding:0}
 .prop .row-x:hover{color:var(--negative-bright);background:rgba(240,145,141,.08)}
@@ -570,7 +572,7 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield}
 .stat-val{font-family:'Inter';font-size:16px;font-weight:600;color:var(--ink-bright);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
 /* coverage bar (income floor): teal fill = guaranteed, hatched = portfolio-drawn */
 .cov{height:40px;border-radius:6px;overflow:hidden;display:flex;background:repeating-linear-gradient(135deg,rgba(255,255,255,.05),rgba(255,255,255,.05) 7px,rgba(255,255,255,.09) 7px,rgba(255,255,255,.09) 14px);box-shadow:inset 0 0 0 1px var(--rule)}
-.cov .fill{background:linear-gradient(180deg,#6E8E8A,#52706E);display:flex;align-items:center;padding-left:14px;color:#fff;font-family:'Inter';font-size:13px;font-weight:600;white-space:nowrap;min-width:0;overflow:hidden}
+.cov .fill{background:linear-gradient(180deg,#6E8E8A,#52706E);display:flex;align-items:center;padding-left:14px;color:var(--champagne);font-family:'Inter';font-size:13px;font-weight:600;white-space:nowrap;min-width:0;overflow:hidden}
 .cov-legend,.seg-legend{display:flex;flex-wrap:wrap;gap:14px 26px;margin-top:14px;font-family:'Sora';font-size:12px;color:var(--ink-mute);font-weight:500}
 .cov-legend .k,.seg-legend .k{display:flex;align-items:center;gap:8px}
 .cov-legend .sw,.seg-legend .sw{width:11px;height:11px;border-radius:2px;flex:none}
@@ -587,7 +589,7 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield}
 .g-note b{font-family:'Inter';color:var(--ink-bright);font-weight:600}
 /* segmented proportion bar (tax location) */
 .seg{height:40px;border-radius:6px;overflow:hidden;display:flex;box-shadow:inset 0 0 0 1px var(--rule)}
-.seg div{display:flex;align-items:center;justify-content:center;color:#fff;font-family:'Inter';font-size:13px;font-weight:600;min-width:0;overflow:hidden}
+.seg div{display:flex;align-items:center;justify-content:center;color:var(--champagne);font-family:'Inter';font-size:13px;font-weight:600;min-width:0;overflow:hidden}
 .seg .s-tax{background:linear-gradient(180deg,#4a7a8a,#345c6a)}
 .seg .s-def{background:linear-gradient(180deg,#BFA78F,#8f7a5f)}
 .seg .s-roth{background:linear-gradient(180deg,#3d7a5a,#2c5c42)}
@@ -3378,21 +3380,9 @@ function drawSeqChart(runs, retAge){
     h+=`<path d="${d}" fill="none" stroke="${col}" stroke-width="0.9" stroke-linejoin="round" stroke-linecap="round"/>`;
     ends.push({c:col, y:r.m.y, dep, px:X(ei), py:Y(full[ei])});
   });
-  // Shared launch node — one plan, all markets start here, then diverge.
-  h+=`<circle cx="${X(0).toFixed(1)}" cy="${Y(entry).toFixed(1)}" r="2.2" fill="var(--surface)" stroke="${AXIS_INK}" stroke-width="1.1"/>`;
   h+=`</g>`;
-  // Endpoint treatment (outside the clip so labels are never cut): a ✕ where a
-  // line runs dry, a dot where it survives — each tagged with its market year so
-  // the eye never has to leave the chart for the legend.
-  // Markers first: ✕ where a line runs dry, a dot where it survives.
-  ends.forEach(e=>{
-    if(e.dep){
-      const s=2.8;
-      h+=`<path d="M ${(e.px-s).toFixed(1)} ${(e.py-s).toFixed(1)} L ${(e.px+s).toFixed(1)} ${(e.py+s).toFixed(1)} M ${(e.px-s).toFixed(1)} ${(e.py+s).toFixed(1)} L ${(e.px+s).toFixed(1)} ${(e.py-s).toFixed(1)}" stroke="${e.c}" stroke-width="1.4" stroke-linecap="round"/>`;
-    } else {
-      h+=`<circle cx="${e.px.toFixed(1)}" cy="${e.py.toFixed(1)}" r="2.2" fill="${e.c}" stroke="var(--surface)" stroke-width="1.1"/>`;
-    }
-  });
+  // Endpoint/launch markers (✕ where a line ran dry, dots at start/end) removed —
+  // Nathan: the lines alone read cleaner; the fingerprint cards below carry outcome.
   // No year labels on the lines — the chip row above the chart and the fingerprint
   // cards below already say which color is which market. Adding a year on each
   // line just adds visual noise that has to be de-collided every redraw.
