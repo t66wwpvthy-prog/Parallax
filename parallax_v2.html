@@ -457,6 +457,10 @@ background-size:auto,auto,auto,auto,auto,72px 72px,72px 72px,auto;}
 .hh-f input{font-family:'Inter';font-size:16px;font-weight:500;color:var(--ink);background:transparent;border:none;border-bottom:1px dashed transparent;padding:1px;width:90px;text-align:left;outline:none;font-variant-numeric:tabular-nums;transition:border-color .15s,background .15s}
 .hh-f input:hover{border-bottom-color:var(--rule-bright)}
 .hh-f input:focus{border-bottom:1px solid var(--gold);background:rgba(160,112,48,.07)}
+.hh-bar .hh-f:has(+ .hh-spacer){border-right:none;padding-right:0;margin-right:0}
+.hh-spacer{flex:1 1 auto}
+.hh-clear{align-self:center;font-family:'Sora';font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:var(--ink-faint);background:transparent;border:1px solid var(--rule-faint);border-radius:7px;padding:7px 14px;cursor:pointer;transition:color .15s,border-color .15s,background .15s}
+.hh-clear:hover{color:var(--negative);border-color:var(--negative);background:rgba(184,58,40,.07)}
 .bs-row{display:flex;align-items:baseline;padding:7px 0;font-size:14px}
 .bs-row label{color:var(--ink-mute);font-weight:500;font-family:'Sora'}
 .bs-row.sub label{color:var(--ink-faint);font-size:13px;padding-left:18px;font-weight:400}
@@ -929,59 +933,44 @@ const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const escHtml=s=>String(s).replace(/[&<>"']/g, c=>(
   {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
-/* Demo household — HNW, 58yo, retiring at 65. $2.8M total portfolio.
-   $205k living + $12k healthcare; two-earner SS ($48k + $30k at 67); $30k/yr
-   savings until retire. Spend set against realistic SS to keep real tension:
-   Baseline (Moderate, ret 65) ~76% — a plan that needs attention. Moving levers
-   shows it honestly: retiring 2yr later lifts success markedly; going aggressive
-   raises the wealth line but leaves success BELOW the retire-later case (vol
-   drag) — the risk/return truth the tool exists to show. */
-plan.household.primary.currentAge    = 58;
+/* BLANK household template — cleared for entering our first real household.
+   All dollar values are $0 and every list (goals, properties, variable income)
+   is empty, so the input pages read as a clean slate. The three AGES are kept
+   at neutral placeholders (50 / 65 / 95) rather than 0: a zero-length horizon
+   makes the engine and the wealth chart render garbage, so we keep a valid
+   span the advisor simply overtypes with the real person's ages. */
+plan.household.primary.currentAge    = 50;
 plan.household.primary.retirementAge = 65;
 plan.household.primary.planEndAge    = 95;
-plan.portfolio.accounts.taxable.balance      = 800000;
-plan.portfolio.accounts.traditional.balance  = 1600000;
-plan.portfolio.accounts.roth.balance         = 400000;
-plan.portfolio.accounts.taxable.basisPct     = 0.55;
-plan.expenses.living                = 205000;
-plan.expenses.healthcare            = 12000;
-plan.expenses.healthcareRealGrowth  = 0.02;   // 2% above CPI (historical avg)
-// Goals are now an ARRAY: recurring goals (lifelong window 0–999) live in the
-// left column; a one-time goal is a single-year window (startAge===endAge).
-plan.goals = [
-  { name:'Travel',            amount:12000, startAge:65, endAge:95 },
-  { name:'Home improvements', amount:5000,  startAge:65, endAge:95 },
-  { name:'Gifts',             amount:5000,  startAge:65, endAge:95 },
-  // A ONE-TIME goal (single-year window): shows as a spike in the Goals
-  // cash-flow column the year it lands, then gone.
-  { name:'New car',           amount:40000, startAge:72, endAge:72 },
-];
-// Demo real asset: a primary residence with a remaining mortgage. The engine
-// amortizes it (balance/rate/term) into a payment that runs until payoff; value
-// and purchasePrice are captured for a future sale event and are inert today.
-plan.properties = [
-  { name:'Primary residence', value:1200000, purchasePrice:520000, purchaseYear:2012, commissionPct:5,
-    mortgage:{ balance:280000, rate:5.5, termYears:9 } },
-];
-// Two earners: one maxed (~$48k PIA at FRA), spouse a strong earner (~$30k).
-// pia = benefit at FRA (67) in today's dollars, straight off the SSA statement.
-plan.income.socialSecurity.primary = { pia: 48000, claimAge: 67 };
-plan.income.socialSecurity.spouse  = { pia: 30000, claimAge: 67 };
-// Demo pension: only the two ages the statement actually quoted. The engine
-// pays exactly what's entered for the chosen age and nothing in between —
-// no interpolation, no invented numbers (see engine.test.js).
-plan.income.pension = { benefitByAge: { 62: 36000, 63: 38160, 64: 40320, 65: 42480 }, startAge: 65, colaPct: 0 };
-plan.savings.annual      = 30000;
-// Gross working income (pre-retirement, today's dollars). Used ONLY by the
-// Snapshot's replacement-ratio gauge — a static diagnostic, not an engine
-// input. The engine drives accumulation off savings.annual, never this.
-plan.income.workingIncome = 300000;
-// A variable income stream showing the new per-stream controls: real growth
-// (here +1%/yr, indexed slightly above inflation) and a taxable share (70% —
-// the rest sheltered by depreciation). startAge–endAge bound when it's active.
-plan.income.other = [
-  { label:'Rental income', amount:18000, startAge:65, endAge:95, realGrowth:0.01, taxablePct:0.70 },
-];
+plan.household.spouse = null;
+plan.portfolio.accounts.taxable.balance      = 0;
+plan.portfolio.accounts.traditional.balance  = 0;
+plan.portfolio.accounts.roth.balance         = 0;
+plan.portfolio.accounts.taxable.basisPct     = 1;     // no embedded gain until real basis is entered
+plan.portfolio.extraAccounts = [];
+plan.expenses.living                = 0;
+plan.expenses.healthcare            = 0;
+plan.expenses.healthcareRealGrowth  = 0.02;   // 2% above CPI (historical avg — keep as sensible default)
+plan.expenses.extra = [];
+// Goals are an ARRAY: recurring goals (left column) + one-time goals (single-year
+// window, startAge===endAge). Empty until the advisor enters the household's goals.
+plan.goals = [];
+// Real assets (primary residence, etc.) — empty until entered.
+plan.properties = [];
+plan.liabilities = [];
+// No income on file yet — pia (benefit at FRA in today's dollars) is $0 until
+// the advisor enters it straight off the SSA statement.
+plan.income.socialSecurity.primary = { pia: 0, claimAge: 67 };
+plan.income.socialSecurity.spouse  = null;
+// No pension on file (empty benefit table). The engine pays exactly what's
+// entered for the chosen age and nothing in between — no invented numbers.
+plan.income.pension = { benefitByAge: {}, startAge: 65, colaPct: 0 };
+plan.savings.annual      = 0;
+// Gross working income (pre-retirement, today's dollars). Snapshot diagnostic
+// only — never an engine input.
+plan.income.workingIncome = 0;
+// Variable income streams (rental, etc.) — empty until entered.
+plan.income.other = [];
 plan.simulation.iterations = 1000;
 
 // Scenario accent palette. Brass / steel-teal / dusty mauve are the core trio
@@ -1027,7 +1016,7 @@ function syncPension(L){
 // ── Scenario persistence (browser localStorage) ──────────────────────────
 // We save only the durable parts (name/base/lev) — never res (recomputed on
 // Run). Wrapped in try/catch so a corrupt/blocked store never breaks the app.
-const SCEN_KEY='parallax.scenarios.v2';
+const SCEN_KEY='parallax.scenarios.v3';   // v3: reset for first real household (old demo levers ignored)
 function saveScenarios(){
   try{
     const slim=scenarios.map(s=>({name:s.name, base:!!s.base, lev:s.lev}));
@@ -1823,6 +1812,45 @@ function renderAcctPicker(){
        + `<div class="acct-foot"><div><span class="lbl">Balance</span><input class="acct-amt" data-type="money" placeholder="$0"></div>`
        + `<button class="acct-add" ${acctSel?'':'disabled'}>${acctSel?('Add '+acctSel.label):'Add'}</button></div></div>`;
 }
+// Clear the entire household back to a blank template — the "new client" reset.
+// Zeros every dollar value and empties every list; keeps the three ages at
+// neutral placeholders (a zero-length horizon would render garbage) for the
+// advisor to overtype. Also drops the saved Scenarios levers so the old
+// household's lever values don't bleed back in on the next render.
+function clearHousehold(){
+  if(!confirm('Clear ALL household data and start a new household? This cannot be undone.')) return;
+  const p = plan;
+  p.household.primary.currentAge = 50;
+  p.household.primary.retirementAge = 65;
+  p.household.primary.planEndAge = 95;
+  p.household.spouse = null;
+  p.portfolio.accounts.taxable.balance = 0;
+  p.portfolio.accounts.traditional.balance = 0;
+  p.portfolio.accounts.roth.balance = 0;
+  p.portfolio.accounts.taxable.basisPct = 1;
+  p.portfolio.extraAccounts = [];
+  p.expenses.living = 0;
+  p.expenses.healthcare = 0;
+  p.expenses.extra = [];
+  p.goals = [];
+  p.properties = [];
+  p.liabilities = [];
+  p.income.socialSecurity.primary = { pia: 0, claimAge: 67 };
+  p.income.socialSecurity.spouse = null;
+  p.income.pension = { benefitByAge: {}, startAge: 65, colaPct: 0 };
+  p.income.other = [];
+  p.income.workingIncome = 0;
+  p.savings.annual = 0;
+  // Leave tax rates at sensible defaults (22% / 15%) rather than 0% — a 0% tax
+  // plan reads falsely rosy. The advisor overtypes with the household's real rates.
+  if(p.taxes){ p.taxes.ordinary = 22; p.taxes.capitalGains = 15; }
+  try{ localStorage.removeItem(SCEN_KEY); }catch(e){}
+  scenarios = demoScenarios();
+  baseSnapshot = defaultLevers();
+  reseedScenarios(); buildLevers(); sharedPaths = null; plansDirty = true;
+  renderInputs();
+  $('#status').textContent = 'Household cleared · enter the new household';
+}
 // Post-edit refresh (mirrors the balance-sheet field commit, minus setPath).
 function commitPlanEdit(){
   reseedScenarios(); buildLevers(); sharedPaths=null; plansDirty=true; renderInputs();
@@ -2086,8 +2114,10 @@ function renderStatement(){
   const hh = HH_FIELDS.map(f =>
     `<div class="hh-f"><label>${f.label}</label><span class="field">${renderField(f)}</span></div>`
   ).join('');
+  // Clear: wipe the whole household back to a blank template (new client).
+  const clearBtn = `<button class="hh-clear" title="Clear all household data and start a new household">Clear</button>`;
   return `<div class="np-page np-bal">
-    <div class="hh-bar">${hh}</div>
+    <div class="hh-bar">${hh}<div class="hh-spacer"></div>${clearBtn}</div>
     ${renderGutter('balance-sheet')}
     <div class="bs-sheet">
       <div class="bs-col"><div class="bs-title">Investments</div>${renderSecs(investSecs)}</div>
@@ -2552,6 +2582,8 @@ function renderInputs(){
 
 // ── All Net Worth interactions — delegated on the stable #np-content ─────────
 $('#np-content').addEventListener('click', e => {
+  // Clear household → blank template
+  if(e.target.closest('.hh-clear')){ clearHousehold(); return; }
   // Row delete (×)
   const rx = e.target.closest('.row-x');
   if(rx){
