@@ -34,7 +34,7 @@ Status tags: **NEXT** · **BIG** (own session) · **PARKED** · **SKIP** · ✅ 
 - [ ] **Confidence-by-year bars** — green/yellow/red per-year success + a single "Confidence Age," only if it's real per-year data.
 
 ## D. Scenarios / input model
-- [~] **Account types build** — "+ add an investment account" with type picker (401k/403b/457/401a/SEP/SIMPLE/solo-401k → pre-tax bucket); HSA + 529 skipped. **MOCK BUILT, awaiting Nathan's OK** (`verify-out/acct-types-mock.png`) — not shipped live (mock-first rule). Wire it once approved: added accounts sum into their tax sleeve, no double-count with base rows.
+- [x] ✅ **Account types build** — "+ add an investment account" with type picker (401k/403b/457/401a/SEP/SIMPLE/solo-401k → pre-tax bucket); HSA + 529 skipped. **SHIPPED + ENGINE-WIRED**: added accounts fold into their tax sleeve (engine.js:614-618), no double-count with base rows, default is byte-identical. Functionally verified 2026-06-05.
 - [ ] **Scenarios "shared-track" redesign** — kill the 3-column repetition; one shared track per lever, dots split only on divergence. Approved-in-spirit, not built. **BIG**
 - [ ] **Pension claim-age analysis** — sub-mode in Scenarios: claim-age sweep (62→70) + breakeven. Open Qs below.
 - [ ] **Recurring liabilities → UI** — engine DONE; not wired. Open: base-plan input vs per-scenario.
@@ -62,7 +62,7 @@ Status tags: **NEXT** · **BIG** (own session) · **PARKED** · **SKIP** · ✅ 
 ## H. This session's parked ideas
 - "Experience" visual direction (fintech / Mercury–Stripe) — explored, **PARKED** (current light theme preferred).
 - Captured-hover chart interaction (theme-independent): hover guide + tooltip + end-of-path value labels.
-- Delta pill "± pts vs baseline" — neutral comparison cue.
+- [x] ✅ Delta pill "± pts vs baseline" — neutral, data-only ±pts under each % circle the instant you Run (baseline shows "baseline", matches show "even"). Shipped 2026-06-05.
 - Outcome-weighted Sequencing lines — weight/opacity, not hue.
 - `/mock` skill — formalize the throwaway-mock + screenshot harness so mock-first is one command.
 
