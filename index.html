@@ -26,19 +26,43 @@
   --sangria:#5E1916; --sangria-rgb:94,25,22;
   --bronze-band:#D8B371; --bronze-band-rgb:216,179,113;
   --deep-green:#52b48a; --deep-green-rgb:82,180,138;
+  /* ─── LIQUID-GLASS SYSTEM (the 5-layer recipe, reused on every surface) ───
+     One shadow stack carries ALL of: a barely-there bronze ambient glow that
+     extends beyond the panel (layer 2), two wide diffused volumetric depth
+     shadows (layer 5), and the directional edge-lighting (layer 4 — top edge
+     catches most light, left a little, bottom/right quiet) closed by a faint
+     bronze inset ring. No hard borders anywhere. */
+  --glass-shadow:
+    0 6px 80px -6px rgba(178,128,56,.07),
+    0 40px 90px -45px rgba(0,0,0,.75),
+    0 18px 45px -30px rgba(0,0,0,.55),
+    inset 0 1px 0 rgba(255,255,255,.24),
+    inset 1px 0 0 rgba(255,255,255,.10),
+    inset -1px 0 0 rgba(255,255,255,.035),
+    inset 0 -1px 0 rgba(255,255,255,.025),
+    inset 0 0 0 1px rgba(200,160,70,.08);
+  /* Warm bronze/champagne sheen — diagonal light raking across the frost (layer 3). */
+  --glass-sheen:linear-gradient(150deg,rgba(226,182,92,.09),rgba(226,182,92,0) 56%);
+  --glass-blur:blur(32px) saturate(1.2);
+  --glass-blur-sm:blur(22px) saturate(1.16);
+  --glass-radius:24px;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;background:var(--bg);font-family:'Sora',sans-serif;color:var(--ink);font-size:14px;-webkit-font-smoothing:antialiased;overflow:hidden}
-body{background-color:#18140d;background-image:
-  radial-gradient(46% 42% at 22% 18%, rgba(185,145,65,.22), transparent 72%),
-  radial-gradient(44% 44% at 68% 12%, rgba(160,120,50,.16), transparent 72%),
-  radial-gradient(50% 48% at 88% 42%, rgba(130,95,40,.14), transparent 74%),
-  radial-gradient(58% 50% at 12% 76%, rgba(65,140,100,.10), transparent 76%),
-  radial-gradient(38% 42% at 94% 88%, rgba(175,130,55,.09), transparent 72%),
-  linear-gradient(90deg, rgba(255,255,255,.012) 1px, transparent 1px),
-  linear-gradient(180deg, rgba(255,255,255,.012) 1px, transparent 1px),
-  linear-gradient(152deg,#0e0c08 0%,#201a10 52%,#140f08 100%);
-background-size:auto,auto,auto,auto,auto,64px 64px,64px 64px,auto;}
+body{background-color:#120f0a;background-image:
+  /* Copper illumination — a broad warm wash up top, two deeper bronze pools,
+     and a single faint jade breath low-left. Blackened bronze, never orange. */
+  radial-gradient(58% 50% at 30% 8%, rgba(190,148,68,.20), transparent 70%),
+  radial-gradient(50% 46% at 72% 6%, rgba(165,122,52,.15), transparent 72%),
+  radial-gradient(54% 52% at 90% 40%, rgba(132,96,40,.13), transparent 74%),
+  radial-gradient(60% 54% at 8% 82%, rgba(60,140,100,.07), transparent 78%),
+  radial-gradient(40% 44% at 96% 92%, rgba(170,126,52,.08), transparent 72%),
+  /* whisper-faint plotting grid — texture, not lines */
+  linear-gradient(90deg, rgba(255,238,200,.010) 1px, transparent 1px),
+  linear-gradient(180deg, rgba(255,238,200,.010) 1px, transparent 1px),
+  /* black-brown base, lifted just off pure black in the middle */
+  radial-gradient(120% 120% at 50% 0%, #1c160d 0%, #110d08 55%, #0b0805 100%);
+background-size:auto,auto,auto,auto,auto,72px 72px,72px 72px,auto;}
 .wrap{height:100vh;display:flex;flex-direction:column;overflow:hidden}
 
 /* ─── GLASS LAYER ───────────────────────────────────────────────────
@@ -46,17 +70,13 @@ background-size:auto,auto,auto,auto,auto,64px 64px,64px 64px,auto;}
    + backdrop blur so the gradient bleeds through + a top inner-rim highlight
    and a deep drop shadow for premium lift. One rule covers all cards. */
 .solve-panel,.acct-picker,.metric,.cf-drawer,.seq-pick,.seq-chart,.seq-print,.prop{
-  backdrop-filter:blur(22px) saturate(1.18);
-  -webkit-backdrop-filter:blur(22px) saturate(1.18);
-  background-image:linear-gradient(150deg,rgba(220,175,80,.08),rgba(220,175,80,0) 56%);
-  /* Golden-tinted inset ring + bright top rim-light + deep drop shadow for premium depth. */
-  box-shadow:0 32px 64px -28px rgba(0,0,0,.78), 0 8px 22px -12px rgba(0,0,0,.55),
-    inset 0 1px 0 rgba(255,255,255,.28), inset 1px 0 0 rgba(255,255,255,.11),
-    inset -1px 0 0 rgba(255,255,255,.05), inset 0 -1px 0 rgba(255,255,255,.04),
-    inset 0 0 0 1px rgba(200,160,70,.10);
+  backdrop-filter:var(--glass-blur);
+  -webkit-backdrop-filter:var(--glass-blur);
+  background-image:var(--glass-sheen);
+  box-shadow:var(--glass-shadow);
 }
 
-.hdr{display:flex;align-items:center;gap:18px;padding:13px 28px;border-bottom:1px solid var(--rule);background:rgba(16,12,7,.88);backdrop-filter:blur(24px) saturate(1.14);-webkit-backdrop-filter:blur(24px) saturate(1.14);flex:0 0 auto;position:relative;z-index:50}
+.hdr{display:flex;align-items:center;gap:18px;padding:13px 28px;background:rgba(15,11,6,.78);backdrop-filter:blur(30px) saturate(1.16);-webkit-backdrop-filter:blur(30px) saturate(1.16);flex:0 0 auto;position:relative;z-index:50;box-shadow:inset 0 -1px 0 var(--rule-faint),inset 0 1px 0 rgba(255,255,255,.06),0 18px 40px -30px rgba(0,0,0,.7)}
 .hdr-brand{display:flex;align-items:center}
 .brand-logo{height:48px;width:auto;display:block;opacity:1}
 .wordmark{font-size:15px;font-weight:600;letter-spacing:.30em;text-transform:uppercase;color:var(--ink-bright)}
@@ -65,7 +85,7 @@ background-size:auto,auto,auto,auto,auto,64px 64px,64px 64px,auto;}
 .htab:hover{color:var(--ink)} .htab.on{color:var(--ink-bright);font-weight:600;border-bottom-color:var(--gold)}
 .hdr-right{margin-left:auto;display:flex;align-items:center;gap:16px}
 .status{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-mute)}
-.run-btn{padding:9px 22px;background:linear-gradient(180deg,var(--gold-bright),var(--gold));color:#12090a;border:none;border-radius:3px;font-family:'Sora';font-weight:700;font-size:10.5px;letter-spacing:.26em;text-transform:uppercase;cursor:pointer;box-shadow:0 6px 20px -8px rgba(201,146,74,.55)}
+.run-btn{padding:10px 24px;background:linear-gradient(180deg,var(--gold-bright),var(--gold));color:#12090a;border:none;border-radius:11px;font-family:'Sora';font-weight:700;font-size:10.5px;letter-spacing:.26em;text-transform:uppercase;cursor:pointer;box-shadow:0 10px 26px -10px rgba(201,146,74,.5),inset 0 1px 0 rgba(255,240,210,.5),inset 0 -1px 0 rgba(120,80,30,.4)}
 .run-btn:active{transform:translateY(1px)} .run-btn:disabled{filter:saturate(.3) brightness(.7);cursor:wait}
 
 .page{flex:1 1 auto;min-height:0;display:none;flex-direction:column;padding:0 28px 22px}
@@ -87,7 +107,7 @@ background-size:auto,auto,auto,auto,auto,64px 64px,64px 64px,auto;}
 /* Each scenario is a floating glass column-card: circle (rounded top) → levers →
    median (rounded bottom). The label gutter stays transparent. Column-gap channels
    let the gradient show between cards so they read as separate, not one welded grid. */
-.band-cell:not(.label){background:var(--surface);border-radius:14px 14px 0 0}
+.band-cell:not(.label){background:var(--surface);border-radius:18px 18px 0 0}
 .band-cell.label{align-items:flex-start;justify-content:flex-end}
 .band-cell.label span{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-mute);font-weight:500}
 .col-name{font-size:11.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-bright);font-weight:600;text-align:center;display:flex;align-items:center;justify-content:center;gap:7px}
@@ -130,7 +150,7 @@ background-size:auto,auto,auto,auto,auto,64px 64px,64px 64px,auto;}
 .lev-val.solved{color:var(--gold)}
 .lev-val.solved-capped{color:var(--negative-bright)}
 /* Solver panel (form + solo-answer results) */
-.solve-panel{margin:0 0 20px;padding:18px 22px;background:var(--surface);border-radius:14px}
+.solve-panel{margin:0 0 20px;padding:18px 22px;background:var(--surface);border-radius:var(--glass-radius)}
 .solve-panel-head{display:flex;align-items:baseline;justify-content:space-between;gap:18px;margin-bottom:14px}
 .solve-panel-title{font-family:'Sora';font-size:12.5px;letter-spacing:.02em;color:var(--ink-mute);font-weight:500;line-height:1.5}
 .solve-panel-title b{font-family:'Inter';color:var(--ink-bright);font-weight:700}
@@ -166,7 +186,7 @@ background-size:auto,auto,auto,auto,auto,64px 64px,64px 64px,auto;}
 .fold-cta{display:flex;justify-content:center;margin:0}
 .fold-tab{margin-top:-1px;background:var(--surface-3);border:1px solid var(--rule-faint);border-top:none;border-radius:0 0 12px 12px;padding:7px 22px;font-family:'Sora';font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:var(--gold);cursor:pointer;display:flex;align-items:center;gap:8px}
 .fold-tab:hover{color:var(--gold-bright);border-color:var(--rule)}
-.combo-field{margin:14px 0 20px;padding:22px 24px;border-radius:16px;background:linear-gradient(180deg,rgba(36,28,14,.60),rgba(22,16,8,.60));backdrop-filter:blur(22px);box-shadow:inset 0 1px 0 var(--rule-faint),inset 0 0 0 1px rgba(200,160,70,.10),0 24px 50px -34px rgba(0,0,0,.9)}
+.combo-field{margin:14px 0 20px;padding:22px 24px;border-radius:var(--glass-radius);background:linear-gradient(180deg,rgba(40,30,15,.50),rgba(22,16,8,.52));backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);box-shadow:var(--glass-shadow)}
 .combo-head{font-family:'Sora';font-size:14px;color:var(--ink-bright);font-weight:600;margin-bottom:3px}
 .combo-sub{font-size:12px;color:var(--ink-faint);margin-bottom:18px}
 .combo-sub b{color:var(--gold);font-family:'Inter';font-weight:700}
@@ -247,7 +267,7 @@ background-size:auto,auto,auto,auto,auto,64px 64px,64px 64px,auto;}
 .step-btn:hover{border-color:var(--gold);color:var(--gold)}
 .scn-foot{display:grid;grid-template-columns:148px repeat(3,1fr);column-gap:14px}
 .foot-cell{padding:12px 14px;font-family:'Inter';font-size:12.5px;color:var(--ink-mute)}
-.foot-cell:not(:first-child){background:var(--surface);border-radius:0 0 14px 14px}
+.foot-cell:not(:first-child){background:var(--surface);border-radius:0 0 18px 18px}
 .foot-cell b{color:var(--ink);font-weight:500}
 
 /* ── Scenario columns = floating frosted-glass tubes ──
@@ -258,18 +278,23 @@ background-size:auto,auto,auto,auto,auto,64px 64px,64px 64px,auto;}
    reads as one translucent box floating over the luminous ground. The label
    gutter cells (.label / .lev-name / .sg-name / first foot cell) stay clear. */
 .band-cell:not(.label),.lev-cell,.sg-head.sg-col,.sg-cell,.sg-tcell,.foot-cell:not(:first-child){
-  backdrop-filter:blur(18px) saturate(1.2);
-  -webkit-backdrop-filter:blur(18px) saturate(1.2);
-  box-shadow:inset 1px 0 0 rgba(255,255,255,.14), inset -1px 0 0 rgba(255,255,255,.06);
+  backdrop-filter:var(--glass-blur-sm);
+  -webkit-backdrop-filter:var(--glass-blur-sm);
+  /* continuous tube: left rail catches light, right stays quiet, faint bronze ring */
+  box-shadow:inset 1px 0 0 rgba(255,255,255,.10), inset -1px 0 0 rgba(255,255,255,.035),
+             inset 0 0 0 1px rgba(200,160,70,.05);
 }
 .band-cell:not(.label){
-  box-shadow:inset 1px 0 0 rgba(255,255,255,.14), inset -1px 0 0 rgba(255,255,255,.06),
-             inset 0 1px 0 rgba(255,255,255,.32);
+  /* top of the tube — strongest rim-light + the bronze ambient glow behind the circle */
+  box-shadow:inset 1px 0 0 rgba(255,255,255,.10), inset -1px 0 0 rgba(255,255,255,.035),
+             inset 0 1px 0 rgba(255,255,255,.26), inset 0 0 0 1px rgba(200,160,70,.06),
+             0 -2px 50px -16px rgba(180,130,58,.10);
 }
 .foot-cell:not(:first-child){
-  box-shadow:inset 1px 0 0 rgba(255,255,255,.14), inset -1px 0 0 rgba(255,255,255,.06),
-             inset 0 -1px 0 rgba(255,255,255,.09),
-             0 30px 52px -34px rgba(0,0,0,.62);
+  /* bottom of the tube — quiet base edge + wide diffused volumetric float */
+  box-shadow:inset 1px 0 0 rgba(255,255,255,.10), inset -1px 0 0 rgba(255,255,255,.035),
+             inset 0 -1px 0 rgba(255,255,255,.045), inset 0 0 0 1px rgba(200,160,70,.06),
+             0 40px 80px -42px rgba(0,0,0,.72), 0 6px 70px -10px rgba(178,128,56,.06);
 }
 
 /* Goals section on the Scenarios tab — a read-only mirror of the base-plan
@@ -301,7 +326,7 @@ background-size:auto,auto,auto,auto,auto,64px 64px,64px 64px,auto;}
    ABOVE the sibling .seq-chart — the chart's backdrop-filter gives it its own
    stacking context and would otherwise cover the open menu. */
 .seq-bar{flex:0 0 auto;display:flex;align-items:center;gap:14px;margin:14px 0;position:relative;z-index:30}
-.seq-pick{display:flex;align-items:center;gap:10px;background:var(--surface);border-radius:10px;padding:8px 14px}
+.seq-pick{display:flex;align-items:center;gap:10px;background:var(--surface);border-radius:14px;padding:8px 14px}
 .seq-pick .k{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-mute);font-weight:500}
 /* Custom Plan dropdown — replaces the native <select> whose open option list
    was OS-rendered bright white (un-themeable, especially on macOS). */
@@ -309,7 +334,7 @@ background-size:auto,auto,auto,auto,auto,64px 64px,64px 64px,auto;}
 .seq-dd-btn{display:flex;align-items:center;gap:10px;background:var(--surface-2);border:1px solid var(--rule-bright);color:var(--ink-bright);font-family:'Sora',sans-serif;font-size:12px;font-weight:500;letter-spacing:.04em;padding:6px 12px;border-radius:6px;cursor:pointer;outline:none;transition:border-color .15s}
 .seq-dd-btn:hover,.seq-dd-btn[aria-expanded=true]{border-color:var(--gold-bright)}
 .seq-caret{color:var(--ink-mute);font-size:10px;line-height:1}
-.seq-dd-menu{position:absolute;top:calc(100% + 6px);left:0;min-width:100%;z-index:200;background:var(--surface-2);border:1px solid var(--rule-bright);border-radius:8px;padding:4px;box-shadow:0 18px 40px -16px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.06)}
+.seq-dd-menu{position:absolute;top:calc(100% + 6px);left:0;min-width:100%;z-index:200;background:rgba(28,20,10,.72);backdrop-filter:var(--glass-blur-sm);-webkit-backdrop-filter:var(--glass-blur-sm);border:none;border-radius:14px;padding:5px;box-shadow:0 30px 60px -28px rgba(0,0,0,.8),0 6px 60px -12px rgba(178,128,56,.06),inset 0 1px 0 rgba(255,255,255,.18),inset 0 0 0 1px rgba(200,160,70,.10)}
 .seq-dd-menu[hidden]{display:none}
 .seq-dd-opt{font-family:'Sora',sans-serif;font-size:12px;font-weight:500;color:var(--ink);padding:7px 12px;border-radius:5px;cursor:pointer;white-space:nowrap;transition:background .12s,color .12s}
 .seq-dd-opt:hover{background:rgba(255,255,255,.06);color:var(--ink-bright)}
@@ -323,12 +348,12 @@ background-size:auto,auto,auto,auto,auto,64px 64px,64px 64px,auto;}
 .seq-chip .cdot{width:9px;height:9px;border-radius:50%;flex:none}
 .seq-chip.on{opacity:1;border-color:var(--rule-bright);color:var(--ink-bright)}
 .seq-chip:hover{opacity:.85}
-.seq-chart{flex:0 0 auto;border-radius:16px;background:var(--surface);padding:16px 22px 12px;display:flex;flex-direction:column}
+.seq-chart{flex:0 0 auto;border-radius:var(--glass-radius);background:var(--surface);padding:16px 22px 12px;display:flex;flex-direction:column}
 .seq-chart .chart-body{flex:1 1 auto;min-height:300px}
 /* Two path FINGERPRINTS, side by side: forward vs reversed. Each line is a
    direct read of the engine's single-path result — no UI-computed metrics. */
 .seq-prints{flex:0 0 auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:12px;margin-top:16px}
-.seq-print{border-radius:12px;background:var(--surface);padding:13px 15px 6px}
+.seq-print{border-radius:18px;background:var(--surface);padding:13px 15px 6px}
 .seq-print h4{display:flex;align-items:center;gap:9px;margin:0 0 8px;font-family:'Sora';font-size:11px;letter-spacing:.16em;text-transform:uppercase;font-weight:600;color:var(--ink-bright)}
 .seq-print h4 .dot{display:inline-block;width:20px;border-top:3px solid;border-radius:2px}
 .seq-print h4 .dot.dash{border-top-style:dashed}
@@ -371,10 +396,10 @@ background-size:auto,auto,auto,auto,auto,64px 64px,64px 64px,auto;}
    boxes. Constrained width so it reads as a focused report card, not a sprawl. */
 .np-snapshot-page{padding-top:4px}
 .np-snapshot-page .snap{display:flex;flex-direction:column;gap:0;max-width:560px;
-  background:var(--surface);border-radius:14px;padding:2px 24px;
-  backdrop-filter:blur(22px) saturate(1.18);-webkit-backdrop-filter:blur(22px) saturate(1.18);
-  background-image:linear-gradient(150deg,rgba(220,175,80,.08),rgba(220,175,80,0) 56%);
-  box-shadow:0 28px 56px -26px rgba(0,0,0,.78),inset 0 1px 0 rgba(255,255,255,.26),inset 0 0 0 1px rgba(200,160,70,.10)}
+  background:var(--surface);border-radius:var(--glass-radius);padding:2px 24px;
+  backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);
+  background-image:var(--glass-sheen);
+  box-shadow:var(--glass-shadow)}
 .np-snapshot-page .metric{background:none;background-image:none;backdrop-filter:none;-webkit-backdrop-filter:none;
   box-shadow:none;border-radius:0;padding:16px 0;gap:8px;border-top:1px solid var(--rule-faint)}
 .np-snapshot-page .metric:first-child{border-top:none}
@@ -445,7 +470,7 @@ background-size:auto,auto,auto,auto,auto,64px 64px,64px 64px,auto;}
 .acct-tag.traditional{color:var(--teal-deep);background:rgba(61,148,112,.12)}
 .acct-tag.roth{color:#52b48a;background:rgba(82,180,138,.12)}
 .acct-tag.taxable{color:var(--gold-deep);background:rgba(160,112,48,.12)}
-.acct-picker{margin:12px 0 4px;background:var(--surface);border-radius:14px;padding:14px 16px}
+.acct-picker{margin:12px 0 4px;background:var(--surface);border-radius:20px;padding:14px 16px}
 .acct-picker h5{font-family:'Sora';font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-mute);font-weight:600;margin-bottom:11px}
 .acct-brow{display:flex;align-items:flex-start;gap:14px;padding:5px 0;border-bottom:1px solid var(--rule-faint)}
 .acct-brow:last-of-type{border-bottom:none}
@@ -531,7 +556,7 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield}
 .er-extra .er-gw{width:40px}
 
 /* Property card — name + value/basis + an optional mortgage sub-block. */
-.prop{margin:10px 0;padding:14px 16px;border-radius:14px;background:var(--surface)}
+.prop{margin:10px 0;padding:14px 16px;border-radius:20px;background:var(--surface)}
 .prop-top{display:flex;align-items:center;gap:10px;margin-bottom:9px}
 .prop-name{flex:1 1 auto;background:transparent;border:none;border-bottom:1px dashed var(--rule-faint);font-family:'Sora';font-size:14px;font-weight:500;color:var(--ink);outline:none;padding:1px}
 .prop-name:focus{border-bottom:1px solid var(--gold)}
@@ -555,7 +580,7 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield}
    tax location). The visual tells the truth; no advisor-sentence narration.
    Each metric is a band: name + hero number on the left, the picture right. */
 .snap{max-width:1100px;display:grid;grid-template-columns:1fr 1fr;gap:28px;align-items:start}
-.metric{display:flex;flex-direction:column;gap:20px;padding:26px 28px 30px;border-radius:14px;background:var(--surface)}
+.metric{display:flex;flex-direction:column;gap:20px;padding:26px 28px 30px;border-radius:var(--glass-radius);background:var(--surface)}
 .m-eye{font-family:'Sora';font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-faint);font-weight:600;margin-bottom:10px}
 .m-hero{font-family:'Inter';font-size:46px;line-height:1;font-weight:700;color:var(--champagne);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
 .m-hero.teal{color:var(--champagne)} .m-hero.gold{color:var(--champagne)} .m-hero.clay{color:var(--champagne)}
@@ -596,7 +621,7 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield}
 .cf-toggle{margin:18px 0 12px;display:flex;justify-content:flex-end;flex-shrink:0}
 .cf-toggle button{background:transparent;border:1px solid var(--rule);color:var(--ink-mute);font-family:'Sora';font-size:11px;letter-spacing:.16em;text-transform:uppercase;padding:8px 16px;border-radius:5px;cursor:pointer}
 .cf-toggle button:hover{color:var(--gold);border-color:var(--gold)}
-.cf-drawer{border-radius:14px;background:var(--surface);overflow:hidden;margin-bottom:18px;flex-shrink:0}
+.cf-drawer{border-radius:var(--glass-radius);background:var(--surface);overflow:hidden;margin-bottom:18px;flex-shrink:0}
 .cf-drawer-head{padding:12px 18px;border-bottom:1px solid var(--rule);font-family:'Sora';font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);display:flex;justify-content:space-between;align-items:center}
 .cf-drawer-head .sub{color:var(--ink-faint);font-family:'Sora';font-weight:400;letter-spacing:.04em;text-transform:none;font-size:11px}
 .cf-scroll{max-height:460px;overflow:auto}
