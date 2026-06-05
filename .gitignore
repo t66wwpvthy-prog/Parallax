@@ -18,3 +18,9 @@ verify-out/
 assets-logo.zip
 logo-header.b64
 logo-pack/
+logo-preview.png
+logo-icon-preview.png
+logo-full-preview.png
+
+# Delivery zips
+parallax-screens.zip
