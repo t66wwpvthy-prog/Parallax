@@ -55,6 +55,7 @@ notes elsewhere, ORDERS wins.**
 `exciting-lovelace-5dOpY`, `exciting-lovelace-S3qhW`, `hopeful-euler`.
 
 ## Status log — append one line per finished unit (newest on top)
+- 2026-06-05 · General · canonical+main · Tax-rate inputs on Household (Ordinary + Cap-gains %), whole-% type, no engine change. Verified: edits flow through engine (45% ordinary drops circles ~26pts).
 - 2026-06-05 · General · canonical+main · Suggest mode shipped — in-app tap-to-note review overlay, captures locator + before→after value, Copy for Guppi / Download. Engine 38/38.
 - 2026-06-05 · General · canonical+main · Logo seam fixed: flood-filled the baked-in dark-navy panel to transparent, dropped screen-blend; logo now floats clean on header.
 - 2026-06-05 · General · canonical+main · Established chain of command (CLAUDE.md ★ section + this file).

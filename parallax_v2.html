@@ -1638,6 +1638,8 @@ const HH_FIELDS = [
   {path:'household.primary.retirementAge', label:'Retirement age', type:'age'},
   {path:'household.primary.planEndAge',    label:'Plan end age',   type:'age'},
   {path:'income.workingIncome',            label:'Income / yr',    type:'money'},
+  {path:'taxes.ordinary',                  label:'Ordinary tax',   type:'taxpct'},
+  {path:'taxes.capitalGains',              label:'Cap-gains tax',  type:'taxpct'},
 ];
 
 /* ── Hybrid columns: each sub-page has a LEFT and a RIGHT column.
@@ -1900,6 +1902,10 @@ function renderField(f, klass){
   if(f.type==='pct'){
     const dv = Math.round((v||0)*100);
     return `<input type="number" data-path="${f.path}" data-type="pct" value="${dv}" step="1"><span class="pre">%</span>`;
+  }
+  if(f.type==='taxpct'){                 // whole-number percent stored as-is (engine divides /100)
+    const dv = Math.round(v||0);
+    return `<input type="number" data-path="${f.path}" data-type="taxpct" value="${dv}" step="1" min="0" max="60"><span class="pre">%</span>`;
   }
   // age
   return `<input type="number" data-path="${f.path}" data-type="${f.type}" value="${v}" step="1">`;
@@ -2596,6 +2602,7 @@ $('#np-content').addEventListener('change', e => {
     else                    v = parseFloat(raw);
     if(!isFinite(v)) return;
     if(type==='pct')   v = Math.max(0, Math.min(100, v))/100;
+    if(type==='taxpct')v = Math.max(0, Math.min(60, Math.round(v)));   // whole % (engine /100)
     if(type==='gpct')  v = Math.max(-20, Math.min(20, v))/100;   // signed growth %/yr
     if(type==='money'){ v = Math.max(0, Math.round(v)); e.target.value = v.toLocaleString('en-US'); }
     setPath(plan, path, v);
