@@ -19,12 +19,12 @@
   /* Accent system (refined sage). The historic --gold tokens now carry "Soft
      Desert Clay" / "Muted Warm Bronze" so every existing accent rule re-themes
      in place — NO saturated orange anywhere. Clay is for small emphasis only. */
-  --gold:#dd9a55; --gold-bright:#efab5e; --gold-deep:#c0926a; --gold-glow:rgba(221,154,82,.24);
+  --gold:#c2906a; --gold-bright:#d8a884; --gold-deep:#a87a5c; --gold-glow:rgba(194,144,106,.20);
   --teal:#7fcdb6; --teal-bright:#b6e6e0; --teal-deep:#5fae9a; --teal-glow:rgba(127,205,182,.16);
   --positive:#82d3b0; --positive-bright:#a6e0c8;
   --clay:#D9A07E;
   --negative:#d4706a; --negative-bright:#e08a7a;
-  --s1:#efab5e; --s2:#82daa1; --s3:#9bd8e6;
+  --s1:#d8a884; --s2:#82daa1; --s3:#9bd8e6;
   /* Hero financial values — Muted Champagne (never orange). */
   --champagne:#E5D9C4;
   /* Named aliases from Nathan's spec (point at the same refined roles). */
@@ -410,7 +410,9 @@ background-size:auto,auto,auto,auto,auto,64px 64px,64px 64px,auto;}
 .bs-divider{background:var(--rule-faint);align-self:stretch}
 /* Column title ("Assets" / "Liabilities") */
 .bs-title{font-family:'Sora';font-size:17px;font-weight:500;color:var(--ink);letter-spacing:-.01em;margin:0 0 4px}
-.bs-head{font-family:'Sora';font-size:10.5px;letter-spacing:.26em;text-transform:uppercase;color:var(--ink-mute);font-weight:600;margin:26px 0 8px;padding-bottom:8px;border-bottom:1px solid var(--gold)}
+.bs-head{font-family:'Sora';font-size:10.5px;letter-spacing:.26em;text-transform:uppercase;color:var(--ink-mute);font-weight:600;margin:26px 0 8px;padding-bottom:8px;position:relative}
+/* Copper reads as a faint STREAK that fades out, not a hard rule that draws. */
+.bs-head::after{content:'';position:absolute;left:0;right:0;bottom:0;height:1px;background:linear-gradient(90deg,var(--gold) 0%,rgba(194,144,106,.34) 40%,transparent 84%)}
 .bs-head:first-of-type{margin-top:16px}
 /* Household stat bar — a connected full-width header band (bottom hairline) so it
    grounds the page instead of floating; tight vertical rhythm. */
@@ -422,7 +424,7 @@ background-size:auto,auto,auto,auto,auto,64px 64px,64px 64px,auto;}
 .hh-f .pre{color:var(--ink-faint);font-size:13px;font-family:'Inter'}
 .hh-f input{font-family:'Inter';font-size:16px;font-weight:500;color:var(--ink);background:transparent;border:none;border-bottom:1px dashed transparent;padding:1px;width:90px;text-align:left;outline:none;font-variant-numeric:tabular-nums;transition:border-color .15s,background .15s}
 .hh-f input:hover{border-bottom-color:var(--rule-bright)}
-.hh-f input:focus{border-bottom:1px solid var(--gold);background:rgba(154,115,34,.05)}
+.hh-f input:focus{border-bottom:1px solid var(--gold);background:rgba(194,144,106,.05)}
 .bs-row{display:flex;align-items:baseline;padding:7px 0;font-size:14px}
 .bs-row label{color:var(--ink-mute);font-weight:500;font-family:'Sora'}
 .bs-row.sub label{color:var(--ink-faint);font-size:13px;padding-left:18px;font-weight:400}
@@ -431,7 +433,7 @@ background-size:auto,auto,auto,auto,auto,64px 64px,64px 64px,auto;}
 .bs-row .pre{color:var(--ink-faint);font-size:13px;font-family:'Inter'}
 .bs-row input{font-family:'Inter';font-size:14.5px;font-weight:500;color:var(--ink);background:transparent;border:none;border-bottom:1px dashed var(--rule-faint);padding:1px 1px;width:110px;text-align:right;outline:none;font-variant-numeric:tabular-nums;transition:border-color .15s,background .15s}
 .bs-row input:hover{border-bottom-color:var(--gold)}
-.bs-row input:focus{border-bottom:1px solid var(--gold);background:rgba(154,115,34,.05)}
+.bs-row input:focus{border-bottom:1px solid var(--gold);background:rgba(194,144,106,.05)}
 .bs-row select{font-family:'Sora';font-size:13.5px;font-weight:500;color:var(--ink);background:transparent;border:none;border-bottom:1px dashed var(--rule-faint);padding:1px 18px 1px 1px;outline:none;cursor:pointer;appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M0 0 L5 6 L10 0' fill='%238a93a0'/></svg>");background-repeat:no-repeat;background-position:right 2px center}
 .bs-row select:hover,.bs-row select:focus{border-bottom-color:var(--gold)}
 .bs-row.sub input{font-size:13px;font-weight:400;color:var(--ink-mute);width:90px}
@@ -445,7 +447,7 @@ background-size:auto,auto,auto,auto,auto,64px 64px,64px 64px,auto;}
 .bs-row .acct-tag{font-family:'Sora';font-size:8.5px;letter-spacing:.06em;text-transform:uppercase;font-weight:600;padding:2px 6px;border-radius:20px;margin-left:9px}
 .acct-tag.traditional{color:var(--teal-deep);background:rgba(63,107,120,.10)}
 .acct-tag.roth{color:#6aa882;background:rgba(106,168,130,.12)}
-.acct-tag.taxable{color:var(--gold-deep);background:rgba(154,115,34,.10)}
+.acct-tag.taxable{color:var(--gold-deep);background:rgba(194,144,106,.10)}
 .acct-picker{margin:12px 0 4px;background:var(--surface);border-radius:14px;padding:14px 16px}
 .acct-picker h5{font-family:'Sora';font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-mute);font-weight:600;margin-bottom:11px}
 .acct-brow{display:flex;align-items:flex-start;gap:14px;padding:5px 0;border-bottom:1px solid var(--rule-faint)}
@@ -455,7 +457,7 @@ background-size:auto,auto,auto,auto,auto,64px 64px,64px 64px,auto;}
 .acct-chips{display:flex;flex-wrap:wrap;gap:6px}
 .acct-chip{border:1px solid var(--rule-faint);border-radius:8px;padding:4px 9px;font-family:'Sora';font-size:11.5px;background:var(--surface-2);cursor:pointer;color:var(--ink)}
 .acct-chip:hover{border-color:var(--gold-bright)}
-.acct-chip.sel{border-color:var(--gold);background:rgba(154,115,34,.12);font-weight:600;color:var(--gold-deep)}
+.acct-chip.sel{border-color:var(--gold);background:rgba(194,144,106,.12);font-weight:600;color:var(--gold-deep)}
 .acct-foot{display:flex;align-items:flex-end;gap:11px;margin-top:11px;padding-top:11px;border-top:1px solid var(--rule-faint)}
 .acct-foot .lbl{font-size:10.5px;color:var(--ink-faint);display:block;margin-bottom:4px}
 .acct-amt{font-family:'Inter';font-size:14px;font-weight:500;color:var(--ink);background:var(--surface-2);border:1px solid var(--rule-faint);border-radius:7px;padding:7px 10px;width:130px;text-align:right;outline:none}
@@ -481,7 +483,7 @@ background-size:auto,auto,auto,auto,auto,64px 64px,64px 64px,auto;}
 .hp-item .pre{color:var(--ink-faint);font-size:13px;font-family:'Inter'}
 .hp-item input{font-family:'Inter';font-size:14.5px;font-weight:500;color:var(--ink);background:transparent;border:none;border-bottom:1px dashed var(--rule-faint);padding:1px 1px;width:96px;text-align:right;outline:none;font-variant-numeric:tabular-nums;transition:border-color .15s,background .15s}
 .hp-item input:hover{border-bottom-color:var(--gold)}
-.hp-item input:focus{border-bottom:1px solid var(--gold);background:rgba(154,115,34,.05)}
+.hp-item input:focus{border-bottom:1px solid var(--gold);background:rgba(194,144,106,.05)}
 .hp-item .row-x{margin-left:6px;width:18px;height:18px;border:none;background:transparent;color:var(--ink-faint);font-size:15px;line-height:1;cursor:pointer;border-radius:4px;padding:0}
 .hp-item .row-x:hover{color:var(--negative-bright);background:rgba(240,145,141,.08)}
 .hp-item .meta{margin-top:3px;font-size:11.5px;color:var(--ink-mute)}
@@ -497,10 +499,10 @@ background-size:auto,auto,auto,auto,auto,64px 64px,64px 64px,auto;}
 .erow:last-of-type{border-bottom:none}
 .erow input{font-family:'Inter';background:transparent;border:none;border-bottom:1px dashed var(--rule-faint);padding:1px 1px;outline:none;color:var(--ink);transition:border-color .15s,background .15s}
 .erow input:hover{border-bottom-color:var(--gold)}
-.erow input:focus{border-bottom:1px solid var(--gold);background:rgba(154,115,34,.05)}
+.erow input:focus{border-bottom:1px solid var(--gold);background:rgba(194,144,106,.05)}
 .er-name{flex:1 1 auto;min-width:60px;font-size:13.5px;font-weight:500;text-align:left;font-family:'Sora'!important;background:transparent;border:none;border-bottom:1px dashed var(--rule-faint);color:var(--ink);outline:none;padding:1px}
 .er-name:hover{border-bottom-color:var(--gold)}
-.er-name:focus{border-bottom:1px solid var(--gold);background:rgba(154,115,34,.05)}
+.er-name:focus{border-bottom:1px solid var(--gold);background:rgba(194,144,106,.05)}
 .prop-top .er-name{font-size:14px;font-weight:600}
 .er-name::placeholder{color:var(--ink-faint);font-style:italic}
 .er-amt{display:inline-flex;align-items:baseline;gap:2px;flex:0 0 auto}
@@ -908,7 +910,7 @@ plan.simulation.iterations = 1000;
 // (matches --s1/2/3); two more earthy tones extend it when the advisor adds a
 // 4th/5th scenario. colorFor() cycles the palette so any count gets a color.
 // No green here (reserved for the success language) and no mint.
-const SCEN_PALETTE=['#efab5e','#82daa1','#9bd8e6','#c98bd0','#BFA78F'];
+const SCEN_PALETTE=['#d8a884','#82daa1','#9bd8e6','#c98bd0','#BFA78F'];
 const colorFor=i=>SCEN_PALETTE[i % SCEN_PALETTE.length];
 const MAX_SCENARIOS=5;
 /* The three scenario columns. Each holds lever values + its last engine result.
@@ -1972,8 +1974,11 @@ function renderStatement(){
     });
     return h;
   };
-  const assetSecs = BALANCE_SHEET.filter(s => !s.liab);
-  const liabSecs  = BALANCE_SHEET.filter(s =>  s.liab);
+  // Investments sit alone on the left; the right column pairs Real assets with
+  // the Liabilities they relate to (e.g. a home and its mortgage) — this also
+  // fills the formerly-empty right side so the whole sheet fits without scroll.
+  const investSecs = BALANCE_SHEET.filter(s => s.subtotal==='invest');
+  const rightSecs  = BALANCE_SHEET.filter(s => s.kind==='property' || s.liab);
   const hh = HH_FIELDS.map(f =>
     `<div class="hh-f"><label>${f.label}</label><span class="field">${renderField(f)}</span></div>`
   ).join('');
@@ -1981,9 +1986,9 @@ function renderStatement(){
     <div class="hh-bar">${hh}</div>
     ${renderGutter('balance-sheet')}
     <div class="bs-sheet">
-      <div class="bs-col"><div class="bs-title">Assets</div>${renderSecs(assetSecs)}</div>
+      <div class="bs-col"><div class="bs-title">Investments</div>${renderSecs(investSecs)}</div>
       <div class="bs-divider"></div>
-      <div class="bs-col"><div class="bs-title">Liabilities</div>${renderSecs(liabSecs)}</div>
+      <div class="bs-col"><div class="bs-title">Property &amp; liabilities</div>${renderSecs(rightSecs)}</div>
     </div>
   </div>`;
 }
