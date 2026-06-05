@@ -627,34 +627,68 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield}
   html,body{overflow:auto;font-size:15px;-webkit-text-size-adjust:100%}
   .wrap{height:auto;min-height:100vh;overflow:visible}
 
-  /* Header wraps; tabs become a scrollable row; Run stays reachable. */
-  .hdr{flex-wrap:wrap;gap:10px 14px;padding:12px 16px;position:sticky;top:0;z-index:60}
-  .hdr-tabs{margin-left:0;order:3;width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
-  .htab{padding:8px 16px;font-size:13px;white-space:nowrap}
-  .hdr-right{gap:12px}
+  /* Header wraps to two rows: brand + Run on top, the three tabs on a centered
+     row below. Status text is hidden on a phone (the circles/levers show state). */
+  .hdr{flex-wrap:wrap;gap:8px 12px;padding:11px 14px;position:sticky;top:0;z-index:60}
+  .hdr-tabs{margin-left:0;order:3;width:100%;display:flex;justify-content:center;gap:2px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .hdr-tabs::-webkit-scrollbar{display:none}
+  .htab{padding:7px 13px;font-size:12px;letter-spacing:.1em;white-space:nowrap;flex:0 0 auto}
+  .hdr-right{gap:10px;margin-left:auto}
+  .status{display:none}
   .run-btn{padding:11px 20px;font-size:12px}
 
   .page{padding:0 14px 28px}
-  .page[data-page="scenarios"]{overflow-x:visible}
-  .page[data-page="scenarios"] .eyebrow{position:static;padding:16px 0 12px}
+  .page[data-page="scenarios"]{overflow:visible}
+  .page[data-page="scenarios"] .eyebrow{position:static;padding:14px 0 8px}
 
-  /* Scenario comparison: scroll the band+levers+foot together horizontally so
-     the % circles, sliders, and totals stay in the same three columns. */
-  .scn-band,.scn-levers,.scn-goals,.scn-foot{min-width:620px}
-  .scn-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:4px}
-  .scn-band{position:static;box-shadow:none}
-  .scn-band::before{display:none}
+  /* Scenarios on a phone: the band shows ALL % circles (comparison stays on
+     screen, sticky under the header); levers/foot/goals show only the ACTIVE
+     column. Tap a circle to switch. No horizontal scrolling. */
+  .scn-band,.scn-levers,.scn-goals,.scn-foot{min-width:0}
+  .scn-scroll{overflow-x:visible}
+  .scn-band{position:sticky;z-index:20;column-gap:8px;padding:10px 0 12px;box-shadow:none}
+  .scn-band::before{top:-4px}
+  /* Add / Solve span a full-width row above the circles. */
+  .scn-band .band-cell{min-height:0;gap:6px;padding:6px 3px}
+  .scn-band .band-cell.label{grid-column:1/-1;display:flex;flex-direction:row;align-items:center;justify-content:flex-start;gap:8px;padding:0 2px 4px;min-height:0}
+  .scn-band .band-cell.label>span{display:none}
+  .scn-band .add-scen,.scn-band .solve-btn{margin:0;font-size:10px;padding:6px 11px}
+  .scn-band .band-cell:not(.label){cursor:pointer;border-radius:14px;border:1px solid transparent;transition:opacity .15s,border-color .15s,background .15s}
+  .scn-band .band-cell:not(.label):not(.msel){opacity:.58}
+  .scn-band .band-cell.msel{border-color:var(--rule-bright);background:rgba(255,220,130,.05)}
+  .scn-band .col-name{font-size:9px;letter-spacing:.06em}
+  .scn-band .col-rename{width:70px;font-size:9px}
+  .scn-band .col-x{display:none}
+  .scn-band .circle-wrap{width:84px;height:84px;transform:none}
+  .scn-band .circle-val .big{font-size:19px}
+  .scn-band .circle-val .lbl{font-size:7px;margin-top:1px}
+  .scn-band .circle-delta{font-size:10.5px;margin-top:2px}
 
-  /* Bigger touch targets on the sliders; touch has no hover so keep them shown. */
-  .lev-slider{height:30px;opacity:1}
-  .lev-slider::-webkit-slider-thumb{height:22px;width:22px;margin-top:-10px;border-width:3px}
-  .lev-slider::-webkit-slider-runnable-track{height:3px}
-  .lev-val{font-size:18px}
+  /* Hide the non-active scenario column in the stacked sections. */
+  .scn-scroll[data-active="0"] :is(#scn-levers,#scn-foot,#scn-goals) [data-col]:not([data-col="0"]){display:none}
+  .scn-scroll[data-active="1"] :is(#scn-levers,#scn-foot,#scn-goals) [data-col]:not([data-col="1"]){display:none}
+  .scn-scroll[data-active="2"] :is(#scn-levers,#scn-foot,#scn-goals) [data-col]:not([data-col="2"]){display:none}
+  .scn-scroll[data-active="3"] :is(#scn-levers,#scn-foot,#scn-goals) [data-col]:not([data-col="3"]){display:none}
+
+  /* Bigger touch targets: sliders, steppers, type-in boxes. */
+  .lev-slider{height:34px;opacity:1}
+  .lev-slider::-webkit-slider-thumb{height:26px;width:26px;margin-top:-12px;border-width:3px}
+  .lev-slider::-webkit-slider-runnable-track{height:4px}
+  .lev-val{font-size:17px}
+  .lev-in,.pen-in,.age-in{font-size:16px} /* 16px stops iOS zoom-on-focus */
+  .step-btn{min-width:36px;min-height:36px;font-size:18px}
 
   .chart-head{flex-wrap:wrap;gap:6px 14px}
 
   /* Inputs: single column. */
   .np-page{grid-template-columns:1fr;gap:18px}
+  .np-page.np-bal{grid-template-columns:1fr;max-width:none}
+  .np-bal .bs-sheet,.bs-sheet{grid-template-columns:1fr;gap:0}
+  .np-bal .bs-col{padding:0}
+  .bs-divider{display:none}
+  .hh-bar{flex-wrap:wrap;gap:8px 16px}
+  .bs-row input,.acct-amt{font-size:16px}  /* 16px stops iOS zoom-on-focus */
+  .acct-blabel{width:52px}
   .np-gutter{position:static}
   .hp-body{grid-template-columns:1fr;gap:18px}
   .hp-rule{display:none}
@@ -676,10 +710,13 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield}
   .cf-toggle{justify-content:stretch}
   .cf-toggle button{width:100%}
 
-  /* Goals board on a phone: ladder + tray stack into one scrolling column,
-     so the absolute-positioned canvas becomes a simple flow of cards. */
+  /* Goals board on a phone: ladder + tray stack into one full-width column
+     (height set by JS layout()); the desktop priority spine is hidden. */
   #np-content.g-mode{min-height:0}
-  .g-board{min-height:520px}
+  .g-board{min-height:0}
+  .g-board .g-axis{display:none}
+  .g-hero{flex-wrap:wrap;gap:16px}
+  .g-actions{flex-direction:row;align-items:center}
 }
 /* ===== Goals priority board — ghost slots + tray (approved design) =========
    The Goals sub-page is NOT the ledger; it's a prioritisation board. Cards read
@@ -717,7 +754,7 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield}
 .g-slot.filled .g-rank{opacity:0}
 @keyframes absorb{0%{box-shadow:inset 0 0 0 2px rgba(201,146,74,.85),0 0 44px -6px rgba(201,146,74,.70)}100%{box-shadow:none}}
 .g-slot.flash{animation:absorb .5s ease-out}
-.g-card{position:absolute;z-index:2;cursor:grab;user-select:none;width:410px;height:72px;border-radius:14px;overflow:hidden;display:flex;align-items:center;gap:14px;padding:0 22px 0 28px;background:linear-gradient(152deg,rgba(90,70,36,.50),rgba(58,44,20,.50) 52%,rgba(40,30,14,.56));backdrop-filter:blur(22px) saturate(1.24);-webkit-backdrop-filter:blur(22px) saturate(1.24);box-shadow:inset 0 1px 0 rgba(255,255,255,.28),inset 0 0 0 1px rgba(200,160,70,.12),0 24px 44px -22px rgba(0,0,0,.72);transition:box-shadow .16s,transform .12s}
+.g-card{position:absolute;z-index:2;cursor:grab;user-select:none;touch-action:none;width:410px;height:72px;border-radius:14px;overflow:hidden;display:flex;align-items:center;gap:14px;padding:0 22px 0 28px;background:linear-gradient(152deg,rgba(90,70,36,.50),rgba(58,44,20,.50) 52%,rgba(40,30,14,.56));backdrop-filter:blur(22px) saturate(1.24);-webkit-backdrop-filter:blur(22px) saturate(1.24);box-shadow:inset 0 1px 0 rgba(255,255,255,.28),inset 0 0 0 1px rgba(200,160,70,.12),0 24px 44px -22px rgba(0,0,0,.72);transition:box-shadow .16s,transform .12s}
 .g-card>*{position:relative;z-index:2}
 .g-card::before{content:'';position:absolute;inset:0;z-index:0;border-radius:inherit;pointer-events:none;background:linear-gradient(133deg,rgba(255,255,255,.2),rgba(255,255,255,.03) 32%,rgba(255,255,255,0) 58%)}
 .g-card::after{content:'';position:absolute;left:0;top:13px;bottom:13px;width:3px;z-index:1;border-radius:3px;background:linear-gradient(180deg,var(--gold-bright),rgba(160,112,48,.06))}
@@ -3602,7 +3639,11 @@ function initGoalsBoard(){
   const board = $('#g-board'), traylab = $('#g-traylab'), lead = $('#g-lead');
   if(!board) return;
   const RANK_KEY='parallax.goals.rank';
-  const NSLOT=Math.max(6, list.length), CW=410, CH=72, GAP=14;
+  const NSLOT=Math.max(6, list.length), CH=72, GAP=14;
+  // On a phone the ladder + tray can't sit side-by-side; stack them in one full-
+  // width column (slots on top, tray below) and size cards to the board.
+  const mobBoard=isMobileView();
+  const CW = mobBoard ? Math.max(240, (board.clientWidth||360)-24) : 410;
   const SNAP='left .2s cubic-bezier(.2,.7,.2,1),top .2s cubic-bezier(.2,.7,.2,1),box-shadow .16s,transform .12s';
   const slots=[], cards=[];
   for(let i=0;i<NSLOT;i++){
@@ -3614,6 +3655,7 @@ function initGoalsBoard(){
   list.forEach((g)=>{
     const el=document.createElement('div'); el.className='g-card'+(g.once?' once':'');
     el.dataset.i=g.i; el.innerHTML=goalCardHTML(g);
+    if(mobBoard) el.style.width=CW+'px';
     board.appendChild(el);
     const c={el,slot:null,fromSlot:null,homeX:0,homeY:0,idx:g.i}; el._c=c; cards.push(c);
   });
@@ -3638,8 +3680,23 @@ function initGoalsBoard(){
   // so adding goals never overflows below the board (no scroll). Both column
   // origins are set by layout() and read by the drop logic (judged by region).
   const COLGAP=42;
-  let ladderX=140, trayX=0, perCol=6;
+  let ladderX=140, trayX=0, perCol=6, trayTop=0;
   function layout(){
+    if(mobBoard){
+      // Single column: ranked slots first, the tray of unplaced goals below.
+      const startY=38, lx=12; ladderX=lx;
+      slots.forEach((s,i)=>{ s.x=lx; s.y=startY+i*(CH+GAP); s.el.style.left=lx+'px'; s.el.style.top=s.y+'px'; });
+      trayTop = startY + NSLOT*(CH+GAP) + 34;
+      traylab.style.left=lx+'px'; traylab.style.top=(trayTop-26)+'px';
+      cards.forEach((c,i)=>{
+        c.homeX=lx; c.homeY=trayTop+i*(CH+GAP);
+        if(c.slot){ c.el.style.left=c.slot.x+'px'; c.el.style.top=c.slot.y+'px'; }
+        else      { c.el.style.left=c.homeX+'px';  c.el.style.top=c.homeY+'px'; }
+      });
+      const nh=trayTop + cards.length*(CH+GAP) + 24;
+      if(Math.abs(board.offsetHeight-nh)>1) board.style.height=nh+'px';
+      return;
+    }
     const H=board.clientHeight;
     const startY=44;                                  // top-aligned so the column packs (room for labels above)
     perCol=Math.max(1, Math.floor((H-startY-CH)/(CH+GAP))+1);
@@ -3684,6 +3741,12 @@ function initGoalsBoard(){
   // the midline between the two columns, it lands in the nearest slot by height
   // (so a near-miss still ranks, never bounces); on the tray side it un-ranks.
   const dropTarget=(cx,cy)=>{
+    if(mobBoard){                                         // stacked: judge by Y
+      if(cy >= trayTop-8) return null;                   // below ladder → unplaced
+      let best=slots[0],bd=1e9;
+      slots.forEach(s=>{ const d=Math.abs(cy-(s.y+CH/2)); if(d<bd){bd=d;best=s;} });
+      return best;
+    }
     if(cx >= (ladderX+CW + trayX)/2) return null;        // tray side → unplaced
     let best=slots[0],bd=1e9;                             // ladder side → nearest by Y
     slots.forEach(s=>{ const d=Math.abs(cy-(s.y+CH/2)); if(d<bd){bd=d;best=s;} });
@@ -3991,10 +4054,31 @@ function ring(pct){
 // The band / levers / foot are CSS grids whose column count must match the
 // number of scenarios. One place sets it (label gutter + N equal columns) so
 // adding/removing a scenario reflows all three rows together.
+// On a phone the three columns can't sit side-by-side, so the band shows ALL
+// circles (comparison stays on screen) while levers/foot/goals show only the
+// ACTIVE column — tap a circle to switch. mobileCol holds that active index.
+let mobileCol = 0;
+function isMobileView(){ return window.matchMedia('(max-width:760px)').matches; }
+function setMobileCol(ci){
+  mobileCol = ci;
+  const sc=$('.scn-scroll'); if(sc) sc.dataset.active=ci;
+  $('#scn-band')?.querySelectorAll('.band-cell[data-col]')
+    .forEach(c=>c.classList.toggle('msel', +c.dataset.col===ci));
+}
 function syncGridCols(){
-  const tpl=`148px repeat(${scenarios.length},1fr)`;
-  ['#scn-band','#scn-levers','#scn-goals','#scn-foot'].forEach(sel=>{
-    const el=$(sel); if(el) el.style.gridTemplateColumns=tpl;
+  const n=scenarios.length, mob=isMobileView();
+  if(mobileCol>=n) mobileCol=0;
+  const sc=$('.scn-scroll'); if(sc) sc.dataset.active=mobileCol;
+  const bandTpl = mob ? `repeat(${n},1fr)` : `148px repeat(${n},1fr)`;
+  const tblTpl  = mob ? `112px minmax(0,1fr)` : `148px repeat(${n},1fr)`;
+  const b=$('#scn-band'); if(b) b.style.gridTemplateColumns=bandTpl;
+  // The circle band sticks just under the (wrapping) mobile header; measure it.
+  if(b){
+    if(mob){ const hdr=$('.hdr'); b.style.top=(hdr?hdr.offsetHeight:0)+'px'; }
+    else b.style.top='';
+  }
+  ['#scn-levers','#scn-goals','#scn-foot'].forEach(sel=>{
+    const el=$(sel); if(el) el.style.gridTemplateColumns=tblTpl;
   });
 }
 // Neutral ±pts-vs-baseline pill under each circle. Baseline shows "baseline";
@@ -4022,7 +4106,7 @@ function renderBand(){
     const nameEl = s.base
       ? `<span class="col-name base-tag">${dot}${escHtml(s.name)}</span>`
       : `<span class="col-name">${dot}<input class="col-rename" data-col="${ci}" value="${escHtml(s.name)}" maxlength="28" aria-label="Scenario name"><button class="col-x" data-col="${ci}" title="Remove scenario">✕</button></span>`;
-    h+=`<div class="band-cell ${s.base?'base':''}">
+    h+=`<div class="band-cell ${s.base?'base':''} ${ci===mobileCol?'msel':''}" data-col="${ci}">
       ${nameEl}
       <div class="circle-wrap">${ring(sr)}
         <div class="circle-val"><span class="big" style="color:${col}">${sr.toFixed(1)}%</span><span class="lbl">Success</span></div></div>
@@ -4144,7 +4228,7 @@ function buildLevers(){
         ? `<input class="lev-slider ${s.base?'base-lock':''}" type="range" min="${r.min}" max="${r.max}" step="${r.step}"
                  value="${Math.max(r.min,Math.min(r.max,s.lev[cfg.key]))}" data-col="${ci}" data-key="${cfg.key}" style="--fill:${pct}%">`
         : '';
-      h+=`<div class="lev-cell ${s.base?'base':''} ${last}">
+      h+=`<div class="lev-cell ${s.base?'base':''} ${last}" data-col="${ci}">
         <span class="lev-val ${s.base?'base':''}" id="lv-${ci}-${cfg.key}">${renderLevValue(cfg,s.lev)}</span>
         ${bar}
       </div>`;
@@ -4164,7 +4248,7 @@ function renderScenGoals(){
   // Section header row: a gold "Goals" label in the gutter + a tinted header
   // cell per column so the section reads as a block under the levers.
   let h=`<div class="sg-head">Goals</div>`;
-  scenarios.forEach(s=>{ h+=`<div class="sg-head sg-col ${s.base?'base':''}"></div>`; });
+  scenarios.forEach((s,ci)=>{ h+=`<div class="sg-head sg-col ${s.base?'base':''}" data-col="${ci}"></div>`; });
   if(!goals.length){
     h+=`<div class="sg-empty">No goals yet — add them on the Goals page to see them here.</div>`;
     host.innerHTML=h; return;
@@ -4178,8 +4262,8 @@ function renderScenGoals(){
     const tag = once ? 'one-time' : '/yr';
     if(once) totOnce+=(g.amount||0); else totRec+=(g.amount||0);
     h+=`<div class="sg-name">${escHtml(g.name||'Goal')}<span class="sg-win">${win}</span></div>`;
-    scenarios.forEach(s=>{
-      h+=`<div class="sg-cell ${s.base?'base':''}">$${(g.amount||0).toLocaleString('en-US')}<span class="sg-tag">${tag}</span></div>`;
+    scenarios.forEach((s,ci)=>{
+      h+=`<div class="sg-cell ${s.base?'base':''}" data-col="${ci}">$${(g.amount||0).toLocaleString('en-US')}<span class="sg-tag">${tag}</span></div>`;
     });
   });
   // Total row: recurring annual goal spend (the steady draw), with any one-time
@@ -4187,7 +4271,7 @@ function renderScenGoals(){
   const totTxt = `$${totRec.toLocaleString('en-US')}`
     + (totOnce>0 ? ` <span class="sg-tag">+ $${totOnce.toLocaleString('en-US')} one-time</span>` : '');
   h+=`<div class="sg-total">Annual goal spend</div>`;
-  scenarios.forEach(s=>{ h+=`<div class="sg-tcell ${s.base?'base':''}">${totTxt}</div>`; });
+  scenarios.forEach((s,ci)=>{ h+=`<div class="sg-tcell ${s.base?'base':''}" data-col="${ci}">${totTxt}</div>`; });
   host.innerHTML=h;
 }
 // Stepper buttons for the discrete levers (delegated — survives rebuilds).
@@ -4242,6 +4326,19 @@ $('#scn-band').addEventListener('click', e=>{
   if(x){ removeScenario(+x.dataset.col); return; }
   if(e.target.closest('.add-scen')){ addScenario(); return; }
   if(e.target.closest('.solve-btn')){ solverFormOpen = true; renderSolvePanel(); return; }
+  // On a phone, tapping a circle makes that scenario the active (editable) one.
+  // Ignore taps on the inline rename field so editing the name still works.
+  if(isMobileView() && !e.target.closest('.col-rename')){
+    const cell=e.target.closest('.band-cell[data-col]');
+    if(cell){ setMobileCol(+cell.dataset.col); }
+  }
+});
+// Reflow the scenario grids when crossing the phone/desktop breakpoint or on
+// orientation change, so the column template + active-column view stay correct.
+let _scnResizeT;
+window.addEventListener('resize', ()=>{
+  clearTimeout(_scnResizeT);
+  _scnResizeT=setTimeout(()=>{ if($('#scn-band')) syncGridCols(); }, 150);
 });
 // Solver goal form lives in #solve-panel (full-width). Live commas on $ boxes;
 // changing the pin dropdown re-renders its value input (age box vs $ box).
@@ -4408,12 +4505,12 @@ $('#scn-levers').addEventListener('change', e=>{
 function renderFoot(){
   syncGridCols();
   let h=`<div class="foot-cell" style="color:var(--ink-faint)">Median end</div>`;
-  scenarios.forEach(s=>{
+  scenarios.forEach((s,ci)=>{
     // Match the LINE: this is where the drawn median path actually ends.
     // Full digits w/ commas — no $1.5M shorthand. Whole dollars (no cents).
     const v=s.res?s.res.envelope[s.res.envelope.length-1].p50:null;
     const t=v!=null ? '$'+Math.max(0,Math.round(v)).toLocaleString('en-US') : '—';
-    h+=`<div class="foot-cell ${s.base?'base':''}">&nbsp;<b>${t}</b></div>`;
+    h+=`<div class="foot-cell ${s.base?'base':''}" data-col="${ci}">&nbsp;<b>${t}</b></div>`;
   });
   $('#scn-foot').innerHTML=h;
 }
