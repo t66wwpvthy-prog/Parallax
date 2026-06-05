@@ -45,6 +45,11 @@ He is the domain expert and product owner, **not** a software engineer. So:
 - **No guessing, ever.** If you can't verify something (run it, read it, check it),
   say "I can't verify that" — never dress a guess as a confident answer.
 
+## The philosophy (what Parallax IS)
+Parallax is not simply a financial planning tool. It is the expression of a planning
+philosophy: that outcomes are shaped by the interaction of time, markets, taxes, goals,
+behavior, and decisions — and that better understanding creates better judgment.
+
 ## The core principles (everything serves these)
 1. **Parallax models interactions.** The value is levers moving each other and the
    client *seeing* the effect. Not isolated stats. Every view must show an
