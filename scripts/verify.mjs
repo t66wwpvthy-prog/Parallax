@@ -92,20 +92,41 @@ try {
     await page.screenshot({ path: `${OUT}/01-balance-sheet.png`, fullPage: true });
   });
 
-  await step('net worth sub-nav cycles through cash flow / goals', async () => {
-    for(const sub of ['cashflow','goals']){
-      await page.click(`#np-subnav .stab[data-sub="${sub}"]`);
-      await new Promise(r => setTimeout(r, 200));
-      const m = await page.evaluate(() => ({
-        gutterBig: document.querySelector('.np-gutter .big-num')?.textContent || '',
-        gutterRows: document.querySelectorAll('.np-gutter .row').length,
-        cols: document.querySelectorAll('.hp-col').length,
-      }));
-      if(m.cols !== 2) throw new Error(`${sub} hybrid did not render two columns (cols=${m.cols})`);
-      if(!m.gutterBig.startsWith('$')) throw new Error(`${sub} gutter big-number missing (got "${m.gutterBig}")`);
-      if(m.gutterRows < 2) throw new Error(`${sub} gutter breakdown rows missing (got ${m.gutterRows})`);
-      await page.screenshot({ path: `${OUT}/02-${sub}.png`, fullPage: true });
-    }
+  await step('net worth · cash flow renders two hybrid columns + gutter', async () => {
+    await page.click(`#np-subnav .stab[data-sub="cashflow"]`);
+    await new Promise(r => setTimeout(r, 200));
+    const m = await page.evaluate(() => ({
+      gutterBig: document.querySelector('.np-gutter .big-num')?.textContent || '',
+      gutterRows: document.querySelectorAll('.np-gutter .row').length,
+      cols: document.querySelectorAll('.hp-col').length,
+    }));
+    if(m.cols !== 2) throw new Error(`cashflow hybrid did not render two columns (cols=${m.cols})`);
+    if(!m.gutterBig.startsWith('$')) throw new Error(`cashflow gutter big-number missing (got "${m.gutterBig}")`);
+    if(m.gutterRows < 2) throw new Error(`cashflow gutter breakdown rows missing (got ${m.gutterRows})`);
+    await page.screenshot({ path: `${OUT}/02-cashflow.png`, fullPage: true });
+  });
+
+  await step('net worth · goals renders the priority board (cards + slots)', async () => {
+    // Goals is no longer the ledger — it's the priority board. Live render means:
+    // a copper annual-spend hero ($…/year), ≥6 ghost slots, and one draggable
+    // card per plan.goals entry sitting in the tray on load.
+    await page.click(`#np-subnav .stab[data-sub="goals"]`);
+    await new Promise(r => setTimeout(r, 300));
+    const m = await page.evaluate(() => ({
+      board:  !!document.querySelector('#np-content.g-mode .g-board'),
+      hero:   document.querySelector('.g-big')?.textContent || '',
+      cards:  document.querySelectorAll('.g-card').length,
+      once:   document.querySelectorAll('.g-card.once').length,
+      slots:  document.querySelectorAll('.g-slot').length,
+      boardH: Math.round(document.querySelector('.g-board')?.getBoundingClientRect().height || 0),
+    }));
+    if(!m.board)             throw new Error('goals board did not render (no #np-content.g-mode .g-board)');
+    if(!m.hero.startsWith('$')) throw new Error(`goals hero annual-spend missing (got "${m.hero}")`);
+    if(m.cards < 1)          throw new Error(`goals board rendered no cards (cards=${m.cards})`);
+    if(m.once < 1)           throw new Error(`goals board missing the one-time card (once=${m.once})`);
+    if(m.slots < 6)          throw new Error(`goals board expected ≥6 ghost slots (slots=${m.slots})`);
+    if(m.boardH < 200)       throw new Error(`goals board height = ${m.boardH}px (expected ≥200 — flex-fill regression?)`);
+    await page.screenshot({ path: `${OUT}/02-goals.png`, fullPage: true });
   });
 
   await step('net worth · snapshot is its own sub-page with four gauges', async () => {
@@ -162,8 +183,15 @@ try {
     const m = await page.evaluate(() => ({
       band: document.querySelectorAll('.scn-band svg circle').length,
       status: document.querySelector('#status')?.textContent || '',
+      goalRows: document.querySelectorAll('#scn-goals .sg-name').length,
+      goalCells: document.querySelectorAll('#scn-goals .sg-cell').length,
+      goalTotal: document.querySelector('#scn-goals .sg-tcell')?.textContent || '',
     }));
     if(m.band < 1) throw new Error(`scenarios did not render (band circles=${m.band}, status="${m.status}")`);
+    // Goals section: the demo plan has ≥1 goal, mirrored across every column.
+    if(m.goalRows < 1) throw new Error(`scenarios goals section rendered no goal rows (goalRows=${m.goalRows})`);
+    if(m.goalCells < m.goalRows) throw new Error(`goals not mirrored into columns (cells=${m.goalCells}, rows=${m.goalRows})`);
+    if(!m.goalTotal.startsWith('$')) throw new Error(`goals total row missing a dollar figure (got "${m.goalTotal}")`);
     await page.screenshot({ path: `${OUT}/03-scenarios.png`, fullPage: true });
   });
 

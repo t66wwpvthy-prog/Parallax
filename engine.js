@@ -383,9 +383,16 @@ const plan = {
     socialSecurity: { primary: { pia: 36000, claimAge: 67 }, spouse: null },
     // Other income — an ARRAY of variable / time-limited streams (rental, part-time,
     // a fixed-period annuity). Each: { label, amount ($/yr, today's dollars),
-    // startAge, endAge }. Applied flat-real (today's-dollars maintained) and taxed
-    // at the ordinary rate. Empty by default. A legacy single {amount,startAge,endAge}
-    // object is still accepted (wrapped into a one-element array).
+    // startAge, endAge, realGrowth, taxablePct }.
+    //   realGrowth: per-stream REAL growth/yr from its own startAge. 0 = flat real
+    //     (the legacy default). Positive = rises above inflation (rent indexed up);
+    //     NEGATIVE = phases down in real terms (part-time wind-down).
+    //   taxablePct: share taxed at the ordinary rate. 1 = fully taxable (legacy
+    //     default); <1 models partly/fully tax-free income (return of capital,
+    //     muni interest, gifts received).
+    // Both default to the prior flat-real, fully-taxed behavior, so existing plans
+    // are unchanged. A legacy single {amount,startAge,endAge} object is still
+    // accepted (wrapped into a one-element array).
     other:          [],
     // Pension: a DISCRETE benefit-by-age map taken straight off the plan statement
     // ({ age: annualBenefit, ... }) — the advisor enters only ages they actually
@@ -399,7 +406,9 @@ const plan = {
   // expenses: the fixed essential scalars PLUS `extra` — an array of discretionary,
   // time-bounded spending lines ({ label, amount, startAge, endAge }). Discretionary
   // extras flex with the spending lever (spendMult), flat-real otherwise. Empty default.
-  expenses:   { living: 188000, housing: 0, debt: 0, healthcare: 12000, extra: [] },
+  // healthcareRealGrowth: annual real growth rate for healthcare above general CPI
+  // (historically ~2%/yr; 0 = flat real). Applied from retirement age forward.
+  expenses:   { living: 188000, housing: 0, debt: 0, healthcare: 12000, extra: [], healthcareRealGrowth: 0.02 },
   // Recurring time-bounded obligations (a mortgage, a car loan, a tuition plan).
   // Each: { label, amount ($/yr, today's dollars), startAge, endAge, colaPct }.
   // colaPct is the NOMINAL annual escalator like the pension: 0 = a fixed-nominal
@@ -410,8 +419,14 @@ const plan = {
   // engine amortizes the mortgage ({ balance, rate %, termYears }) into a fixed
   // annual payment that runs as a liability until payoff (startAge + termYears),
   // eroding in real terms like any fixed-nominal debt. `value` (current) and
-  // `purchasePrice` (cost basis) are captured for a FUTURE sale event (cap-gains
-  // on sale) and are INERT today — they touch no current calculation. Empty default.
+  // `purchasePrice` (cost basis) stay INERT until a sale is triggered.
+  //   commissionPct: total agent commission deducted from gross proceeds (default
+  //     5%; set 0 for a business or FSBO sale).
+  //   appreciation: real growth/yr of the asset's value until sale (default 0 =
+  //     holds today's value in real terms).
+  // The SALE itself is never stored here — it's an `assetSale` OVERRIDE applied
+  // per scenario ({ asset: <index>, age: <saleAge> }), so the Baseline never
+  // carries it and there's nothing to "zero out" to compare sell-vs-keep.
   properties: [],
   ltc:        { amount: 0, onsetAge: 85 },   // flat long-term-care cost ($/yr) from onsetAge onward
   // goals — an ARRAY of spend goals ({ name, amount, startAge, endAge }). A recurring
@@ -440,6 +455,21 @@ function annualMortgagePayment(balance, ratePct, termYears){
   const monthly = (mr < 1e-9) ? P / N : (P * mr) / (1 - Math.pow(1 + mr, -N));
   return monthly * 12;
 }
+
+// Remaining NOMINAL balance of an amortizing loan after `yearsElapsed`. Mirrors
+// annualMortgagePayment's monthly compounding so the payoff figure when a
+// property is SOLD mid-term reconciles with the payment that's been running.
+function mortgageBalanceRemaining(balance, ratePct, termYears, yearsElapsed){
+  const P = Math.max(0, balance || 0);
+  const yrs = Math.max(0, termYears || 0);
+  if(P <= 0 || yrs <= 0) return 0;
+  const mr = (Math.max(0, ratePct || 0) / 12) / 100;
+  const N  = yrs * 12;
+  const n  = Math.max(0, Math.min(N, Math.round((yearsElapsed || 0) * 12)));
+  if(mr < 1e-9) return P * (1 - n / N);                       // 0% = straight-line
+  return P * (Math.pow(1 + mr, N) - Math.pow(1 + mr, n)) / (Math.pow(1 + mr, N) - 1);
+}
+
 
 
 // Seeded RNG (mulberry32). The bootstrap draws are deterministic so identical
@@ -643,6 +673,50 @@ function resolveInputs(plan, ov){
   const pensionAmount = penBase;
   const ltc           = plan.ltc || {};
 
+  // ── Earmarked-asset sale (override-only; never baked into the base plan) ──────
+  // ov.assetSale = { asset: <index into plan.properties>, age: <sale age> }. We
+  // resolve the NET proceeds here (deterministic — no market randomness), in
+  // NOMINAL dollars at the sale year, then deflate to today's dollars for the
+  // real-dollar sim. Cap-gains is computed on the NOMINAL appreciation (the
+  // real-world basis is historical cost, so inflation is part of the taxable
+  // gain). The #5 primary-residence exclusion will subtract from the gain here.
+  const capGainsRate = (plan.taxes.capitalGains * (1 + (ov.taxMult || 0))) / 100;
+  const saleAsset = (ov.assetSale && ov.assetSale.age != null) ? ov.assetSale.asset : -1;
+  const saleAge   = (saleAsset >= 0) ? ov.assetSale.age : null;
+  let assetSale = null;
+  if(saleAsset >= 0){
+    const pr = (plan.properties || [])[saleAsset];
+    if(pr && saleAge >= curAge){
+      const k        = saleAge - curAge;                       // years from now to sale
+      const f        = Math.pow(1 + LONGRUN_INFLATION, k);     // nominal/real bridge
+      const apprec   = (pr.appreciation || 0);                 // real appreciation/yr (v1 default 0)
+      const realPrice= Math.max(0, pr.value || 0) * Math.pow(1 + apprec, k);   // today's $ at sale
+      const nomPrice = realPrice * f;                          // nominal at sale
+      const commPct  = Math.max(0, Math.min(1, (pr.commissionPct == null ? 5 : pr.commissionPct) / 100));
+      const nomComm  = nomPrice * commPct;
+      const M        = pr.mortgage || {};
+      const mStart   = (M.startAge != null ? M.startAge : curAge);
+      const nomPayoff= mortgageBalanceRemaining(M.balance, M.rate || 0, M.termYears, saleAge - mStart);
+      // Cost basis = entered purchasePrice. If none is entered, fall back to the
+      // current value (→ zero modeled gain) rather than basis 0 (which would tax
+      // the ENTIRE price as gain) — we don't invent a gain we can't substantiate.
+      const basis    = (pr.purchasePrice != null && pr.purchasePrice > 0)
+                         ? pr.purchasePrice : Math.max(0, pr.value || 0);
+      const exclusion= Math.max(0, (ov.saleExclusion || 0));   // #5: §121 primary-residence (nominal)
+      const nomGain  = Math.max(0, (nomPrice - nomComm) - basis - exclusion);
+      const nomTax   = nomGain * capGainsRate;
+      const nomNet   = Math.max(0, nomPrice - nomPayoff - nomComm - nomTax);
+      assetSale = {
+        age: saleAge, asset: saleAsset,
+        netProceeds:  nomNet / f,                              // back to today's dollars
+        grossReal:    realPrice,
+        capGainsTax:  nomTax / f,
+        commission:   nomComm / f,
+        mortgagePayoff: nomPayoff / f
+      };
+    }
+  }
+
   return {
     currentAge: plan.household.primary.currentAge,
     retirementAge,
@@ -657,14 +731,17 @@ function resolveInputs(plan, ov){
     },
     returnAdj: (ov.returnAdj || 0) / 100,
     ss: ssBenefits,   // array of { amount, startAge } in the primary's age frame
-    // Other income — normalized to an array of flat-real timed streams. Accepts a
-    // legacy single object too.
+    // Other income — normalized to an array of timed streams, each carrying its
+    // own real growth and taxable share (both defaulting to the legacy flat-real,
+    // fully-taxed behavior). Accepts a legacy single object too.
     otherIncome: (Array.isArray(plan.income.other) ? plan.income.other
                   : (plan.income.other ? [plan.income.other] : []))
       .map(o => ({
-        amount:   Math.max(0, o.amount || 0),
-        startAge: (o.startAge != null ? o.startAge : 0),
-        endAge:   (o.endAge   != null ? o.endAge   : 999)
+        amount:     Math.max(0, o.amount || 0),
+        startAge:   (o.startAge != null ? o.startAge : 0),
+        endAge:     (o.endAge   != null ? o.endAge   : 999),
+        realGrowth: (o.realGrowth || 0),
+        taxablePct: (o.taxablePct == null ? 1 : Math.max(0, Math.min(1, o.taxablePct)))
       })),
     pension:        { amount: pensionAmount, startAge: penStartAge, colaReal: penColaReal },
     ltc:            { amount: Math.max(0, (ltc.amount || 0) * (1 + (ov.ltcAdj || 0))), onsetAge: (ltc.onsetAge != null ? ltc.onsetAge : 999) },
@@ -672,7 +749,9 @@ function resolveInputs(plan, ov){
       living:     plan.expenses.living     * spendMult,
       housing:    plan.expenses.housing    * spendMult,
       debt:       plan.expenses.debt       * spendMult,
-      healthcare: plan.expenses.healthcare * spendMult,
+      // Healthcare is NOT scaled by spendMult — it's not discretionary lifestyle
+      // spending. It has its own healthcareRealGrowth rate applied in the sim loop.
+      healthcare: plan.expenses.healthcare,
       // Discretionary, time-bounded extras — flex with the spending lever, flat-real.
       extra: (plan.expenses.extra || []).map(e => ({
         amount:   Math.max(0, e.amount || 0) * spendMult,
@@ -694,19 +773,29 @@ function resolveInputs(plan, ov){
         colaReal: ((L.colaPct || 0) / 100) - LONGRUN_INFLATION
       })),
       ...(plan.properties || [])
-        .filter(pr => pr && pr.mortgage && (pr.mortgage.balance > 0) && (pr.mortgage.termYears > 0))
-        .map(pr => {
+        .map((pr, idx) => ({ pr, idx }))
+        .filter(({pr}) => pr && pr.mortgage && (pr.mortgage.balance > 0) && (pr.mortgage.termYears > 0))
+        .map(({pr, idx}) => {
           const M = pr.mortgage;
           const start = (M.startAge != null ? M.startAge : curAge);
+          let endAge = start + M.termYears;          // payoff
+          // If THIS property is sold before payoff, the mortgage is settled from
+          // the proceeds. Payments stop the year BEFORE the sale (endAge = saleAge−1):
+          // the remaining balance at the sale is the payoff we deduct from proceeds
+          // (computed at saleAge−mStart years elapsed), so paying in the sale year too
+          // would double-count that year's payment.
+          if(idx === saleAsset && saleAge != null && saleAge <= endAge) endAge = saleAge - 1;
           return {
             amount:   annualMortgagePayment(M.balance, M.rate || 0, M.termYears),
             startAge: start,
-            endAge:   start + M.termYears,            // payoff
+            endAge,
             colaReal: -LONGRUN_INFLATION              // fixed-nominal payment erodes in real terms
           };
         })
     ],
+    assetSale,   // resolved net-proceeds object, or null when no sale override
     healthcareMult: 1 + (ov.healthcareAdj || 0),
+    healthcareRealGrowth: Math.max(0, plan.expenses.healthcareRealGrowth ?? 0.02),
     // Goals — normalized to an array of flat-real timed entries. A legacy
     // { vacation, property, gifts } object is converted to always-on entries.
     goals: (Array.isArray(plan.goals)
@@ -786,6 +875,17 @@ function runSinglePath(p, returnPath){
     const rp  = returnPath[y];
     const r   = ((rp && rp.proxyReturn != null) ? rp.proxyReturn : weightedAssetReturn(rp, p.portfolio.weights)) + p.returnAdj;
 
+    // ── Earmarked-asset sale ──────────────────────────────────────────────
+    // Net proceeds land in the TAXABLE sleeve as after-tax cash (basis = full
+    // proceeds) at the sale age, then invest and compound from here forward —
+    // works in either phase. Applied via the assetSale override only; the base
+    // plan is never mutated, so the Baseline column never sees it.
+    const saleProceeds = (p.assetSale && age === p.assetSale.age) ? p.assetSale.netProceeds : 0;
+    if(saleProceeds > 0){
+      accounts.taxable.balance += saleProceeds;
+      accounts.taxable.basis   += saleProceeds;
+    }
+
     // ── ACCUMULATION PHASE (age < retirementAge) ──────────────────────────
     // Still working: portfolio grows and receives savings; no retirement
     // spending, withdrawals, income, or tax events yet. Contributions land in
@@ -810,8 +910,16 @@ function runSinglePath(p, returnPath){
       // traditional, then Roth. (Simplification: principal only, no cap-gains tax
       // on the sale — small vs the outlay and consistent with the accum model.)
       const lumpA = (p.lumpSum > 0 && y === p.lumpSumYear) ? p.lumpSum : 0;
-      if(lumpA > 0){
-        let rem = lumpA;
+      // Goals in working years (e.g. college funding) are real outlays too — a
+      // pre-retirement goal used to be silently dropped (charged only after
+      // retirement). Same window logic as the retirement phase; funded by the
+      // same liquidation order as a lump outlay (salary covers recurring costs,
+      // a goal draws down the portfolio).
+      let goalsA = 0;
+      for(const g of p.goals){ if(age >= g.startAge && age <= g.endAge) goalsA += g.amount; }
+      const outlayA = lumpA + goalsA;
+      if(outlayA > 0){
+        let rem = outlayA;
         if(rem > 0 && accounts.taxable.balance > 0){
           const take = Math.min(accounts.taxable.balance, rem);
           accounts.taxable.basis *= (accounts.taxable.balance - take) / accounts.taxable.balance;
@@ -827,10 +935,10 @@ function runSinglePath(p, returnPath){
       if(peakBalance > 0){ const dd = (peakBalance - endBalanceA) / peakBalance; if(dd > maxDrawdown) maxDrawdown = dd; }
       rows.push({
         year: y+1, age, source: rp.y, returnRate: r, phase: 'accum',
-        socialSecurity: 0, otherIncome: 0, pension: 0, withdrawal: 0,
-        expenses: 0, goals: 0, liabilities: 0, taxes: 0, savings: p.savingsAnnual,
+        socialSecurity: 0, otherIncome: 0, pension: 0, withdrawal: 0, assetSale: saleProceeds,
+        expenses: 0, goals: goalsA, liabilities: 0, taxes: 0, savings: p.savingsAnnual, lumpSum: lumpA,
         startBalance: startBalanceA, wdRate: 0,
-        netCashflow: p.savingsAnnual - lumpA,
+        netCashflow: p.savingsAnnual - lumpA - goalsA + saleProceeds,
         balance: endBalanceA, failed: false,
         accountBreakdown: { taxable: 0, traditional: 0, roth: 0 },
         accountBalances: { taxable: accounts.taxable.balance, traditional: accounts.traditional.balance, roth: accounts.roth.balance },
@@ -843,15 +951,26 @@ function runSinglePath(p, returnPath){
     // person's benefit that has started by this age (primary + spouse).
     let ssInc = 0;
     for(const b of p.ss){ if(age >= b.startAge) ssInc += b.amount; }
-    let oiInc = 0;
-    for(const o of p.otherIncome){ if(age >= o.startAge && age <= o.endAge) oiInc += o.amount; }
+    // Each stream grows in REAL terms from its own startAge (0 = flat real,
+    // negative = phases down) and contributes only its taxable share to tax.
+    let oiInc = 0, oiTaxable = 0;
+    for(const o of p.otherIncome){
+      if(age >= o.startAge && age <= o.endAge){
+        const amt = o.amount * Math.pow(1 + o.realGrowth, age - o.startAge);
+        oiInc     += amt;
+        oiTaxable += amt * o.taxablePct;
+      }
+    }
     const penInc = (p.pension && age >= p.pension.startAge)
                    ? p.pension.amount * Math.pow(1 + (p.pension.colaReal || 0), age - p.pension.startAge) : 0;
     const ltcCost = (p.ltc && age >= p.ltc.onsetAge) ? p.ltc.amount : 0;
     let extraExp = 0;
     for(const e of p.expenses.extra){ if(age >= e.startAge && age <= e.endAge) extraExp += e.amount; }
+    const yearsRetired = Math.max(0, age - p.retirementAge);
+    const healthcareCost = p.expenses.healthcare * p.healthcareMult
+                           * Math.pow(1 + p.healthcareRealGrowth, yearsRetired);
     const expenses = p.expenses.living + p.expenses.housing + p.expenses.debt
-                     + p.expenses.healthcare * p.healthcareMult + extraExp + ltcCost;
+                     + healthcareCost + extraExp + ltcCost;
     let goalsY = 0;
     for(const g of p.goals){ if(age >= g.startAge && age <= g.endAge) goalsY += g.amount; }
     // Recurring liabilities active at this age, each eroded in real terms from
@@ -861,9 +980,10 @@ function runSinglePath(p, returnPath){
         ? s + L.amount * Math.pow(1 + L.colaReal, age - L.startAge)
         : s, 0);
 
-    // Tax on external income: 85% of SS, 100% of OI, 100% of pension, at the ordinary rate.
+    // Tax on external income: 85% of SS, the taxable share of OI, 100% of pension,
+    // at the ordinary rate.
     const taxOnSS    = ssInc * 0.85 * p.taxRates.ordinary;
-    const taxOnOI    = oiInc * p.taxRates.ordinary;
+    const taxOnOI    = oiTaxable * p.taxRates.ordinary;
     const taxOnPen   = penInc * p.taxRates.ordinary;
     const taxOnInc   = taxOnSS + taxOnOI + taxOnPen;
     const netInc     = (ssInc + oiInc + penInc) - taxOnInc;
@@ -971,10 +1091,10 @@ function runSinglePath(p, returnPath){
       inflationRate: (rp && rp.proxyInflationRate != null) ? rp.proxyInflationRate : null,
       realReturnUsed: r,
       socialSecurity: ssInc, otherIncome: oiInc, pension: penInc, withdrawal,
-      rmd: rmdForced,
-      expenses, goals: goalsY, liabilities: liabCost, taxes: totalTax + rmdTax,
+      rmd: rmdForced, assetSale: saleProceeds,
+      expenses, goals: goalsY, liabilities: liabCost, taxes: totalTax + rmdTax, lumpSum: lumpY,
       startBalance, wdRate,
-      netCashflow: (ssInc + oiInc + penInc) - (expenses + goalsY + liabCost + totalTax + rmdTax),
+      netCashflow: (ssInc + oiInc + penInc + saleProceeds) - (expenses + goalsY + liabCost + totalTax + rmdTax),
       balance: endBalance, failed,
       accountBreakdown: { ...funding.breakdown },
       accountBalances: {
