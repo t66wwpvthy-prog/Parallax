@@ -13,3 +13,8 @@ _*.css
 !reference/**
 verify-out/
 .claude/.last-sent-index
+
+# Logo source assets (embedded as base64 in the HTML; raw files not needed in repo)
+assets-logo.zip
+logo-header.b64
+logo-pack/
