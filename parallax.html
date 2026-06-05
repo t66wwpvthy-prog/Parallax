@@ -65,7 +65,8 @@ background-size:auto,auto,auto,auto,auto,64px 64px,64px 64px,auto;}
 .htab:hover{color:var(--ink)} .htab.on{color:var(--ink-bright);font-weight:600;border-bottom-color:var(--gold)}
 .hdr-right{margin-left:auto;display:flex;align-items:center;gap:16px}
 .status{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-mute)}
-.run-btn{padding:9px 22px;background:linear-gradient(180deg,var(--gold-bright),var(--gold));color:#12090a;border:none;border-radius:3px;font-family:'Sora';font-weight:700;font-size:10.5px;letter-spacing:.26em;text-transform:uppercase;cursor:pointer;box-shadow:0 6px 20px -8px rgba(201,146,74,.55)}
+.run-btn{padding:9px 22px;background:linear-gradient(180deg,var(--gold-bright),var(--gold));color:#12090a;border:none;border-radius:3px;font-family:'Sora';font-weight:700;font-size:10.5px;letter-spacing:.26em;text-transform:uppercase;cursor:pointer;box-shadow:0 6px 20px -8px rgba(201,146,74,.55);display:inline-flex;align-items:center;gap:8px}
+.run-icon{width:9px;height:11px;flex:0 0 auto;opacity:.85}
 .run-btn:active{transform:translateY(1px)} .run-btn:disabled{filter:saturate(.3) brightness(.7);cursor:wait}
 
 .page{flex:1 1 auto;min-height:0;display:none;flex-direction:column;padding:0 28px 22px}
@@ -805,7 +806,7 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield}
     </div>
     <div class="hdr-right">
       <span class="status" id="status">Ready</span>
-      <button class="run-btn" id="run-btn">▶ Run</button>
+      <button class="run-btn" id="run-btn"><svg class="run-icon" viewBox="0 0 10 12" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M1.2 0.6 C0.7 0.3 0 0.65 0 1.26 L0 10.74 C0 11.35 0.7 11.7 1.2 11.4 L9.6 6.66 C10.1 6.36 10.1 5.64 9.6 5.34 Z"/></svg>Run</button>
     </div>
   </header>
 
