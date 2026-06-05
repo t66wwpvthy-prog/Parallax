@@ -45,11 +45,17 @@ notes elsewhere, ORDERS wins.**
 6. **Report short to Nathan** in the 3-line format: what changed / what to check /
    decisions (only if real). Address him as "mate" or nothing — never "buddy."
 
+## Parked (future — not now)
+- **UI typeface upgrade.** Nathan wants the interface font moved off Sora to something
+  "less basic" eventually. The logo's serif wordmark stays logo-only — do NOT run the
+  whole UI on it. Mock options first, get Nathan's pick, before changing.
+
 ## Dead branches — cut on sight (0 unique commits)
 `affectionate-goldberg`, `awesome-darwin`, `confident-franklin`,
 `exciting-lovelace-5dOpY`, `exciting-lovelace-S3qhW`, `hopeful-euler`.
 
 ## Status log — append one line per finished unit (newest on top)
+- 2026-06-05 · General · canonical+main · Logo seam fixed: flood-filled the baked-in dark-navy panel to transparent, dropped screen-blend; logo now floats clean on header.
 - 2026-06-05 · General · canonical+main · Established chain of command (CLAUDE.md ★ section + this file).
 - 2026-06-05 · General · canonical+main `bedf60b` · iOS/mobile responsive layout + full touch (Scenarios tap-to-switch, Goals touch-drag, single-column reflow). Pages enablement blocked on owner setting.
 - 2026-06-05 · serene-ritchie · main · Added Parallax logo mark to header.
