@@ -55,6 +55,7 @@ notes elsewhere, ORDERS wins.**
 `exciting-lovelace-5dOpY`, `exciting-lovelace-S3qhW`, `hopeful-euler`.
 
 ## Status log — append one line per finished unit (newest on top)
+- 2026-06-05 · General · canonical+main `6c29cb1` · Household reset to BLANK template (entering first real household): all $/lists cleared, ages 50/65/95, taxes 22/15, scenarios key v2→v3. Added Clear button to the household banner (clearHousehold, confirm-guarded). Re-pointed verify probe at the blank default (structural checks, not demo-data counts) — 10/10 green, engine 38/38.
 - 2026-06-05 · General · canonical+main · Audit quick-wins: age inputs clamped [1,120] (no garbage horizon); goal age fields Number-coerced (no attr injection); console.error gated behind window.PXDEBUG; engine withdrawal-factor derivation documented (comment only). Ring %-number + dot now match the ring band color (uses ringColor). Engine 38/38.
 - 2026-06-05 · General · canonical+main · Cash-flow Return % + Return $ columns (real return on start balance; signed + green/red), shows sequencing directly. Pure view of engine field (realReturnUsed), no engine change.
 - 2026-06-05 · General · canonical+main · Combo solver fix (QA-reviewed): was showing 1 option when goal pinned a lever; now surfaces up to 3 distinct balance-points (pair variety + extra trade-off points), with display-value + dominance dedup so no duplicate/strictly-worse card. Engine untouched, 38/38.
