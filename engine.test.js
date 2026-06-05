@@ -277,6 +277,11 @@ test('RMDs force pre-tax distributions from 73 and reinvest the excess', () => {
   const r = runHistoricalPath(p, 1995, 'taxable-first');
   const at73 = r.rows.find(x => x.age === 73);
   assert.ok(at73 && at73.rmd > 0, 'a required distribution fires at age 73');
+  // The gross required minimum (its own disclosure field) is reported from 73 and
+  // is always >= the forced excess. It must be 0 before 73 and once Traditional
+  // is depleted — this is the contract the cash-flow RMD column relies on.
+  assert.ok(at73.rmdRequired >= at73.rmd, 'gross required RMD is >= the forced excess');
+  assert.ok(r.rows.every(x => x.age >= 73 || !(x.rmdRequired > 0)), 'no required RMD before age 73');
   // Taxable began at $0 and nothing else funds it in retirement, so any positive
   // taxable balance can ONLY be reinvested RMD proceeds.
   assert.ok(r.rows.some(x => x.age >= 73 && x.accountBalances.taxable > 1),

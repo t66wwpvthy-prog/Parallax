@@ -1045,10 +1045,10 @@ function runSinglePath(p, returnPath){
     // the shortfall to the required amount is forced. It's taxed as ordinary
     // income; the after-tax remainder moves to the taxable sleeve (reinvested,
     // already-taxed → pure basis). Net portfolio effect = just the tax.
-    let rmdForced = 0, rmdTax = 0;
+    let rmdForced = 0, rmdTax = 0, rmdRequired = 0;
     if(age >= RMD_START_AGE && tradStartBal > 0.01){
-      const required = tradStartBal / rmdDivisor(age);
-      rmdForced = Math.max(0, required - funding.breakdown.traditional);   // beyond spending draw
+      rmdRequired = tradStartBal / rmdDivisor(age);                          // full IRS required minimum
+      rmdForced = Math.max(0, rmdRequired - funding.breakdown.traditional);   // beyond spending draw
       rmdForced = Math.min(rmdForced, Math.max(0, accounts.traditional.balance));
       if(rmdForced > 0.01){
         accounts.traditional.balance -= rmdForced;
@@ -1091,7 +1091,7 @@ function runSinglePath(p, returnPath){
       inflationRate: (rp && rp.proxyInflationRate != null) ? rp.proxyInflationRate : null,
       realReturnUsed: r,
       socialSecurity: ssInc, otherIncome: oiInc, pension: penInc, withdrawal,
-      rmd: rmdForced, assetSale: saleProceeds,
+      rmd: rmdForced, rmdRequired, assetSale: saleProceeds,
       expenses, goals: goalsY, liabilities: liabCost, taxes: totalTax + rmdTax, lumpSum: lumpY,
       startBalance, wdRate,
       netCashflow: (ssInc + oiInc + penInc + saleProceeds) - (expenses + goalsY + liabCost + totalTax + rmdTax),
