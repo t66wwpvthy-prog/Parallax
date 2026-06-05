@@ -319,6 +319,16 @@ background-size:auto,auto,auto,auto,auto,72px 72px,72px 72px,auto;}
 .lg .sw{width:16px;height:3px;border-radius:2px}
 .chart-body{flex:1 1 auto;min-height:0;position:relative}
 .chart-body svg{width:100%;height:100%;display:block}
+/* Sequencing chart overlay: crisp HTML over the (non-uniformly scaled) SVG. */
+#seq-overlay{position:absolute;inset:0;pointer-events:none;font-family:'Inter',sans-serif}
+.seq-end{position:absolute;transform:translateY(-50%);font-size:11px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap;text-shadow:0 1px 3px rgba(0,0,0,.65)}
+.seq-guide{position:absolute;width:1px;background:rgba(216,179,113,.55)}
+.seq-dot{position:absolute;width:7px;height:7px;border-radius:50%;transform:translate(-50%,-50%);box-shadow:0 0 0 1.5px rgba(20,16,9,.85)}
+.seq-tip{position:absolute;background:linear-gradient(180deg,rgba(34,27,15,.97),rgba(22,17,10,.98));border:1px solid var(--rule-bright);border-radius:10px;padding:8px 10px;font-size:11px;color:var(--ink);box-shadow:0 10px 28px rgba(0,0,0,.5);white-space:nowrap;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+.seq-tip-age{font-family:'Sora';font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:5px}
+.seq-tip-row{display:flex;align-items:center;gap:7px;padding:1px 0;font-variant-numeric:tabular-nums}
+.seq-tip-row i{width:8px;height:8px;border-radius:50%;flex:0 0 auto}
+.seq-tip-row b{font-weight:600;color:var(--ink-bright);margin-left:auto;padding-left:14px}
 
 /* SEQUENCING */
 .page[data-page="sequencing"]{padding-top:20px;overflow-y:auto}
@@ -344,7 +354,7 @@ background-size:auto,auto,auto,auto,auto,72px 72px,72px 72px,auto;}
 .seq-legend .sw{display:inline-block;width:22px;border-top:3px solid;border-radius:2px}
 .seq-legend .sw.dash{border-top-style:dashed}
 .seq-chips{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-left:6px}
-.seq-chip{display:inline-flex;align-items:center;gap:7px;background:var(--surface);border:1px solid var(--rule);color:var(--ink-mute);font-family:'Sora';font-size:11px;letter-spacing:.03em;padding:6px 11px;border-radius:14px;cursor:pointer;transition:opacity .12s,border-color .12s;opacity:.45}
+.seq-chip{display:inline-flex;align-items:center;gap:7px;background:var(--surface);border:1px solid var(--rule);color:var(--ink-mute);font-family:'Sora';font-size:12px;letter-spacing:.03em;padding:6px 11px;border-radius:14px;cursor:pointer;transition:opacity .12s,border-color .12s;opacity:.45}
 .seq-chip .cdot{width:9px;height:9px;border-radius:50%;flex:none}
 .seq-chip.on{opacity:1;border-color:var(--rule-bright);color:var(--ink-bright)}
 .seq-chip:hover{opacity:.85}
@@ -886,7 +896,7 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield}
         <span class="chart-title">Resilience</span>
         <span class="chart-sub" id="seq-sub">Same plan, real markets</span>
       </div>
-      <div class="chart-body"><svg id="seq-svg" viewBox="0 0 1000 320" preserveAspectRatio="none"></svg></div>
+      <div class="chart-body"><svg id="seq-svg" viewBox="0 0 1000 320" preserveAspectRatio="none"></svg><div id="seq-overlay"></div></div>
     </div>
     <div class="seq-prints" id="seq-prints"></div>
   </section>
@@ -2735,9 +2745,9 @@ function runAll(){
 // Success ring color band: steel-teal (strong) / brass (caution) /
 // clay (at risk). No green — matches the Obsidian Brass result tokens.
 // Ring band matches the % number: deep green / bronze gold / deep burgundy.
-function ringColor(pct){ return pct>=80?'#7AA76C':pct>=71?'#D8B371':'#5E1916'; }
+function ringColor(pct){ return pct>=80?'#7AA76C':pct>=71?'#D8B371':'#b83a28'; }
 // Locked band hue at lower opacity for the ring glow (same hue, never a new color).
-function ringGlow(pct){ return pct>=80?'rgba(122,167,108,.55)':pct>=71?'rgba(216,179,113,.55)':'rgba(94,25,22,.5)'; }
+function ringGlow(pct){ return pct>=80?'rgba(122,167,108,.55)':pct>=71?'rgba(216,179,113,.55)':'rgba(184,58,40,.55)'; }
 function ring(pct){
   // SVG fills its .circle-wrap via viewBox, so the ring size is controlled by
   // CSS (one place). Thin stroke near the edge leaves room for the % number.
@@ -3274,11 +3284,11 @@ function axes(W,H,ageStart,ageEnd,maxBal){
   for(let i=0;i<=4;i++){const y=y0+(y1-y0)/4*i; g+=`<line x1="${x0}" y1="${y}" x2="${x1}" y2="${y}" stroke="${GRID}"/>`;}
   // y labels (right-aligned in the left gutter)
   for(let i=0;i<=4;i++){const v=maxBal*(1-i/4); const y=y0+(y1-y0)/4*i;
-    g+=`<text x="${x0-12}" y="${y+4}" fill="${AXIS_INK}" font-size="11" font-family="Inter" text-anchor="end">${fmtM(v)}</text>`;}
+    g+=`<text x="${x0-12}" y="${y+4}" fill="${AXIS_INK}" font-size="9.5" font-family="Inter" text-anchor="end">${fmtM(v)}</text>`;}
   // x age ticks
   const span=ageEnd-ageStart;
   for(let k=0;k<=5;k++){const a=Math.round(ageStart+span*k/5); const x=x0+(x1-x0)*k/5;
-    g+=`<text x="${x}" y="${H-9}" fill="${AXIS_INK}" font-size="11" font-family="Inter" text-anchor="${k===0?'start':k===5?'end':'middle'}">Age ${a}</text>`;}
+    g+=`<text x="${x}" y="${H-9}" fill="${AXIS_INK}" font-size="9.5" font-family="Inter" text-anchor="${k===0?'start':k===5?'end':'middle'}">Age ${a}</text>`;}
   return g;
 }
 /* ── Cash-flow drawer ────────────────────────────────────────────────────
@@ -3515,7 +3525,7 @@ function drawSeqChart(runs, retAge){
     const d=monoPath(full.slice(0,ei+1).map((v,k)=>[X(k),Y(v)]));
     h+=`<path d="${d}" fill="none" stroke="var(--surface)" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>`;
     h+=`<path d="${d}" fill="none" stroke="${col}" stroke-width="0.65" stroke-linejoin="round" stroke-linecap="round"/>`;
-    ends.push({c:col, y:r.m.y, dep, px:X(ei), py:Y(full[ei])});
+    ends.push({c:col, year:r.m.y, dep, idx:ei, endV:full[ei], vals:full, px:X(ei), py:Y(full[ei])});
   });
   h+=`</g>`;
   // Endpoint/launch markers (✕ where a line ran dry, dots at start/end) removed —
@@ -3524,7 +3534,63 @@ function drawSeqChart(runs, retAge){
   // cards below already say which color is which market. Adding a year on each
   // line just adds visual noise that has to be de-collided every redraw.
   svg.innerHTML=h;
+  seqHover={ x0,x1,y0,y1, W,H, n, ageStart, X, Y,
+    lines: ends.map(e=>({c:e.c, year:e.year, dep:e.dep, idx:e.idx, endV:e.endV, vals:e.vals})) };
+  drawSeqOverlay(); attachSeqHover();
 }
+// ── Sequencing chart: hover guide + end-of-path value labels ───────────────
+// The SVG uses preserveAspectRatio="none" (lines stretch to fill), so text/dots
+// drawn IN the SVG would distort. We keep the data lines in the SVG and draw the
+// labels, crosshair, dots, and tooltip as a crisp HTML overlay, mapping the
+// viewBox coords → container pixels live (so it tracks any resize).
+let seqHover=null, seqHoverAttached=false;
+function drawSeqOverlay(){
+  const ov=document.getElementById('seq-overlay'); if(!ov||!seqHover) return;
+  const body=ov.parentElement, rect=body.getBoundingClientRect();
+  if(rect.width<2||rect.height<2){ ov.innerHTML='<div id="seq-live"></div>'; return; }
+  const sx=rect.width/seqHover.W, sy=rect.height/seqHover.H;
+  // Persistent end-of-path $ labels (survivors only; depleted lines are carried
+  // by the fingerprint cards). De-collide vertically so stacked ends stay legible.
+  const labs=seqHover.lines.filter(l=>!l.dep).map(l=>({
+    px:seqHover.X(l.idx)*sx, py:seqHover.Y(l.endV)*sy, c:l.c, txt:fmtM(l.endV) }));
+  labs.sort((a,b)=>a.py-b.py);
+  for(let i=1;i<labs.length;i++){ if(labs[i].py-labs[i-1].py<15) labs[i].py=labs[i-1].py+15; }
+  let html='<div id="seq-live"></div>';
+  labs.forEach(l=>{ const left=Math.min(l.px+6, rect.width-50);
+    html+=`<div class="seq-end" style="left:${left}px;top:${l.py}px;color:${l.c}">${l.txt}</div>`; });
+  ov.innerHTML=html;
+}
+function renderSeqHoverAt(idx){
+  const live=document.getElementById('seq-live'); if(!live||!seqHover) return;
+  const body=live.parentElement.parentElement, rect=body.getBoundingClientRect();
+  if(rect.width<2) return;
+  const sx=rect.width/seqHover.W, sy=rect.height/seqHover.H;
+  const gx=seqHover.X(idx)*sx, topPx=seqHover.y0*sy, botPx=seqHover.y1*sy;
+  let html=`<div class="seq-guide" style="left:${gx}px;top:${topPx}px;height:${botPx-topPx}px"></div>`;
+  const age=seqHover.ageStart+idx, rows=[];
+  seqHover.lines.forEach(l=>{ if(idx>l.idx) return; const v=l.vals[idx]; if(v==null) return;
+    html+=`<div class="seq-dot" style="left:${gx}px;top:${seqHover.Y(v)*sy}px;background:${l.c}"></div>`;
+    rows.push({c:l.c,year:l.year,v}); });
+  if(!rows.length){ live.innerHTML=html; return; }
+  rows.sort((a,b)=>b.v-a.v);
+  let tip=`<div class="seq-tip-age">Age ${age}</div>`;
+  rows.forEach(r=>{ tip+=`<div class="seq-tip-row"><i style="background:${r.c}"></i>${r.year}<b>${fmtM(r.v)}</b></div>`; });
+  const tipLeft=(gx<rect.width-160)?gx+14:gx-156;
+  html+=`<div class="seq-tip" style="left:${Math.max(4,tipLeft)}px;top:${topPx+6}px">${tip}</div>`;
+  live.innerHTML=html;
+}
+function clearSeqHover(){ const live=document.getElementById('seq-live'); if(live) live.innerHTML=''; }
+function attachSeqHover(){
+  if(seqHoverAttached) return; const svg=document.getElementById('seq-svg'); if(!svg) return;
+  const body=svg.parentElement; seqHoverAttached=true;
+  body.addEventListener('pointermove',e=>{ if(!seqHover) return;
+    const rect=body.getBoundingClientRect(); if(rect.width<2) return;
+    const vbx=(e.clientX-rect.left)/(rect.width/seqHover.W);
+    let frac=(vbx-seqHover.x0)/(seqHover.x1-seqHover.x0); frac=Math.max(0,Math.min(1,frac));
+    renderSeqHoverAt(Math.round(frac*(seqHover.n-1))); });
+  body.addEventListener('pointerleave',clearSeqHover);
+}
+addEventListener('resize',()=>{ if(seqHover) drawSeqOverlay(); });
 // Path fingerprint — facts read straight off the engine result. One card per real
 // market: the first-decade return (the sequence-risk cause), the lowest the
 // portfolio fell, and the outcome. No invented composite "score".
