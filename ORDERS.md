@@ -55,6 +55,7 @@ notes elsewhere, ORDERS wins.**
 `exciting-lovelace-5dOpY`, `exciting-lovelace-S3qhW`, `hopeful-euler`.
 
 ## Status log — append one line per finished unit (newest on top)
+- 2026-06-05 · General · canonical+main · Suggest mode shipped — in-app tap-to-note review overlay, captures locator + before→after value, Copy for Guppi / Download. Engine 38/38.
 - 2026-06-05 · General · canonical+main · Logo seam fixed: flood-filled the baked-in dark-navy panel to transparent, dropped screen-blend; logo now floats clean on header.
 - 2026-06-05 · General · canonical+main · Established chain of command (CLAUDE.md ★ section + this file).
 - 2026-06-05 · General · canonical+main `bedf60b` · iOS/mobile responsive layout + full touch (Scenarios tap-to-switch, Goals touch-drag, single-column reflow). Pages enablement blocked on owner setting.
