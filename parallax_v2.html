@@ -976,7 +976,7 @@ function goalParamsHtml(goalType, baseLev, defPct){
   const money = (id,lbl,val,suf='') => `<label class="sf-field"><span class="sf-lbl">${lbl}</span><span class="sf-box-wrap"><span class="sf-prefix">$</span><input class="sf-box sf-money" id="${id}" type="text" inputmode="numeric" value="${val.toLocaleString('en-US')}">${suf?`<span class="sf-suffix">${suf}</span>`:''}</span></label>`;
   const age = (id,lbl,val,min=55,max=99) => `<label class="sf-field"><span class="sf-lbl">${lbl}</span><span class="sf-box-wrap"><input class="sf-box" id="${id}" type="number" min="${min}" max="${max}" value="${val}"></span></label>`;
   let h = '';
-  if(goalType==='retire')    h += age('sf-p-age','By age', baseLev.retireAge, 55, 72);
+  if(goalType==='retire')    h += age('sf-p-age','By age', baseLev.retireAge, cur, 72);
   if(goalType==='purchase'){ h += money('sf-p-amount','Amount', 300000); h += age('sf-p-age','At age', Math.min(72, baseLev.retireAge+2), cur, 95); }
   if(goalType==='gift'){     h += money('sf-p-amount','Each year', 25000, '/yr'); h += age('sf-p-toage','Through age', 85, cur, 99); }
   if(goalType==='legacy')    h += money('sf-p-amount','At least', 1000000);
@@ -2401,15 +2401,15 @@ $('#solve-panel').addEventListener('submit', e=>{
   if(goalType==='retire'){
     params.age = num('#sf-p-age');
     if(!isFinite(params.age)) return;
-    if(params.age <= currentAge || params.age > planEndAge){ flashAge('#sf-p-age'); return; }
+    if(params.age < currentAge || params.age > planEndAge){ flashAge('#sf-p-age'); return; }
   } else if(goalType==='purchase'){
     params.amount = num('#sf-p-amount'); params.age = num('#sf-p-age');
-    if(!isFinite(params.amount)||!isFinite(params.age)) return;
-    if(params.age <= currentAge || params.age > planEndAge){ flashAge('#sf-p-age'); return; }
+    if(!isFinite(params.amount)||!isFinite(params.age)||params.amount<=0) return;
+    if(params.age < currentAge || params.age > planEndAge){ flashAge('#sf-p-age'); return; }
   } else if(goalType==='gift'){
     params.amount = num('#sf-p-amount'); params.toAge = num('#sf-p-toage');
-    if(!isFinite(params.amount)||!isFinite(params.toAge)) return;
-    if(params.toAge <= currentAge || params.toAge > planEndAge){ flashAge('#sf-p-toage'); return; }
+    if(!isFinite(params.amount)||!isFinite(params.toAge)||params.amount<=0) return;
+    if(params.toAge < currentAge || params.toAge > planEndAge){ flashAge('#sf-p-toage'); return; }
   } else if(goalType==='legacy'){
     params.amount = num('#sf-p-amount'); if(!isFinite(params.amount)) return;
   }
