@@ -984,9 +984,9 @@ function seedDemoHousehold(){
     { type:'Capital One (cash)',         owner:'joint',   bucket:'taxable',     balance:30000 },
   ];
   // Pre-retirement saving: both max the 401(k) ($24,500 ea, 2026 limit) + employer
-  // match (Maci 4% of $190k = $7,600; Nathan 4.5% of $165k = $7,425). No Roth
-  // contributions (over the income limit). All pre-tax → traditional sleeve.
-  plan.savings.annual = 64025;
+  // match (Maci 3% of $190k = $5,700; Nathan 4.5% of $165k = $7,425). No Roth
+  // contributions at all (no backdoor). All pre-tax → traditional sleeve.
+  plan.savings.annual = 62125;
   plan.savings.split  = { traditional: 1, roth: 0, taxable: 0 };
   // Retirement essentials $12k/mo = $144k/yr. Housing = the property-tax + insurance
   // ESCROW ($669/mo ≈ $8,023/yr) bundled into the $4,100 mortgage payment but NOT in
