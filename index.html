@@ -224,7 +224,7 @@ background-size:auto,auto,auto,auto,auto,72px 72px,72px 72px,auto;}
 .circle-delta.base{color:var(--ink-ghost);font-weight:500;letter-spacing:.14em;text-transform:uppercase;font-size:9px}
 
 .scn-levers{display:grid;grid-template-columns:184px repeat(3,1fr);column-gap:14px}
-.lev-name{display:flex;align-items:center;padding:0 14px;min-height:62px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-mute);font-weight:500;line-height:1.3}
+.lev-name{display:flex;align-items:center;padding:0 20px;min-height:62px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-mute);font-weight:600;line-height:1.25;white-space:nowrap}
 .lev-cell{display:flex;flex-direction:column;justify-content:center;gap:7px;border-bottom:1px solid var(--rule-faint);padding:0 16px;min-height:62px;background:var(--surface)}
 .lev-val{font-family:'Inter';font-size:16.5px;font-weight:500;color:var(--ink-mute);display:flex;align-items:center;gap:6px}
 .lev-val.base{color:var(--ink-mute)}
@@ -532,21 +532,21 @@ background-size:auto,auto,auto,auto,auto,72px 72px,72px 72px,auto;}
    one level up. */
 .hp-body{display:grid;grid-template-columns:1fr 1px 1fr;gap:0 36px}
 .hp-rule{background:var(--rule-bright);width:1px;align-self:stretch}
-.hp-col h4{font-family:'Sora';font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-mute);font-weight:600;margin-bottom:24px;padding-bottom:10px;border-bottom:1px solid var(--rule-faint)}
+.hp-col h4{font-family:'Sora';font-size:12.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-mute);font-weight:600;margin-bottom:24px;padding-bottom:10px;border-bottom:1px solid var(--rule-faint)}
 .hp-item{padding:18px 0;border-bottom:1px solid var(--rule-faint)}
 .hp-item:last-of-type{border-bottom:none}
 .hp-item .ti{display:flex;align-items:baseline;justify-content:space-between;gap:14px}
-.hp-item .nm{font-size:14px;color:var(--ink-bright);font-weight:500;flex:1;font-family:'Sora'}
+.hp-item .nm{font-size:16.5px;color:var(--ink-bright);font-weight:500;flex:1;font-family:'Sora'}
 .hp-item .field{display:flex;align-items:baseline;gap:3px}
-.hp-item .pre{color:var(--ink-faint);font-size:13px;font-family:'Inter'}
-.hp-item input{font-family:'Inter';font-size:14.5px;font-weight:500;color:var(--ink);background:transparent;border:none;border-bottom:1px dashed var(--rule-faint);padding:1px 1px;width:96px;text-align:right;outline:none;font-variant-numeric:tabular-nums;transition:border-color .15s,background .15s}
+.hp-item .pre{color:var(--ink-faint);font-size:15px;font-family:'Inter'}
+.hp-item input{font-family:'Inter';font-size:16.5px;font-weight:500;color:var(--ink);background:transparent;border:none;border-bottom:1px dashed var(--rule-faint);padding:1px 1px;width:96px;text-align:right;outline:none;font-variant-numeric:tabular-nums;transition:border-color .15s,background .15s}
 .hp-item input:hover{border-bottom-color:var(--gold)}
 .hp-item input:focus{border-bottom:1px solid var(--gold);background:rgba(160,112,48,.07)}
 .hp-item .row-x{margin-left:6px;width:18px;height:18px;border:none;background:transparent;color:var(--ink-faint);font-size:15px;line-height:1;cursor:pointer;border-radius:4px;padding:0}
 .hp-item .row-x:hover{color:var(--negative-bright);background:rgba(240,145,141,.08)}
-.hp-item .meta{margin-top:3px;font-size:11.5px;color:var(--ink-mute)}
+.hp-item .meta{margin-top:4px;font-size:13px;color:var(--ink-mute)}
 .hp-item .meta b{color:var(--ink);font-weight:500}
-.hp-add{margin-top:14px;font-size:12.5px;color:var(--gold);font-weight:500;font-style:italic;cursor:pointer}
+.hp-add{margin-top:14px;font-size:14px;color:var(--gold);font-weight:500;font-style:italic;cursor:pointer}
 
 /* ─── Editable add-rows (income / expense / liability / goal) ──────────────
    A quiet ledger row: free-text name on the left, right-aligned amount, then a
@@ -4109,6 +4109,9 @@ $('#np-content').addEventListener('click', e => {
     seedDemoHousehold(); savePlan();
     scenarios = demoScenarios(); baseSnapshot = defaultLevers();
     try{ localStorage.removeItem(SCEN_KEY); localStorage.removeItem('parallax.goals.rank'); }catch(e2){}
+    // Rebuild the Scenarios lever DOM too — otherwise the columns keep showing the
+    // PREVIOUS household's lever values while the cash-flow/inputs show the demo.
+    reseedScenarios(); buildLevers(); sharedPaths=null; plansDirty=true;
     renderInputs(); runAll();
     $('#status').textContent='Demo household loaded';
     return;
