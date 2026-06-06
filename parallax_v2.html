@@ -398,11 +398,11 @@ background-size:auto,auto,auto,auto,auto,72px 72px,72px 72px,auto;}
    200px left gutter carries the page's summary (big number, breakdowns,
    live totals) — the eye lands in the same place every time. Body to the
    right holds the Statement ledger or the two-column Hybrid body. */
-.np-page{display:grid;grid-template-columns:200px 1fr;gap:20px 54px;max-width:1100px;align-items:start}
+.np-page{display:grid;grid-template-columns:200px 1fr;gap:20px 44px;max-width:1100px;align-items:start}
 /* Balance sheet is the widest page (gutter + two ledgers): give it more width so
    Assets and Liabilities breathe and the account setup is easy to follow. */
-.np-page.np-bal{grid-template-columns:220px 1fr;max-width:1340px}
-.np-bal .bs-sheet{gap:0 72px}
+.np-page.np-bal{grid-template-columns:200px 1fr;max-width:1480px}
+.np-bal .bs-sheet{gap:0 56px}
 .np-bal .bs-col{padding:0 8px}
 /* Snapshot is its own diagnostic page: the four gauges read as ONE compact glass
    panel — hairline-separated rows, smaller heroes, slim bars — not four forced
@@ -444,7 +444,7 @@ background-size:auto,auto,auto,auto,auto,72px 72px,72px 72px,auto;}
 .bs-col{min-width:0}
 .bs-divider{background:var(--rule-faint);align-self:stretch}
 /* Column title ("Assets" / "Liabilities") */
-.bs-title{font-family:'Sora';font-size:17px;font-weight:500;color:var(--ink);letter-spacing:-.01em;margin:0 0 10px}
+.bs-title{font-family:'Sora';font-size:20px;font-weight:500;color:var(--ink);letter-spacing:-.01em;margin:0 0 10px}
 .bs-head{font-family:'Sora';font-size:10.5px;letter-spacing:.26em;text-transform:uppercase;color:var(--ink-mute);font-weight:600;margin:36px 0 12px;padding-bottom:10px;position:relative}
 /* Copper reads as a faint STREAK that fades out, not a hard rule that draws. */
 .bs-head::after{content:'';position:absolute;left:0;right:0;bottom:0;height:1px;background:linear-gradient(90deg,var(--gold) 0%,rgba(194,144,106,.34) 40%,transparent 84%)}
@@ -483,22 +483,22 @@ background-size:auto,auto,auto,auto,auto,72px 72px,72px 72px,auto;}
 .own-sel{font-family:'Sora';font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-mute);background:transparent;border:1px solid var(--rule-faint);border-radius:5px;padding:1px 4px;margin-left:8px;cursor:pointer}
 .own-sel:hover{color:var(--gold-bright);border-color:var(--gold)}
 .prop-top .own-sel{margin-left:auto}
-.bs-row{display:flex;align-items:baseline;padding:13px 0;font-size:14px}
+.bs-row{display:flex;align-items:baseline;padding:14px 0;font-size:15.5px}
 .bs-row label{color:var(--ink-mute);font-weight:500;font-family:'Sora'}
 .bs-row.sub label{color:var(--ink-faint);font-size:13px;padding-left:18px;font-weight:400}
 .bs-dots{flex:1;border-bottom:1px dotted var(--rule-faint);margin:0 10px;transform:translateY(-3px)}
 .bs-row .field{display:flex;align-items:baseline;gap:3px}
 .bs-row .pre{color:var(--ink-faint);font-size:13px;font-family:'Inter'}
-.bs-row input{font-family:'Inter';font-size:14.5px;font-weight:500;color:var(--ink);background:transparent;border:none;border-bottom:1px dashed var(--rule-faint);padding:1px 1px;width:110px;text-align:right;outline:none;font-variant-numeric:tabular-nums;transition:border-color .15s,background .15s}
+.bs-row input{font-family:'Inter';font-size:16px;font-weight:500;color:var(--ink);background:transparent;border:none;border-bottom:1px dashed var(--rule-faint);padding:1px 1px;width:110px;text-align:right;outline:none;font-variant-numeric:tabular-nums;transition:border-color .15s,background .15s}
 .bs-row input:hover{border-bottom-color:var(--gold)}
 .bs-row input:focus{border-bottom:1px solid var(--gold);background:rgba(160,112,48,.07)}
 .bs-row select{font-family:'Sora';font-size:13.5px;font-weight:500;color:var(--ink);background:transparent;border:none;border-bottom:1px dashed var(--rule-faint);padding:1px 18px 1px 1px;outline:none;cursor:pointer;appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M0 0 L5 6 L10 0' fill='%238a93a0'/></svg>");background-repeat:no-repeat;background-position:right 2px center}
 .bs-row select:hover,.bs-row select:focus{border-bottom-color:var(--gold)}
 .bs-row.sub input{font-size:13px;font-weight:400;color:var(--ink-mute);width:90px}
 .bs-sub{display:flex;align-items:baseline;padding:10px 0 4px;border-top:1px solid var(--rule-faint);margin-top:6px}
-.bs-sub-l{font-family:'Sora';font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-faint);font-weight:600}
+.bs-sub-l{font-family:'Sora';font-size:11.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-faint);font-weight:600}
 .bs-sub-d{flex:1;border-bottom:1px dotted var(--rule-faint);margin:0 10px;transform:translateY(-3px)}
-.bs-sub-v{font-family:'Inter';font-size:14px;color:var(--teal-deep);font-weight:600;font-variant-numeric:tabular-nums}
+.bs-sub-v{font-family:'Inter';font-size:15.5px;color:var(--teal-deep);font-weight:600;font-variant-numeric:tabular-nums}
 .bs-add{padding:12px 0 4px;font-size:12.5px;color:var(--gold);font-weight:500;font-style:italic;cursor:pointer}
 .bs-row .row-x{margin-left:8px;width:20px;height:20px;border:none;background:transparent;color:var(--ink-faint);font-size:16px;line-height:1;cursor:pointer;border-radius:4px;padding:0}
 /* Typed-account picker (Option A — bucket rows) + added-account rows + tags */
