@@ -15,10 +15,17 @@ notes elsewhere, ORDERS wins.**
 - **Authority:** only the General (with Nathan) authorizes destructive, irreversible, or
   cross-branch moves (force-push, branch deletion, pushing `main`, deploy/Pages changes).
 
-## Canonical state — as of 2026-06-05
-- **Canonical build branch:** `claude/zealous-albattani-Zr9wb` — the real engine + all
-  features + 38 passing tests + iOS/mobile responsive layout & touch. THIS is the build
-  everything new lands on. Do not rebuild on any other lineage.
+## Canonical state — as of 2026-06-06
+- **Canonical build branch:** `claude/dev` — the real engine + all features + 42 passing
+  tests + iOS/mobile responsive layout & touch. THIS is the build everything new lands on.
+  Do not rebuild on any other lineage. It is in sync with `main` (push to BOTH).
+  - **Superseded — do NOT push to, treat as read-only history:** `claude/laughing-einstein-c6F33`
+    (105 commits behind), `claude/zealous-albattani-Zr9wb`, `test-coverage-analysis-*`.
+    `claude/dev` is a strict superset of these — nothing was lost.
+  - **Coordination rule (everyone on dev):** `git fetch origin && git rebase origin/main`
+    BEFORE every push. The rebase is the safety net — it forces you to integrate other
+    sessions' work instead of clobbering it. Never hand-edit the built `index.html`;
+    rebuild from `parallax_v2.html` after merging.
 - **Deploy branch:** `main` — GitHub Pages. (Pages enablement is blocked on a one-time
   owner setting; tracking — do not keep re-attempting Actions-based Pages deploys, they
   fail with "Resource not accessible by integration".)
@@ -55,6 +62,7 @@ notes elsewhere, ORDERS wins.**
 `exciting-lovelace-5dOpY`, `exciting-lovelace-S3qhW`, `hopeful-euler`.
 
 ## Status log — append one line per finished unit (newest on top)
+- 2026-06-06 · canonical+main `2deafc8` · Canonical branch re-pointed to `claude/dev` (Nathan's call) — ORDERS + CLAUDE.md updated; old canonical names (laughing-einstein, zealous-albattani, test-coverage-analysis) marked superseded/read-only (dev is a strict superset, 105+ commits ahead, in sync with main). Coordination rule restated: everyone on dev, fetch+rebase before push. Batch 1 readability shipped: sub-15px fonts lifted proportionally (CSS only) + bright-white bold muted to champagne `--ink-bright #ebdfc4` (enforces the existing "no bright white" ink rule). Rebased cleanly over another session's savePlan/saveRank audit fix on main. Engine 42/42, verify 10/10.
 - 2026-06-06 · General · canonical+main · Cash flow now shows the DETERMINISTIC EXPECTED path (engine paths.expected, constant allocation geomean return) instead of one volatile Monte Carlo sim — kills the chaotic returns/balances (note 8). Accum rows carry realReturnUsed so return cols populate pre-retirement. Foot relabeled "Expected end" (honest, not median). QA-reviewed; engine 42/42; verify 10/10.
 - 2026-06-06 · General · canonical+main · Closed 4 partials: spouse retire age input (14, display-level), persistent sub-nav Save across all NW sub-pages (11), system-defaults layer healthcare/tax/LTC-onset on fresh+clear (10), startup reseedScenarios so baseline mirrors loaded plan (18, verified live edit flows). Engine 38/38, verify 10/10.
 - 2026-06-06 · General · canonical+main · Reviewed + merged soldier (quirky-wozniak): notes 6,7,8/11,9,14 shipped. Review fixes: demo anonymised (Aman/Awoman, on-demand only), PLAN_KEY v2, Lifestyle monthly. Engine 38/38, verify 10/10.

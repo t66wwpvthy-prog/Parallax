@@ -237,9 +237,11 @@ this shared set. This is the long-planned "household-centric data root."
   below still describes the older dark palette; treat it as historical, not current.)
 
 ## Future-session notes (state + decisions — read before building)
-- **Canonical branch is `claude/laughing-einstein-c6F33`** — all real work + the live
-  theme live here; `main` is the Pages deploy (push to BOTH). `test-coverage-analysis-*`
-  is a stale upload point 100+ commits behind; auto-mode blocks pushing to it — ignore it.
+- **Canonical branch is `claude/dev`** — all real work + the live theme live here; `main`
+  is the Pages deploy (push to BOTH). Everyone works on `claude/dev`; `fetch + rebase
+  origin/main` before every push. Superseded/read-only: `claude/laughing-einstein-c6F33`,
+  `claude/zealous-albattani-Zr9wb`, `test-coverage-analysis-*` (all behind; dev is a
+  strict superset). See ORDERS.md for the canonical state — it wins on conflict.
 - **Ship-reminder Stop hook** exists (`.claude/hooks/ship-reminder.sh` + `.claude/settings.json`):
   it nudges you to ship to `main` when the branch is ahead. A freshly-created settings.json
   only activates after `/hooks` is opened once (or a restart).
