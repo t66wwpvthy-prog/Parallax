@@ -2404,7 +2404,7 @@ function seedDemoHousehold(){
 // Bump this key whenever the plan shape changes in a way that could silently
 // corrupt a stale saved plan — old key is abandoned, seed runs fresh.
 const PLAN_KEY = 'parallax.plan.v2';
-function savePlan(){ try{ localStorage.setItem(PLAN_KEY, JSON.stringify(plan)); }catch(e){} }
+function savePlan(){ try{ localStorage.setItem(PLAN_KEY, JSON.stringify(plan)); }catch(e){ if(window.PXDEBUG) console.error('savePlan failed:', e); } }
 // Deep-merge saved plain data onto the live plan, replacing arrays wholesale (a
 // saved accounts/goals/properties list is authoritative). Mutates in place so
 // every existing reference to `plan` stays valid.
@@ -3981,7 +3981,7 @@ function initGoalsBoard(){
     }
   }catch{}
   function saveRank(){
-    try{ localStorage.setItem(RANK_KEY, JSON.stringify({order:slots.map(s=>s.card?s.card.gid:null)})); }catch{}
+    try{ localStorage.setItem(RANK_KEY, JSON.stringify({order:slots.map(s=>s.card?s.card.gid:null)})); }catch(e){ if(window.PXDEBUG) console.error('saveRank failed:', e); }
   }
   // Ladder column (the ranked priority list, left) vs the tray of goals still to
   // place. The tray sits just right of the ladder and fills a column top→bottom,
