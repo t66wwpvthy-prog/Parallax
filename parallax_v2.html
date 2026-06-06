@@ -3600,15 +3600,14 @@ function axes(W,H,ageStart,ageEnd,maxBal){
   return g;
 }
 /* ── Cash-flow drawer ────────────────────────────────────────────────────
-   Renders each scenario's res.paths.EXPECTED — the deterministic expected path:
-   one coherent engine run at the allocation's expected real return EVERY year
-   (no random draws), with the full cash-flow mechanics (savings, withdrawals,
-   RMDs, taxes, goals). This is the Scenarios doctrine: the expected-wealth view
-   carries NO sequence-of-returns noise — identical levers ⇒ identical rows; the
-   downside/volatility lives in the success % circle and the Sequencing tab. A
-   single random Monte-Carlo path (paths.p50 / "typical") made this table read as
-   chaos (−39% next to +29% years — real 2008/2009 data, but meaningless in a plan);
-   that's the known anti-pattern and is intentionally NOT used here.
+   Renders each scenario's res.paths.p50 — ONE REAL CENTRAL LIFE: the single
+   Monte-Carlo sim (out of all of them) whose balance tracks the year-by-year
+   median envelope closest (the medoid / "typical" path). It is a real, coherent
+   sequence of real-order returns, so the year-by-year table shows genuine
+   sequence-of-returns risk — good years, crash years, recoveries — which is the
+   whole point of Parallax: show the truth of reality. A flat constant-return
+   "expected" path (paths.expected) was tried here and rejected — it read as a
+   static positive return, which is exactly what this tool exists to disprove.
    Its .rows carry year, age, socialSecurity, pension, otherIncome, withdrawal,
    expenses, goals, taxes, realReturnUsed, startBalance, balance. */
 function cfMoney(v){
@@ -3636,12 +3635,15 @@ function renderCashflow(){
   const shown = cfCompare != null ? [baseIdx, cfCompare] : [baseIdx];
   const rowsByScen = shown.map(i => {
     const res = scenarios[i].res;
-    // ONLY the deterministic expected path. Never fall back to a single Monte-Carlo
-    // sim (paths.p50/"typical") — that's the known anti-pattern (a random path makes
-    // a planning table read as chaos and columns non-comparable). If a run somehow
-    // produced no expected path, show nothing rather than a random one.
-    const exp = res && res.paths ? res.paths.expected : null;
-    return exp ? exp.rows : [];
+    // ONE REAL CENTRAL LIFE (engine paths.p50 = the "typical"/medoid sim): out of
+    // every simulated lifetime, the single one whose balance tracks the year-by-year
+    // median envelope closest. It is a REAL, coherent sequence of real-order returns,
+    // so the table shows genuine sequence-of-returns risk — good years, crash years,
+    // recoveries — instead of a flat constant-return projection. This is the Parallax
+    // truth: one honest life a client could actually live. (The smooth "Expected end"
+    // figure on the Scenarios cards stays the separate planning headline.)
+    const central = res && res.paths ? res.paths.p50 : null;
+    return central ? central.rows : [];
   });
   // No data anywhere (e.g. a failed/degenerate Run) → say so plainly instead of
   // rendering an empty headers-only table that looks like it "didn't load".
@@ -3734,14 +3736,13 @@ function renderCashflow(){
     ).join('') + `</span>`;
   }
   const yrsToggle = `<button class="cf-yrs${cfPreRet?' on':''}" id="cf-yrs" title="Show the working years — wages in + savings out (display only, not modeled)">${cfPreRet?'Hide working years':'Show working years'}</button>`;
-  // Caveat: this is the EXPECTED path (smooth, constant expected real return) —
-  // not a forecast. Year-to-year reality varies; the downside lives in the
-  // success % and the Sequencing tab. Show the baseline's expected rate.
-  const baseEr = scenarios[baseIdx]?.res?.expectedReturn;
-  const erTxt = (baseEr != null) ? ` · ~${(baseEr*100).toFixed(1)}% real/yr expected` : '';
+  // Honest framing: this is ONE real central life (the simulated path that lands
+  // nearest the median), shown in today's dollars. It carries real year-to-year
+  // market swings — that's deliberate; the full range of outcomes lives in the
+  // success % and the Sequencing tab.
   const subText = cfPreRet
     ? `Incl. working years · wages + savings shown, not modeled · today's $`
-    : `Expected path${erTxt} · today's $ · smoothed (no market swings) — downside lives in the % and Sequencing`;
+    : `One representative path (tracks the median) · today's $ · real year-to-year market swings — full range lives in the % and Sequencing`;
   drawer.innerHTML =
     `<div class="cf-drawer-head"><span>Annual Cash Flow</span>${pills}${yrsToggle}<span class="sub">${subText}</span></div>` +
     `<div class="cf-scroll">${h}</div>`;
