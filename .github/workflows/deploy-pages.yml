@@ -1,0 +1,42 @@
+name: Deploy Pages
+
+# THE missing piece. Pages was switched to the "GitHub Actions" source but no
+# workflow actually deployed — so the github-pages environment showed a failing/
+# stale deployment and the live URL went dead. This builds the standalone and
+# deploys it to Pages, on pushes to main ONLY (so we don't re-create the
+# every-branch deployment storm). Manual run available via workflow_dispatch.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Never deploy two builds on top of each other; let the latest win.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Build standalone (index.html + parallax.html)
+        run: node build-standalone.mjs
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -4,6 +4,7 @@ name: engine tests
 # so the math can never silently break while the UI is rebuilt.
 on:
   push:
+    branches: [main, claude/dev]   # was every branch — trimmed to cut CI fan-out
   pull_request:
 
 jobs:
