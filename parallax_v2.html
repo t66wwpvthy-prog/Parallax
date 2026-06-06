@@ -955,10 +955,9 @@ const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const escHtml=s=>String(s).replace(/[&<>"']/g, c=>(
   {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
-/* DEMO household — a fictional couple (Aman & Awoman), preloaded so the tool
-   opens on a fully-worked plan instead of a blank slate. Everything here is the
-   SEED; if the advisor has saved edits (PLAN_KEY v2) those overlay it on load.
-   Clearing the household blanks this and persists the blank. */
+/* DEMO household — a fictional couple (Aman & Awoman). NOT auto-loaded: fresh
+   open is a blank slate. Available on demand via the "Load demo" button in the
+   household banner. A saved plan (PLAN_KEY v2) overlays the engine defaults on load. */
 function seedDemoHousehold(){
   plan.meta.name        = 'Demo Household';
   plan.meta.primaryName = 'Aman Demo';
