@@ -1202,8 +1202,6 @@ const GOALS = {
 };
 
 // One solved lever → a clean "was → needs to be (delta)" descriptor.
-
-// One solved lever → a clean "was → needs to be (delta)" descriptor.
 function soloRowText(key, baseV, newV){
   const cfg = LEVCFG.find(c=>c.key===key);
   const fmt = v => { const [a,u]=cfg.fmt(v, {...defaultLevers(), [key]:v, eventAge:70}); return u && u!=='growth / defensive' ? `${a} ${u}` : a; };
@@ -3805,7 +3803,7 @@ body.sg-on .wrap *{cursor:crosshair}
   const fab=q('#sg-fab'),bar=q('#sg-bar'),pop=q('#sg-pop'),toast=q('#sg-toast');
   const nice={'net-worth':'Household','scenarios':'Scenarios','sequencing':'Sequencing'};
   const save=()=>{ try{ localStorage.setItem(KEY,JSON.stringify(notes)) }catch{} };
-  const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const activePage=()=>document.querySelector('.htab.on')?.dataset.page||'';
   function colName(el){ const c=el.closest('[data-col]'); if(!c)return''; const i=+c.dataset.col;
     const names=[...document.querySelectorAll('.col-name')].map(n=>n.textContent.replace(/[✕✎]/g,'').trim());
