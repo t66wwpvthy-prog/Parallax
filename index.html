@@ -4975,8 +4975,9 @@ function axes(W,H,ageStart,ageEnd,maxBal){
    RMDs, taxes, goals). This is the Scenarios doctrine: the expected-wealth view
    carries NO sequence-of-returns noise — identical levers ⇒ identical rows; the
    downside/volatility lives in the success % circle and the Sequencing tab. A
-   single random Monte-Carlo path (paths.p50) made this table read as chaos
-   (−39% next to +29% years); that's intentionally NOT what we show here.
+   single random Monte-Carlo path (paths.p50 / "typical") made this table read as
+   chaos (−39% next to +29% years — real 2008/2009 data, but meaningless in a plan);
+   that's the known anti-pattern and is intentionally NOT used here.
    Its .rows carry year, age, socialSecurity, pension, otherIncome, withdrawal,
    expenses, goals, taxes, realReturnUsed, startBalance, balance. */
 function cfMoney(v){
@@ -5004,8 +5005,12 @@ function renderCashflow(){
   const shown = cfCompare != null ? [baseIdx, cfCompare] : [baseIdx];
   const rowsByScen = shown.map(i => {
     const res = scenarios[i].res;
-    const pth = res && res.paths ? (res.paths.expected || res.paths.p50) : null;   // expected path; p50 only as fallback
-    return pth ? pth.rows : [];
+    // ONLY the deterministic expected path. Never fall back to a single Monte-Carlo
+    // sim (paths.p50/"typical") — that's the known anti-pattern (a random path makes
+    // a planning table read as chaos and columns non-comparable). If a run somehow
+    // produced no expected path, show nothing rather than a random one.
+    const exp = res && res.paths ? res.paths.expected : null;
+    return exp ? exp.rows : [];
   });
   // No data anywhere (e.g. a failed/degenerate Run) → say so plainly instead of
   // rendering an empty headers-only table that looks like it "didn't load".
