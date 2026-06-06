@@ -99,7 +99,7 @@ background-size:auto,auto,auto,auto,auto,72px 72px,72px 72px,auto;}
    ~210px per scenario + the 148px label gutter; centered. */
 .scn-scroll,.page[data-page="scenarios"] .cf-toggle,.page[data-page="scenarios"] .cf-drawer{max-width:1180px;width:100%;margin-left:auto;margin-right:auto}
 .page[data-page="scenarios"] .eyebrow{position:sticky;top:0;z-index:25;background:rgba(18,14,8,.76);backdrop-filter:blur(22px) saturate(1.12);-webkit-backdrop-filter:blur(22px) saturate(1.12);padding:20px 0 16px}
-.scn-band{position:sticky;top:53px;z-index:20;display:grid;grid-template-columns:148px repeat(3,1fr);column-gap:14px}
+.scn-band{position:sticky;top:53px;z-index:20;display:grid;grid-template-columns:184px repeat(3,1fr);column-gap:14px}
 /* Opaque backdrop behind the WHOLE sticky band (not just a 10px lip) so scrolling
    lever rows can't bleed through the translucent glass column-cards. */
 .scn-band::before{content:'';position:absolute;left:0;right:0;top:-10px;bottom:0;background:rgba(18,14,8,.76);backdrop-filter:blur(22px) saturate(1.12);-webkit-backdrop-filter:blur(22px) saturate(1.12);z-index:-1}
@@ -223,7 +223,7 @@ background-size:auto,auto,auto,auto,auto,72px 72px,72px 72px,auto;}
 .circle-delta{margin-top:10px;font-family:'Inter';font-size:11.5px;font-weight:600;letter-spacing:.01em;color:var(--ink-faint);font-variant-numeric:tabular-nums;text-align:center;min-height:14px}
 .circle-delta.base{color:var(--ink-ghost);font-weight:500;letter-spacing:.14em;text-transform:uppercase;font-size:9px}
 
-.scn-levers{display:grid;grid-template-columns:148px repeat(3,1fr);column-gap:14px}
+.scn-levers{display:grid;grid-template-columns:184px repeat(3,1fr);column-gap:14px}
 .lev-name{display:flex;align-items:center;padding:0 14px;min-height:62px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-mute);font-weight:500;line-height:1.3}
 .lev-cell{display:flex;flex-direction:column;justify-content:center;gap:7px;border-bottom:1px solid var(--rule-faint);padding:0 16px;min-height:62px;background:var(--surface)}
 .lev-val{font-family:'Inter';font-size:16.5px;font-weight:500;color:var(--ink-mute);display:flex;align-items:center;gap:6px}
@@ -265,7 +265,7 @@ background-size:auto,auto,auto,auto,auto,72px 72px,72px 72px,auto;}
 .lev-step{display:inline-flex;align-items:center;gap:7px;margin-left:auto}
 .step-btn{width:20px;height:20px;border-radius:5px;border:1px solid var(--rule-bright);background:var(--surface);color:var(--ink-mute);font-family:'Inter';font-size:14px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0}
 .step-btn:hover{border-color:var(--gold);color:var(--gold)}
-.scn-foot{display:grid;grid-template-columns:148px repeat(3,1fr);column-gap:14px}
+.scn-foot{display:grid;grid-template-columns:184px repeat(3,1fr);column-gap:14px}
 .foot-cell{padding:12px 14px;font-family:'Inter';font-size:12.5px;color:var(--ink-mute)}
 .foot-cell:not(:first-child){background:var(--surface);border-radius:0 0 18px 18px}
 .foot-cell b{color:var(--ink);font-weight:500}
@@ -300,7 +300,7 @@ background-size:auto,auto,auto,auto,auto,72px 72px,72px 72px,auto;}
 /* Goals section on the Scenarios tab — a read-only mirror of the base-plan
    goals. Same 148px + N-column grid as the levers so rows stay registered.
    Quiet (no inputs, no sliders): it's a reflection of the plan, not a lever. */
-.scn-goals{display:grid;grid-template-columns:148px repeat(3,1fr);column-gap:14px}
+.scn-goals{display:grid;grid-template-columns:184px repeat(3,1fr);column-gap:14px}
 .sg-head{display:flex;align-items:center;padding:14px 14px 8px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);font-weight:600}
 .sg-head.sg-col{background:var(--surface)}
 .sg-name{display:flex;flex-direction:column;justify-content:center;padding:0 14px;min-height:46px;font-size:12px;color:var(--ink-mute);line-height:1.25}
@@ -424,7 +424,7 @@ background-size:auto,auto,auto,auto,auto,72px 72px,72px 72px,auto;}
 .np-snapshot-page .cov-legend,.np-snapshot-page .seg-legend{font-size:10px;margin-top:6px}
 .np-gutter{position:sticky;top:0}
 .np-gutter .lbl{font-family:'Sora';font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-faint);font-weight:600;margin-bottom:4px}
-.np-gutter .big-num{font-family:'Inter';font-size:30px;line-height:1.05;font-weight:600;color:var(--champagne);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.np-gutter .big-num{font-family:'Inter';font-size:37px;line-height:1.05;font-weight:600;color:var(--champagne);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
 .np-gutter .big-num.teal{color:var(--champagne)}
 .np-gutter .big-sub{font-family:'Sora';font-size:11px;color:var(--ink-mute);margin-top:5px;font-weight:500;line-height:1.4}
 .np-gutter .gut-rule{border:none;border-top:1px solid var(--rule-faint);margin:20px 0 14px}
@@ -441,8 +441,8 @@ background-size:auto,auto,auto,auto,auto,72px 72px,72px 72px,auto;}
 .bs-col{min-width:0}
 .bs-divider{background:var(--rule-faint);align-self:stretch}
 /* Column title ("Assets" / "Liabilities") */
-.bs-title{font-family:'Sora';font-size:17px;font-weight:500;color:var(--ink);letter-spacing:-.01em;margin:0 0 4px}
-.bs-head{font-family:'Sora';font-size:10.5px;letter-spacing:.26em;text-transform:uppercase;color:var(--ink-mute);font-weight:600;margin:26px 0 8px;padding-bottom:8px;position:relative}
+.bs-title{font-family:'Sora';font-size:17px;font-weight:500;color:var(--ink);letter-spacing:-.01em;margin:0 0 10px}
+.bs-head{font-family:'Sora';font-size:10.5px;letter-spacing:.26em;text-transform:uppercase;color:var(--ink-mute);font-weight:600;margin:36px 0 12px;padding-bottom:10px;position:relative}
 /* Copper reads as a faint STREAK that fades out, not a hard rule that draws. */
 .bs-head::after{content:'';position:absolute;left:0;right:0;bottom:0;height:1px;background:linear-gradient(90deg,var(--gold) 0%,rgba(194,144,106,.34) 40%,transparent 84%)}
 .bs-head:first-of-type{margin-top:16px}
@@ -461,7 +461,26 @@ background-size:auto,auto,auto,auto,auto,72px 72px,72px 72px,auto;}
 .hh-spacer{flex:1 1 auto}
 .hh-clear{align-self:center;font-family:'Sora';font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:var(--ink-faint);background:transparent;border:1px solid var(--rule-faint);border-radius:7px;padding:7px 14px;cursor:pointer;transition:color .15s,border-color .15s,background .15s}
 .hh-clear:hover{color:var(--negative);border-color:var(--negative);background:rgba(184,58,40,.07)}
-.bs-row{display:flex;align-items:baseline;padding:7px 0;font-size:14px}
+.hh-demo{align-self:center;margin-right:8px;font-family:'Sora';font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:var(--ink-faint);background:transparent;border:1px dashed var(--rule-faint);border-radius:7px;padding:7px 14px;cursor:pointer;transition:color .15s,border-color .15s}
+.hh-demo:hover{color:var(--ink-mute);border-color:var(--rule-bright)}
+.hh-save{align-self:center;margin-right:10px;font-family:'Sora';font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:var(--ink-mute);background:transparent;border:1px solid var(--rule-faint);border-radius:7px;padding:7px 16px;cursor:pointer;transition:color .15s,border-color .15s,background .15s}
+.hh-save:hover{color:var(--gold-bright);border-color:var(--gold);background:rgba(201,146,74,.08)}
+/* People bar — spouse + children controls, a quiet row under the household stats. */
+.people-bar{grid-column:1 / -1;display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px;margin:2px 0 18px;font-family:'Sora'}
+.people-bar .ppl-label{font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-faint);font-weight:700}
+.people-bar .ppl-sep{color:var(--rule-bright);margin:0 2px}
+.ppl-link{font-family:'Sora';font-size:10.5px;letter-spacing:.04em;color:var(--ink-mute);background:transparent;border:1px dashed var(--rule-bright);border-radius:6px;padding:4px 10px;cursor:pointer;transition:color .15s,border-color .15s}
+.ppl-link:hover{color:var(--gold-bright);border-color:var(--gold)}
+.kid{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--rule-faint);border-radius:7px;padding:3px 4px 3px 8px;background:var(--surface)}
+.kid-name{font-family:'Sora';font-size:12px;color:var(--ink-bright);background:transparent;border:none;outline:none;width:74px}
+.kid-age{font-family:'Inter';font-size:12px;color:var(--ink-mute);background:transparent;border:none;outline:none;width:34px;text-align:center;border-left:1px solid var(--rule-faint);padding-left:4px}
+.kid-x{font-size:13px;line-height:1;color:var(--ink-faint);background:transparent;border:none;cursor:pointer;padding:0 4px}
+.kid-x:hover{color:var(--negative)}
+/* Ownership chip-select on accounts + property cards. */
+.own-sel{font-family:'Sora';font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-mute);background:transparent;border:1px solid var(--rule-faint);border-radius:5px;padding:1px 4px;margin-left:8px;cursor:pointer}
+.own-sel:hover{color:var(--gold-bright);border-color:var(--gold)}
+.prop-top .own-sel{margin-left:auto}
+.bs-row{display:flex;align-items:baseline;padding:13px 0;font-size:14px}
 .bs-row label{color:var(--ink-mute);font-weight:500;font-family:'Sora'}
 .bs-row.sub label{color:var(--ink-faint);font-size:13px;padding-left:18px;font-weight:400}
 .bs-dots{flex:1;border-bottom:1px dotted var(--rule-faint);margin:0 10px;transform:translateY(-3px)}
@@ -510,8 +529,8 @@ background-size:auto,auto,auto,auto,auto,72px 72px,72px 72px,auto;}
    one level up. */
 .hp-body{display:grid;grid-template-columns:1fr 1px 1fr;gap:0 36px}
 .hp-rule{background:var(--rule-bright);width:1px;align-self:stretch}
-.hp-col h4{font-family:'Sora';font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-mute);font-weight:600;margin-bottom:18px;padding-bottom:8px;border-bottom:1px solid var(--rule-faint)}
-.hp-item{padding:11px 0;border-bottom:1px solid var(--rule-faint)}
+.hp-col h4{font-family:'Sora';font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-mute);font-weight:600;margin-bottom:24px;padding-bottom:10px;border-bottom:1px solid var(--rule-faint)}
+.hp-item{padding:18px 0;border-bottom:1px solid var(--rule-faint)}
 .hp-item:last-of-type{border-bottom:none}
 .hp-item .ti{display:flex;align-items:baseline;justify-content:space-between;gap:14px}
 .hp-item .nm{font-size:14px;color:var(--ink-bright);font-weight:500;flex:1;font-family:'Sora'}
@@ -2278,45 +2297,107 @@ const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const escHtml=s=>String(s).replace(/[&<>"']/g, c=>(
   {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
-/* BLANK household template — cleared for entering our first real household.
-   All dollar values are $0 and every list (goals, properties, variable income)
-   is empty, so the input pages read as a clean slate. The three AGES are kept
-   at neutral placeholders (50 / 65 / 95) rather than 0: a zero-length horizon
-   makes the engine and the wealth chart render garbage, so we keep a valid
-   span the advisor simply overtypes with the real person's ages. */
-plan.household.primary.currentAge    = 50;
-plan.household.primary.retirementAge = 65;
-plan.household.primary.planEndAge    = 95;
-plan.household.spouse = null;
-plan.portfolio.accounts.taxable.balance      = 0;
-plan.portfolio.accounts.traditional.balance  = 0;
-plan.portfolio.accounts.roth.balance         = 0;
-plan.portfolio.accounts.taxable.basisPct     = 1;     // no embedded gain until real basis is entered
-plan.portfolio.extraAccounts = [];
-plan.expenses.living                = 0;
-plan.expenses.healthcare            = 0;
-plan.expenses.healthcareRealGrowth  = 0.02;   // 2% above CPI (historical avg — keep as sensible default)
-plan.expenses.extra = [];
-// Goals are an ARRAY: recurring goals (left column) + one-time goals (single-year
-// window, startAge===endAge). Empty until the advisor enters the household's goals.
-plan.goals = [];
-// Real assets (primary residence, etc.) — empty until entered.
-plan.properties = [];
-plan.liabilities = [];
-// No income on file yet — pia (benefit at FRA in today's dollars) is $0 until
-// the advisor enters it straight off the SSA statement.
-plan.income.socialSecurity.primary = { pia: 0, claimAge: 67 };
-plan.income.socialSecurity.spouse  = null;
-// No pension on file (empty benefit table). The engine pays exactly what's
-// entered for the chosen age and nothing in between — no invented numbers.
-plan.income.pension = { benefitByAge: {}, startAge: 65, colaPct: 0 };
-plan.savings.annual      = 0;
-// Gross working income (pre-retirement, today's dollars). Snapshot diagnostic
-// only — never an engine input.
-plan.income.workingIncome = 0;
-// Variable income streams (rental, etc.) — empty until entered.
-plan.income.other = [];
-plan.simulation.iterations = 1000;
+/* DEMO household — a fictional couple (Aman & Awoman), preloaded so the tool
+   opens on a fully-worked plan instead of a blank slate. Everything here is the
+   SEED; if the advisor has saved edits (PLAN_KEY v2) those overlay it on load.
+   Clearing the household blanks this and persists the blank. */
+function seedDemoHousehold(){
+  plan.meta.name        = 'Demo Household';
+  plan.meta.primaryName = 'Aman Demo';
+  plan.meta.spouseName  = 'Awoman Demo';
+  // Ages: Aman 36 (primary), Awoman 32 (spouse). Retire at 60 (early — bridge to
+  // SS at 67 from the portfolio). Plan runs to 95. All editable.
+  plan.household.primary.currentAge    = 36;
+  plan.household.primary.retirementAge = 60;
+  plan.household.primary.planEndAge    = 95;
+  plan.household.spouse   = { currentAge: 32, retirementAge: 60 };
+  plan.household.children = [];
+  // Investments entered as NAMED accounts (extraAccounts) so each shows on the
+  // sheet; the core buckets stay 0 and the named accounts fold into their sleeve.
+  plan.portfolio.riskProfile = 6;                  // 100% equity
+  plan.portfolio.accounts.taxable.balance     = 0;
+  plan.portfolio.accounts.traditional.balance = 0;
+  plan.portfolio.accounts.roth.balance        = 0;
+  plan.portfolio.accounts.taxable.basisPct    = 1;
+  plan.portfolio.extraAccounts = [
+    { type:'Awoman · Employer 401(k)', owner:'spouse',  bucket:'traditional', balance:210000 },
+    { type:'Aman · Employer 401(k)',   owner:'primary', bucket:'traditional', balance:130000 },
+    { type:'Aman · Roth IRA',          owner:'primary', bucket:'roth',        balance:40000 },
+    { type:'Awoman · Roth IRA',        owner:'spouse',  bucket:'roth',        balance:1000 },
+    { type:'Joint brokerage',          owner:'joint',   bucket:'taxable',     balance:4000 },
+    { type:'Joint checking (cash)',    owner:'joint',   bucket:'taxable',     balance:30000 },
+  ];
+  // Pre-retirement saving: both max the 401(k) + employer match.
+  plan.savings.annual = 62125;
+  plan.savings.split  = { traditional: 1, roth: 0, taxable: 0 };
+  // Retirement essentials $12k/mo = $144k/yr. Housing = property-tax + insurance
+  // escrow (separate from mortgage P+I so amortization stays pure).
+  plan.expenses.living               = 144000;
+  plan.expenses.housing              = 8023;
+  plan.expenses.healthcare           = 12000;
+  plan.expenses.healthcareRealGrowth = 0.02;
+  plan.expenses.extra = [];
+  // Goals — sample home renovation across three 5-year phases.
+  plan.goals = [
+    { name:'Kitchen renovation', amount:10308, startAge:36, endAge:40 },
+    { name:'Kitchen + pool',     amount:25032, startAge:41, endAge:45 },
+    { name:'Pool',               amount:14724, startAge:46, endAge:50 },
+  ];
+  // Primary residence — sample home.
+  plan.properties = [
+    { name:'Primary residence', owner:'joint', value:740000, purchasePrice:700000,
+      purchaseYear:2024, mortgage:{ balance:550000, rate:6.375, termYears:30 } },
+  ];
+  plan.liabilities = [];
+  // Social Security — high earners, max benefit at FRA (~$4,018/mo = $48,216/yr).
+  plan.income.socialSecurity.primary = { pia: 48216, claimAge: 67 };
+  plan.income.socialSecurity.spouse  = { pia: 48216, claimAge: 67 };
+  plan.income.pension = { benefitByAge: {}, startAge: 65, colaPct: 0 };
+  // Gross household working income (display only).
+  plan.income.workingIncome = 416400;
+  plan.income.other = [];
+  // Long-term care — $100k/yr from age 90 (editable).
+  plan.ltc = { amount: 100000, onsetAge: 90 };
+  plan.taxes.ordinary     = 24;
+  plan.taxes.capitalGains = 15;
+  plan.simulation.iterations = 1000;
+}
+/* ── Whole-household persistence ───────────────────────────────────
+   Default on fresh open is a BLANK slate (no auto-seed). The demo household
+   (Aman & Awoman) is available via "Load demo" in the household banner — useful
+   for exploration or showing the tool to a prospect. Saving is explicit (Save
+   button) AND automatic on every input commit, so nothing is ever lost. */
+// v2: added expenses.housing, savings.split, ltc shape, household.children, meta names.
+// Bump this key whenever the plan shape changes in a way that could silently
+// corrupt a stale saved plan — old key is abandoned, seed runs fresh.
+const PLAN_KEY = 'parallax.plan.v2';
+function savePlan(){ try{ localStorage.setItem(PLAN_KEY, JSON.stringify(plan)); }catch(e){} }
+// Deep-merge saved plain data onto the live plan, replacing arrays wholesale (a
+// saved accounts/goals/properties list is authoritative). Mutates in place so
+// every existing reference to `plan` stays valid.
+function deepAssign(dst, src){
+  for(const k of Object.keys(src)){
+    const sv = src[k];
+    if(Array.isArray(sv)){ dst[k] = sv; }
+    else if(sv && typeof sv==='object'){
+      if(!dst[k] || typeof dst[k]!=='object' || Array.isArray(dst[k])) dst[k] = {};
+      deepAssign(dst[k], sv);
+    } else { dst[k] = sv; }
+  }
+}
+function loadPlan(){
+  try{
+    const raw = localStorage.getItem(PLAN_KEY);
+    if(!raw) return false;
+    const saved = JSON.parse(raw);
+    if(!saved || typeof saved!=='object') return false;
+    deepAssign(plan, saved);
+    return true;
+  }catch(e){ return false; }
+}
+// On fresh open (no saved plan) the engine's defaultPlan is the starting point —
+// blank balances, ages 50/65/95. If there's a saved plan, overlay it.
+loadPlan();
 
 // Scenario accent palette. Brass / steel-teal / dusty mauve are the core trio
 // (matches --s1/2/3); two more earthy tones extend it when the advisor adds a
@@ -2327,7 +2408,7 @@ const colorFor=i=>SCEN_PALETTE[i % SCEN_PALETTE.length];
 const MAX_SCENARIOS=5;
 /* The three scenario columns. Each holds lever values + its last engine result.
    lever values are the ACTUAL planning values (age, $, etc.), not slider ticks. */
-const RISK_LABELS={1:'30 / 70',2:'45 / 55',3:'60 / 40',4:'75 / 25',5:'90 / 10'};
+const RISK_LABELS={1:'30 / 70',2:'45 / 55',3:'60 / 40',4:'75 / 25',5:'90 / 10',6:'100 / 0'};
 function defaultLevers(){
   const L={
     retireAge:  plan.household.primary.retirementAge,
@@ -2971,7 +3052,7 @@ function planForScenario(L){
    decision) — so "draw from base, then adjust" holds automatically. */
 if(!plan.income.socialSecurity.spouse) plan.income.socialSecurity.spouse={pia:0,claimAge:67};
 
-const RISK_NAMES={1:'Conservative',2:'Mod-Cons',3:'Moderate',4:'Mod-Agg',5:'Aggressive'};
+const RISK_NAMES={1:'Conservative',2:'Mod-Cons',3:'Moderate',4:'Mod-Agg',5:'Aggressive',6:'All Equity'};
 
 /* ── Sub-page registry ─────────────────────────────────────────────
    Four sub-pages live under the Net Worth tab. Balance Sheet uses the
@@ -2999,17 +3080,56 @@ const BALANCE_SHEET = [
   { head:'Real assets',  fields:[], kind:'property',  add:'+ add a property or other real asset' },
   { head:'Liabilities',  liab:true, fields:[], kind:'liability', add:'+ add a loan or recurring obligation' },
 ];
-// Household & Plan inputs — plain framing data (ages, income), rendered as a
-// short horizontal stat bar across the top of the Net Worth page rather than a
-// full section; they frame the plan, they aren't balance-sheet lines.
-const HH_FIELDS = [
-  {path:'household.primary.currentAge',    label:'Current age',    type:'age'},
-  {path:'household.primary.retirementAge', label:'Retirement age', type:'age'},
-  {path:'household.primary.planEndAge',    label:'Plan end age',   type:'age'},
-  {path:'income.workingIncome',            label:'Income / yr',    type:'money'},
-  {path:'taxes.ordinary',                  label:'Ordinary tax',   type:'taxpct'},
-  {path:'taxes.capitalGains',              label:'Cap-gains tax',  type:'taxpct'},
-];
+// Household & Plan inputs — plain framing data (names, ages, income), rendered as
+// a short horizontal stat bar across the top of the Net Worth page rather than a
+// full section; they frame the plan, they aren't balance-sheet lines. Built fresh
+// each render so the SPOUSE fields appear only when a spouse is on file.
+function buildHHFields(){
+  const f = [
+    {path:'meta.primaryName',                label:'Primary',        type:'text', ph:'Name'},
+    {path:'household.primary.currentAge',    label:'Age',            type:'age'},
+    {path:'household.primary.retirementAge', label:'Retirement age', type:'age'},
+    {path:'household.primary.planEndAge',    label:'Plan end age',   type:'age'},
+  ];
+  if(plan.household.spouse){
+    f.push({path:'meta.spouseName',                label:'Spouse',     type:'text', ph:'Name'});
+    f.push({path:'household.spouse.currentAge',    label:'Spouse age', type:'age'});
+  }
+  f.push(
+    {path:'income.workingIncome', label:'Income / yr',   type:'money'},
+    {path:'taxes.ordinary',       label:'Ordinary tax',  type:'taxpct'},
+    {path:'taxes.capitalGains',   label:'Cap-gains tax', type:'taxpct'},
+  );
+  return f;
+}
+// People controls — add/remove a spouse and manage children (name + age). These
+// frame WHO the plan is for; the engine consumes spouse.currentAge, children are
+// planning context (display).
+function ownerName(o){
+  if(o==='spouse') return (plan.meta.spouseName||'Spouse').split(' ')[0];
+  if(o==='joint')  return 'Joint';
+  return (plan.meta.primaryName||'Primary').split(' ')[0];
+}
+function ownerSelect(path, val){
+  const opts = [['primary',ownerName('primary')],['spouse',ownerName('spouse')],['joint','Joint']];
+  // hide the spouse option when there's no spouse on file
+  const list = plan.household.spouse ? opts : opts.filter(o=>o[0]!=='spouse');
+  return `<select class="own-sel" data-ownerpath="${path}">`
+    + list.map(([v,l])=>`<option value="${v}" ${(val||'primary')===v?'selected':''}>${escHtml(l)}</option>`).join('')
+    + `</select>`;
+}
+function peopleControls(){
+  const sp = plan.household.spouse;
+  const spBtn = sp
+    ? `<button class="ppl-link" data-ppl="rmspouse" title="Remove spouse">− spouse</button>`
+    : `<button class="ppl-link" data-ppl="addspouse" title="Add a spouse / partner">+ add spouse</button>`;
+  const kids = (plan.household.children||[]).map((c,i)=>
+    `<span class="kid"><input class="kid-name" data-childidx="${i}" data-ck="name" value="${escHtml(c.name||'')}" placeholder="Child"><input class="kid-age" type="number" min="0" max="120" step="1" data-childidx="${i}" data-ck="age" value="${c.age!=null?c.age:''}" placeholder="age"><button class="kid-x" data-childidx="${i}" title="Remove">×</button></span>`
+  ).join('');
+  return `<span class="ppl-label">People</span>${spBtn}`
+    + `<span class="ppl-sep">·</span><span class="ppl-label">Children</span>${kids}`
+    + `<button class="ppl-link" data-ppl="addchild">+ child</button>`;
+}
 
 /* ── Hybrid columns: each sub-page has a LEFT and a RIGHT column.
    Each item carries name + path + type, and an optional meta() that draws
@@ -3028,8 +3148,9 @@ const HYBRID = {
     ]},
     right: { head:'Expenses', groups:[
       { head:'Essential', items:[
-        {path:'expenses.living',     name:'Lifestyle',  type:'money', meta:()=>'Housing, utilities, food, transport'},
-        {path:'expenses.healthcare', name:'Healthcare', type:'money', meta:()=>'Premiums + out-of-pocket'},
+        {path:'expenses.living',     name:'Lifestyle',  type:'monthly', meta:()=>'Per month · utilities, food, transport'},
+        {path:'expenses.housing',    name:'Property tax & insurance', type:'money', meta:()=>'Per year · escrow, separate from mortgage P+I'},
+        {path:'expenses.healthcare', name:'Healthcare', type:'money', meta:()=>'Per year · premiums + out-of-pocket'},
         {path:'expenses.healthcareRealGrowth', name:'Healthcare inflation', type:'pct', meta:()=>'Annual growth above CPI (default 2%)'},
       ] },
     ]},
@@ -3111,13 +3232,19 @@ const ACCT_TYPES = [
   {label:'403(b)', bucket:'traditional'}, {label:'457', bucket:'traditional'},
   {label:'401(a)', bucket:'traditional'}, {label:'SEP IRA', bucket:'traditional'},
   {label:'SIMPLE IRA', bucket:'traditional'}, {label:'Solo 401(k)', bucket:'traditional'},
-  {label:'Roth IRA', bucket:'roth'}, {label:'Brokerage', bucket:'taxable'},
+  {label:'Roth IRA', bucket:'roth'},
+  // Taxable sleeve: brokerage PLUS everyday bank/cash accounts. Bank cash folds
+  // into the taxable bucket with full basis (no embedded gain), so a withdrawal
+  // pulls principal untaxed — the right behavior for a checking/savings balance.
+  {label:'Brokerage', bucket:'taxable'}, {label:'Checking', bucket:'taxable'},
+  {label:'Savings', bucket:'taxable'}, {label:'Money market', bucket:'taxable'},
+  {label:'CD', bucket:'taxable'}, {label:'Cash / bank', bucket:'taxable'},
 ];
 const BUCKET_TAG = { traditional:'pre-tax', roth:'Roth', taxable:'taxable' };
 let acctSel = null;   // type currently armed in the add picker
 function renderExtraAccounts(){
   return (plan.portfolio.extraAccounts||[]).map((a,i)=>
-    `<div class="bs-row"><label>${a.type}<span class="acct-tag ${a.bucket}">${BUCKET_TAG[a.bucket]}</span></label><span class="bs-dots"></span>`
+    `<div class="bs-row"><label>${a.type}<span class="acct-tag ${a.bucket}">${BUCKET_TAG[a.bucket]}</span>${ownerSelect(`portfolio.extraAccounts.${i}.owner`, a.owner)}</label><span class="bs-dots"></span>`
    +`<span class="field"><input class="acct-bal" data-type="money" data-acctidx="${i}" value="${(a.balance||0).toLocaleString('en-US')}"><button class="acct-x" data-acctidx="${i}" title="Remove">×</button></span></div>`
   ).join('');
 }
@@ -3167,14 +3294,18 @@ function clearHousehold(){
   p.household.primary.retirementAge = 65;
   p.household.primary.planEndAge = 95;
   p.household.spouse = null;
+  p.household.children = [];
+  p.meta.name = ''; p.meta.primaryName = ''; p.meta.spouseName = '';
   p.portfolio.accounts.taxable.balance = 0;
   p.portfolio.accounts.traditional.balance = 0;
   p.portfolio.accounts.roth.balance = 0;
   p.portfolio.accounts.taxable.basisPct = 1;
   p.portfolio.extraAccounts = [];
   p.expenses.living = 0;
+  p.expenses.housing = 0;
   p.expenses.healthcare = 0;
   p.expenses.extra = [];
+  p.ltc = { amount: 0, onsetAge: 90 };
   p.goals = [];
   p.properties = [];
   p.liabilities = [];
@@ -3187,6 +3318,9 @@ function clearHousehold(){
   // Leave tax rates at sensible defaults (22% / 15%) rather than 0% — a 0% tax
   // plan reads falsely rosy. The advisor overtypes with the household's real rates.
   if(p.taxes){ p.taxes.ordinary = 22; p.taxes.capitalGains = 15; }
+  // Persist the blank so the cleared state survives a reload (otherwise the demo
+  // seed would re-appear), and drop the saved scenarios/goal-rank.
+  savePlan();
   try{ localStorage.removeItem(SCEN_KEY); localStorage.removeItem('parallax.goals.rank'); }catch(e){}
   scenarios = demoScenarios();
   baseSnapshot = defaultLevers();
@@ -3195,8 +3329,9 @@ function clearHousehold(){
   $('#status').textContent = 'Household cleared · enter the new household';
 }
 // Post-edit refresh (mirrors the balance-sheet field commit, minus setPath).
+// Persists the plan on every commit so household edits survive a reload.
 function commitPlanEdit(){
-  reseedScenarios(); buildLevers(); sharedPaths=null; plansDirty=true; renderInputs();
+  reseedScenarios(); buildLevers(); sharedPaths=null; plansDirty=true; savePlan(); renderInputs();
   $('#status').textContent='Plan edited · open Scenarios';
 }
 // Net worth = assets - liabilities. Real-asset and recurring-liability UI
@@ -3224,7 +3359,9 @@ function netWorthTotal(){ return investableTotal() + realAssetsTotal() - liabili
 // be one or more groups). Dynamic-pension items are included automatically.
 function groupSum(g){
   let s = 0;
-  (g.items||[]).forEach(it => { s += (getPath(plan, it.path)||0); });
+  // Only sum DOLLAR items — a rate item (e.g. healthcare inflation %) is not a
+  // cash flow and must not land in the column total (it was adding 0.02).
+  (g.items||[]).forEach(it => { if(it.type && it.type!=='money') return; s += (getPath(plan, it.path)||0); });
   if(g.dynamic==='pension'){
     const m=(plan.income.pension&&plan.income.pension.benefitByAge)||{};
     const pStart=(plan.income.pension&&plan.income.pension.startAge);   // pays ONE amount
@@ -3302,6 +3439,10 @@ function renderField(f, klass){
   }
   if(f.type==='text'){
     return `<input type="text" data-path="${f.path}" data-type="text" value="${escHtml(v||'')}" placeholder="${f.ph||''}">`;
+  }
+  if(f.type==='monthly'){
+    const dv = Math.round((v||0)/12).toLocaleString('en-US');
+    return `<span class="pre">$</span><input type="text" inputmode="numeric" data-path="${f.path}" data-type="monthly" value="${dv}"><span style="font-size:11px;color:var(--ink-faint);margin-left:4px">/mo</span>`;
   }
   if(f.type==='money'){
     const dv = (v||0).toLocaleString('en-US');
@@ -3387,7 +3528,7 @@ function propRow(i){
     ? `Engine: ${fmtMoney(Math.round(pay))}/yr · paid off at age ${start + (M.termYears||0)}`
     : `No mortgage — value & purchase price are captured for a future sale`;
   return `<div class="prop">
-    <div class="prop-top">${name(plan,base,'name','Property')}${rmX(base)}</div>
+    <div class="prop-top">${name(plan,base,'name','Property name — e.g. Castlebridge Rd')}${ownerSelect(`${base}.owner`, (getPath(plan,base)||{}).owner)}${rmX(base)}</div>
     <div class="prop-grid">
       <label class="prop-f"><span class="er-k">Value</span>${money(plan,base,'value')}</label>
       <label class="prop-f"><span class="er-k">Purchase price</span>${money(plan,base,'purchasePrice')}</label>
@@ -3454,13 +3595,18 @@ function renderStatement(){
   // fills the formerly-empty right side so the whole sheet fits without scroll.
   const investSecs = BALANCE_SHEET.filter(s => s.subtotal==='invest');
   const rightSecs  = BALANCE_SHEET.filter(s => s.kind==='property' || s.liab);
-  const hh = HH_FIELDS.map(f =>
+  const hh = buildHHFields().map(f =>
     `<div class="hh-f"><label>${f.label}</label><span class="field">${renderField(f)}</span></div>`
   ).join('');
   // Clear: wipe the whole household back to a blank template (new client).
   const clearBtn = `<button class="hh-clear" title="Clear all household data and start a new household">Clear</button>`;
+  // Save: edits already auto-persist on every change, but an explicit Save gives
+  // the advisor a clear "it's stored" affordance + confirmation.
+  const saveBtn = `<button class="hh-save" title="Save this household to this browser">Save</button>`;
+  const demoBtn = `<button class="hh-demo" title="Load the Aman &amp; Awoman demo household">Load demo</button>`;
   return `<div class="np-page np-bal">
-    <div class="hh-bar">${hh}<div class="hh-spacer"></div>${clearBtn}</div>
+    <div class="hh-bar">${hh}<div class="hh-spacer"></div>${saveBtn}${demoBtn}${clearBtn}</div>
+    <div class="people-bar">${peopleControls()}</div>
     ${renderGutter('balance-sheet')}
     <div class="bs-sheet">
       <div class="bs-col"><div class="bs-title">Investments</div>${renderSecs(investSecs)}</div>
@@ -3843,7 +3989,7 @@ function initGoalsBoard(){
     else                  val=inp.value;
     if(plan.goals[i]){ plan.goals[i][f]=val; if(inp.dataset.sync) plan.goals[i][inp.dataset.sync]=val; }
     refreshHero();
-    reseedScenarios(); buildLevers(); sharedPaths=null; plansDirty=true;
+    reseedScenarios(); buildLevers(); sharedPaths=null; plansDirty=true; savePlan();
     $('#status').textContent='Plan edited · open Scenarios';
   });
 
@@ -3933,6 +4079,43 @@ function renderInputs(){
 $('#np-content').addEventListener('click', e => {
   // Clear household → blank template
   if(e.target.closest('.hh-clear')){ clearHousehold(); return; }
+  const saveB=e.target.closest('.hh-save');
+  if(saveB){ savePlan(); saveB.textContent='Saved ✓'; $('#status').textContent='Household saved to this browser';
+    setTimeout(()=>{ saveB.textContent='Save'; }, 1600); return; }
+  const demoB=e.target.closest('.hh-demo');
+  if(demoB){
+    if(!confirm('Load the Aman & Awoman demo household? This will replace the current household.')) return;
+    seedDemoHousehold(); savePlan();
+    scenarios = demoScenarios(); baseSnapshot = defaultLevers();
+    try{ localStorage.removeItem(SCEN_KEY); localStorage.removeItem('parallax.goals.rank'); }catch(e2){}
+    renderInputs(); runAll();
+    $('#status').textContent='Demo household loaded';
+    return;
+  }
+  // People controls — add/remove spouse, add/remove child.
+  const ppl = e.target.closest('[data-ppl]');
+  if(ppl){
+    const act = ppl.dataset.ppl;
+    if(act==='addspouse'){
+      plan.household.spouse = { currentAge: Math.max(1, (plan.household.primary.currentAge||50)-2), retirementAge: plan.household.primary.retirementAge };
+      if(!plan.income.socialSecurity.spouse) plan.income.socialSecurity.spouse = { pia: 0, claimAge: 67 };
+    } else if(act==='rmspouse'){
+      plan.household.spouse = null;
+      plan.income.socialSecurity.spouse = null;
+    } else if(act==='addchild'){
+      if(!plan.household.children) plan.household.children = [];
+      plan.household.children.push({ name:'', age:0 });
+    }
+    commitPlanEdit();
+    return;
+  }
+  const kidX = e.target.closest('.kid-x');
+  if(kidX){
+    const ci = +kidX.dataset.childidx;
+    if(plan.household.children) plan.household.children.splice(ci, 1);
+    commitPlanEdit();
+    return;
+  }
   // Row delete (×)
   const rx = e.target.closest('.row-x');
   if(rx){
@@ -4001,29 +4184,49 @@ $('#np-content').addEventListener('click', e => {
 });
 // Live commas on money fields.
 $('#np-content').addEventListener('input', e => {
-  if(e.target.dataset.type === 'money') liveCommas(e.target);
+  if(e.target.dataset.type === 'money' || e.target.dataset.type === 'monthly') liveCommas(e.target);
 });
 $('#np-content').addEventListener('change', e => {
+  // Ownership select (account / property owner) — primary / spouse / joint.
+  const ownSel = e.target.closest('.own-sel');
+  if(ownSel){
+    setPath(plan, ownSel.dataset.ownerpath, ownSel.value);
+    savePlan(); $('#status').textContent='Plan edited · open Scenarios';
+    return;
+  }
+  // Child field edits (name / age) — display-only household context.
+  const kid = e.target.closest('[data-childidx]');
+  if(kid && kid.dataset.ck){
+    const ci = +kid.dataset.childidx, ck = kid.dataset.ck;
+    if(!plan.household.children) plan.household.children = [];
+    if(plan.household.children[ci]){
+      plan.household.children[ci][ck] = (ck==='age') ? Math.max(0, Math.min(120, parseInt(kid.value,10)||0)) : kid.value;
+      savePlan();
+      $('#status').textContent='Plan edited · open Scenarios';
+    }
+    return;
+  }
   // Field edits (data-path bindings)
   const path = e.target.dataset.path, type = e.target.dataset.type;
   if(path){
     const raw = e.target.value;
     if(type==='text'){            // free-text row labels (income/expense/goal/property names)
       setPath(plan, path, raw);
-      reseedScenarios(); buildLevers(); sharedPaths=null; plansDirty=true; renderInputs();
+      reseedScenarios(); buildLevers(); sharedPaths=null; plansDirty=true; savePlan(); renderInputs();
       $('#status').textContent='Plan edited · open Scenarios';
       return;
     }
     let v;
-    if(type==='money')      v = parseFloat(String(raw).replace(/[^0-9.]/g,''));
+    if(type==='money'||type==='monthly') v = parseFloat(String(raw).replace(/[^0-9.]/g,''));
     else if(type==='risk')  v = +raw;
     else                    v = parseFloat(raw);
     if(!isFinite(v)) return;
     if(type==='pct')   v = Math.max(0, Math.min(100, v))/100;
-    if(type==='taxpct')v = Math.max(0, Math.min(60, Math.round(v)));   // whole % (engine /100)
-    if(type==='gpct')  v = Math.max(-20, Math.min(20, v))/100;   // signed growth %/yr
-    if(type==='age')   v = Math.max(1, Math.min(120, Math.round(v)));   // sane age bounds → no garbage horizon
+    if(type==='taxpct')v = Math.max(0, Math.min(60, Math.round(v)));
+    if(type==='gpct')  v = Math.max(-20, Math.min(20, v))/100;
+    if(type==='age')   v = Math.max(1, Math.min(120, Math.round(v)));
     if(type==='money'){ v = Math.max(0, Math.round(v)); e.target.value = v.toLocaleString('en-US'); }
+    if(type==='monthly'){ v = Math.max(0, Math.round(v*12)); e.target.value = Math.round(v/12).toLocaleString('en-US'); }
     setPath(plan, path, v);
     // A one-time goal edits a single "at age": mirror it into endAge so the
     // engine's window is exactly that year.
@@ -4032,6 +4235,7 @@ $('#np-content').addEventListener('change', e => {
     buildLevers();
     sharedPaths = null;
     plansDirty = true;
+    savePlan();
     renderInputs();
     $('#status').textContent='Plan edited · open Scenarios';
     return;
@@ -4085,7 +4289,7 @@ const LEVCFG=[
   // A common what-if (vacation/second home), so it lives on the lever surface,
   // not the base plan.
   {key:'buyAmt',    name:'Buy Property',   min:0,max:2000000,step:25000, edit:'buy', fmt:(v,L)=>['$'+(v||0).toLocaleString('en-US'),'@ '+L.buyAge]},
-  {key:'risk',      name:'Allocation',     min:1,max:5,step:1, fmt:v=>[RISK_LABELS[v],'']},
+  {key:'risk',      name:'Allocation',     min:1,max:6,step:1, fmt:v=>[RISK_LABELS[v],'']},
   {key:'savings',   name:'Savings / yr',   min:0,max:200000,step:1000, edit:'money', fmt:v=>['$'+v.toLocaleString('en-US'),'/yr']},
   // Pension snaps between the ages that actually have entered amounts (62, 65).
   // Label shows the dollar value the engine will pay for that age — if no entry
@@ -4185,8 +4389,8 @@ function syncGridCols(){
   const n=scenarios.length, mob=isMobileView();
   if(mobileCol>=n) mobileCol=0;
   const sc=$('.scn-scroll'); if(sc) sc.dataset.active=mobileCol;
-  const bandTpl = mob ? `repeat(${n},1fr)` : `148px repeat(${n},1fr)`;
-  const tblTpl  = mob ? `112px minmax(0,1fr)` : `148px repeat(${n},1fr)`;
+  const bandTpl = mob ? `repeat(${n},1fr)` : `184px repeat(${n},1fr)`;
+  const tblTpl  = mob ? `112px minmax(0,1fr)` : `184px repeat(${n},1fr)`;
   const b=$('#scn-band'); if(b) b.style.gridTemplateColumns=bandTpl;
   // The circle band sticks just under the (wrapping) mobile header; measure it.
   if(b){
