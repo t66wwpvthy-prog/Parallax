@@ -2361,7 +2361,7 @@ function goalsHeroHTML(){
 }
 function renderGoalsBoard(){
   const {list} = goalsView();
-  const empty = list.length ? '' : `<div class="g-empty">No goals yet — add one to start prioritising.</div>`;
+  const empty = '';
   return `<div class="g-hero">
       <div class="g-lead" id="g-lead">${goalsHeroHTML()}</div>
       <div class="g-actions">
