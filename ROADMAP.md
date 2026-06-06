@@ -52,6 +52,13 @@ Status tags: **NEXT** · **BIG** (own session) · **PARKED** · **SKIP** · ✅ 
 - [ ] **Assumption ledger** — Entered/Derived/Simulated/Historical tags. ⚠ Watch scope — must NOT become the rejected "needs-review" machinery.
 - [ ] **Close PR #1 as superseded** — branched pre-solver; merging would roll the live UI back. **DO NOT MERGE.**
 
+## F2. SAVE FOR REDESIGN (do with the color/visual redesign, not before)
+These change look/feel on a layout that's about to move — doing them now means
+picking twice (the #12 wasted-motion trap). Lock structure + scaling first, then
+mock 2–3 full palettes on the settled layout and fold these in.
+- [ ] **Bigger, more readable fonts across the app** (field note 3) — proven in a mock; deferred to the redesign so type + color are chosen together on the final layout. Do NOT ship piecemeal.
+- [ ] **Color redesign** — 2–3 full palettes mocked on the settled (post-scaling) layout for Nathan to pick. One-and-done.
+
 ## G. SKIP / do-not-relitigate (logged on purpose)
 - Cash-flow River/Sankey — decorative, no new interaction.
 - Resilience Matrix as a new tab — old Stress Test reincarnated; overlaps Sequencing + Scenarios. Salvage only the click-to-clone link.
