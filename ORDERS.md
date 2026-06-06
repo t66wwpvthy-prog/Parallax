@@ -55,6 +55,7 @@ notes elsewhere, ORDERS wins.**
 `exciting-lovelace-5dOpY`, `exciting-lovelace-S3qhW`, `hopeful-euler`.
 
 ## Status log — append one line per finished unit (newest on top)
+- 2026-06-06 · General · canonical+main `fcae309` · Goals board now keeps priority placements across add/delete (field notes 15/16/17): rank persisted by stable per-goal id instead of count — surviving goals hold their slots, new goal lands in tray, deleted goal vanishes. Verified with real pointer drags. Engine 38/38. (Rebased over another soldier's suggest-mode esc() audit fix on main.)
 - 2026-06-05 · General · canonical+main `6c29cb1` · Household reset to BLANK template (entering first real household): all $/lists cleared, ages 50/65/95, taxes 22/15, scenarios key v2→v3. Added Clear button to the household banner (clearHousehold, confirm-guarded). Re-pointed verify probe at the blank default (structural checks, not demo-data counts) — 10/10 green, engine 38/38.
 - 2026-06-05 · General · canonical+main · Audit quick-wins: age inputs clamped [1,120] (no garbage horizon); goal age fields Number-coerced (no attr injection); console.error gated behind window.PXDEBUG; engine withdrawal-factor derivation documented (comment only). Ring %-number + dot now match the ring band color (uses ringColor). Engine 38/38.
 - 2026-06-05 · General · canonical+main · Cash-flow Return % + Return $ columns (real return on start balance; signed + green/red), shows sequencing directly. Pure view of engine field (realReturnUsed), no engine change.
