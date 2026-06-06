@@ -483,6 +483,9 @@ background-size:auto,auto,auto,auto,auto,72px 72px,72px 72px,auto;}
 .own-sel{font-family:'Sora';font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-mute);background:transparent;border:1px solid var(--rule-faint);border-radius:5px;padding:1px 4px;margin-left:8px;cursor:pointer}
 .own-sel:hover{color:var(--gold-bright);border-color:var(--gold)}
 .prop-top .own-sel{margin-left:auto}
+/* Build-wide: the blinking text cursor is clearly visible on the dark ground, so
+   it's always obvious which field is active and where typing will land. */
+input{caret-color:var(--gold-bright)}
 .bs-row{display:flex;align-items:baseline;padding:14px 0;font-size:15.5px}
 .bs-row label{color:var(--ink-mute);font-weight:500;font-family:'Sora'}
 .bs-row.sub label{color:var(--ink-faint);font-size:13px;padding-left:18px;font-weight:400}
@@ -4091,6 +4094,12 @@ function renderInputs(){
              :                        renderHybrid(activeSub);
   np.innerHTML = html;
   if(layout==='board') initGoalsBoard();
+  // Blinking cursor on the FIRST field the first time the statement page opens
+  // (note: once only, so re-renders after an edit never steal focus mid-entry).
+  if(layout==='statement' && !window.__stmtAutofocused){
+    window.__stmtAutofocused = true;
+    setTimeout(()=>{ const f = np.querySelector('input'); if(f){ f.focus(); try{ f.setSelectionRange(0,0); }catch{} } }, 30);
+  }
 }
 // ── Net Worth input bindings — delegated on the stable #np-content ────────────
 // Input listeners are set once here so re-renders via renderInputs() (which
@@ -5344,6 +5353,19 @@ $('#np-save').onclick = () => {
   $('#status').textContent = 'Household saved to this browser';
   setTimeout(() => { b.textContent = 'Save'; }, 1600);
 };
+// ── Clean input behavior, BUILD-WIDE (every input, one delegated handler) ──
+// On focus/click of any value field, land the caret BEFORE the first digit
+// (text/money) or select the value (numeric steppers) — so clicking a field is
+// always ready to type, never dropping the cursor mid-number. caret-color (CSS)
+// keeps the blinking cursor visible on the dark ground.
+document.addEventListener('focusin', e => {
+  const el = e.target;
+  if(!el || el.tagName !== 'INPUT') return;
+  const t = el.type;
+  if(t === 'checkbox' || t === 'radio' || t === 'range') return;
+  // setTimeout(0): run AFTER the browser places the click caret, then override it.
+  setTimeout(() => { try { if(t === 'number') el.select(); else el.setSelectionRange(0, 0); } catch(_){} }, 0);
+});
 $('#run-btn').onclick=runAll;
 // Cash-flow drawer toggle. We render on open (and every Run while open).
 $('#cf-btn').onclick=()=>{
