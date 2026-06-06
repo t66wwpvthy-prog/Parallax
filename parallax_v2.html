@@ -1842,7 +1842,7 @@ function clearHousehold(){
   // Leave tax rates at sensible defaults (22% / 15%) rather than 0% — a 0% tax
   // plan reads falsely rosy. The advisor overtypes with the household's real rates.
   if(p.taxes){ p.taxes.ordinary = 22; p.taxes.capitalGains = 15; }
-  try{ localStorage.removeItem(SCEN_KEY); }catch(e){}
+  try{ localStorage.removeItem(SCEN_KEY); localStorage.removeItem('parallax.goals.rank'); }catch(e){}
   scenarios = demoScenarios();
   baseSnapshot = defaultLevers();
   reseedScenarios(); buildLevers(); sharedPaths = null; plansDirty = true;
@@ -2336,11 +2336,16 @@ function renderSnapshot(){
    recurring goals (annual goal spend) and notes any one-time total. Drag a card
    onto a ghost slot to rank it (absorb + copper flash; swap, not bounce). The
    ranking is a planning/conversation surface — it adds NO engine math. */
+let _gidSeq = 1;   // stable per-goal id, so the priority board survives add/delete
 function goalsView(){
-  const list = (Array.isArray(plan.goals)?plan.goals:[]).map((g,i)=>({
-    i, name:g.name||'', amount:g.amount||0,
-    once:g.startAge===g.endAge, startAge:g.startAge, endAge:g.endAge,
-  }));
+  const src = Array.isArray(plan.goals)?plan.goals:[];
+  const list = src.map((g,i)=>{
+    if(g._gid==null) g._gid = _gidSeq++;            // assign once, persists in-memory
+    return {
+      i, gid:g._gid, name:g.name||'', amount:g.amount||0,
+      once:g.startAge===g.endAge, startAge:g.startAge, endAge:g.endAge,
+    };
+  });
   return {
     list,
     recurring: list.filter(g=>!g.once).reduce((s,g)=>s+g.amount,0),
@@ -2418,22 +2423,23 @@ function initGoalsBoard(){
     el.dataset.i=g.i; el.innerHTML=goalCardHTML(g);
     if(mobBoard) el.style.width=CW+'px';
     board.appendChild(el);
-    const c={el,slot:null,fromSlot:null,homeX:0,homeY:0,idx:g.i}; el._c=c; cards.push(c);
+    const c={el,slot:null,fromSlot:null,homeX:0,homeY:0,idx:g.i,gid:g.gid}; el._c=c; cards.push(c);
   });
-  // Restore a saved rank only if the goal COUNT is unchanged — add/remove shifts
-  // indices, so a structural change cleanly resets the board to the tray.
+  // Restore the saved rank by STABLE goal id, so adding or deleting a goal keeps
+  // every other goal exactly where it was placed: surviving ids snap back to
+  // their slots, a newly added goal stays in the tray, a deleted id just vanishes.
   try{
     const saved=JSON.parse(localStorage.getItem(RANK_KEY)||'null');
-    if(saved && saved.n===list.length && Array.isArray(saved.order)){
-      saved.order.forEach((gi,si)=>{
-        if(gi==null) return;
-        const c=cards.find(c=>c.idx===gi), s=slots[si];
+    if(saved && Array.isArray(saved.order)){
+      saved.order.forEach((gid,si)=>{
+        if(gid==null) return;
+        const c=cards.find(c=>c.gid===gid), s=slots[si];
         if(c && s && !s.card && c.slot===null){ s.card=c; c.slot=s; s.el.classList.add('filled'); }
       });
     }
   }catch{}
   function saveRank(){
-    try{ localStorage.setItem(RANK_KEY, JSON.stringify({n:list.length, order:slots.map(s=>s.card?s.card.idx:null)})); }catch{}
+    try{ localStorage.setItem(RANK_KEY, JSON.stringify({order:slots.map(s=>s.card?s.card.gid:null)})); }catch{}
   }
   // Ladder column (the ranked priority list, left) vs the tray of goals still to
   // place. The tray sits just right of the ladder and fills a column top→bottom,
