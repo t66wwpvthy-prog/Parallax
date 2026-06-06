@@ -34,6 +34,8 @@ jobs:
       - name: Build standalone (index.html + parallax.html)
         run: node build-standalone.mjs
       - uses: actions/configure-pages@v5
+        with:
+          enablement: true   # turn Pages ON (Actions source) if it isn't already — fixes "Get Pages site failed: Not Found"
       - uses: actions/upload-pages-artifact@v3
         with:
           path: .
