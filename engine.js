@@ -547,6 +547,20 @@ function weightedAssetReturn(row, weights){
 }
 
 
+// The allocation's EXPECTED real return: the geometric mean of the same blended
+// real annual returns the sims draw from (weightedAssetReturn over the full
+// 1928–2025 dataset). Geometric — not arithmetic — so it already carries the
+// volatility drag and represents the median-style compound growth rate, not an
+// optimistic average. Deterministic + allocation-specific; used to walk the
+// Scenarios "expected path" (the smooth cash-flow projection) so that view shows
+// no sequence-of-returns noise (that lives in the success % and Sequencing tab).
+function allocationExpectedReturn(weights){
+  let prod = 1, n = 0;
+  for(const row of RETURN_DATA){ prod *= (1 + weightedAssetReturn(row, weights)); n++; }
+  return n ? Math.pow(prod, 1 / n) - 1 : 0;
+}
+
+
 function runSimulation(plan, overrides = {}, returnPaths = null){
   const inputs = resolveInputs(plan, overrides);
   const sims = [];
@@ -934,7 +948,7 @@ function runSinglePath(p, returnPath){
       if(endBalanceA > peakBalance) peakBalance = endBalanceA;
       if(peakBalance > 0){ const dd = (peakBalance - endBalanceA) / peakBalance; if(dd > maxDrawdown) maxDrawdown = dd; }
       rows.push({
-        year: y+1, age, source: rp.y, returnRate: r, phase: 'accum',
+        year: y+1, age, source: rp.y, returnRate: r, realReturnUsed: r, phase: 'accum',
         socialSecurity: 0, otherIncome: 0, pension: 0, withdrawal: 0, assetSale: saleProceeds,
         expenses: 0, goals: goalsA, liabilities: 0, taxes: 0, savings: p.savingsAnnual, lumpSum: lumpA,
         startBalance: startBalanceA, wdRate: 0,
@@ -1203,12 +1217,24 @@ function analyzeResults(sims, p){
   withCent.sort((a, b) => a.c - b.c);
   const typicalPath = withCent[0].sim;
 
+  // DETERMINISTIC EXPECTED PATH — one coherent run at the allocation's expected
+  // real return every year (no random draws). This is what the Scenarios cash-flow
+  // table shows: smooth, steady growth + the real cash-flow mechanics (savings,
+  // withdrawals, RMDs, taxes, goals), so the table reads as a plan, not noise.
+  // Built from the ALREADY-RESOLVED inputs `p` (overrides applied once; no new
+  // resolveInputs), and it never calls generateReturnPath, so the seeded RNG is
+  // untouched and successRate stays byte-identical. proxyReturn is honored directly
+  // by runSinglePath (so E rides the real engine); returnAdj is still added on top,
+  // exactly as the random sims do — the line and the sim shift together.
+  const expectedReturn = allocationExpectedReturn(p.portfolio.weights);
+  const expectedPath = runSinglePath(p, Array.from({ length: p.horizonYears }, () => ({ proxyReturn: expectedReturn })));
   const paths = {
     p10: bySequence[Math.floor(ns * 0.10)],
     p25: bySequence[Math.floor(ns * 0.25)],
     p50: typicalPath,
     p75: bySequence[Math.floor(ns * 0.75)],
-    p90: bySequence[Math.floor(ns * 0.90)]
+    p90: bySequence[Math.floor(ns * 0.90)],
+    expected: expectedPath
   };
 
   // Terminal balance distribution — independent of path selection sort.
@@ -1268,6 +1294,7 @@ function analyzeResults(sims, p){
 
   return {
     paths, terminal, envelope,
+    expectedReturn,
     sims,
     successRate: (survived / ns) * 100,
     survived, total: ns,
@@ -1346,6 +1373,7 @@ export {
   RETURN_DATA, ASSET_META, ASSET_KEYS, EQUITY_MIX, DEFENSIVE_MIX,
   RISK_PROFILES, ASSET_STATS, LONGRUN_INFLATION,
   buildAssetWeights, computeAssetStats, generateReturnPath, resetSeed, weightedAssetReturn,
+  allocationExpectedReturn,
   runSimulation, resolveInputs, runSinglePath, analyzeResults, runHistoricalPath,
   annualMortgagePayment,
   plan as defaultPlan

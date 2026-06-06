@@ -7,7 +7,7 @@ import assert from 'node:assert';
 import {
   RETURN_DATA, RISK_PROFILES, generateReturnPath, runSimulation,
   runHistoricalPath, resolveInputs, defaultPlan, LONGRUN_INFLATION,
-  annualMortgagePayment
+  annualMortgagePayment, allocationExpectedReturn, resetSeed
 } from './engine.js';
 
 test('return data spans the full history', () => {
@@ -538,4 +538,48 @@ test('selling an asset can rescue a plan that would otherwise run dry', () => {
   const sell = runSimulation(p, { assetSale: { asset: 0, age: 66 } }, bundle);
   assert.ok(sell.successRate > keep.successRate + 1,
     `selling to fund spending must raise success (keep ${keep.successRate}%, sell ${sell.successRate}%)`);
+});
+
+/* ── Deterministic EXPECTED PATH (powers the Scenarios cash-flow table) ────────
+   The cash-flow table must read as a smooth plan, not one volatile Monte Carlo
+   path. These lock the expected-path contract so it can never silently regress. */
+
+test('allocationExpectedReturn is the geometric mean, ordered by equity, ~7% for all-equity', () => {
+  const eAll = allocationExpectedReturn(RISK_PROFILES[6].weights);   // 100% equity
+  const eMod = allocationExpectedReturn(RISK_PROFILES[3].weights);   // 60/40
+  const eCon = allocationExpectedReturn(RISK_PROFILES[1].weights);   // 30/70
+  assert.ok(Math.abs(eAll - 0.0723) < 0.005, `all-equity expected real ~7.2%, got ${(eAll*100).toFixed(2)}%`);
+  assert.ok(eAll > eMod && eMod > eCon, 'more equity ⇒ higher expected real return');
+});
+
+test('runSimulation attaches a deterministic expected path at the expected return', () => {
+  const r = runSimulation(defaultPlan, {});
+  assert.ok(r.paths.expected && Array.isArray(r.paths.expected.rows), 'paths.expected.rows exists');
+  const inputs = resolveInputs(defaultPlan, {});
+  assert.ok(Math.abs(r.expectedReturn - allocationExpectedReturn(inputs.portfolio.weights)) < 1e-9,
+    'expectedReturn matches the allocation geomean');
+  // EVERY row (accum + retirement) carries the constant expected return and a startBalance.
+  for(const row of r.paths.expected.rows){
+    assert.ok(Math.abs(row.realReturnUsed - r.expectedReturn) < 1e-9,
+      `expected-path row at age ${row.age} should use the constant expected return`);
+    assert.ok(typeof row.startBalance === 'number', `expected-path row at age ${row.age} needs startBalance`);
+  }
+});
+
+test('the extra expected-path run does NOT perturb the seeded RNG (reproducible under a reset seed)', () => {
+  resetSeed(); const a = runSimulation(defaultPlan, {});
+  resetSeed(); const b = runSimulation(defaultPlan, {});
+  assert.strictEqual(a.successRate, b.successRate, 'successRate must be reproducible under the same seed');
+  assert.strictEqual(a.terminal.p50, b.terminal.p50, 'terminal median must be reproducible');
+  assert.strictEqual(a.paths.expected.rows.at(-1).balance, b.paths.expected.rows.at(-1).balance,
+    'expected-path end balance is deterministic');
+});
+
+test('returnAdj shifts the expected-path return in lockstep (line and sim move together)', () => {
+  // returnAdj is expressed in PERCENTAGE POINTS (engine divides by 100), so +1 = +1%.
+  const base = runSimulation(defaultPlan, {});
+  const adj  = runSimulation(defaultPlan, { returnAdj: 1 });
+  const row = adj.paths.expected.rows[0];
+  assert.ok(Math.abs(row.realReturnUsed - (base.expectedReturn + 0.01)) < 1e-9,
+    'with returnAdj +1pt, the expected path runs at E + 0.01 every year');
 });

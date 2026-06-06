@@ -3515,11 +3515,15 @@ $('#scn-levers').addEventListener('change', e=>{
 });
 function renderFoot(){
   syncGridCols();
-  let h=`<div class="foot-cell" style="color:var(--ink-faint)">Median end</div>`;
+  // Ties to the cash-flow table's last End-Balance row: both are the EXPECTED
+  // path (smooth, constant expected-return projection). Labeled honestly as the
+  // expected-path end — NOT the distribution median (envelope p50), which is a
+  // different statistic. Fall back to p50 only if the expected path is missing.
+  let h=`<div class="foot-cell" style="color:var(--ink-faint)" title="Where the expected-growth projection ends in today's dollars. The full range of outcomes lives in the success % and the Sequencing tab.">Expected end · today's $</div>`;
   scenarios.forEach((s,ci)=>{
-    // Match the LINE: this is where the drawn median path actually ends.
-    // Full digits w/ commas — no $1.5M shorthand. Whole dollars (no cents).
-    const v=s.res?s.res.envelope[s.res.envelope.length-1].p50:null;
+    const exp = s.res && s.res.paths && s.res.paths.expected;
+    const v = exp ? exp.rows[exp.rows.length-1].balance
+            : (s.res ? s.res.envelope[s.res.envelope.length-1].p50 : null);
     const t=v!=null ? '$'+Math.max(0,Math.round(v)).toLocaleString('en-US') : '—';
     h+=`<div class="foot-cell ${s.base?'base':''}" data-col="${ci}">&nbsp;<b>${t}</b></div>`;
   });
@@ -3596,13 +3600,16 @@ function axes(W,H,ageStart,ageEnd,maxBal){
   return g;
 }
 /* ── Cash-flow drawer ────────────────────────────────────────────────────
-   Each scenario's res.paths.p50 is the "typical" coherent simulated path —
-   the engine picks the sim that tracks the year-by-year median envelope
-   most closely. Its .rows array carries year, age, socialSecurity, pension,
-   otherIncome, withdrawal, expenses, goals, taxes, balance. We render those
-   per scenario side by side. The numbers here are reality-of-one-path
-   (coherent), not blended percentiles — that's why this view exists.
-   Plumbing only; no engine changes. */
+   Renders each scenario's res.paths.EXPECTED — the deterministic expected path:
+   one coherent engine run at the allocation's expected real return EVERY year
+   (no random draws), with the full cash-flow mechanics (savings, withdrawals,
+   RMDs, taxes, goals). This is the Scenarios doctrine: the expected-wealth view
+   carries NO sequence-of-returns noise — identical levers ⇒ identical rows; the
+   downside/volatility lives in the success % circle and the Sequencing tab. A
+   single random Monte-Carlo path (paths.p50) made this table read as chaos
+   (−39% next to +29% years); that's intentionally NOT what we show here.
+   Its .rows carry year, age, socialSecurity, pension, otherIncome, withdrawal,
+   expenses, goals, taxes, realReturnUsed, startBalance, balance. */
 function cfMoney(v){
   if(!isFinite(v)) return '—';
   const n = Math.round(v);
@@ -3626,7 +3633,11 @@ function renderCashflow(){
   const others  = scenarios.map((_,i)=>i).filter(i => i !== baseIdx);
   if(cfCompare == null || !others.includes(cfCompare)) cfCompare = others.length ? others[0] : null;
   const shown = cfCompare != null ? [baseIdx, cfCompare] : [baseIdx];
-  const rowsByScen = shown.map(i => (scenarios[i].res && scenarios[i].res.paths && scenarios[i].res.paths.p50) ? scenarios[i].res.paths.p50.rows : []);
+  const rowsByScen = shown.map(i => {
+    const res = scenarios[i].res;
+    const pth = res && res.paths ? (res.paths.expected || res.paths.p50) : null;   // expected path; p50 only as fallback
+    return pth ? pth.rows : [];
+  });
   // No data anywhere (e.g. a failed/degenerate Run) → say so plainly instead of
   // rendering an empty headers-only table that looks like it "didn't load".
   if(!rowsByScen.some(r => r.length)){
@@ -3687,7 +3698,12 @@ function renderCashflow(){
       // dash — so the default view still "starts" the inflows at retirement age.
       const accInc = (cfPreRet && wages > 0) ? cfMoney(wages) : dash;
       h += `<td class="${gcls[pos]}">${acc ? accInc : cfMoney(inc)}</td>`;
-      h += `<td class="${gcls[pos]}">${acc ? dash : cfMoney(r.withdrawal || 0)}</td>`;
+      // Withdraw tooltip — answers "for what?": the gross draw funds the year's
+      // spending gap (expenses + goals − income), grossed up for the tax on the
+      // amount drawn. Descriptive, not an exact sum (the row's `taxes` also covers
+      // tax on income that isn't portfolio-funded, so it wouldn't reconcile).
+      const wdTip = acc ? '' : ` title="Gross portfolio withdrawal — funds this year's spending (${cfMoney(r.expenses||0)}) + goals (${cfMoney(r.goals||0)}) − income (${cfMoney(inc)}), grossed up for income tax on the amount drawn."`;
+      h += `<td class="${gcls[pos]}"${wdTip}>${acc ? dash : cfMoney(r.withdrawal || 0)}</td>`;
       if(hasSavings) h += `<td class="${gcls[pos]}">${(acc && r.savings > 0) ? cfMoney(r.savings) : dash}</td>`;
       if(hasRmd)  h += `<td class="${gcls[pos]} cf-rmd">${(!acc && r.rmdRequired > 0) ? cfMoney(r.rmdRequired) : dash}</td>`;
       // Goals show in EVERY phase (even accumulation) so a pre-retirement
@@ -3713,9 +3729,14 @@ function renderCashflow(){
     ).join('') + `</span>`;
   }
   const yrsToggle = `<button class="cf-yrs${cfPreRet?' on':''}" id="cf-yrs" title="Show the working years — wages in + savings out (display only, not modeled)">${cfPreRet?'Hide working years':'Show working years'}</button>`;
+  // Caveat: this is the EXPECTED path (smooth, constant expected real return) —
+  // not a forecast. Year-to-year reality varies; the downside lives in the
+  // success % and the Sequencing tab. Show the baseline's expected rate.
+  const baseEr = scenarios[baseIdx]?.res?.expectedReturn;
+  const erTxt = (baseEr != null) ? ` · ~${(baseEr*100).toFixed(1)}% real/yr expected` : '';
   const subText = cfPreRet
     ? `Incl. working years · wages + savings shown, not modeled · today's $`
-    : `Typical path · today's $ · RMD = gross required min (already in Withdraw)`;
+    : `Expected path${erTxt} · today's $ · smoothed (no market swings) — downside lives in the % and Sequencing`;
   drawer.innerHTML =
     `<div class="cf-drawer-head"><span>Annual Cash Flow</span>${pills}${yrsToggle}<span class="sub">${subText}</span></div>` +
     `<div class="cf-scroll">${h}</div>`;
