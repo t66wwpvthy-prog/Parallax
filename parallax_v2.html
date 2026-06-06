@@ -461,6 +461,8 @@ background-size:auto,auto,auto,auto,auto,72px 72px,72px 72px,auto;}
 .hh-spacer{flex:1 1 auto}
 .hh-clear{align-self:center;font-family:'Sora';font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:var(--ink-faint);background:transparent;border:1px solid var(--rule-faint);border-radius:7px;padding:7px 14px;cursor:pointer;transition:color .15s,border-color .15s,background .15s}
 .hh-clear:hover{color:var(--negative);border-color:var(--negative);background:rgba(184,58,40,.07)}
+.hh-demo{align-self:center;margin-right:8px;font-family:'Sora';font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:var(--ink-faint);background:transparent;border:1px dashed var(--rule-faint);border-radius:7px;padding:7px 14px;cursor:pointer;transition:color .15s,border-color .15s}
+.hh-demo:hover{color:var(--ink-mute);border-color:var(--rule-bright)}
 .hh-save{align-self:center;margin-right:10px;font-family:'Sora';font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:var(--ink-mute);background:transparent;border:1px solid var(--rule-faint);border-radius:7px;padding:7px 16px;cursor:pointer;transition:color .15s,border-color .15s,background .15s}
 .hh-save:hover{color:var(--gold-bright);border-color:var(--gold);background:rgba(201,146,74,.08)}
 /* People bar — spouse + children controls, a quiet row under the household stats. */
@@ -953,86 +955,80 @@ const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const escHtml=s=>String(s).replace(/[&<>"']/g, c=>(
   {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
-/* DEMO household — the Robinson family, preloaded so the tool opens on a real,
-   fully-worked plan instead of a blank slate. Everything here is the SEED; if the
-   advisor has saved edits (PLAN_KEY) those overlay it on load (see loadPlan).
+/* DEMO household — a fictional couple (Aman & Awoman), preloaded so the tool
+   opens on a fully-worked plan instead of a blank slate. Everything here is the
+   SEED; if the advisor has saved edits (PLAN_KEY v2) those overlay it on load.
    Clearing the household blanks this and persists the blank. */
 function seedDemoHousehold(){
-  plan.meta.name        = 'Robinson Household';
-  plan.meta.primaryName = 'Nathan Robinson';
-  plan.meta.spouseName  = 'Maci Robinson';
-  // Ages: Nathan 36 (primary), Maci 32 (spouse). Retire at 60 (early — bridge to
+  plan.meta.name        = 'Demo Household';
+  plan.meta.primaryName = 'Aman Demo';
+  plan.meta.spouseName  = 'Awoman Demo';
+  // Ages: Aman 36 (primary), Awoman 32 (spouse). Retire at 60 (early — bridge to
   // SS at 67 from the portfolio). Plan runs to 95. All editable.
   plan.household.primary.currentAge    = 36;
   plan.household.primary.retirementAge = 60;
   plan.household.primary.planEndAge    = 95;
   plan.household.spouse   = { currentAge: 32, retirementAge: 60 };
-  plan.household.children = [];                    // none on file for the Robinsons
+  plan.household.children = [];
   // Investments entered as NAMED accounts (extraAccounts) so each shows on the
   // sheet; the core buckets stay 0 and the named accounts fold into their sleeve.
-  plan.portfolio.riskProfile = 6;                  // 100% equity (both)
+  plan.portfolio.riskProfile = 6;                  // 100% equity
   plan.portfolio.accounts.taxable.balance     = 0;
   plan.portfolio.accounts.traditional.balance = 0;
   plan.portfolio.accounts.roth.balance        = 0;
-  plan.portfolio.accounts.taxable.basisPct    = 1; // taxable sleeve is cash + tiny brokerage — no embedded gain
+  plan.portfolio.accounts.taxable.basisPct    = 1;
   plan.portfolio.extraAccounts = [
-    { type:'Maci · Siemens 401(k)',      owner:'spouse',  bucket:'traditional', balance:210000 },
-    { type:'Nathan · Osaic 401(k)',      owner:'primary', bucket:'traditional', balance:130000 },
-    { type:'Nathan · Roth IRA',          owner:'primary', bucket:'roth',        balance:40000 },
-    { type:'Maci · Schwab Roth IRA',     owner:'spouse',  bucket:'roth',        balance:1000 },
-    { type:'Fidelity (joint brokerage)', owner:'joint',   bucket:'taxable',     balance:4000 },
-    { type:'Capital One (cash)',         owner:'joint',   bucket:'taxable',     balance:30000 },
+    { type:'Awoman · Employer 401(k)', owner:'spouse',  bucket:'traditional', balance:210000 },
+    { type:'Aman · Employer 401(k)',   owner:'primary', bucket:'traditional', balance:130000 },
+    { type:'Aman · Roth IRA',          owner:'primary', bucket:'roth',        balance:40000 },
+    { type:'Awoman · Roth IRA',        owner:'spouse',  bucket:'roth',        balance:1000 },
+    { type:'Joint brokerage',          owner:'joint',   bucket:'taxable',     balance:4000 },
+    { type:'Joint checking (cash)',    owner:'joint',   bucket:'taxable',     balance:30000 },
   ];
-  // Pre-retirement saving: both max the 401(k) ($24,500 ea, 2026 limit) + employer
-  // match (Maci 3% of $190k = $5,700; Nathan 4.5% of $165k = $7,425). No Roth
-  // contributions at all (no backdoor). All pre-tax → traditional sleeve.
+  // Pre-retirement saving: both max the 401(k) + employer match.
   plan.savings.annual = 62125;
   plan.savings.split  = { traditional: 1, roth: 0, taxable: 0 };
-  // Retirement essentials $12k/mo = $144k/yr. Housing = the property-tax + insurance
-  // ESCROW ($669/mo ≈ $8,023/yr) bundled into the $4,100 mortgage payment but NOT in
-  // the engine's P+I amortization — kept separate so the amortization stays pure.
+  // Retirement essentials $12k/mo = $144k/yr. Housing = property-tax + insurance
+  // escrow (separate from mortgage P+I so amortization stays pure).
   plan.expenses.living               = 144000;
   plan.expenses.housing              = 8023;
-  plan.expenses.healthcare           = 12000;     // preloaded healthcare
+  plan.expenses.healthcare           = 12000;
   plan.expenses.healthcareRealGrowth = 0.02;
   plan.expenses.extra = [];
-  // Goals — the financed kitchen + pool renovation (fixed-rate option), today's
-  // $/yr across three 5-year phases starting now (Nathan age 36).
+  // Goals — sample home renovation across three 5-year phases.
   plan.goals = [
     { name:'Kitchen renovation', amount:10308, startAge:36, endAge:40 },
     { name:'Kitchen + pool',     amount:25032, startAge:41, endAge:45 },
     { name:'Pool',               amount:14724, startAge:46, endAge:50 },
   ];
-  // Primary residence — Castlebridge Rd. Engine amortizes the mortgage P+I
-  // (~$3,431/mo) from these terms; the escrow lives in expenses.housing above.
+  // Primary residence — sample home.
   plan.properties = [
-    { name:'Castlebridge Rd (primary)', owner:'joint', value:740000, purchasePrice:700000,
+    { name:'Primary residence', owner:'joint', value:740000, purchasePrice:700000,
       purchaseYear:2024, mortgage:{ balance:550000, rate:6.375, termYears:30 } },
   ];
   plan.liabilities = [];
-  // Social Security — both max out the wage base, so each gets the max benefit at
-  // FRA (~$4,018/mo = $48,216/yr, today's $). Claim at 67.
+  // Social Security — high earners, max benefit at FRA (~$4,018/mo = $48,216/yr).
   plan.income.socialSecurity.primary = { pia: 48216, claimAge: 67 };
   plan.income.socialSecurity.spouse  = { pia: 48216, claimAge: 67 };
   plan.income.pension = { benefitByAge: {}, startAge: 65, colaPct: 0 };
-  // Gross household working income (display only): Maci $201,400 (salary + 6% bonus)
-  // + Nathan $215,000 (salary + bonus/rev-share) = $416,400.
+  // Gross household working income (display only).
   plan.income.workingIncome = 416400;
   plan.income.other = [];
-  // Long-term care — baked in quietly: $100k/yr from age 90 (editable).
+  // Long-term care — $100k/yr from age 90 (editable).
   plan.ltc = { amount: 100000, onsetAge: 90 };
-  // High earners — sensible retirement tax mix (editable).
   plan.taxes.ordinary     = 24;
   plan.taxes.capitalGains = 15;
   plan.simulation.iterations = 1000;
 }
-seedDemoHousehold();
-
 /* ── Whole-household persistence ───────────────────────────────────
-   The plan (the household data root) now survives reloads via localStorage. The
-   DEMO seed above is the default; a saved plan overlays it. Saving is explicit
-   (Save buttons) AND automatic on every input commit, so nothing is ever lost. */
-const PLAN_KEY = 'parallax.plan.v1';
+   Default on fresh open is a BLANK slate (no auto-seed). The demo household
+   (Aman & Awoman) is available via "Load demo" in the household banner — useful
+   for exploration or showing the tool to a prospect. Saving is explicit (Save
+   button) AND automatic on every input commit, so nothing is ever lost. */
+// v2: added expenses.housing, savings.split, ltc shape, household.children, meta names.
+// Bump this key whenever the plan shape changes in a way that could silently
+// corrupt a stale saved plan — old key is abandoned, seed runs fresh.
+const PLAN_KEY = 'parallax.plan.v2';
 function savePlan(){ try{ localStorage.setItem(PLAN_KEY, JSON.stringify(plan)); }catch(e){} }
 // Deep-merge saved plain data onto the live plan, replacing arrays wholesale (a
 // saved accounts/goals/properties list is authoritative). Mutates in place so
@@ -1057,7 +1053,9 @@ function loadPlan(){
     return true;
   }catch(e){ return false; }
 }
-loadPlan();   // overlay any saved edits onto the demo seed
+// On fresh open (no saved plan) the engine's defaultPlan is the starting point —
+// blank balances, ages 50/65/95. If there's a saved plan, overlay it.
+loadPlan();
 
 // Scenario accent palette. Brass / steel-teal / dusty mauve are the core trio
 // (matches --s1/2/3); two more earthy tones extend it when the advisor adds a
@@ -1808,7 +1806,7 @@ const HYBRID = {
     ]},
     right: { head:'Expenses', groups:[
       { head:'Essential', items:[
-        {path:'expenses.living',     name:'Lifestyle',  type:'money', meta:()=>'Per year · utilities, food, transport'},
+        {path:'expenses.living',     name:'Lifestyle',  type:'monthly', meta:()=>'Per month · utilities, food, transport'},
         {path:'expenses.housing',    name:'Property tax & insurance', type:'money', meta:()=>'Per year · escrow, separate from mortgage P+I'},
         {path:'expenses.healthcare', name:'Healthcare', type:'money', meta:()=>'Per year · premiums + out-of-pocket'},
         {path:'expenses.healthcareRealGrowth', name:'Healthcare inflation', type:'pct', meta:()=>'Annual growth above CPI (default 2%)'},
@@ -2100,6 +2098,10 @@ function renderField(f, klass){
   if(f.type==='text'){
     return `<input type="text" data-path="${f.path}" data-type="text" value="${escHtml(v||'')}" placeholder="${f.ph||''}">`;
   }
+  if(f.type==='monthly'){
+    const dv = Math.round((v||0)/12).toLocaleString('en-US');
+    return `<span class="pre">$</span><input type="text" inputmode="numeric" data-path="${f.path}" data-type="monthly" value="${dv}"><span style="font-size:11px;color:var(--ink-faint);margin-left:4px">/mo</span>`;
+  }
   if(f.type==='money'){
     const dv = (v||0).toLocaleString('en-US');
     return `<span class="pre">$</span><input type="text" inputmode="numeric" data-path="${f.path}" data-type="money" value="${dv}">`;
@@ -2259,8 +2261,9 @@ function renderStatement(){
   // Save: edits already auto-persist on every change, but an explicit Save gives
   // the advisor a clear "it's stored" affordance + confirmation.
   const saveBtn = `<button class="hh-save" title="Save this household to this browser">Save</button>`;
+  const demoBtn = `<button class="hh-demo" title="Load the Aman &amp; Awoman demo household">Load demo</button>`;
   return `<div class="np-page np-bal">
-    <div class="hh-bar">${hh}<div class="hh-spacer"></div>${saveBtn}${clearBtn}</div>
+    <div class="hh-bar">${hh}<div class="hh-spacer"></div>${saveBtn}${demoBtn}${clearBtn}</div>
     <div class="people-bar">${peopleControls()}</div>
     ${renderGutter('balance-sheet')}
     <div class="bs-sheet">
@@ -2737,6 +2740,16 @@ $('#np-content').addEventListener('click', e => {
   const saveB=e.target.closest('.hh-save');
   if(saveB){ savePlan(); saveB.textContent='Saved ✓'; $('#status').textContent='Household saved to this browser';
     setTimeout(()=>{ saveB.textContent='Save'; }, 1600); return; }
+  const demoB=e.target.closest('.hh-demo');
+  if(demoB){
+    if(!confirm('Load the Aman & Awoman demo household? This will replace the current household.')) return;
+    seedDemoHousehold(); savePlan();
+    scenarios = demoScenarios(); baseSnapshot = defaultLevers();
+    try{ localStorage.removeItem(SCEN_KEY); localStorage.removeItem('parallax.goals.rank'); }catch(e2){}
+    renderInputs(); runAll();
+    $('#status').textContent='Demo household loaded';
+    return;
+  }
   // People controls — add/remove spouse, add/remove child.
   const ppl = e.target.closest('[data-ppl]');
   if(ppl){
@@ -2829,7 +2842,7 @@ $('#np-content').addEventListener('click', e => {
 });
 // Live commas on money fields.
 $('#np-content').addEventListener('input', e => {
-  if(e.target.dataset.type === 'money') liveCommas(e.target);
+  if(e.target.dataset.type === 'money' || e.target.dataset.type === 'monthly') liveCommas(e.target);
 });
 $('#np-content').addEventListener('change', e => {
   // Ownership select (account / property owner) — primary / spouse / joint.
@@ -2862,15 +2875,16 @@ $('#np-content').addEventListener('change', e => {
       return;
     }
     let v;
-    if(type==='money')      v = parseFloat(String(raw).replace(/[^0-9.]/g,''));
+    if(type==='money'||type==='monthly') v = parseFloat(String(raw).replace(/[^0-9.]/g,''));
     else if(type==='risk')  v = +raw;
     else                    v = parseFloat(raw);
     if(!isFinite(v)) return;
     if(type==='pct')   v = Math.max(0, Math.min(100, v))/100;
-    if(type==='taxpct')v = Math.max(0, Math.min(60, Math.round(v)));   // whole % (engine /100)
-    if(type==='gpct')  v = Math.max(-20, Math.min(20, v))/100;   // signed growth %/yr
-    if(type==='age')   v = Math.max(1, Math.min(120, Math.round(v)));   // sane age bounds → no garbage horizon
+    if(type==='taxpct')v = Math.max(0, Math.min(60, Math.round(v)));
+    if(type==='gpct')  v = Math.max(-20, Math.min(20, v))/100;
+    if(type==='age')   v = Math.max(1, Math.min(120, Math.round(v)));
     if(type==='money'){ v = Math.max(0, Math.round(v)); e.target.value = v.toLocaleString('en-US'); }
+    if(type==='monthly'){ v = Math.max(0, Math.round(v*12)); e.target.value = Math.round(v/12).toLocaleString('en-US'); }
     setPath(plan, path, v);
     // A one-time goal edits a single "at age": mirror it into endAge so the
     // engine's window is exactly that year.
