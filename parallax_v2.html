@@ -97,7 +97,10 @@ background-size:auto,auto,auto,auto,auto,72px 72px,72px 72px,auto;}
 .page[data-page="scenarios"]{overflow-y:auto;overflow-x:hidden}
 /* Cap the scenarios block so columns don't stretch across a wide monitor.
    ~210px per scenario + the 148px label gutter; centered. */
-.scn-scroll,.page[data-page="scenarios"] .cf-toggle,.page[data-page="scenarios"] .cf-drawer{max-width:1180px;width:100%;margin-left:auto;margin-right:auto}
+.scn-scroll{max-width:1180px;width:100%;margin-left:auto;margin-right:auto}
+/* The cash-flow table is a primary client-facing view — let it SPAN the page
+   (full width, not capped to the scenario columns above it). */
+.page[data-page="scenarios"] .cf-toggle,.page[data-page="scenarios"] .cf-drawer{width:100%;max-width:none;margin-left:0;margin-right:0}
 .page[data-page="scenarios"] .eyebrow{position:sticky;top:0;z-index:25;background:rgba(18,14,8,.76);backdrop-filter:blur(22px) saturate(1.12);-webkit-backdrop-filter:blur(22px) saturate(1.12);padding:20px 0 16px}
 .scn-band{position:sticky;top:53px;z-index:20;display:grid;grid-template-columns:218px repeat(3,1fr);column-gap:24px}
 /* Opaque backdrop behind the WHOLE sticky band (not just a 10px lip) so scrolling
@@ -693,11 +696,11 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield}
 .cf-yrs.on{color:var(--gold);border-style:solid;border-color:var(--gold);font-weight:700}
 .cf-table .cf-rmd{color:var(--ink-mute);font-style:italic}
 .cf-table .cf-pos{color:var(--positive)} .cf-table .cf-neg{color:var(--negative)}
-.cf-scroll{max-height:460px;overflow:auto}
+.cf-scroll{max-height:72vh;overflow:auto}
 .cf-empty{padding:26px 18px;color:var(--ink-mute);font-family:'Sora';font-size:14.5px;text-align:center}
-.cf-table{width:100%;border-collapse:collapse;font-family:'Inter';font-size:13.5px;font-variant-numeric:tabular-nums}
+.cf-table{width:100%;border-collapse:collapse;font-family:'Inter';font-size:14px;font-variant-numeric:tabular-nums}
 .cf-table thead{position:sticky;top:0;background:var(--bg-deep);z-index:5}
-.cf-table th,.cf-table td{padding:7px 10px;text-align:right;border-bottom:1px solid var(--rule-faint);white-space:nowrap}
+.cf-table th,.cf-table td{padding:8px 14px;text-align:right;border-bottom:1px solid var(--rule-faint);white-space:nowrap}
 .cf-table th{font-weight:500;color:var(--ink-mute);font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;border-bottom:1px solid var(--rule)}
 .cf-table th.scen{text-align:center;font-weight:600;letter-spacing:.12em}
 .cf-table th.age, .cf-table td.age{position:sticky;left:0;background:var(--surface);text-align:left;color:var(--ink);font-weight:600;z-index:1}
@@ -3755,7 +3758,7 @@ function niceCeil(v){
   // (…3,4,6,8…) keep the overshoot small — e.g. $11.9M rounds to $12M, not $20M —
   // so the condensed sequencing cap actually stays condensed.
   const step0=v/4, mag=Math.pow(10, Math.floor(Math.log10(step0))), n=step0/mag;
-  const niceN = n<=1?1 : n<=1.5?1.5 : n<=2?2 : n<=2.5?2.5 : n<=3?3 : n<=4?4 : n<=5?5 : n<=6?6 : n<=8?8 : 10;
+  const niceN = n<=1?1 : n<=1.5?1.5 : n<=2?2 : n<=2.5?2.5 : n<=3?3 : n<=4?4 : n<=5?5 : n<=6?6 : n<=8?8 : n<=10?10 : n<=12?12 : n<=15?15 : 20;
   return niceN*mag*4;
 }
 function smoothPath(pts){
@@ -3813,6 +3816,7 @@ function cfGain(v){ if(!isFinite(v) || Math.round(v)===0) return '$0'; return (v
 let cfCompare = null;   // original index of the 2nd (comparison) scenario shown
 let cfPreRet = false;   // off = inflows/outflows from retirement age (default). on = fill the
                         // working years too (wages in + savings out — display only, NOT modeled).
+let cfShowAll = false;  // off = Baseline + one comparison (default). on = every scenario column.
 function renderCashflow(){
   const drawer = $('#cf-drawer');
   if(drawer.style.display !== 'block') return;   // only render when open; runAll re-renders if so
@@ -3821,7 +3825,10 @@ function renderCashflow(){
   const baseIdx = Math.max(0, scenarios.findIndex(s => s.base));
   const others  = scenarios.map((_,i)=>i).filter(i => i !== baseIdx);
   if(cfCompare == null || !others.includes(cfCompare)) cfCompare = others.length ? others[0] : null;
-  const shown = cfCompare != null ? [baseIdx, cfCompare] : [baseIdx];
+  // View option: All scenarios (every column) vs Baseline + one comparison.
+  const shown = cfShowAll
+    ? [baseIdx, ...others]
+    : (cfCompare != null ? [baseIdx, cfCompare] : [baseIdx]);
   const rowsByScen = shown.map(i => {
     const res = scenarios[i].res;
     // ONE REAL SEEDED LIFE: the same fixed seeded block-bootstrap path (cfPathIndex)
@@ -3918,13 +3925,18 @@ function renderCashflow(){
     h += '</tr>';
   }
   h += '</tbody></table>';
-  // Comparison picker — only when there's actually a choice (3+ scenarios).
+  // Comparison picker — only when there's a choice (3+ scenarios) AND we're not
+  // already showing every column.
   let pills = '';
-  if(others.length > 1){
+  if(!cfShowAll && others.length > 1){
     pills = `<span class="cf-pick">vs ` + others.map(i =>
       `<button class="cf-pill${i===cfCompare?' on':''}" data-cf="${i}"${i===cfCompare?` style="color:${colorFor(i)};border-color:${colorFor(i)}"`:''}>${escHtml(scenarios[i].name)}</button>`
     ).join('') + `</span>`;
   }
+  // View option: show every scenario column at once (the table now spans the page).
+  const allToggle = others.length >= 1
+    ? `<button class="cf-yrs${cfShowAll?' on':''}" id="cf-all" title="Show every scenario column, or just Baseline + one comparison">${cfShowAll?'Compare two':'All scenarios'}</button>`
+    : '';
   const yrsToggle = `<button class="cf-yrs${cfPreRet?' on':''}" id="cf-yrs" title="Show the working years — wages in + savings out (display only, not modeled)">${cfPreRet?'Hide working years':'Show working years'}</button>`;
   // Honest framing: this is ONE real central life (the simulated path that lands
   // nearest the median), shown in today's dollars. It carries real year-to-year
@@ -3934,9 +3946,10 @@ function renderCashflow(){
     ? `Incl. working years · wages + savings shown, not modeled · today's $`
     : `One representative path (tracks the median) · today's $ · real year-to-year market swings — full range lives in the % and Sequencing`;
   drawer.innerHTML =
-    `<div class="cf-drawer-head"><span>Annual Cash Flow</span>${pills}${yrsToggle}<span class="sub">${subText}</span></div>` +
+    `<div class="cf-drawer-head"><span>Annual Cash Flow</span>${pills}${allToggle}${yrsToggle}<span class="sub">${subText}</span></div>` +
     `<div class="cf-scroll">${h}</div>`;
   drawer.querySelectorAll('.cf-pill').forEach(b => b.onclick = () => { cfCompare = +b.dataset.cf; renderCashflow(); });
+  const ab = $('#cf-all'); if(ab) ab.onclick = () => { cfShowAll = !cfShowAll; renderCashflow(); };
   const yb = $('#cf-yrs'); if(yb) yb.onclick = () => { cfPreRet = !cfPreRet; renderCashflow(); };
 }
 
@@ -4060,16 +4073,13 @@ function drawSeqChart(runs, retAge){
   const n=Math.max(...all.map(a=>a.length));
   const ageStart=retAge, ageEnd=retAge+n-1;
   // Decision-zone cap: for sequence risk the readable region is the entry balance
-  // DOWN to zero (will the money last?). A kind market can compound far above that
-  // and squash the downside into an unreadable sliver. So condense the axis to just
-  // above the entry balance (~1.4x): the survival story (entry → 0) gets most of the
-  // height, and a runaway boom line simply RISES OFF THE TOP (clipped by #seqclip)
-  // with its true ending still shown in its card — it does NOT ride flat along the
-  // ceiling. When everything stays under the ceiling we use the real max, so no
-  // vertical space is wasted. Axis rounded to nice ticks.
+  // DOWN to zero (will the money last?). Condense the axis to show entry safely above
+  // zero and all path endings visible: entry gets ~30% of height, paths at 60–70%,
+  // headroom above. A runaway boom line still rises OFF THE TOP (clipped by #seqclip)
+  // with its true ending in its card — it does NOT ride flat. Axis rounded to nice ticks.
   const realMax=Math.max(...all.map(a=>Math.max(...a)));
-  const ceiling=entry>0 ? entry*1.4 : realMax;
-  const maxBal=niceCeil(Math.min(realMax, ceiling));
+  const ceiling=Math.max(entry*1.5, realMax*1.15);
+  const maxBal=niceCeil(ceiling);
   const x0=PADL, x1=W-PADR, y0=PADT, y1=H-PADB;
   const X=idx=> x0+(x1-x0)*(idx/(Math.max(1,n-1)));
   // No clamp to maxBal: values above the ceiling map above y0 and are clipped, so a
