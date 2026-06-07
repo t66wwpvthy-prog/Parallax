@@ -107,15 +107,16 @@ try {
     await page.screenshot({ path: `${OUT}/02-income.png`, fullPage: true });
   });
 
-  await step('net worth · expenses & goals tab renders two hybrid columns + gutter', async () => {
+  await step('net worth · expenses & goals tab renders expenses + goals board + gutter', async () => {
     await page.click(`#np-subnav .stab[data-sub="expenses"]`);
     await new Promise(r => setTimeout(r, 200));
     const m = await page.evaluate(() => ({
       gutterBig: document.querySelector('.np-gutter .big-num')?.textContent || '',
-      cols: document.querySelectorAll('.hp-col').length,
+      hasBoard:  !!document.querySelector('#g-board'),
+      hasExpCol: !!document.querySelector('.hp-col'),
     }));
-    // Expenses & Goals page has two columns (expenses left, goals right).
-    if(m.cols !== 2) throw new Error(`expenses hybrid did not render two columns (cols=${m.cols})`);
+    if(!m.hasBoard) throw new Error('expenses page: goals board (#g-board) not found');
+    if(!m.hasExpCol) throw new Error('expenses page: expense column (.hp-col) not found');
     if(!m.gutterBig.startsWith('$')) throw new Error(`expenses gutter big-number missing (got "${m.gutterBig}")`);
     await page.screenshot({ path: `${OUT}/02-expenses.png`, fullPage: true });
   });

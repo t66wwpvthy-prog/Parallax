@@ -1817,7 +1817,7 @@ const RISK_NAMES={1:'Conservative',2:'Mod-Cons',3:'Moderate',4:'Mod-Agg',5:'Aggr
 const SUB_PAGES = {
   'balance-sheet': { label:'Net Worth',         layout:'statement' },
   'income':        { label:'Income',            layout:'hybrid',   totLabel:'Annual income' },
-  'expenses':      { label:'Expenses & Goals',  layout:'hybrid',   totLabel:'Annual expenses' },
+  'expenses':      { label:'Expenses & Goals',  layout:'expenses-board', totLabel:'Annual expenses' },
   'snapshot':      { label:'Snapshot',          layout:'snapshot' },
 };
 
@@ -2630,6 +2630,28 @@ function goalsHeroHTML(){
     <div class="g-big">${fmtMoney(recurring)}<span class="g-per">/ year</span></div>
     <div class="g-meta">today's dollars${oneTimeMeta}</div>`;
 }
+function renderExpensesBoard(){
+  const def = HYBRID['expenses'];
+  let leftHtml = '';
+  (def.left.groups||[]).forEach(g => {
+    let h = g.head ? `<h4>${g.head}</h4>` : '';
+    (g.items||[]).forEach(it => {
+      h += `<div class="hp-item"><div class="ti"><span class="nm">${it.name}</span><span class="field">${renderField(it)}</span></div>`;
+      const m = it.meta ? it.meta() : '';
+      if(m) h += `<div class="meta">${m}</div>`;
+      h += `</div>`;
+    });
+    if(g.section){
+      const s = g.section;
+      h += `<div class="erows">${flowSection(s.arr, s.nameKey, s.ph, s.kind, s.add)}</div>`;
+    }
+    leftHtml += h;
+  });
+  return `<div class="np-page" style="flex:0 0 auto">
+    ${renderGutter('expenses')}
+    <div class="hp-body"><div class="hp-col">${leftHtml}</div></div>
+  </div>${renderGoalsBoard()}`;
+}
 function renderGoalsBoard(){
   const {list} = goalsView();
   return `<div class="g-hero g-hero-min">
@@ -2906,15 +2928,17 @@ function renderInputs(){
   if(window.__gObs){ window.__gObs.disconnect(); window.__gObs=null; }
   const layout = SUB_PAGES[activeSub].layout;
   const np = $('#np-content');
-  np.classList.toggle('g-mode', layout==='board');
+  const isBoard = layout==='board' || layout==='expenses-board';
+  np.classList.toggle('g-mode', isBoard);
   // Snapshot is its own diagnostic page again — embedding it on the Net Worth
   // page made that page too busy to read.
-  const html = layout==='statement' ? renderStatement()
-             : layout==='snapshot'  ? `<div class="np-snapshot-page">${renderSnapshot()}</div>`
-             : layout==='board'     ? renderGoalsBoard()
-             :                        renderHybrid(activeSub);
+  const html = layout==='statement'       ? renderStatement()
+             : layout==='snapshot'        ? `<div class="np-snapshot-page">${renderSnapshot()}</div>`
+             : layout==='board'           ? renderGoalsBoard()
+             : layout==='expenses-board'  ? renderExpensesBoard()
+             :                              renderHybrid(activeSub);
   np.innerHTML = html;
-  if(layout==='board') initGoalsBoard();
+  if(isBoard) initGoalsBoard();
   // Blinking cursor on the FIRST field the first time the statement page opens
   // (note: once only, so re-renders after an edit never steal focus mid-entry).
   if(layout==='statement' && !window.__stmtAutofocused){
