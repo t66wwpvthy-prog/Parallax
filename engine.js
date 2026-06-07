@@ -1200,9 +1200,12 @@ function analyzeResults(sims, p){
   });
   const byCagr = sims.slice().sort((a, b) => a.cagr - b.cagr);
 
-  // Centrality score: sum of proportional deviations from year-by-year median.
-  // Proportional (rather than absolute) so later high-balance years don't dominate.
-  // The most central path is the one that tracks the median envelope closest.
+  // Two-stage medoid selection — produces a path that both tracks the median
+  // balance AND has average-looking volatility (not a "wild swings that cancelled
+  // out" path whose balance happened to land near the median).
+  //
+  // Stage 1: centrality — sum of proportional balance deviations year-by-year.
+  // Proportional so late high-balance years don't dominate early ones.
   function centrality(sim){
     let score = 0;
     for(let y = 0; y < sim.rows.length; y++){
@@ -1215,7 +1218,26 @@ function analyzeResults(sims, p){
   }
   const withCent = sims.map(s => ({ sim: s, c: centrality(s) }));
   withCent.sort((a, b) => a.c - b.c);
-  const typicalPath = withCent[0].sim;
+  // Keep the top 10 % most central paths as candidates (at least 1).
+  const topN = Math.max(1, Math.floor(sims.length * 0.10));
+  const candidates = withCent.slice(0, topN).map(x => x.sim);
+
+  // Stage 2: among candidates, pick the one with return-sequence volatility
+  // (std dev of annual real returns) closest to the median across ALL sims.
+  // Prevents selecting a path that rode out a -10%/-11%/-18% stretch because
+  // later good years happened to restore the balance near the median — that
+  // path has high return std dev and looks unrepresentative in the table.
+  function returnStdDev(sim){
+    const rs = sim.rows.map(r => r.realReturnUsed || r.returnRate || 0);
+    const mean = rs.reduce((a, b) => a + b, 0) / rs.length;
+    return Math.sqrt(rs.reduce((s, r) => s + (r - mean) ** 2, 0) / rs.length);
+  }
+  const allSds = sims.map(returnStdDev).sort((a, b) => a - b);
+  const medianSd = allSds[Math.floor(allSds.length / 2)];
+  candidates.sort((a, b) =>
+    Math.abs(returnStdDev(a) - medianSd) - Math.abs(returnStdDev(b) - medianSd)
+  );
+  const typicalPath = candidates[0];
 
   // DETERMINISTIC EXPECTED PATH — one coherent run at the allocation's expected
   // real return every year (no random draws). This is what the Scenarios cash-flow
