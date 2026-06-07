@@ -847,7 +847,7 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield}
 .g-legend span{display:inline-flex;align-items:center;gap:7px}
 .g-legend i{width:9px;height:9px;border-radius:50%}
 .g-legend i.rec{background:var(--teal-bright)} .g-legend i.once{background:var(--gold-bright)}
-.g-board{flex:1 1 auto;min-height:0;position:relative;border-radius:18px;overflow:hidden;box-shadow:inset 0 0 0 1px var(--rule-faint);background:linear-gradient(180deg,rgba(255,255,255,.016),transparent 38%)}
+.g-board{flex:0 0 auto;min-height:420px;position:relative;border-radius:18px;overflow:hidden;box-shadow:inset 0 0 0 1px var(--rule-faint);background:linear-gradient(180deg,rgba(255,255,255,.016),transparent 38%)}
 .g-board::before{content:'';position:absolute;inset:0;pointer-events:none;z-index:0;border-radius:inherit;background-image:linear-gradient(90deg,rgba(255,255,255,.015) 1px,transparent 1px),linear-gradient(180deg,rgba(255,255,255,.015) 1px,transparent 1px);background-size:64px 64px}
 .g-axis{position:absolute;left:14px;top:14px;bottom:14px;width:104px;z-index:1;pointer-events:none}
 .g-axis .g-spine{position:absolute;left:30px;top:30px;bottom:30px;width:3px;border-radius:3px;background:linear-gradient(180deg,var(--gold-bright),rgba(160,112,48,.5) 50%,rgba(160,112,48,.08))}
@@ -2865,8 +2865,12 @@ function initGoalsBoard(){
       if(Math.abs(board.offsetHeight-nh)>1) board.style.height=nh+'px';
       return;
     }
-    const H=board.clientHeight;
     const startY=44;                                  // top-aligned so the column packs (room for labels above)
+    // Self-size the board to hold the full ladder, instead of depending on
+    // leftover flex height (which collapses when the expense fields sit above it).
+    const need = startY + NSLOT*(CH+GAP) + 24;
+    if(Math.abs(board.offsetHeight-need)>1) board.style.height=need+'px';
+    const H=Math.max(need, board.clientHeight);
     perCol=Math.max(1, Math.floor((H-startY-CH)/(CH+GAP))+1);
     trayX=ladderX+CW+56;                              // first tray column, just right of the ladder
     slots.forEach((s,i)=>{ s.x=ladderX; s.y=startY+i*(CH+GAP); s.el.style.left=s.x+'px'; s.el.style.top=s.y+'px'; });
