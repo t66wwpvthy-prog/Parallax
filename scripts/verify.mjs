@@ -85,7 +85,7 @@ try {
     // empty-state path, since $0 buckets correctly drop off the sheet).
     const m = await page.evaluate(() => ({
       title:  document.querySelectorAll('.bs-title').length,
-      hhbar:  document.querySelectorAll('.hh-f input').length,
+      hhbar:  document.querySelectorAll('.hh-head input').length,
       clear:  !!document.querySelector('.hh-clear'),
       picker: !!document.querySelector('.acct-picker'),
     }));

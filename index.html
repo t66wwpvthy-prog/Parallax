@@ -456,33 +456,36 @@ background-size:auto,auto,auto,auto,auto,72px 72px,72px 72px,auto;}
 .bs-head:first-of-type{margin-top:16px}
 /* Household stat bar — a connected full-width header band (bottom hairline) so it
    grounds the page instead of floating; tight vertical rhythm. */
-.hh-bar{grid-column:1 / -1;display:flex;align-items:stretch;border-bottom:1px solid var(--rule-faint);padding-bottom:6px;margin-bottom:2px}
-.hh-f{display:flex;flex-direction:column;gap:2px;padding:2px 30px 6px 0;margin-right:30px;border-right:1px solid var(--rule-faint)}
-.hh-f:last-child{border-right:none;padding-right:0;margin-right:0}
-.hh-f label{font-family:'Sora';font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-faint);font-weight:600}
-.hh-f .field{display:flex;align-items:baseline;gap:3px}
-.hh-f .pre{color:var(--ink-faint);font-size:14.5px;font-family:'Inter'}
-.hh-f input{font-family:'Inter';font-size:16px;font-weight:500;color:var(--ink);background:transparent;border:none;border-bottom:1px dashed transparent;padding:1px;width:90px;text-align:left;outline:none;font-variant-numeric:tabular-nums;transition:border-color .15s,background .15s}
-.hh-f input:hover{border-bottom-color:var(--rule-bright)}
-.hh-f input:focus{border-bottom:1px solid var(--gold);background:rgba(160,112,48,.07)}
-.hh-bar .hh-f:has(+ .hh-spacer){border-right:none;padding-right:0;margin-right:0}
-.hh-spacer{flex:1 1 auto}
-.hh-clear{align-self:center;font-family:'Sora';font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:var(--ink-faint);background:transparent;border:1px solid var(--rule-faint);border-radius:7px;padding:7px 14px;cursor:pointer;transition:color .15s,border-color .15s,background .15s}
-.hh-clear:hover{color:var(--negative);border-color:var(--negative);background:rgba(184,58,40,.07)}
-.hh-demo{align-self:center;margin-right:8px;font-family:'Sora';font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:var(--ink-faint);background:transparent;border:1px dashed var(--rule-faint);border-radius:7px;padding:7px 14px;cursor:pointer;transition:color .15s,border-color .15s}
+/* Household header — VARIANT A two-tier: People / Children / Plan, each a labeled
+   tier. Identity (names) is grouped and roomy; household numbers sit in their own
+   Plan tier with the management buttons, so nothing is stranded across an empty bar. */
+.hh-head{grid-column:1 / -1;border:1px solid var(--rule-faint);border-radius:16px;background:var(--surface-2);padding:14px 20px;margin-bottom:18px}
+.hh-tier{display:flex;align-items:flex-end;flex-wrap:wrap;gap:10px 22px}
+.hh-tier+.hh-tier{margin-top:14px;padding-top:13px;border-top:1px solid var(--rule-faint)}
+.hh-tag{font-family:'Sora';font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);font-weight:700;width:70px;flex:none;padding-bottom:5px}
+.hh-person{display:flex;align-items:flex-end;gap:14px}
+.hh-div{width:1px;align-self:stretch;background:var(--rule-faint);margin:0 2px}
+.hh-mini,.hh-stat{display:flex;flex-direction:column;gap:3px}
+.hh-mini label,.hh-stat label{font-family:'Sora';font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);font-weight:600}
+.hh-stat .field{display:flex;align-items:baseline;gap:3px}
+.hh-head .pre{color:var(--ink-faint);font-size:14.5px;font-family:'Inter'}
+.hh-head input{font-family:'Inter';font-size:16px;font-weight:500;color:var(--ink);background:transparent;border:none;border-bottom:1px dashed var(--rule-bright);padding:2px 1px;outline:none;font-variant-numeric:tabular-nums;transition:border-color .15s,background .15s}
+.hh-head input:hover{border-bottom-color:var(--gold)}
+.hh-head input:focus{border-bottom:1px solid var(--gold);background:rgba(160,112,48,.07)}
+.hh-name input{width:160px;font-size:17px;color:var(--ink-bright)}
+.hh-mini input{width:46px;text-align:center}
+.hh-stat input{width:80px}
+.hh-grow{flex:1 1 auto}
+.hh-clear,.hh-demo{align-self:center;font-family:'Sora';font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:var(--ink-faint);background:transparent;border:1px solid var(--rule-faint);border-radius:7px;padding:7px 14px;cursor:pointer;transition:color .15s,border-color .15s,background .15s}
+.hh-demo{border-style:dashed;margin-right:8px}
 .hh-demo:hover{color:var(--ink-mute);border-color:var(--rule-bright)}
-.hh-save{align-self:center;margin-right:10px;font-family:'Sora';font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:var(--ink-mute);background:transparent;border:1px solid var(--rule-faint);border-radius:7px;padding:7px 16px;cursor:pointer;transition:color .15s,border-color .15s,background .15s}
-.hh-save:hover{color:var(--gold-bright);border-color:var(--gold);background:rgba(201,146,74,.08)}
-/* People bar — spouse + children controls, a quiet row under the household stats. */
-.people-bar{grid-column:1 / -1;display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px;margin:2px 0 18px;font-family:'Sora'}
-.people-bar .ppl-label{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-faint);font-weight:700}
-.people-bar .ppl-sep{color:var(--rule-bright);margin:0 2px}
-.ppl-link{font-family:'Sora';font-size:12px;letter-spacing:.04em;color:var(--ink-mute);background:transparent;border:1px dashed var(--rule-bright);border-radius:6px;padding:4px 10px;cursor:pointer;transition:color .15s,border-color .15s}
+.hh-clear:hover{color:var(--negative);border-color:var(--negative);background:rgba(184,58,40,.07)}
+.ppl-link{align-self:center;font-family:'Sora';font-size:12px;letter-spacing:.04em;color:var(--ink-mute);background:transparent;border:1px dashed var(--rule-bright);border-radius:7px;padding:6px 12px;cursor:pointer;transition:color .15s,border-color .15s}
 .ppl-link:hover{color:var(--gold-bright);border-color:var(--gold)}
-.kid{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--rule-faint);border-radius:7px;padding:3px 4px 3px 8px;background:var(--surface)}
-.kid-name{font-family:'Sora';font-size:13.5px;color:var(--ink-bright);background:transparent;border:none;outline:none;width:74px}
-.kid-age{font-family:'Inter';font-size:13.5px;color:var(--ink-mute);background:transparent;border:none;outline:none;width:34px;text-align:center;border-left:1px solid var(--rule-faint);padding-left:4px}
-.kid-x{font-size:14.5px;line-height:1;color:var(--ink-faint);background:transparent;border:none;cursor:pointer;padding:0 4px}
+.kid{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--rule-faint);border-radius:8px;padding:4px 5px 4px 10px;background:var(--surface)}
+.kid-name{font-family:'Sora';font-size:13.5px;color:var(--ink-bright);background:transparent;border:none;outline:none;width:72px}
+.kid-age{font-family:'Inter';font-size:13.5px;color:var(--ink-mute);background:transparent;border:none;outline:none;width:32px;text-align:center;border-left:1px solid var(--rule-faint);padding-left:4px}
+.kid-x{font-size:15px;line-height:1;color:var(--ink-faint);background:transparent;border:none;cursor:pointer;padding:0 4px}
 .kid-x:hover{color:var(--negative)}
 /* Ownership chip-select on accounts + property cards. */
 .own-sel{font-family:'Sora';font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-mute);background:transparent;border:1px solid var(--rule-faint);border-radius:5px;padding:1px 4px;margin-left:8px;cursor:pointer}
@@ -765,7 +768,13 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield}
   .np-bal .bs-sheet,.bs-sheet{grid-template-columns:1fr;gap:0}
   .np-bal .bs-col{padding:0}
   .bs-divider{display:none}
-  .hh-bar{flex-wrap:wrap;gap:8px 16px}
+  /* Household header on phones: tiers stack their tag above the controls so names
+     keep full width and the Plan numbers wrap cleanly instead of overflowing. */
+  .hh-head{padding:12px 14px}
+  .hh-tier{gap:8px 14px}
+  .hh-tag{width:100%;padding-bottom:0}
+  .hh-name input{width:100%;min-width:140px}
+  .hh-person{flex-wrap:wrap;gap:8px 12px}
   .bs-row input,.acct-amt{font-size:16px}  /* 16px stops iOS zoom-on-focus */
   .acct-blabel{width:52px}
   .np-gutter{position:static}
@@ -3177,36 +3186,64 @@ const BALANCE_SHEET = [
   { head:'Real assets',  fields:[], kind:'property',  add:'+ add a property or other real asset' },
   { head:'Liabilities',  liab:true, fields:[], kind:'liability', add:'+ add a loan or recurring obligation' },
 ];
-// Household & Plan inputs — plain framing data (names, ages, income), rendered as
-// a short horizontal stat bar across the top of the Net Worth page rather than a
-// full section; they frame the plan, they aren't balance-sheet lines. Built fresh
-// each render so the SPOUSE fields appear only when a spouse is on file.
-function buildHHFields(){
-  const f = [
-    {path:'meta.primaryName',                label:'Primary',        type:'text', ph:'Name'},
-    {path:'household.primary.currentAge',    label:'Age',            type:'age'},
-    {path:'household.primary.retirementAge', label:'Retirement age', type:'age'},
-    {path:'household.primary.planEndAge',    label:'Plan end age',   type:'age'},
-  ];
-  if(plan.household.spouse){
-    f.push({path:'meta.spouseName',                  label:'Spouse',          type:'text', ph:'Name'});
-    f.push({path:'household.spouse.currentAge',      label:'Spouse age',      type:'age'});
-    // Spouse retirement age is captured + persisted here. NOTE: the engine
-    // currently models one household retirement transition (primary), so this is
-    // planning context today, not a separate earning/draw timeline — same status
-    // as working income. True dual-retirement modeling is an engine change.
-    f.push({path:'household.spouse.retirementAge',   label:'Spouse retire age', type:'age'});
-  }
-  f.push(
-    {path:'income.workingIncome', label:'Income / yr',   type:'money'},
-    {path:'taxes.ordinary',       label:'Ordinary tax',  type:'taxpct'},
-    {path:'taxes.capitalGains',   label:'Cap-gains tax', type:'taxpct'},
-  );
-  return f;
+// Household & Plan inputs — the header at the top of the Net Worth page. Built as
+// VARIANT A: two-tier "people-first" layout — a People tier (each person's name +
+// ages grouped together), a Children tier, and a Plan tier (the household-level
+// numbers + management buttons). Names get room; identity is grouped, not mixed
+// into a flat stat strip. Built fresh each render so spouse fields appear only when
+// a spouse is on file. data-ppl / data-childidx / data-ck attributes are unchanged,
+// so the existing delegated handlers drive add/remove spouse + children as before.
+function buildHouseholdHeader(){
+  const F = (path, type, ph) => renderField({ path, type, ph });
+  const sp = plan.household.spouse;
+  // A person block: a wide name field + Age + Retires, grouped as one unit.
+  const personBlock = (nameField, ageField, retField, trailing='') =>
+    `<div class="hh-person">
+       <span class="hh-name">${nameField}</span>
+       <div class="hh-mini"><label>Age</label>${ageField}</div>
+       <div class="hh-mini"><label>Retires</label>${retField}</div>
+       ${trailing}
+     </div>`;
+  const primary = personBlock(
+    F('meta.primaryName','text','Name'),
+    F('household.primary.currentAge','age'),
+    F('household.primary.retirementAge','age'));
+  // Spouse retire age is captured + persisted here; the engine models one household
+  // retirement transition (primary) today, so it's planning context, not a separate
+  // earning/draw timeline. True dual-retirement modeling is an engine change.
+  const spouse = sp
+    ? personBlock(
+        F('meta.spouseName','text','Name'),
+        F('household.spouse.currentAge','age'),
+        F('household.spouse.retirementAge','age'),
+        `<button class="ppl-link" data-ppl="rmspouse" title="Remove spouse">− spouse</button>`)
+    : `<button class="ppl-link wide" data-ppl="addspouse" title="Add a spouse / partner">+ add spouse</button>`;
+  const peopleTier = `<div class="hh-tier">
+    <span class="hh-tag">People</span>${primary}${sp?'<div class="hh-div"></div>':''}${spouse}
+  </div>`;
+  // Children tier — name + age chips, each removable; "+ child" appends one.
+  const kids = (plan.household.children||[]).map((c,i)=>
+    `<span class="kid"><input class="kid-name" data-childidx="${i}" data-ck="name" value="${escHtml(c.name||'')}" placeholder="Child"><input class="kid-age" type="number" min="0" max="120" step="1" data-childidx="${i}" data-ck="age" value="${c.age!=null?c.age:''}" placeholder="age"><button class="kid-x" data-childidx="${i}" title="Remove">×</button></span>`
+  ).join('');
+  const childTier = `<div class="hh-tier">
+    <span class="hh-tag">Children</span>${kids}<button class="ppl-link" data-ppl="addchild">+ child</button>
+  </div>`;
+  // Plan tier — household-level numbers + management buttons (Save lives in the
+  // sub-nav, persistent across NW sub-pages, so it isn't duplicated here).
+  const stat = (label, field) => `<div class="hh-stat"><label>${label}</label><span class="field">${field}</span></div>`;
+  const planTier = `<div class="hh-tier">
+    <span class="hh-tag">Plan</span>
+    ${stat('Plan end age', F('household.primary.planEndAge','age'))}
+    ${stat('Income / yr',  F('income.workingIncome','money'))}
+    ${stat('Ordinary tax', F('taxes.ordinary','taxpct'))}
+    ${stat('Cap-gains tax',F('taxes.capitalGains','taxpct'))}
+    <div class="hh-grow"></div>
+    <button class="hh-demo" title="Load the Aman &amp; Awoman demo household">Load demo</button>
+    <button class="hh-clear" title="Clear all household data and start a new household">Clear</button>
+  </div>`;
+  return `<div class="hh-head">${peopleTier}${childTier}${planTier}</div>`;
 }
-// People controls — add/remove a spouse and manage children (name + age). These
-// frame WHO the plan is for; the engine consumes spouse.currentAge, children are
-// planning context (display).
+// Owner naming for account/property ownership selects (Primary / Spouse / Joint).
 function ownerName(o){
   if(o==='spouse') return (plan.meta.spouseName||'Spouse').split(' ')[0];
   if(o==='joint')  return 'Joint';
@@ -3220,19 +3257,6 @@ function ownerSelect(path, val){
     + list.map(([v,l])=>`<option value="${v}" ${(val||'primary')===v?'selected':''}>${escHtml(l)}</option>`).join('')
     + `</select>`;
 }
-function peopleControls(){
-  const sp = plan.household.spouse;
-  const spBtn = sp
-    ? `<button class="ppl-link" data-ppl="rmspouse" title="Remove spouse">− spouse</button>`
-    : `<button class="ppl-link" data-ppl="addspouse" title="Add a spouse / partner">+ add spouse</button>`;
-  const kids = (plan.household.children||[]).map((c,i)=>
-    `<span class="kid"><input class="kid-name" data-childidx="${i}" data-ck="name" value="${escHtml(c.name||'')}" placeholder="Child"><input class="kid-age" type="number" min="0" max="120" step="1" data-childidx="${i}" data-ck="age" value="${c.age!=null?c.age:''}" placeholder="age"><button class="kid-x" data-childidx="${i}" title="Remove">×</button></span>`
-  ).join('');
-  return `<span class="ppl-label">People</span>${spBtn}`
-    + `<span class="ppl-sep">·</span><span class="ppl-label">Children</span>${kids}`
-    + `<button class="ppl-link" data-ppl="addchild">+ child</button>`;
-}
-
 /* ── Hybrid columns: each sub-page has a LEFT and a RIGHT column.
    Each item carries name + path + type, and an optional meta() that draws
    from the live plan (e.g. "claim at 67" reads the actual claim age). */
@@ -3698,17 +3722,8 @@ function renderStatement(){
   // fills the formerly-empty right side so the whole sheet fits without scroll.
   const investSecs = BALANCE_SHEET.filter(s => s.subtotal==='invest');
   const rightSecs  = BALANCE_SHEET.filter(s => s.kind==='property' || s.liab);
-  const hh = buildHHFields().map(f =>
-    `<div class="hh-f"><label>${f.label}</label><span class="field">${renderField(f)}</span></div>`
-  ).join('');
-  // Clear / Load demo are household-management actions specific to this page.
-  // The Save affordance lives in the sub-nav (#np-save), persistent across every
-  // Net Worth sub-page (field note 11), so it isn't duplicated here.
-  const clearBtn = `<button class="hh-clear" title="Clear all household data and start a new household">Clear</button>`;
-  const demoBtn = `<button class="hh-demo" title="Load the Aman &amp; Awoman demo household">Load demo</button>`;
   return `<div class="np-page np-bal">
-    <div class="hh-bar">${hh}<div class="hh-spacer"></div>${demoBtn}${clearBtn}</div>
-    <div class="people-bar">${peopleControls()}</div>
+    ${buildHouseholdHeader()}
     ${renderGutter('balance-sheet')}
     <div class="bs-sheet">
       <div class="bs-col"><div class="bs-title">Investments</div>${renderSecs(investSecs)}</div>
