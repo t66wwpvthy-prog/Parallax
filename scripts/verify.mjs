@@ -107,17 +107,18 @@ try {
     await page.screenshot({ path: `${OUT}/02-income.png`, fullPage: true });
   });
 
-  await step('net worth · expenses & goals tab renders expenses + goals board + gutter', async () => {
+  await step('net worth · expenses & goals tab renders expense fields + goals board', async () => {
     await page.click(`#np-subnav .stab[data-sub="expenses"]`);
     await new Promise(r => setTimeout(r, 200));
     const m = await page.evaluate(() => ({
-      gutterBig: document.querySelector('.np-gutter .big-num')?.textContent || '',
-      hasBoard:  !!document.querySelector('#g-board'),
-      hasExpCol: !!document.querySelector('.hp-col'),
+      hasBoard:   !!document.querySelector('#g-board'),
+      hasExpCol:  !!document.querySelector('.exp-fields .hp-col'),
+      boardH:     (document.querySelector('#g-board')?.offsetHeight)||0,
+      addGoals:   document.querySelectorAll('#g-board ~ * .g-add, .g-add').length,
     }));
+    if(!m.hasExpCol) throw new Error('expenses page: expense fields (.exp-fields .hp-col) not found');
     if(!m.hasBoard) throw new Error('expenses page: goals board (#g-board) not found');
-    if(!m.hasExpCol) throw new Error('expenses page: expense column (.hp-col) not found');
-    if(!m.gutterBig.startsWith('$')) throw new Error(`expenses gutter big-number missing (got "${m.gutterBig}")`);
+    if(m.boardH < 300) throw new Error(`goals board collapsed (height ${m.boardH}px)`);
     await page.screenshot({ path: `${OUT}/02-expenses.png`, fullPage: true });
   });
 

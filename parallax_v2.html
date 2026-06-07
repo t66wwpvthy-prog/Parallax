@@ -410,6 +410,7 @@ background-size:auto,auto,auto,auto,auto,72px 72px,72px 72px,auto;}
    live totals) — the eye lands in the same place every time. Body to the
    right holds the Statement ledger or the two-column Hybrid body. */
 .np-page{display:grid;grid-template-columns:200px 1fr;gap:24px 48px;max-width:1100px;align-items:start}
+.exp-fields{max-width:640px;padding-top:6px;margin-bottom:8px}
 /* Balance sheet is the widest page (gutter + two ledgers): a slim left gutter
    pulls the Investments ledger toward the left edge, and a wide sheet lets the two
    ledgers split the page in half and fill it — Assets left, Liabilities right. */
@@ -1999,11 +2000,8 @@ const HYBRID = {
     left:  { head:'Expenses', groups:[
       { head:'Essential', items:[
         {path:'expenses.living',     name:'Lifestyle',  type:'monthly', meta:()=>'Per month · utilities, food, transport'},
-        {path:'expenses.housing',    name:'Property tax & insurance', type:'money', meta:()=>'Per year · escrow, separate from mortgage P+I'},
         {path:'expenses.healthcare', name:'Healthcare', type:'money', meta:()=>'Per year · premiums + out-of-pocket'},
-        {path:'expenses.healthcareRealGrowth', name:'Healthcare inflation', type:'pct', meta:()=>'Annual growth above CPI (default 2%)'},
       ] },
-      { head:'Additional', section:{ arr:'expenses.extra', kind:'expense', nameKey:'label', ph:'Expense', add:'+ add an expense' } },
     ]},
     right: { head:'Goals', groups:[
       { head:'Recurring',  goals:'recurring', add:'+ add a recurring goal' },
@@ -2713,10 +2711,10 @@ function renderExpensesBoard(){
     }
     leftHtml += h;
   });
-  return `<div class="np-page" style="flex:0 0 auto">
-    ${renderGutter('expenses')}
-    <div class="hp-body"><div class="hp-col">${leftHtml}</div></div>
-  </div>${renderGoalsBoard()}`;
+  // No gutter column here — the running totals belonged to the old hybrid layout
+  // and the number was misleading (it folded the Medicare preset). Expenses +
+  // goals feed the engine straight from plan.expenses / plan.goals regardless.
+  return `<div class="exp-fields" style="flex:0 0 auto"><div class="hp-col">${leftHtml}</div></div>${renderGoalsBoard()}`;
 }
 function renderGoalsBoard(){
   const {list} = goalsView();
@@ -2724,7 +2722,6 @@ function renderGoalsBoard(){
       <div class="g-actions">
         <div class="g-addrow">
           <div class="g-add" data-add="goalRec"><span class="g-plus">+</span> Add a goal</div>
-          <div class="g-add g-add-sec" data-add="goalOnce"><span class="g-plus">+</span> One-time</div>
         </div>
         <div class="g-legend"><span><i class="rec"></i>Recurring</span><span><i class="once"></i>One-time</span></div>
       </div>
@@ -4040,6 +4037,10 @@ function renderCashflow(){
     // Engine keys every event off age = currentAge + y (y=0 is the current age),
     // so the table must too — otherwise a goal/SS/retirement lands one row late.
     const age = curAge + y;
+    // Working-years toggle actually hides/shows the pre-retirement rows: default
+    // starts the table at retirement age; "Show working years" reveals the
+    // accumulation years (wages + savings) before it.
+    if(!cfPreRet && age < retireAge) continue;
     h += `<tr class="${age===retireAge?'retire':''}"><td class="age">${age}</td>`;
     shown.forEach((si,pos)=>{
       const r = rowsByScen[pos][y];
