@@ -99,7 +99,7 @@ background-size:auto,auto,auto,auto,auto,72px 72px,72px 72px,auto;}
    ~210px per scenario + the 148px label gutter; centered. */
 .scn-scroll,.page[data-page="scenarios"] .cf-toggle,.page[data-page="scenarios"] .cf-drawer{max-width:1180px;width:100%;margin-left:auto;margin-right:auto}
 .page[data-page="scenarios"] .eyebrow{position:sticky;top:0;z-index:25;background:rgba(18,14,8,.76);backdrop-filter:blur(22px) saturate(1.12);-webkit-backdrop-filter:blur(22px) saturate(1.12);padding:20px 0 16px}
-.scn-band{position:sticky;top:53px;z-index:20;display:grid;grid-template-columns:184px repeat(3,1fr);column-gap:14px}
+.scn-band{position:sticky;top:53px;z-index:20;display:grid;grid-template-columns:218px repeat(3,1fr);column-gap:14px}
 /* Opaque backdrop behind the WHOLE sticky band (not just a 10px lip) so scrolling
    lever rows can't bleed through the translucent glass column-cards. */
 .scn-band::before{content:'';position:absolute;left:0;right:0;top:-10px;bottom:0;background:rgba(18,14,8,.76);backdrop-filter:blur(22px) saturate(1.12);-webkit-backdrop-filter:blur(22px) saturate(1.12);z-index:-1}
@@ -223,8 +223,8 @@ background-size:auto,auto,auto,auto,auto,72px 72px,72px 72px,auto;}
 .circle-delta{margin-top:10px;font-family:'Inter';font-size:13px;font-weight:600;letter-spacing:.01em;color:var(--ink-faint);font-variant-numeric:tabular-nums;text-align:center;min-height:14px}
 .circle-delta.base{color:var(--ink-ghost);font-weight:500;letter-spacing:.14em;text-transform:uppercase;font-size:10.5px}
 
-.scn-levers{display:grid;grid-template-columns:184px repeat(3,1fr);column-gap:14px}
-.lev-name{display:flex;align-items:center;padding:0 20px;min-height:62px;font-size:14.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-mute);font-weight:600;line-height:1.25;white-space:nowrap}
+.scn-levers{display:grid;grid-template-columns:218px repeat(3,1fr);column-gap:14px}
+.lev-name{display:flex;align-items:center;padding:0 24px;min-height:62px;font-size:16.5px;letter-spacing:.035em;text-transform:uppercase;color:var(--ink-mute);font-weight:600;line-height:1.25;white-space:nowrap}
 .lev-cell{display:flex;flex-direction:column;justify-content:center;gap:7px;border-bottom:1px solid var(--rule-faint);padding:0 16px;min-height:62px;background:var(--surface)}
 .lev-val{font-family:'Inter';font-size:16.5px;font-weight:500;color:var(--ink-mute);display:flex;align-items:center;gap:6px}
 .lev-val.base{color:var(--ink-mute)}
@@ -265,7 +265,7 @@ background-size:auto,auto,auto,auto,auto,72px 72px,72px 72px,auto;}
 .lev-step{display:inline-flex;align-items:center;gap:7px;margin-left:auto}
 .step-btn{width:20px;height:20px;border-radius:5px;border:1px solid var(--rule-bright);background:var(--surface);color:var(--ink-mute);font-family:'Inter';font-size:15px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0}
 .step-btn:hover{border-color:var(--gold);color:var(--gold)}
-.scn-foot{display:grid;grid-template-columns:184px repeat(3,1fr);column-gap:14px}
+.scn-foot{display:grid;grid-template-columns:218px repeat(3,1fr);column-gap:14px}
 .foot-cell{padding:12px 14px;font-family:'Inter';font-size:14px;color:var(--ink-mute)}
 .foot-cell:not(:first-child){background:var(--surface);border-radius:0 0 18px 18px}
 .foot-cell b{color:var(--ink);font-weight:500}
@@ -300,10 +300,10 @@ background-size:auto,auto,auto,auto,auto,72px 72px,72px 72px,auto;}
 /* Goals section on the Scenarios tab — a read-only mirror of the base-plan
    goals. Same 148px + N-column grid as the levers so rows stay registered.
    Quiet (no inputs, no sliders): it's a reflection of the plan, not a lever. */
-.scn-goals{display:grid;grid-template-columns:184px repeat(3,1fr);column-gap:14px}
+.scn-goals{display:grid;grid-template-columns:218px repeat(3,1fr);column-gap:14px}
 .sg-head{display:flex;align-items:center;padding:14px 14px 8px;font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);font-weight:600}
 .sg-head.sg-col{background:var(--surface)}
-.sg-name{display:flex;flex-direction:column;justify-content:center;padding:0 14px;min-height:46px;font-size:13.5px;color:var(--ink-mute);line-height:1.25}
+.sg-name{display:flex;flex-direction:column;justify-content:center;padding:0 24px;min-height:46px;font-size:15.5px;color:var(--ink-mute);line-height:1.25}
 .sg-name .sg-win{font-size:11.5px;letter-spacing:.04em;color:var(--ink-faint);margin-top:2px}
 .sg-cell{display:flex;align-items:center;gap:6px;border-bottom:1px solid var(--rule-faint);padding:0 16px;min-height:46px;background:var(--surface);font-family:'Inter';font-size:16px;font-weight:500;color:var(--ink-mute)}
 .sg-cell .sg-tag{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-faint);font-weight:500}
@@ -404,11 +404,21 @@ background-size:auto,auto,auto,auto,auto,72px 72px,72px 72px,auto;}
    live totals) — the eye lands in the same place every time. Body to the
    right holds the Statement ledger or the two-column Hybrid body. */
 .np-page{display:grid;grid-template-columns:200px 1fr;gap:20px 44px;max-width:1100px;align-items:start}
-/* Balance sheet is the widest page (gutter + two ledgers): give it more width so
-   Assets and Liabilities breathe and the account setup is easy to follow. */
-.np-page.np-bal{grid-template-columns:200px 1fr;max-width:1480px}
-.np-bal .bs-sheet{gap:0 56px}
-.np-bal .bs-col{padding:0 8px}
+/* Balance sheet is the widest page (gutter + two ledgers): a slim left gutter
+   pulls the Investments ledger toward the left edge, and a wide sheet lets the two
+   ledgers split the page in half and fill it — Assets left, Liabilities right. */
+.np-page.np-bal{grid-template-columns:160px 1fr;max-width:1680px}
+.np-bal .bs-sheet{gap:0 64px}
+.np-bal .bs-col{padding:0 10px}
+/* Scaled up so the sheet fills the page rather than clustering top-left. */
+.np-bal .bs-title{font-size:25px;margin-bottom:14px}
+.np-bal .bs-row{padding:17px 0;font-size:17px}
+.np-bal .bs-row.sub label{font-size:16px}
+.np-bal .bs-row input{font-size:18px;width:128px}
+.np-bal .bs-row.sub input{font-size:16px;width:104px}
+.np-bal .bs-sub-l{font-size:14px}
+.np-bal .bs-sub-v{font-size:17px}
+.np-bal .bs-add{font-size:15.5px;padding:15px 0 5px}
 /* Snapshot is its own diagnostic page: the four gauges read as ONE compact glass
    panel — hairline-separated rows, smaller heroes, slim bars — not four forced
    boxes. Constrained width so it reads as a focused report card, not a sprawl. */
@@ -4560,8 +4570,8 @@ function syncGridCols(){
   const n=scenarios.length, mob=isMobileView();
   if(mobileCol>=n) mobileCol=0;
   const sc=$('.scn-scroll'); if(sc) sc.dataset.active=mobileCol;
-  const bandTpl = mob ? `repeat(${n},1fr)` : `184px repeat(${n},1fr)`;
-  const tblTpl  = mob ? `112px minmax(0,1fr)` : `184px repeat(${n},1fr)`;
+  const bandTpl = mob ? `repeat(${n},1fr)` : `218px repeat(${n},1fr)`;
+  const tblTpl  = mob ? `112px minmax(0,1fr)` : `218px repeat(${n},1fr)`;
   const b=$('#scn-band'); if(b) b.style.gridTemplateColumns=bandTpl;
   // The circle band sticks just under the (wrapping) mobile header; measure it.
   if(b){
