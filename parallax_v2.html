@@ -709,6 +709,10 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield}
 /* Alternating per-scenario column tint in the cash-flow table — two faint
    washes that cycle regardless of how many scenarios there are. */
 .cf-g0{background:rgba(82,180,138,.04)} .cf-g1{background:rgba(201,146,74,.04)}
+/* Vertical rule between scenario column groups so wide tables don't read as
+   "mixed" — a solid left border on the first cell of each group (not the first). */
+.cf-table .cf-grp{border-left:2px solid var(--rule-bright)}
+.cf-table thead th.cf-grp{border-left:2px solid var(--gold)}
 .cf-table tr.retire td{border-top:1px dashed var(--gold);}
 .cf-table tr.retire td.age::after{content:'  retire';color:var(--gold);font-size:11.5px;font-weight:500;letter-spacing:.1em}
 
@@ -3906,11 +3910,11 @@ function renderCashflow(){
   const cols = 5 + (hasRmd?1:0) + (hasGoals?1:0) + (hasLump?1:0) + (hasSavings?1:0);   // +Return %, +Return $
   let h = '<table class="cf-table"><thead><tr><th class="age" rowspan="2">Age</th>';
   shown.forEach((si,pos)=>{
-    h += `<th class="scen ${gcls[pos]}" colspan="${cols}" style="color:${colorFor(si)}">${escHtml(scenarios[si].name)}</th>`;
+    h += `<th class="scen ${gcls[pos]}${pos?' cf-grp':''}" colspan="${cols}" style="color:${colorFor(si)}">${escHtml(scenarios[si].name)}</th>`;
   });
   h += '</tr><tr>';
   shown.forEach((si,pos)=>{
-    h += `<th class="${gcls[pos]}">Income</th><th class="${gcls[pos]}">Withdraw</th>`;
+    h += `<th class="${gcls[pos]}${pos?' cf-grp':''}">Income</th><th class="${gcls[pos]}">Withdraw</th>`;
     if(hasSavings) h += `<th class="${gcls[pos]}" title="Annual savings contributed while working — display only, not modeled">Savings</th>`;
     if(hasRmd)  h += `<th class="${gcls[pos]} cf-rmd" title="Gross required minimum — already part of Withdraw, not additional">RMD</th>`;
     if(hasGoals) h += `<th class="${gcls[pos]}">Goals</th>`;
@@ -3929,7 +3933,7 @@ function renderCashflow(){
     h += `<tr class="${age===retireAge?'retire':''}"><td class="age">${age}</td>`;
     shown.forEach((si,pos)=>{
       const r = rowsByScen[pos][y];
-      if(!r){ h += `<td colspan="${cols}" class="dim ${gcls[pos]}">—</td>`; return; }
+      if(!r){ h += `<td colspan="${cols}" class="dim ${gcls[pos]}${pos?' cf-grp':''}">—</td>`; return; }
       // Pre-retirement (still working) years: income/withdrawal aren't part of the
       // post-retirement story, so show a neutral dash — never a $0 that reads as a
       // value. The balance still matters (it's accumulating), so it stays.
@@ -3939,7 +3943,7 @@ function renderCashflow(){
       // Working years: Income = wages (display only) when the toggle is on, else a
       // dash — so the default view still "starts" the inflows at retirement age.
       const accInc = (cfPreRet && wages > 0) ? cfMoney(wages) : dash;
-      h += `<td class="${gcls[pos]}">${acc ? accInc : cfMoney(inc)}</td>`;
+      h += `<td class="${gcls[pos]}${pos?' cf-grp':''}">${acc ? accInc : cfMoney(inc)}</td>`;
       // Withdraw tooltip — answers "for what?": the gross draw funds the year's
       // spending gap (expenses + goals − income), grossed up for the tax on the
       // amount drawn. Descriptive, not an exact sum (the row's `taxes` also covers
