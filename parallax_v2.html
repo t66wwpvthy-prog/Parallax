@@ -923,8 +923,8 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield}
   <section class="page on" data-page="net-worth">
     <nav class="subnav" id="np-subnav">
       <button class="stab on" data-sub="balance-sheet">Net Worth</button>
-      <button class="stab" data-sub="cashflow">Cash Flow</button>
-      <button class="stab" data-sub="goals">Living Expenses &amp; Goals</button>
+      <button class="stab" data-sub="income">Income</button>
+      <button class="stab" data-sub="expenses">Expenses &amp; Goals</button>
       <button class="stab" data-sub="snapshot">Snapshot</button>
       <button class="stab-save" id="np-save" title="Save this household to this browser">Save</button>
     </nav>
@@ -1815,10 +1815,10 @@ const RISK_NAMES={1:'Conservative',2:'Mod-Cons',3:'Moderate',4:'Mod-Agg',5:'Aggr
    Each hybrid page's gutter computes its own running total from the live
    plan values — same place on every page so the eye knows where to land. */
 const SUB_PAGES = {
-  'balance-sheet': { label:'Net Worth', layout:'statement' },
-  'cashflow':      { label:'Cash Flow', layout:'hybrid', totLabel:'Annual income' },
-  'goals':         { label:'Living Expenses & Goals', layout:'board',  totLabel:'Annual goal spend' },
-  'snapshot':      { label:'Snapshot',  layout:'snapshot' },
+  'balance-sheet': { label:'Net Worth',         layout:'statement' },
+  'income':        { label:'Income',            layout:'hybrid',   totLabel:'Annual income' },
+  'expenses':      { label:'Expenses & Goals',  layout:'hybrid',   totLabel:'Annual expenses' },
+  'snapshot':      { label:'Snapshot',          layout:'snapshot' },
 };
 
 /* ── Balance Sheet (Statement) sections ───────────────────────────
@@ -1908,10 +1908,8 @@ function ownerSelect(path, val){
    Each item carries name + path + type, and an optional meta() that draws
    from the live plan (e.g. "claim at 67" reads the actual claim age). */
 const HYBRID = {
-  // Income and expenses live on ONE page (Cash Flow). Income = Fixed (SS, pension)
-  // + Variable. Expenses = Essential only — discretionary spending is modeled as
-  // Goals, so it isn't duplicated here.
-  'cashflow': {
+  // Income page: fixed (SS, pension) + variable sources only.
+  'income': {
     left:  { head:'Income', groups:[
       { head:'Fixed income', items:[
         {path:'income.socialSecurity.primary.pia', name:'Social Security · Primary', type:'money', meta:()=>`Claim at age ${plan.income.socialSecurity.primary.claimAge}`},
@@ -1919,25 +1917,30 @@ const HYBRID = {
       ], dynamic:'pension' },
       { head:'Variable', section:{ arr:'income.other', kind:'income', nameKey:'label', ph:'Source', add:'+ add a variable income source' } },
     ]},
-    right: { head:'Expenses', groups:[
+    right: { head:'', groups:[] },
+  },
+  // Expenses & Goals page: essential expenses left, goals (recurring + one-time) right.
+  'expenses': {
+    left:  { head:'Expenses', groups:[
       { head:'Essential', items:[
         {path:'expenses.living',     name:'Lifestyle',  type:'monthly', meta:()=>'Per month · utilities, food, transport'},
         {path:'expenses.housing',    name:'Property tax & insurance', type:'money', meta:()=>'Per year · escrow, separate from mortgage P+I'},
         {path:'expenses.healthcare', name:'Healthcare', type:'money', meta:()=>'Per year · premiums + out-of-pocket'},
         {path:'expenses.healthcareRealGrowth', name:'Healthcare inflation', type:'pct', meta:()=>'Annual growth above CPI (default 2%)'},
       ] },
+      { head:'Additional', section:{ arr:'expenses.extra', kind:'expense', nameKey:'label', ph:'Expense', add:'+ add an expense' } },
     ]},
-  },
-  'goals': {
-    left:  { head:'Recurring',  goals:'recurring', add:'+ add a recurring goal' },
-    right: { head:'One-time',   goals:'once',      add:'+ add a one-time goal' },
+    right: { head:'Goals', groups:[
+      { head:'Recurring',  goals:'recurring', add:'+ add a recurring goal' },
+      { head:'One-time',   goals:'once',      add:'+ add a one-time goal' },
+    ]},
   },
 };
 
 /* Active sub-page persisted across sessions so the advisor returns to where
    they were. Falls back to balance-sheet if the saved key is unknown. */
 const SUB_KEY = 'parallax.netWorth.sub';
-let activeSub = (()=>{ try{ const k=localStorage.getItem(SUB_KEY); return SUB_PAGES[k]?k:'balance-sheet'; }catch{ return 'balance-sheet'; } })();
+let activeSub = (()=>{ try{ let k=localStorage.getItem(SUB_KEY); if(k==='cashflow') k='income'; if(k==='goals') k='expenses'; return SUB_PAGES[k]?k:'balance-sheet'; }catch{ return 'balance-sheet'; } })();
 const getPath=(o,p)=>p.split('.').reduce((a,k)=>a&&a[k],o);
 const setPath=(o,p,v)=>{const ks=p.split('.');const last=ks.pop();let t=o;for(const k of ks){if(t==null)return;t=t[k];}if(t!=null)t[last]=v;};
 
@@ -2179,19 +2182,30 @@ function renderGutter(pageKey){
     </div>`;
   }
   const def = HYBRID[pageKey];
-  // Cash Flow: headline = annual income; breakdown = income composition + expenses.
-  if(pageKey === 'cashflow'){
-    const income   = colSum(pageKey,'left');
-    const expenses = colSum(pageKey,'right');
+  // Income page: headline = annual income; breakdown by income group.
+  if(pageKey === 'income'){
+    const income = colSum(pageKey,'left');
     const groupRows = (def.left.groups||[]).map(g =>
-      `<div class="row"><span>${g.head}</span><b>${fmtMoney(groupSum(g))}</b></div>`).join('');
+      `<div class="row"><span>${g.head||'Variable'}</span><b>${fmtMoney(groupSum(g))}</b></div>`).join('');
     return `<div class="np-gutter">
       <div class="lbl">${sp.totLabel}</div>
       <div class="big-num teal">${fmtMoney(income)}</div>
       <div class="big-sub">per year · today's dollars</div>
       <hr class="gut-rule"/>
       ${groupRows}
-      <div class="row"><span>Expenses</span><b>${fmtMoney(expenses)}</b></div>
+    </div>`;
+  }
+  // Expenses & Goals page: headline = total expenses; breakdown = essential + goals.
+  if(pageKey === 'expenses'){
+    const essential = colSum(pageKey,'left');
+    const goals = colSum(pageKey,'right');
+    return `<div class="np-gutter">
+      <div class="lbl">${sp.totLabel}</div>
+      <div class="big-num teal">${fmtMoney(essential + goals)}</div>
+      <div class="big-sub">per year · today's dollars</div>
+      <hr class="gut-rule"/>
+      <div class="row"><span>Expenses</span><b>${fmtMoney(essential)}</b></div>
+      <div class="row"><span>Goals</span><b>${fmtMoney(goals)}</b></div>
     </div>`;
   }
   const total = hybridTotal(pageKey);
@@ -2201,7 +2215,7 @@ function renderGutter(pageKey){
     <div class="big-sub">per year · today's dollars</div>
     <hr class="gut-rule"/>
     <div class="row"><span>${def.left.head}</span><b>${fmtMoney(colSum(pageKey,'left'))}</b></div>
-    <div class="row"><span>${def.right.head}</span><b>${fmtMoney(colSum(pageKey,'right'))}</b></div>
+    <div class="row"><span>${def.right.head||''}</span><b>${fmtMoney(colSum(pageKey,'right'))}</b></div>
   </div>`;
 }
 
@@ -2434,12 +2448,12 @@ function renderHybrid(pageKey){
     const groups = colDef.groups || [colDef];   // ungrouped pages: the column IS one group
     return `<div class="hp-col">${groups.map(renderGroup).join('')}</div>`;
   };
+  const hasRight = def.right && (def.right.groups ? def.right.groups.length > 0 : (def.right.head || def.right.goals || def.right.section || def.right.items));
   return `<div class="np-page">
     ${renderGutter(pageKey)}
     <div class="hp-body">
       ${colHtml(def.left)}
-      <div class="hp-rule"></div>
-      ${colHtml(def.right)}
+      ${hasRight ? `<div class="hp-rule"></div>${colHtml(def.right)}` : ''}
     </div>
   </div>`;
 }

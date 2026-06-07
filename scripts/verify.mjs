@@ -94,38 +94,30 @@ try {
     await page.screenshot({ path: `${OUT}/01-balance-sheet.png`, fullPage: true });
   });
 
-  await step('net worth · cash flow renders two hybrid columns + gutter', async () => {
-    await page.click(`#np-subnav .stab[data-sub="cashflow"]`);
+  await step('net worth · income tab renders hybrid column + gutter', async () => {
+    await page.click(`#np-subnav .stab[data-sub="income"]`);
     await new Promise(r => setTimeout(r, 200));
     const m = await page.evaluate(() => ({
       gutterBig: document.querySelector('.np-gutter .big-num')?.textContent || '',
-      gutterRows: document.querySelectorAll('.np-gutter .row').length,
       cols: document.querySelectorAll('.hp-col').length,
     }));
-    // Blank household: the two columns + the gutter big-number ($0) are the
-    // shell. Breakdown rows depend on entered income/expenses, so don't require them.
-    if(m.cols !== 2) throw new Error(`cashflow hybrid did not render two columns (cols=${m.cols})`);
-    if(!m.gutterBig.startsWith('$')) throw new Error(`cashflow gutter big-number missing (got "${m.gutterBig}")`);
-    await page.screenshot({ path: `${OUT}/02-cashflow.png`, fullPage: true });
+    // Income page is single-column (no right column). Gutter big-number must be a dollar amount.
+    if(m.cols < 1) throw new Error(`income hybrid did not render (cols=${m.cols})`);
+    if(!m.gutterBig.startsWith('$')) throw new Error(`income gutter big-number missing (got "${m.gutterBig}")`);
+    await page.screenshot({ path: `${OUT}/02-income.png`, fullPage: true });
   });
 
-  await step('net worth · goals renders the priority board (shell + slots)', async () => {
-    // Goals is the priority board: a pinned base-spending FOUNDATION card at rank 1
-    // (reads expenses.living), 6 ghost goal slots below it, and goal cards in the
-    // tray. Verify the shell — the board mode, the foundation card, the slots.
-    await page.click(`#np-subnav .stab[data-sub="goals"]`);
-    await new Promise(r => setTimeout(r, 300));
+  await step('net worth · expenses & goals tab renders two hybrid columns + gutter', async () => {
+    await page.click(`#np-subnav .stab[data-sub="expenses"]`);
+    await new Promise(r => setTimeout(r, 200));
     const m = await page.evaluate(() => ({
-      board:  !!document.querySelector('#np-content.g-mode .g-board'),
-      pin:    document.querySelector('.g-card.pin .g-amt-in')?.value || '',
-      slots:  document.querySelectorAll('.g-slot').length,
-      boardH: Math.round(document.querySelector('.g-board')?.getBoundingClientRect().height || 0),
+      gutterBig: document.querySelector('.np-gutter .big-num')?.textContent || '',
+      cols: document.querySelectorAll('.hp-col').length,
     }));
-    if(!m.board)             throw new Error('goals board did not render (no #np-content.g-mode .g-board)');
-    if(!m.pin)               throw new Error('goals foundation (base-spending) card missing (.g-card.pin)');
-    if(m.slots < 6)          throw new Error(`goals board expected ≥6 ghost slots (slots=${m.slots})`);
-    if(m.boardH < 200)       throw new Error(`goals board height = ${m.boardH}px (expected ≥200 — flex-fill regression?)`);
-    await page.screenshot({ path: `${OUT}/02-goals.png`, fullPage: true });
+    // Expenses & Goals page has two columns (expenses left, goals right).
+    if(m.cols !== 2) throw new Error(`expenses hybrid did not render two columns (cols=${m.cols})`);
+    if(!m.gutterBig.startsWith('$')) throw new Error(`expenses gutter big-number missing (got "${m.gutterBig}")`);
+    await page.screenshot({ path: `${OUT}/02-expenses.png`, fullPage: true });
   });
 
   await step('net worth · snapshot is its own sub-page with four gauges', async () => {
@@ -172,7 +164,7 @@ try {
   });
 
   await step('add-row workflow: + add appends an editable row', async () => {
-    await page.click(`#np-subnav .stab[data-sub="cashflow"]`);
+    await page.click(`#np-subnav .stab[data-sub="income"]`);
     await new Promise(r => setTimeout(r, 200));
     const before = await page.evaluate(() => document.querySelectorAll('.hp-col .erow').length);
     await page.click('.hp-add[data-add="income"]');
