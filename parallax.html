@@ -76,9 +76,9 @@ background-size:auto,auto,auto,auto,auto,72px 72px,72px 72px,auto;}
   box-shadow:var(--glass-shadow);
 }
 
-.hdr{display:flex;align-items:center;gap:18px;padding:16px 32px;background:rgba(15,11,6,.78);backdrop-filter:blur(30px) saturate(1.16);-webkit-backdrop-filter:blur(30px) saturate(1.16);flex:0 0 auto;position:relative;z-index:50;box-shadow:inset 0 -1px 0 var(--rule-faint),inset 0 1px 0 rgba(255,255,255,.06),0 18px 40px -30px rgba(0,0,0,.7)}
+.hdr{display:flex;align-items:center;gap:18px;padding:6px 32px;background:rgba(15,11,6,.78);backdrop-filter:blur(30px) saturate(1.16);-webkit-backdrop-filter:blur(30px) saturate(1.16);flex:0 0 auto;position:relative;z-index:50;box-shadow:inset 0 -1px 0 var(--rule-faint),inset 0 1px 0 rgba(255,255,255,.06),0 18px 40px -30px rgba(0,0,0,.7)}
 .hdr-brand{display:flex;align-items:center}
-.brand-logo{height:80px;width:auto;display:block;opacity:1}
+.brand-logo{height:46px;width:auto;display:block;opacity:1}
 .wordmark{font-size:16px;font-weight:600;letter-spacing:.30em;text-transform:uppercase;color:var(--ink-bright)}
 .hdr-tabs{display:flex;margin-left:24px}
 .htab{background:none;border:none;border-bottom:2px solid transparent;color:var(--ink-mute);cursor:pointer;font-family:'Sora';font-size:13.5px;letter-spacing:.2em;text-transform:uppercase;padding:6px 20px;font-weight:500;transition:color .2s,border-color .2s}
@@ -730,8 +730,8 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield}
 
   /* Header wraps to two rows: brand + Run on top, the three tabs on a centered
      row below. Status text is hidden on a phone (the circles/levers show state). */
-  .hdr{flex-wrap:wrap;gap:8px 12px;padding:11px 14px;position:sticky;top:0;z-index:60}
-  .brand-logo{height:60px}
+  .hdr{flex-wrap:wrap;gap:8px 12px;padding:6px 14px;position:sticky;top:0;z-index:60}
+  .brand-logo{height:40px}
   .hdr-tabs{margin-left:0;order:3;width:100%;display:flex;justify-content:center;gap:2px;overflow-x:auto;-webkit-overflow-scrolling:touch}
   .hdr-tabs::-webkit-scrollbar{display:none}
   .htab{padding:7px 13px;font-size:13.5px;letter-spacing:.1em;white-space:nowrap;flex:0 0 auto}
@@ -941,28 +941,32 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield}
   </section>
 
   <section class="page" data-page="scenarios">
-    <div class="eyebrow"><span>Scenarios</span></div>
-    <!-- band + levers + foot share one horizontally-scrollable wrapper so their
-         three columns stay registered on narrow (phone) viewports. -->
-    <div class="scn-scroll">
-      <div class="scn-band" id="scn-band"></div>
-      <div id="solve-panel"></div>
-      <div class="scn-levers" id="scn-levers"></div>
-      <!-- Goals section: a READ-ONLY mirror of the base-plan goals, shown in
-           every scenario column so the advisor sees what each scenario carries.
-           Edited only on the Goals input page; columns reflect, never diverge. -->
-      <div class="scn-goals" id="scn-goals"></div>
-      <div class="scn-foot" id="scn-foot"></div>
+    <!-- Two sub-pages: the scenario columns, and the year-by-year cash flow —
+         each gets its own page so neither crowds the other. -->
+    <nav class="subnav" id="scn-subnav">
+      <button class="stab on" data-scn="plan">Scenarios</button>
+      <button class="stab" data-scn="cashflow">Cash Flow</button>
+    </nav>
+    <div id="scn-view-plan">
+      <!-- band + levers + foot share one horizontally-scrollable wrapper so their
+           three columns stay registered on narrow (phone) viewports. -->
+      <div class="scn-scroll">
+        <div class="scn-band" id="scn-band"></div>
+        <div id="solve-panel"></div>
+        <div class="scn-levers" id="scn-levers"></div>
+        <!-- Goals section: a READ-ONLY mirror of the base-plan goals, shown in
+             every scenario column so the advisor sees what each scenario carries.
+             Edited only on the Goals input page; columns reflect, never diverge. -->
+        <div class="scn-goals" id="scn-goals"></div>
+        <div class="scn-foot" id="scn-foot"></div>
+      </div>
     </div>
-    <!-- The Scenarios line chart was removed: it duplicated what the % circles +
-         cash-flow drawer already say. A richer wealth-path visual is planned for
-         the Sequencing tab, where sequence-of-returns risk gives it real teeth. -->
-    <!-- Cash-flow drawer: expand to see the year-by-year breakdown for each
-         scenario (income, withdrawals, ending balance), side-by-side. The
-         engine already emits these rows from its typical simulated path —
-         this is purely a view of existing truth, no new math. -->
-    <div class="cf-toggle"><button id="cf-btn">Show year-by-year cash flow ▾</button></div>
-    <div class="cf-drawer" id="cf-drawer" style="display:none"></div>
+    <!-- Cash-flow sub-page: the year-by-year breakdown for each scenario
+         (income, withdrawals, ending balance), side-by-side. The engine already
+         emits these rows — purely a view of existing truth, no new math. -->
+    <div id="scn-view-cf" style="display:none">
+      <div class="cf-drawer" id="cf-drawer"></div>
+    </div>
   </section>
 
   <section class="page" data-page="sequencing">
@@ -5357,7 +5361,10 @@ let cfPreRet = false;   // off = inflows/outflows from retirement age (default).
 let cfShowAll = false;  // off = Baseline + one comparison (default). on = every scenario column.
 function renderCashflow(){
   const drawer = $('#cf-drawer');
-  if(drawer.style.display !== 'block') return;   // only render when open; runAll re-renders if so
+  if(!drawer) return;
+  // Only render when the Cash Flow sub-page is showing (runAll re-renders if so).
+  const cfView = $('#scn-view-cf');
+  if(cfView && cfView.style.display === 'none') return;
   // Show at most TWO scenarios: the Baseline anchor + one selectable comparison.
   // Three columns of year-by-year cash flow is too busy to read (Nathan).
   const baseIdx = Math.max(0, scenarios.findIndex(s => s.base));
@@ -5511,15 +5518,18 @@ function renderCashflow(){
 // Distinct but DEEP, desaturated editorial tones — each line identifiable, none
 // candy-bright. Default four (slate-blue / teal-green / brass / rust) are picked
 // to be maximally distinct from each other on the cream paper.
+// Soft, desaturated editorial tones — distinct hues, none neon, NO red (a red
+// line reads as "bad" even for a neutral market, which is a false signal). Each
+// market is just an identity colour; the math says whether it's good or bad.
 const SEQ_YEARS=[
-  {y:1929, tag:'Great Depression',  c:'#b07acc', on:false},
-  {y:1966, tag:'the lost decade',   c:'#7ab0c8', on:true },
-  {y:1973, tag:'stagflation',       c:'#52b48a', on:true },
-  {y:1987, tag:'Black Monday',      c:'#8fb8a8', on:false},
-  {y:1995, tag:'the 90s boom',      c:'#c9924a', on:true },
-  {y:2000, tag:'dot-com crash',     c:'#c4685a', on:true },
-  {y:2008, tag:'financial crisis',  c:'#6ec9a0', on:false},
-  {y:2009, tag:'the recovery bull', c:'#a09882', on:false},
+  {y:1929, tag:'Great Depression',  c:'#9a86b0', on:false},
+  {y:1966, tag:'the lost decade',   c:'#7e9fb5', on:true },
+  {y:1973, tag:'stagflation',       c:'#6fa896', on:true },
+  {y:1987, tag:'Black Monday',      c:'#a3a673', on:false},
+  {y:1995, tag:'the 90s boom',      c:'#c0975a', on:true },
+  {y:2000, tag:'dot-com crash',     c:'#b8856b', on:true },
+  {y:2008, tag:'financial crisis',  c:'#8095a8', on:false},
+  {y:2009, tag:'the recovery bull', c:'#a8a085', on:false},
 ];
 
 // Which scenario the Sequencing tab runs through the historical markets. Held
@@ -5798,14 +5808,15 @@ document.addEventListener('focusin', e => {
   setTimeout(() => { try { if(t === 'number') el.select(); else el.setSelectionRange(0, 0); } catch(_){} }, 0);
 });
 $('#run-btn').onclick=runAll;
-// Cash-flow drawer toggle. We render on open (and every Run while open).
-$('#cf-btn').onclick=()=>{
-  const d=$('#cf-drawer');
-  const open = d.style.display === 'block';
-  d.style.display = open ? 'none' : 'block';
-  $('#cf-btn').textContent = open ? 'Show year-by-year cash flow ▾' : 'Hide cash flow ▴';
-  if(!open) renderCashflow();
-};
+// Scenarios sub-tabs: switch between the scenario columns and the cash-flow page.
+$$('#scn-subnav .stab').forEach(b => b.onclick = () => {
+  const sub = b.dataset.scn;
+  $$('#scn-subnav .stab').forEach(x => x.classList.toggle('on', x===b));
+  const showCf = sub==='cashflow';
+  $('#scn-view-plan').style.display = showCf ? 'none' : '';
+  $('#scn-view-cf').style.display   = showCf ? '' : 'none';
+  if(showCf) renderCashflow();   // gate now passes (the cf view is visible)
+});
 
 // Sync the baseline anchor to the freshly-loaded plan before first render.
 // loadScenarios() may restore lever values saved against an OLDER plan; without

@@ -197,8 +197,8 @@ try {
     await page.screenshot({ path: `${OUT}/03-scenarios.png`, fullPage: true });
   });
 
-  await step('cash-flow drawer opens with real height + rows', async () => {
-    await page.click('#cf-btn');
+  await step('cash-flow sub-tab opens with real height + rows', async () => {
+    await page.click('#scn-subnav .stab[data-scn="cashflow"]');
     await new Promise(r => setTimeout(r, 400));
     const m = await page.evaluate(() => {
       const d = document.querySelector('#cf-drawer');
