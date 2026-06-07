@@ -902,6 +902,11 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield}
 .g-age-in::-webkit-outer-spin-button,.g-age-in::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .g-age-in:hover{border-bottom-color:var(--rule-bright)}
 .g-age-in:focus{border-bottom-color:var(--gold-bright);background:rgba(201,146,74,.09)}
+/* Anchor selector (note 6): tie a goal/expense to my age / spouse age / year.
+   Quiet inline control — dashed underline echoing the editable-field grammar. */
+.g-anchor,.er-anchor{font-family:'Inter',sans-serif;font-size:12.5px;font-weight:600;color:var(--gold-bright);background:transparent;border:none;border-bottom:1px dashed var(--rule-bright);outline:none;cursor:pointer;padding:0 2px;-webkit-appearance:none;appearance:none;transition:border-color .15s,color .15s}
+.g-anchor:hover,.er-anchor:hover{color:var(--gold);border-bottom-color:var(--gold)}
+.g-anchor option,.er-anchor option{color:var(--ink);background:var(--bg-deep)}
 .g-card .row-x.g-del{position:absolute;top:7px;right:9px;width:18px;height:18px;line-height:1;font-size:15px;opacity:0;z-index:5;transition:opacity .15s,color .15s}
 .g-card:hover .row-x.g-del{opacity:.6}
 .g-card .row-x.g-del:hover{opacity:1;color:var(--negative-bright)}
@@ -2523,10 +2528,76 @@ function ensureMedicarePreload(p){
   m.endAge = end;                                              // always runs to plan end
   if(!m.userSet) m.amount = MEDICARE_PER_PERSON * planPeopleCount(p);
 }
+
+// ── Age anchors (field note 6) ───────────────────────────────────────────────
+// A goal/expense can be "tied" to a frame other than the primary's age:
+//   'me'     → the value IS the primary's age (the engine's native timeline).
+//   'spouse' → the value is the SPOUSE's age at the event.
+//   'year'   → the value is a calendar year.
+// The IN-FRAME numbers (aStart/aEnd) are CANONICAL; the engine-facing
+// startAge/endAge (always the primary's age) are derived from them by
+// syncAnchors() and refreshed on every plan edit — so a spouse-tied goal
+// MOVES when the spouse's age is corrected, with no engine change.
+const CURRENT_YEAR = new Date().getFullYear();
+function ageFrames(){
+  const h = plan.household || {};
+  return {
+    pCur: (h.primary && h.primary.currentAge) || 0,
+    sCur: (h.spouse  && h.spouse.currentAge)  || 0,
+    yr:   CURRENT_YEAR,
+  };
+}
+function hasSpouse(){ return !!(plan.household && plan.household.spouse); }
+// in-frame value → primary age (what the engine reads)
+function toPrimaryAge(v, anchor){
+  const {pCur,sCur,yr} = ageFrames();
+  if(anchor==='spouse') return Math.round(v + pCur - sCur);
+  if(anchor==='year')   return Math.round(v + pCur - yr);
+  return Math.round(v);
+}
+// primary age → in-frame value (what the advisor sees/edits)
+function toFrame(primAge, anchor){
+  const {pCur,sCur,yr} = ageFrames();
+  if(anchor==='spouse') return Math.round(primAge - pCur + sCur);
+  if(anchor==='year')   return Math.round(primAge - pCur + yr);
+  return Math.round(primAge);
+}
+// Every anchorable row across the plan (goals + the additional/preset expenses).
+function anchorableRows(p){
+  const rows = [];
+  (p.goals||[]).forEach(r => rows.push(r));
+  // Preset expenses (e.g. Medicare) are pinned foundations with their own age
+  // management — not user-anchorable, so they keep direct startAge/endAge.
+  (p.expenses && p.expenses.extra || []).forEach(r => { if(!r.preset) rows.push(r); });
+  return rows;
+}
+// Backfill the anchor fields on older saved rows: default to 'me', seed the
+// canonical in-frame values from the existing primary ages.
+function migrateAnchors(p){
+  anchorableRows(p).forEach(r => {
+    if(!r.anchor) r.anchor = 'me';
+    if(r.aStart == null) r.aStart = (r.startAge != null ? r.startAge : 0);
+    if(r.aEnd   == null) r.aEnd   = (r.endAge   != null ? r.endAge   : r.aStart);
+    // A row whose spouse anchor lost its spouse falls back to 'me' (in primary age).
+    if(r.anchor==='spouse' && !hasSpouse()){ r.startAge = toPrimaryAge(r.aStart,'spouse'); r.endAge = toPrimaryAge(r.aEnd,'spouse'); r.anchor='me'; r.aStart=r.startAge; r.aEnd=r.endAge; }
+  });
+}
+// Recompute the engine-facing primary ages from the canonical in-frame values.
+// Called after any goal/expense or household-age edit, and defensively before a run.
+function syncAnchors(p){
+  anchorableRows(p).forEach(r => {
+    const a = r.anchor || 'me';
+    if(r.aStart != null) r.startAge = toPrimaryAge(r.aStart, a);
+    if(r.aEnd   != null) r.endAge   = toPrimaryAge(r.aEnd,   a);
+  });
+}
+
 // On fresh open (no saved plan) start from the engine defaultPlan + system
 // defaults. If there's a saved plan, overlay it (the advisor's edits win).
 if(!loadPlan()) applySystemDefaults(plan);
 ensureMedicarePreload(plan);   // preload (or migrate in for older saved plans)
+migrateAnchors(plan);          // backfill anchor fields on older saved rows
+syncAnchors(plan);             // derive engine-facing primary ages
 
 // Scenario accent palette. Brass / steel-teal / dusty mauve are the core trio
 // (matches --s1/2/3); two more earthy tones extend it when the advisor adds a
@@ -3503,6 +3574,8 @@ function clearHousehold(){
 // Persists the plan on every commit so household edits survive a reload.
 function commitPlanEdit(){
   ensureMedicarePreload(plan);   // re-sync end age + auto amount on spouse/plan-end edits
+  migrateAnchors(plan);          // backfill anchor fields on any freshly-added row
+  syncAnchors(plan);             // derive engine-facing primary ages
   reseedScenarios(); buildLevers(); sharedPaths=null; plansDirty=true; savePlan(); renderInputs();
   $('#status').textContent='Plan edited · open Scenarios';
 }
@@ -3652,10 +3725,10 @@ function renderField(f, klass){
    the window: a one-time goal is a single-year window, startAge===endAge.) */
 const ROW_KINDS = {
   income:    { arr:'income.other',   mk:()=>({ label:'', amount:0, startAge:65, endAge:75, realGrowth:0, taxablePct:1 }) },
-  expense:   { arr:'expenses.extra', mk:()=>({ label:'', amount:0, startAge:65, endAge:80 }) },
+  expense:   { arr:'expenses.extra', mk:()=>({ label:'', amount:0, startAge:65, endAge:80, anchor:'me', aStart:65, aEnd:80 }) },
   liability: { arr:'liabilities',    mk:()=>({ label:'', amount:0, startAge:65, endAge:75, colaPct:0 }) },
-  goalRec:   { arr:'goals',          mk:()=>({ name:'',  amount:0, startAge:plan.household.primary.retirementAge, endAge:plan.household.primary.planEndAge }) },
-  goalOnce:  { arr:'goals',          mk:()=>({ name:'',  amount:0, startAge:70, endAge:70 }) },
+  goalRec:   { arr:'goals',          mk:()=>{ const s=plan.household.primary.retirementAge, e=plan.household.primary.planEndAge; return { name:'', amount:0, startAge:s, endAge:e, anchor:'me', aStart:s, aEnd:e }; } },
+  goalOnce:  { arr:'goals',          mk:()=>({ name:'',  amount:0, startAge:70, endAge:70, anchor:'me', aStart:70, aEnd:70 }) },
   property:  { arr:'properties',     mk:()=>({ name:'',  value:0, purchasePrice:0, purchaseYear: new Date().getFullYear(), mortgage:{ balance:0, rate:0, termYears:0 } }) },
 };
 const money = (p,base,k)=>`<span class="er-amt"><span class="pre">$</span><input type="text" inputmode="numeric" data-path="${base}.${k}" data-type="money" value="${(getPath(plan,base+'.'+k)||0).toLocaleString('en-US')}"></span>`;
@@ -3664,8 +3737,17 @@ const name  = (p,base,k,ph)=>`<input class="er-name" type="text" data-path="${ba
 const rmX   = base=>`<button class="row-x" data-rmpath="${base}" title="Remove this row">×</button>`;
 
 // A flow row (income / expense / liability): name · amount · from–to ages.
+// Additional EXPENSES carry an anchor (note 6) so their start/end can be tied
+// to a spouse's age or a calendar year; everything else stays on primary age.
 function flowRow(arr, i, nameKey, ph){
   const base = `${arr}.${i}`;
+  if(arr==='expenses.extra'){
+    const r = getPath(plan, base) || {};
+    const sel = `<select class="er-anchor" data-anchpath="${base}" title="Tie this expense to your age, your spouse's age, or a calendar year">${anchorOptions(r.anchor)}</select>`;
+    const word = r.anchor==='year' ? '' : 'age ';
+    return `<div class="erow">${name(plan,base,nameKey,ph)}${money(plan,base,'amount')}
+      <span class="er-ages">${sel} ${word}${num(plan,base,'aStart')}<span class="er-dash">–</span>${num(plan,base,'aEnd')}</span>${rmX(base)}</div>`;
+  }
   return `<div class="erow">${name(plan,base,nameKey,ph)}${money(plan,base,'amount')}
     <span class="er-ages">age ${num(plan,base,'startAge')}<span class="er-dash">–</span>${num(plan,base,'endAge')}</span>${rmX(base)}</div>`;
 }
@@ -3730,7 +3812,9 @@ function propRow(i){
 function flowSection(arr, nameKey, ph, kind, addLabel){
   const list = getPath(plan, arr) || [];
   const rowFn = (kind==='income') ? (i=>incomeRow(arr,i)) : (i=>flowRow(arr,i,nameKey,ph));
-  let h = list.map((_,i)=>rowFn(i)).join('');
+  // Preset rows (e.g. the Medicare foundation) render as pinned cards on the
+  // board, not here — skip them so they don't show twice.
+  let h = list.map((r,i)=> (r && r.preset) ? '' : rowFn(i)).join('');
   h += `<div class="hp-add" data-add="${kind}">${addLabel}</div>`;
   return h;
 }
@@ -4005,9 +4089,13 @@ function goalsView(){
   const src = Array.isArray(plan.goals)?plan.goals:[];
   const list = src.map((g,i)=>{
     if(g._gid==null) g._gid = _gidSeq++;            // assign once, persists in-memory
+    const anchor = g.anchor || 'me';
+    const aStart = (g.aStart!=null) ? g.aStart : g.startAge;
+    const aEnd   = (g.aEnd!=null)   ? g.aEnd   : g.endAge;
     return {
       i, gid:g._gid, name:g.name||'', amount:g.amount||0,
-      once:g.startAge===g.endAge, startAge:g.startAge, endAge:g.endAge,
+      once:aStart===aEnd, startAge:g.startAge, endAge:g.endAge,
+      anchor, aStart, aEnd,
     };
   });
   return {
@@ -4066,13 +4154,23 @@ function renderGoalsBoard(){
 // fields. Each field is a data-path-free input handled locally so value edits
 // update in place (preserving the drag rank); add/remove route through the
 // shared #np-content handlers (a structural change, so a rebuild is fine).
+// Anchor <option>s for "tie this age to": my age / spouse age / calendar year.
+// Spouse only appears when a spouse is on file.
+function anchorOptions(sel){
+  const o=[['me','my age']];
+  if(hasSpouse()) o.push(['spouse','spouse age']);
+  o.push(['year','year']);
+  return o.map(([v,l])=>`<option value="${v}"${v===(sel||'me')?' selected':''}>${l}</option>`).join('');
+}
 function goalCardHTML(g){
   const tag = g.once ? '<span class="g-tag">One-time</span>' : '';
   const per = g.once ? '' : '<span class="g-per2">/yr</span>';
   const amtStr = (g.amount||0).toLocaleString('en-US');
+  const sel = `<select class="g-anchor" data-f="anchor" title="Tie this goal's timing to your age, your spouse's age, or a calendar year">${anchorOptions(g.anchor)}</select>`;
+  const word = g.anchor==='year' ? '' : ' age';
   const ages = g.once
-    ? `Lands once · age <input class="g-age-in" data-f="startAge" data-sync="endAge" data-type="num" value="${Number(g.startAge)||0}">`
-    : `Recurring · ages <input class="g-age-in" data-f="startAge" data-type="num" value="${Number(g.startAge)||0}">–<input class="g-age-in" data-f="endAge" data-type="num" value="${Number(g.endAge)||0}">`;
+    ? `Lands at ${sel}${word} <input class="g-age-in" data-f="aStart" data-sync="aEnd" data-type="num" value="${Number(g.aStart)||0}">`
+    : `Runs ${sel}${word} <input class="g-age-in" data-f="aStart" data-type="num" value="${Number(g.aStart)||0}">–<input class="g-age-in" data-f="aEnd" data-type="num" value="${Number(g.aEnd)||0}">`;
   return `<div class="g-main">
        <div class="g-name"><input class="g-name-in" data-f="name" data-type="text" value="${escHtml(g.name)}" placeholder="Goal name">${tag}</div>
        <div class="g-kind">${ages}</div>
@@ -4230,11 +4328,26 @@ function initGoalsBoard(){
       return;
     }
     const i=+inp.closest('.g-card').dataset.i, f=inp.dataset.f, type=inp.dataset.type;
+    const g=plan.goals[i];
+    // Anchor switch: keep the goal at the SAME calendar time — re-express its
+    // current primary ages in the new frame, then re-render so labels/values
+    // update. (Rank survives: the board rebuilds from the persisted rank.)
+    if(f==='anchor' && g){
+      g.anchor=inp.value;
+      g.aStart=toFrame(g.startAge, g.anchor);
+      g.aEnd  =toFrame(g.endAge,   g.anchor);
+      syncAnchors(plan);
+      reseedScenarios(); buildLevers(); sharedPaths=null; plansDirty=true; savePlan();
+      renderInputs();
+      $('#status').textContent='Plan edited · open Scenarios';
+      return;
+    }
     let val;
     if(type==='money')    val=Math.round(parseFloat(String(inp.value).replace(/[^0-9.]/g,''))||0);
     else if(type==='num') val=parseInt(inp.value,10)||0;
     else                  val=inp.value;
-    if(plan.goals[i]){ plan.goals[i][f]=val; if(inp.dataset.sync) plan.goals[i][inp.dataset.sync]=val; }
+    if(g){ g[f]=val; if(inp.dataset.sync) g[inp.dataset.sync]=val; }
+    syncAnchors(plan);                          // refresh engine-facing primary ages
     refreshHero();
     reseedScenarios(); buildLevers(); sharedPaths=null; plansDirty=true; savePlan();
     $('#status').textContent='Plan edited · open Scenarios';
@@ -4477,6 +4590,20 @@ $('#np-content').addEventListener('change', e => {
     }
     return;
   }
+  // Expense anchor switch (note 6): re-express the row's current primary ages in
+  // the new frame so the expense stays put, then re-render so labels/values update.
+  const anch = e.target.closest('.er-anchor');
+  if(anch){
+    const r = getPath(plan, anch.dataset.anchpath);
+    if(r){
+      r.anchor = anch.value;
+      r.aStart = toFrame(r.startAge, r.anchor);
+      r.aEnd   = toFrame(r.endAge,   r.anchor);
+      syncAnchors(plan);
+      commitPlanEdit();
+    }
+    return;
+  }
   // Field edits (data-path bindings)
   const path = e.target.dataset.path, type = e.target.dataset.type;
   if(path){
@@ -4502,6 +4629,10 @@ $('#np-content').addEventListener('change', e => {
     // A one-time goal edits a single "at age": mirror it into endAge so the
     // engine's window is exactly that year.
     if(e.target.dataset.sync) setPath(plan, e.target.dataset.sync, v);
+    // Refresh engine-facing primary ages from in-frame anchors: covers both an
+    // expense aStart/aEnd edit AND a household-age edit (a spouse/year-tied row
+    // moves when the spouse's age or the primary's age changes).
+    syncAnchors(plan);
     reseedScenarios();
     buildLevers();
     sharedPaths = null;
@@ -4592,6 +4723,7 @@ function runAll(){
   const btn=$('#run-btn'); btn.disabled=true; $('#status').textContent='Running…';
   setTimeout(()=>{
     try{
+      syncAnchors(plan);   // defensive: engine-facing primary ages fresh before any run
       // SHARED PATHS: one bundle of return paths, reused across scenarios AND
       // across Runs. Within a Run, every column sees the SAME markets (any
       // difference between columns is the DECISION). Across Runs, the bundle
