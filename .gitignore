@@ -2,26 +2,10 @@ node_modules/
 *.png
 variant-*.html
 *_mock.html
-_mock_*.html
-_mock_assets/
 _*.mjs
-_*.css
 .cache/
 
 # Reference screenshots (inspiration / competitor UI) are deliberately tracked.
 !reference/
 !reference/**
 verify-out/
-.claude/.last-sent-index
-
-# Logo source assets (embedded as base64 in the HTML; raw files not needed in repo)
-assets-logo.zip
-logo-header.b64
-logo-pack/
-logo-preview.png
-logo-icon-preview.png
-logo-full-preview.png
-
-# Delivery zips
-parallax-screens.zip
-parallax-screens-web.zip

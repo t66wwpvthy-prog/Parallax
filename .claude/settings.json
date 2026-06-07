@@ -9,15 +9,6 @@
             "statusMessage": "Checking main is in sync…"
           }
         ]
-      },
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/deliver-app.sh\"",
-            "statusMessage": "Checking if Nathan needs a fresh app file…"
-          }
-        ]
       }
     ]
   }

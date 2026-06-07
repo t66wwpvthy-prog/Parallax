@@ -433,9 +433,9 @@ const plan = {
   // goal spans many years; a ONE-TIME goal is a single-year window (startAge===endAge).
   // Applied flat-real. A legacy { vacation, property, gifts } object is still accepted.
   goals:      [
-    { name:'Vacation',         amount:15000, startAge:65, endAge:95 },
-    { name:'Home improvements', amount:10000, startAge:65, endAge:95 },
-    { name:'Gifts',            amount:5000,  startAge:65, endAge:95 },
+    { name:'Vacation',         amount:15000, startAge:0, endAge:999 },
+    { name:'Home improvements', amount:10000, startAge:0, endAge:999 },
+    { name:'Gifts',            amount:5000,  startAge:0, endAge:999 },
   ],
   taxes:      { ordinary: 22, capitalGains: 15 },
   simulation: { iterations: 1000 }
@@ -544,20 +544,6 @@ function weightedAssetReturn(row, weights){
   }
 
   return weightedReturn;
-}
-
-
-// The allocation's EXPECTED real return: the geometric mean of the same blended
-// real annual returns the sims draw from (weightedAssetReturn over the full
-// 1928–2025 dataset). Geometric — not arithmetic — so it already carries the
-// volatility drag and represents the median-style compound growth rate, not an
-// optimistic average. Deterministic + allocation-specific; used to walk the
-// Scenarios "expected path" (the smooth cash-flow projection) so that view shows
-// no sequence-of-returns noise (that lives in the success % and Sequencing tab).
-function allocationExpectedReturn(weights){
-  let prod = 1, n = 0;
-  for(const row of RETURN_DATA){ prod *= (1 + weightedAssetReturn(row, weights)); n++; }
-  return n ? Math.pow(prod, 1 / n) - 1 : 0;
 }
 
 
@@ -948,7 +934,7 @@ function runSinglePath(p, returnPath){
       if(endBalanceA > peakBalance) peakBalance = endBalanceA;
       if(peakBalance > 0){ const dd = (peakBalance - endBalanceA) / peakBalance; if(dd > maxDrawdown) maxDrawdown = dd; }
       rows.push({
-        year: y+1, age, source: rp.y, returnRate: r, realReturnUsed: r, phase: 'accum',
+        year: y+1, age, source: rp.y, returnRate: r, phase: 'accum',
         socialSecurity: 0, otherIncome: 0, pension: 0, withdrawal: 0, assetSale: saleProceeds,
         expenses: 0, goals: goalsA, liabilities: 0, taxes: 0, savings: p.savingsAnnual, lumpSum: lumpA,
         startBalance: startBalanceA, wdRate: 0,
@@ -1024,17 +1010,9 @@ function runSinglePath(p, returnPath){
     returnProduct *= (1 + r);
     if(y < 10) first10Product *= (1 + r);
 
-    // Mid-year withdrawal factor (derivation — do NOT "simplify" this away).
-    // We pull withdrawal/12 each month; each monthly pull then compounds at the
-    // monthly rate (1+r)^(1/12) for the remaining months of the year. Summing that
-    // geometric series, the full-year drag of the annual withdrawal W is
-    //   W/12 * factor,  where  factor = r / ((1+r)^(1/12) - 1).
-    // This sits between start-of-year (factor 1*12) and end-of-year (factor→ lower)
-    // timing — i.e. the realistic "spread across the year" assumption. As r→0 the
-    // ratio is 0/0 but its limit is 12 (no compounding), so we hard-set 12 below
-    // the 1e-7 guard. A flat start- or end-of-year withdrawal would bias every
-    // projection, so keep this. Same formula as the original single-account engine;
-    // we just apply it per-account now.
+    // Mid-year withdrawal factor — spreads withdrawals across the year while
+    // the balance is earning the annual return. Same formula as the original
+    // single-account engine; we just apply it per-account now.
     const factor = Math.abs(r) < 1e-7 ? 12 : r / (Math.pow(1 + r, 1/12) - 1);
 
     // Capture the START-of-year values for basis math. We need these before
@@ -1067,10 +1045,10 @@ function runSinglePath(p, returnPath){
     // the shortfall to the required amount is forced. It's taxed as ordinary
     // income; the after-tax remainder moves to the taxable sleeve (reinvested,
     // already-taxed → pure basis). Net portfolio effect = just the tax.
-    let rmdForced = 0, rmdTax = 0, rmdRequired = 0;
+    let rmdForced = 0, rmdTax = 0;
     if(age >= RMD_START_AGE && tradStartBal > 0.01){
-      rmdRequired = tradStartBal / rmdDivisor(age);                          // full IRS required minimum
-      rmdForced = Math.max(0, rmdRequired - funding.breakdown.traditional);   // beyond spending draw
+      const required = tradStartBal / rmdDivisor(age);
+      rmdForced = Math.max(0, required - funding.breakdown.traditional);   // beyond spending draw
       rmdForced = Math.min(rmdForced, Math.max(0, accounts.traditional.balance));
       if(rmdForced > 0.01){
         accounts.traditional.balance -= rmdForced;
@@ -1113,7 +1091,7 @@ function runSinglePath(p, returnPath){
       inflationRate: (rp && rp.proxyInflationRate != null) ? rp.proxyInflationRate : null,
       realReturnUsed: r,
       socialSecurity: ssInc, otherIncome: oiInc, pension: penInc, withdrawal,
-      rmd: rmdForced, rmdRequired, assetSale: saleProceeds,
+      rmd: rmdForced, assetSale: saleProceeds,
       expenses, goals: goalsY, liabilities: liabCost, taxes: totalTax + rmdTax, lumpSum: lumpY,
       startBalance, wdRate,
       netCashflow: (ssInc + oiInc + penInc + saleProceeds) - (expenses + goalsY + liabCost + totalTax + rmdTax),
@@ -1202,9 +1180,7 @@ function analyzeResults(sims, p){
 
   // Centrality score: sum of proportional deviations from year-by-year median.
   // Proportional (rather than absolute) so later high-balance years don't dominate.
-  // The most central path is the one that tracks the median envelope closest. (The
-  // cash-flow table picks its representative seeded path UI-side now, so this stays
-  // the simple central path for any percentile/diagnostic use.)
+  // The most central path is the one that tracks the median envelope closest.
   function centrality(sim){
     let score = 0;
     for(let y = 0; y < sim.rows.length; y++){
@@ -1215,56 +1191,16 @@ function analyzeResults(sims, p){
     }
     return score;
   }
-  const withCent = sims.map((s, i) => ({ sim: s, i, c: centrality(s) }));
+  const withCent = sims.map(s => ({ sim: s, c: centrality(s) }));
   withCent.sort((a, b) => a.c - b.c);
   const typicalPath = withCent[0].sim;
 
-  // Representative seeded path for the cash-flow table — TWO-STAGE MEDOID so the
-  // shown life is central AND realistically bumpy, never a lucky/brutal outlier:
-  //   Stage 1: keep only the most CENTRAL-by-outcome decile (paths whose whole
-  //            trajectory tracks the median envelope). This is what makes it
-  //            "typical" — selecting by volatility ALONE ignores outcome and can
-  //            land ~3x off the median (a path can be median-volatility yet draw a
-  //            1930s-recovery block of +40% years and balloon).
-  //   Stage 2: within that central set, take the path whose year-to-year return
-  //            volatility is closest to the median, so it still reads like a real
-  //            market (bumps), not a smoothed line.
-  // Exposed as a BUNDLE INDEX (sims are in bundle order) so the UI shows the SAME
-  // seeded market draw in every scenario column (apples-to-apples).
-  function returnStdDev(sim){
-    const rs = sim.rows.map(r => r.realReturnUsed || r.returnRate || 0);
-    if(!rs.length) return 0;
-    const m = rs.reduce((a, b) => a + b, 0) / rs.length;
-    return Math.sqrt(rs.reduce((s, r) => s + (r - m) ** 2, 0) / rs.length);
-  }
-  const sdAll = sims.map(returnStdDev);
-  const medianSd = sdAll.slice().sort((a, b) => a - b)[Math.floor(sdAll.length / 2)];
-  const centralCount = Math.max(1, Math.ceil(withCent.length * 0.10));
-  let representativePathIndex = withCent[0].i, bestSdGap = Infinity;
-  for(let k = 0; k < centralCount; k++){
-    const idx = withCent[k].i;
-    const g = Math.abs(sdAll[idx] - medianSd);
-    if(g < bestSdGap){ bestSdGap = g; representativePathIndex = idx; }
-  }
-
-  // DETERMINISTIC EXPECTED PATH — one coherent run at the allocation's expected
-  // real return every year (no random draws). This is what the Scenarios cash-flow
-  // table shows: smooth, steady growth + the real cash-flow mechanics (savings,
-  // withdrawals, RMDs, taxes, goals), so the table reads as a plan, not noise.
-  // Built from the ALREADY-RESOLVED inputs `p` (overrides applied once; no new
-  // resolveInputs), and it never calls generateReturnPath, so the seeded RNG is
-  // untouched and successRate stays byte-identical. proxyReturn is honored directly
-  // by runSinglePath (so E rides the real engine); returnAdj is still added on top,
-  // exactly as the random sims do — the line and the sim shift together.
-  const expectedReturn = allocationExpectedReturn(p.portfolio.weights);
-  const expectedPath = runSinglePath(p, Array.from({ length: p.horizonYears }, () => ({ proxyReturn: expectedReturn })));
   const paths = {
     p10: bySequence[Math.floor(ns * 0.10)],
     p25: bySequence[Math.floor(ns * 0.25)],
     p50: typicalPath,
     p75: bySequence[Math.floor(ns * 0.75)],
-    p90: bySequence[Math.floor(ns * 0.90)],
-    expected: expectedPath
+    p90: bySequence[Math.floor(ns * 0.90)]
   };
 
   // Terminal balance distribution — independent of path selection sort.
@@ -1324,8 +1260,6 @@ function analyzeResults(sims, p){
 
   return {
     paths, terminal, envelope,
-    expectedReturn,
-    representativePathIndex,
     sims,
     successRate: (survived / ns) * 100,
     survived, total: ns,
@@ -1404,7 +1338,6 @@ export {
   RETURN_DATA, ASSET_META, ASSET_KEYS, EQUITY_MIX, DEFENSIVE_MIX,
   RISK_PROFILES, ASSET_STATS, LONGRUN_INFLATION,
   buildAssetWeights, computeAssetStats, generateReturnPath, resetSeed, weightedAssetReturn,
-  allocationExpectedReturn,
   runSimulation, resolveInputs, runSinglePath, analyzeResults, runHistoricalPath,
   annualMortgagePayment,
   plan as defaultPlan

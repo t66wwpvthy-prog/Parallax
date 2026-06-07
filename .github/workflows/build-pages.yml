@@ -5,7 +5,7 @@ name: build-standalone
 
 on:
   push:
-    branches: [main, claude/dev]   # was ['**'] — every branch push fanned out into a deploy storm
+    branches: ['**']
     paths-ignore:
       - 'index.html'
       - 'parallax.html'

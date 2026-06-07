@@ -3,35 +3,6 @@
 You are helping Nathan build **Parallax**, a retirement-planning simulator for
 financial advisors. Read this whole file before doing anything.
 
-## ★ CHAIN OF COMMAND — read first, obey always
-This repository runs under a single command structure. Read this before you touch
-anything, every session.
-
-- **Commanding officer: the General of the Parallax Code Militia — callsign "Guppi"** —
-  the lead Claude Code session that reports directly to Nathan and owns all code,
-  branches, quality, efficiency, and coordination. When Nathan addresses "Guppi," he is
-  addressing the General/CO. **Every** Claude session, sub-agent, and automated job
-  operating in this repo is a soldier under that command. You are a soldier.
-- **On startup you MUST:** (1) read this section, (2) read **`ORDERS.md`** for the
-  current standing orders, the canonical branch, and the live field state, (3) follow
-  them. `ORDERS.md` is the General's coordination log and is the **current source of
-  truth** — where it conflicts with older notes elsewhere in this file, ORDERS wins.
-- **Single source of truth:** the canonical branch named in `ORDERS.md` holds the real
-  build. Do NOT treat your own branch as authoritative. Do NOT resurrect rejected work.
-- **Coordination rules (non-negotiable):**
-  1. **Sync before you push:** `git fetch origin main && git rebase origin/main`. Never
-     clobber `main` or the canonical branch with a stale fork. Force-push only with
-     `--force-with-lease` and a logged reason.
-  2. **`main` is the deploy branch** (GitHub Pages). Push there only verified, approved
-     work — never a stale or rejected build.
-  3. **Report to the chain:** append a one-line entry to the `ORDERS.md` "Status log"
-     whenever you finish a unit of work (branch · commit · what changed), so the General
-     and the other soldiers can see the field state. Soldiers report to the General;
-     the General reports to Nathan.
-  4. **The engine is sacred** (see "THE ENGINE IS SACRED") — 38 tests must pass.
-  5. If you are not the General and you are about to make a destructive, irreversible, or
-     cross-branch move, **you do not have the authority** — defer to Nathan / the General.
-
 ## Who you're working with
 Nathan — CFP / wealth manager (personal-CFO model, 200+ households, $300M+ AUM).
 He is the domain expert and product owner, **not** a software engineer. So:
@@ -44,11 +15,6 @@ He is the domain expert and product owner, **not** a software engineer. So:
   destructive/irreversible moves — confirm first.
 - **No guessing, ever.** If you can't verify something (run it, read it, check it),
   say "I can't verify that" — never dress a guess as a confident answer.
-
-## The philosophy (what Parallax IS)
-Parallax is not simply a financial planning tool. It is the expression of a planning
-philosophy: that outcomes are shaped by the interaction of time, markets, taxes, goals,
-behavior, and decisions — and that better understanding creates better judgment.
 
 ## The core principles (everything serves these)
 1. **Parallax models interactions.** The value is levers moving each other and the
@@ -237,11 +203,9 @@ this shared set. This is the long-planned "household-centric data root."
   below still describes the older dark palette; treat it as historical, not current.)
 
 ## Future-session notes (state + decisions — read before building)
-- **Canonical branch is `claude/dev`** — all real work + the live theme live here; `main`
-  is the Pages deploy (push to BOTH). Everyone works on `claude/dev`; `fetch + rebase
-  origin/main` before every push. Superseded/read-only: `claude/laughing-einstein-c6F33`,
-  `claude/zealous-albattani-Zr9wb`, `test-coverage-analysis-*` (all behind; dev is a
-  strict superset). See ORDERS.md for the canonical state — it wins on conflict.
+- **Canonical branch is `claude/laughing-einstein-c6F33`** — all real work + the live
+  theme live here; `main` is the Pages deploy (push to BOTH). `test-coverage-analysis-*`
+  is a stale upload point 100+ commits behind; auto-mode blocks pushing to it — ignore it.
 - **Ship-reminder Stop hook** exists (`.claude/hooks/ship-reminder.sh` + `.claude/settings.json`):
   it nudges you to ship to `main` when the branch is ahead. A freshly-created settings.json
   only activates after `/hooks` is opened once (or a restart).

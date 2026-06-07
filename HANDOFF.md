@@ -1,72 +1,72 @@
-# HANDOFF — Parallax (for the next Claude / Guppi)
+# HANDOFF — Goals priority board (sage), WIRED INTO THE LIVE APP
 
-Date: 2026-06-06. Branch: `claude/zealous-albattani-Zr9wb` (push to BOTH it and `main`).
-Build rule (NON-NEGOTIABLE): edit ONLY `parallax_v2.html` + `engine.js`, then
-`node build-standalone.mjs` (writes `index.html` + `parallax.html`). NEVER hand-edit the
-generated files. Verify: `node engine.test.js` (42 tests) + `node scripts/verify.mjs`.
+**Date:** 2026-06-04 · **Working branch:** `claude/gifted-feynman-X1wqg`.
 
-## ⚠️ TOP PRIORITY — UNRESOLVED: cash-flow path representation
-Nathan's clarified intent (my last change OVERCORRECTED — reconcile before doubling down):
-- The cash-flow table **SHOULD show sequencing / returns risk** — it is NOT meant to be a
-  flat deterministic line.
-- BUT the shown path must be a **"middle ground of all sequences / block bootstraps"** —
-  a representative *central* coherent path that keeps realistic year-to-year variation.
-  NOT a single random Monte-Carlo sim (chaotic), and NOT the flat constant-return line.
+## Status: WIRED IN. The Goals sub-tab now renders the approved board, live.
+`parallax_v2.html` → Household → **Goals** is no longer the ledger; it's the priority
+board, reading real `plan.goals` (recurring → /yr card, one-time → copper ONE-TIME
+card). Hero sums the recurring goals (annual goal spend) + notes the one-time total.
+Drag/snap/swap works. Screenshot-verified at 5760×3240 (`verify-out/02-goals.png`).
+- New code in `parallax_v2.html`: `renderGoalsBoard()` + `initGoalsBoard()` + the
+  `#np-content.g-mode` flex-fill + `.g-*` CSS; `SUB_PAGES.goals.layout='board'`;
+  `renderInputs()` dispatches board + tears down the resize-observer on re-render.
+- The approved standalone prototype **`goals-board.html`** is kept as a reference.
 
-What I did this session (LIKELY NEEDS REVISITING):
-- Found the cash flow was rendering `paths.p50` (a single "typical" MC sim) → chaotic
-  returns. Verified those returns were GENUINE historical data (each year traces to its
-  real source year, e.g. 2008 = −39.1%; dataset real all-equity range −40.6%..+75.2%).
-- Added `allocationExpectedReturn(weights)` + `paths.expected` (DETERMINISTIC path at the
-  allocation's constant geomean real return ~7.2%) in `engine.js`; switched the cash flow
-  to render it; foot relabeled "Expected end"; accum rows got `realReturnUsed`; +4 engine
-  tests (42 total). QA-reviewed.
-- **Nathan did NOT ask for this** — I added it during what should have been an explanation.
-  The flat line is the WRONG end-state.
+### Status — the Goals page is COMPLETE (view + edit + add + delete + rank)
+The board fully replaces the ledger and is a real input page:
+- **Edit on the card** — name, amount, and age window / at-age are inline inputs
+  (boxless, dashed-underline → copper on focus). Value edits write straight to
+  `plan.goals`, update the hero live, and reseed scenarios — WITHOUT rebuilding the
+  board, so the drag rank is preserved.
+- **Add** — "+ Add a goal" (recurring) and "+ One-time" push real, editable cards.
+- **Delete** — the × on each card removes it.
+- **Rank** — drag onto a ghost slot to prioritise; persisted in localStorage and
+  restored on re-render / tab-switch (reset only when goals are added/removed, since
+  indices shift). It is a planning/conversation cue — the engine has no goal-priority
+  lever, so the rank feeds NO math (by design).
+- The old `renderHybrid('goals')` path + `recGoalRow`/`onceGoalRow` are now dead
+  (harmless) and can be cleaned up later.
 
-NEXT STEP: design a **representative central sequence** for the cash flow — e.g. the median
-across block-bootstrap/historical sequences, or a medoid coherent path — that preserves
-sequencing texture yet is stable/comparable. Agree the definition with Nathan first. The
-`paths.expected` machinery can be repurposed or removed; don't treat the flat line as final.
-Engine still computes `typicalPath` + `paths.p10..p90` (now unused); I OFFERED to delete
-them — NOT approved, leave them.
+## What the design is (all screenshot-verified at 5760×3240)
+The Goals tab as a **priority board**, built on the REAL app chrome (PARALLAX header +
+NET WORTH · CASH FLOW · GOALS · SNAPSHOT sub-tabs), on the **live sage glass theme**
+(`#1e3d2b` ground, copper `#fb8d26` accent, faint 64px grid):
+- **Commanding header** — `$22,000 / year` annual goal spend as a big copper hero,
+  "today's dollars · $40,000 one-time planned" under it. Add-a-goal + legend top-right.
+- **Priority axis** down the left (Must fund ↑ / ↓ If we can) — card height = priority.
+- **Ghost slots** — 6 faint dashed rectangles with rank numbers, barely visible when
+  empty; a slot lights copper as a card nears and **absorbs** it on drop (snap + flash).
+- **Tray on the RIGHT** ("Goals to place") holds the cards at start — no slot is
+  pre-occupied, so nothing conflicts on load.
+- **Cards** are compact sage-glass with a fading **copper left border**; the one-time
+  goal (New car) is a distinct copper-tinted card with a "ONE-TIME" tag.
+- **Swap, not bounce** — dropping on a filled slot displaces the resident card to the
+  dragged card's old slot (or back to its tray home).
+- Smooth drag + snap (cubic-bezier), the movement Nathan called out as feeling right.
 
-## Approved but NOT yet built — Net Worth / Household statement rework
-Nathan approved the mock ("Build it"). Direction: compact statement header with people
-folded in as chips (name · age · retires), plan assumptions grouped tight on the right,
-body = Assets | Liabilities ledger with subtotals + a Net Worth summary in the gutter.
-Inline editing (global caret behavior already shipped: visible gold caret, caret-to-start
-on focus, autofocus+blink first field). Tab rename: Nathan wants ONE cohesive word blending
-"Fixed + Lifestyle" (NOT "expenses/costs"); my pick "Living" — NOT finalized.
-This subsumes the "(3)" batch notes (fields horribly spaced, page rework, people/children
-block wastes space). Mock-first already done; he approved the build.
+Content is OUR real `plan.goals` (Travel $12K/yr, Home improvements $5K/yr, Gifts
+$5K/yr — all 65–95; New car $40K one-time at 72 → annual goal spend $22K). The board is
+a VIEW of those entries — no new math.
 
-## Other notes
-- `$442,696` = a gross WITHDRAW (funds expenses + a $150k recurring goal − income, grossed
-  up for tax). NOT a bug; identity `withdrawal − taxes = expenses + goals − income` holds.
-  Added a withdraw tooltip + caveat line.
-- LTC growth at CPI+2 in engine: Nathan open, HELD (no sacred-file change yet).
+## Branch hazard — RESOLVED
+The earlier Aurora-vs-sage divergence is reconciled: `origin/main` (sage) was merged
+into this branch, the Cash Flow Goals column survived, and both branch + `main` ship
+the sage theme. Keep pushing to BOTH (Pages serves `main`).
 
-## Done & shipped this session (canonical + main)
-Notes 6,7,8/11,9,13,14(spouse retire age = display-only),15,16,17,19; working-years
-cash-flow toggle; demo anonymised → Aman/Awoman + on-demand "Load demo"; PLAN_KEY v2;
-Lifestyle monthly; system-defaults layer (10); persistent sub-nav Save (11); startup
-scenario reseed (18); bigger income/expenses fonts (3) + Scenarios labels (2); Net Worth
-scaling pass-1 (1, awaiting Nathan's read); global clean-input behavior; demo lever-refresh fix.
+## Next step — make the board goals editable
+The board is wired in as a VIEW. The natural follow-up: bring editing back ONTO the
+board (inline name/amount/age on each card, or a quick edit affordance), so the Goals
+tab is a full replacement for the old ledger — not just a prettier display. Optional:
+persist the drag rank somewhere meaningful (today it's purely visual; the engine has no
+goal-priority lever, so this is a product decision, not a wiring one).
 
-## Outstanding todos (Nathan's lists — verbatim text is in the chat transcript)
-- #1 Net Worth scaling (pass-1 done, may want more) · #2 Scenarios scaling (fonts done)
-- #3 rethink income/expenses/goals flow + rename Goals tab + bigger fonts (→ statement rework)
-- #4 THE FOCUS: goals/expenses board (mock approved): preloaded essentials incl.
-  healthcare/Medicare/nursing-LTC auto-priced CPI+2; "+"-to-add OR drag; smaller boxes;
-  locked-in goals total.
-- #5 inflation shouldn't be an input field · #6 expense start ages tied to spouse age/year
-  · #7 goals boxes too big + add to locked-in side + total · #8 cash-flow path (TOP PRIORITY)
-  · scenario separation line so columns don't look mixed.
+## Verify (mock-first; LOOK at pixels)
+`verify.mjs` now captures at 1920×1080 @ 3× = **5760×3240**. The throwaway shot harnesses
+(`_shot_*.mjs`, gitignored) drive `goals-board.html` / the live `index.html` at the same
+fidelity; outputs land in `verify-out/` (gitignored).
 
-## Working style (CLAUDE.md / ORDERS.md)
-- Short 3-line replies; "mate" or nothing. No guessing — verify by running/looking at pixels.
-- Mock visual changes first. QA-review engine/financial-display changes before commit.
-- DON'T add scope he didn't ask for (key lesson this session). When he asks for an
-  explanation, explain — don't change code.
-- Push to BOTH branches every time (Pages serves `main`).
+## Principles Nathan is ingraining (surface them when relevant)
+- **Verify by pixels, not assumptions** — logic checks lie; render and look before claiming.
+- Mock-first → screenshot → approve → then touch the live HTML.
+- Engine is the single truth source; the UI only views/levers it, never new math.
+- Push to BOTH the working branch and `main` (Pages serves `main`).

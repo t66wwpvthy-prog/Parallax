@@ -78,93 +78,92 @@ try {
   });
 
   await step('net worth · balance sheet renders', async () => {
-    // The first tab is Net Worth, defaulting to the Balance Sheet sub-page.
-    // The repo ships a BLANK household (real client data isn't committed), so we
-    // verify the rendering SHELL, not demo data: section titles, the household
-    // banner inputs + its Clear button, and the "add an account" picker (the
-    // empty-state path, since $0 buckets correctly drop off the sheet).
+    // The new first tab is Net Worth, defaulting to the Balance Sheet sub-page.
+    // A live render means the "Assets" title, the section heads, the investment
+    // rows, and the Household & Plan inputs now sitting in the left gutter.
     const m = await page.evaluate(() => ({
       title:  document.querySelectorAll('.bs-title').length,
-      hhbar:  document.querySelectorAll('.hh-head input').length,
-      clear:  !!document.querySelector('.hh-clear'),
-      picker: !!document.querySelector('.acct-picker'),
+      heads:  document.querySelectorAll('.bs-head').length,
+      inputs: document.querySelectorAll('.bs-row input').length,
+      hhbar: document.querySelectorAll('.hh-f input').length,
     }));
-    if(m.title < 1 || m.hhbar < 4 || !m.clear || !m.picker)
-      throw new Error(`Balance Sheet did not render (title=${m.title}, hhbar=${m.hhbar}, clear=${m.clear}, picker=${m.picker})`);
+    if(m.title < 1 || m.heads < 3 || m.inputs < 3 || m.hhbar < 4)
+      throw new Error(`Balance Sheet did not render (title=${m.title}, heads=${m.heads}, inputs=${m.inputs}, hhbar=${m.hhbar})`);
     await page.screenshot({ path: `${OUT}/01-balance-sheet.png`, fullPage: true });
   });
 
-  await step('net worth · income tab renders hybrid column + gutter', async () => {
-    await page.click(`#np-subnav .stab[data-sub="income"]`);
+  await step('net worth · cash flow renders two hybrid columns + gutter', async () => {
+    await page.click(`#np-subnav .stab[data-sub="cashflow"]`);
     await new Promise(r => setTimeout(r, 200));
     const m = await page.evaluate(() => ({
       gutterBig: document.querySelector('.np-gutter .big-num')?.textContent || '',
+      gutterRows: document.querySelectorAll('.np-gutter .row').length,
       cols: document.querySelectorAll('.hp-col').length,
     }));
-    // Income page is single-column (no right column). Gutter big-number must be a dollar amount.
-    if(m.cols < 1) throw new Error(`income hybrid did not render (cols=${m.cols})`);
-    if(!m.gutterBig.startsWith('$')) throw new Error(`income gutter big-number missing (got "${m.gutterBig}")`);
-    await page.screenshot({ path: `${OUT}/02-income.png`, fullPage: true });
+    if(m.cols !== 2) throw new Error(`cashflow hybrid did not render two columns (cols=${m.cols})`);
+    if(!m.gutterBig.startsWith('$')) throw new Error(`cashflow gutter big-number missing (got "${m.gutterBig}")`);
+    if(m.gutterRows < 2) throw new Error(`cashflow gutter breakdown rows missing (got ${m.gutterRows})`);
+    await page.screenshot({ path: `${OUT}/02-cashflow.png`, fullPage: true });
   });
 
-  await step('net worth · expenses & goals tab renders expense fields + goals board', async () => {
-    await page.click(`#np-subnav .stab[data-sub="expenses"]`);
-    await new Promise(r => setTimeout(r, 200));
+  await step('net worth · goals renders the priority board (cards + slots)', async () => {
+    // Goals is no longer the ledger — it's the priority board. Live render means:
+    // a copper annual-spend hero ($…/year), ≥6 ghost slots, and one draggable
+    // card per plan.goals entry sitting in the tray on load.
+    await page.click(`#np-subnav .stab[data-sub="goals"]`);
+    await new Promise(r => setTimeout(r, 300));
     const m = await page.evaluate(() => ({
-      hasBoard:   !!document.querySelector('#g-board'),
-      hasExpCol:  !!document.querySelector('.exp-fields .hp-col'),
-      boardH:     (document.querySelector('#g-board')?.offsetHeight)||0,
-      addGoals:   document.querySelectorAll('#g-board ~ * .g-add, .g-add').length,
+      board:  !!document.querySelector('#np-content.g-mode .g-board'),
+      hero:   document.querySelector('.g-big')?.textContent || '',
+      cards:  document.querySelectorAll('.g-card').length,
+      once:   document.querySelectorAll('.g-card.once').length,
+      slots:  document.querySelectorAll('.g-slot').length,
+      boardH: Math.round(document.querySelector('.g-board')?.getBoundingClientRect().height || 0),
     }));
-    if(!m.hasExpCol) throw new Error('expenses page: expense fields (.exp-fields .hp-col) not found');
-    if(!m.hasBoard) throw new Error('expenses page: goals board (#g-board) not found');
-    if(m.boardH < 300) throw new Error(`goals board collapsed (height ${m.boardH}px)`);
-    await page.screenshot({ path: `${OUT}/02-expenses.png`, fullPage: true });
+    if(!m.board)             throw new Error('goals board did not render (no #np-content.g-mode .g-board)');
+    if(!m.hero.startsWith('$')) throw new Error(`goals hero annual-spend missing (got "${m.hero}")`);
+    if(m.cards < 1)          throw new Error(`goals board rendered no cards (cards=${m.cards})`);
+    if(m.once < 1)           throw new Error(`goals board missing the one-time card (once=${m.once})`);
+    if(m.slots < 6)          throw new Error(`goals board expected ≥6 ghost slots (slots=${m.slots})`);
+    if(m.boardH < 200)       throw new Error(`goals board height = ${m.boardH}px (expected ≥200 — flex-fill regression?)`);
+    await page.screenshot({ path: `${OUT}/02-goals.png`, fullPage: true });
   });
 
-  await step('net worth · snapshot renders two interaction gauges', async () => {
+  await step('net worth · snapshot is its own sub-page with four gauges', async () => {
     await page.click(`#np-subnav .stab[data-sub="snapshot"]`);
     await new Promise(r => setTimeout(r, 200));
     const m = await page.evaluate(() => ({
-      page:    !!document.querySelector('.np-snapshot-page .snap-2'),
+      page:    !!document.querySelector('.np-snapshot-page .snap'),
       metrics: document.querySelectorAll('.np-snapshot-page .metric').length,
       heroes:  [...document.querySelectorAll('.np-snapshot-page .m-hero')].map(e=>e.textContent),
-      eyes:    [...document.querySelectorAll('.np-snapshot-page .m-eye')].map(e=>e.textContent),
-      zones:   document.querySelectorAll('.np-snapshot-page .wr-zone').length,
+      cov:     !!document.querySelector('.np-snapshot-page .cov .fill'),
+      seg:     document.querySelectorAll('.np-snapshot-page .seg div').length,
     }));
     if(!m.page) throw new Error('snapshot page did not render');
-    if(m.metrics !== 2) throw new Error(`snapshot expected 2 gauges, got ${m.metrics}`);
-    if(m.zones !== 3) throw new Error(`withdrawal-rate zone badge expected 3 zones, got ${m.zones}`);
-    // Gauge 1 = a withdrawal % ; gauge 2 = the Bridge dollar figure (or $0).
-    if(!/%$/.test(m.heroes[0]||'')) throw new Error(`withdrawal hero not a %: ${JSON.stringify(m.heroes)}`);
-    if(!/^\$/.test(m.heroes[1]||'')) throw new Error(`bridge hero not a $ figure: ${JSON.stringify(m.heroes)}`);
+    if(m.metrics !== 4) throw new Error(`snapshot expected 4 metrics, got ${m.metrics}`);
+    if(!m.cov)         throw new Error('snapshot coverage bar missing');
+    if(m.seg !== 3) throw new Error(`snapshot tax bar expected 3 segments, got ${m.seg}`);
+    if(!m.heroes.every(h => /%$/.test(h))) throw new Error(`snapshot hero numbers not all %: ${JSON.stringify(m.heroes)}`);
     await page.screenshot({ path: `${OUT}/02-snapshot.png`, fullPage: true });
   });
 
-  await step('net worth · property card renders when added', async () => {
-    // Blank household has no property, so ADD one via the UI to exercise the
-    // property-card + mortgage-input rendering, then remove it to leave the
-    // household blank. (We don't assert the engine payoff line — a freshly-added
-    // property has a zero-term mortgage; that line appears once real terms are typed.)
+  await step('net worth · property card with engine-derived mortgage', async () => {
     await page.click(`#np-subnav .stab[data-sub="balance-sheet"]`);
     await new Promise(r => setTimeout(r, 200));
-    await page.click('.bs-add[data-add="property"], [data-add="property"]');
-    await new Promise(r => setTimeout(r, 250));
     const m = await page.evaluate(() => ({
       props:  document.querySelectorAll('.prop').length,
+      meta:   document.querySelector('.prop-meta')?.textContent || '',
       mortInputs: document.querySelectorAll('.prop-mort input').length,
     }));
-    if(m.props < 1) throw new Error('property card did not render after add');
+    if(m.props < 1) throw new Error('no property card rendered');
     if(m.mortInputs < 3) throw new Error(`property mortgage inputs missing (got ${m.mortInputs})`);
+    if(!/paid off at age/.test(m.meta)) throw new Error(`property meta missing engine payoff line: "${m.meta}"`);
     const card = await page.$('.prop');
     await card.screenshot({ path: `${OUT}/06-property.png` });
-    // Remove the temp property so the household stays blank.
-    await page.click('.prop .row-x, .prop .acct-x');
-    await new Promise(r => setTimeout(r, 150));
   });
 
   await step('add-row workflow: + add appends an editable row', async () => {
-    await page.click(`#np-subnav .stab[data-sub="income"]`);
+    await page.click(`#np-subnav .stab[data-sub="cashflow"]`);
     await new Promise(r => setTimeout(r, 200));
     const before = await page.evaluate(() => document.querySelectorAll('.hp-col .erow').length);
     await page.click('.hp-add[data-add="income"]');
@@ -189,16 +188,15 @@ try {
       goalTotal: document.querySelector('#scn-goals .sg-tcell')?.textContent || '',
     }));
     if(m.band < 1) throw new Error(`scenarios did not render (band circles=${m.band}, status="${m.status}")`);
-    // Goals section mirrors plan.goals across every column. On a blank household
-    // there are no goals, so only require the mirroring INVARIANT (cells ≥ rows)
-    // and, when goals exist, a dollar total — don't require demo goals to be present.
+    // Goals section: the demo plan has ≥1 goal, mirrored across every column.
+    if(m.goalRows < 1) throw new Error(`scenarios goals section rendered no goal rows (goalRows=${m.goalRows})`);
     if(m.goalCells < m.goalRows) throw new Error(`goals not mirrored into columns (cells=${m.goalCells}, rows=${m.goalRows})`);
-    if(m.goalRows > 0 && !m.goalTotal.startsWith('$')) throw new Error(`goals total row missing a dollar figure (got "${m.goalTotal}")`);
+    if(!m.goalTotal.startsWith('$')) throw new Error(`goals total row missing a dollar figure (got "${m.goalTotal}")`);
     await page.screenshot({ path: `${OUT}/03-scenarios.png`, fullPage: true });
   });
 
-  await step('cash-flow sub-tab opens with real height + rows', async () => {
-    await page.click('#scn-subnav .stab[data-scn="cashflow"]');
+  await step('cash-flow drawer opens with real height + rows', async () => {
+    await page.click('#cf-btn');
     await new Promise(r => setTimeout(r, 400));
     const m = await page.evaluate(() => {
       const d = document.querySelector('#cf-drawer');
@@ -235,5 +233,5 @@ try {
   await b.close();
   console.log(`\n✓ verify passed — screenshots in ${OUT}/`);
 } finally {
-  try { srv.kill('SIGTERM'); } catch { /* already dead — expected in fast-exit paths */ }
+  try { srv.kill('SIGTERM'); } catch {}
 }
