@@ -307,6 +307,11 @@ background-size:auto,auto,auto,auto,auto,72px 72px,72px 72px,auto;}
 .sg-name .sg-win{font-size:11.5px;letter-spacing:.04em;color:var(--ink-faint);margin-top:2px}
 .sg-cell{display:flex;align-items:center;gap:6px;border-bottom:1px solid var(--rule-faint);padding:0 16px;min-height:46px;background:var(--surface);font-family:'Inter';font-size:16px;font-weight:500;color:var(--ink-mute)}
 .sg-cell .sg-tag{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-faint);font-weight:500}
+.sg-cell .sg-cur{color:var(--ink-faint)}
+.sg-cell.edited{color:var(--gold-bright)}
+.sg-amt{font-family:'Inter',sans-serif;font-variant-numeric:tabular-nums;font-size:16px;font-weight:500;color:inherit;background:transparent;border:none;border-bottom:1px dashed transparent;outline:none;width:78px;padding:0 1px;transition:border-color .15s,background .15s}
+.sg-amt:hover{border-bottom-color:var(--rule-bright)}
+.sg-amt:focus{border-bottom-color:var(--gold);color:var(--ink-bright);background:rgba(201,146,74,.08)}
 .sg-total{display:flex;align-items:center;padding:0 14px;min-height:42px;font-size:12.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);font-weight:500}
 .sg-tcell{display:flex;align-items:center;gap:6px;padding:0 16px;min-height:42px;background:var(--surface);font-family:'Inter';font-size:15px;font-weight:500;color:var(--ink)}
 .sg-empty{grid-column:1 / -1;padding:10px 14px;font-size:13px;color:var(--ink-faint);font-style:italic}
@@ -2479,6 +2484,10 @@ function defaultLevers(){
     // slider, which frees it to hold any quoted age independently.
     pensionAuto: true,
     pensionAge: (plan.income.pension && plan.income.pension.startAge) || 65,
+    // Per-scenario goal-amount overrides, keyed by the goal's index in plan.goals.
+    // Empty = the goal funds at its base amount in this column; an entry overrides
+    // that goal's amount for THIS scenario only (edited inline in the Goals rows).
+    goalAmts: {},
   };
   syncPension(L);
   return L;
@@ -2512,7 +2521,7 @@ function loadScenarios(){
     // don't break when defaultLevers() grows new fields.
     const proto=defaultLevers();
     return arr.map(s=>({ name:String(s.name||'Scenario'), base:!!s.base,
-                         lev:{...proto, ...s.lev}, res:null }));
+                         lev:{...proto, ...s.lev, goalAmts:{...((s.lev&&s.lev.goalAmts)||{})}}, res:null }));
   }catch(e){ return null; }
 }
 // Wipe saved state and return to the first-run demo (escape hatch).
@@ -2520,6 +2529,14 @@ function resetScenarios(){
   try{ localStorage.removeItem(SCEN_KEY); }catch(e){}
   scenarios=demoScenarios(); baseSnapshot=defaultLevers();
   buildLevers(); plansDirty=true; runAll();
+}
+// Reset every non-baseline scenario back to MATCH the baseline (levers + goal
+// overrides), so all columns line up again — the obvious "undo my what-ifs"
+// button. Baseline itself is untouched.
+function resetToBaseline(){
+  const base=scenarios.find(s=>s.base); if(!base) return;
+  scenarios.forEach(s=>{ if(!s.base) s.lev=JSON.parse(JSON.stringify(base.lev)); });
+  saveScenarios(); buildLevers(); plansDirty=true; runAll();
 }
 // Add a new scenario (clones the current baseline's levers so it starts as a
 // neutral copy the advisor then adjusts). Capped at MAX_SCENARIOS.
@@ -3077,6 +3094,11 @@ function leversToOverrides(L){
 function planForScenario(L){
   const p=JSON.parse(JSON.stringify(plan));
   p.portfolio.riskProfile = L.risk;
+  // Per-scenario goal-amount overrides: swap in this column's amount for any goal
+  // the advisor edited here (keyed by plan.goals index). Untouched goals keep base.
+  if(L.goalAmts && Array.isArray(p.goals)){
+    p.goals = p.goals.map((g,gi)=> (L.goalAmts[gi]!=null) ? {...g, amount:L.goalAmts[gi]} : g);
+  }
   if(L.giftAmt > 0 && L.giftEndAge){
     p.liabilities = (p.liabilities || []).concat([{
       amount: L.giftAmt,
@@ -4401,11 +4423,6 @@ const LEVCFG=[
   // One-time event carries BOTH an amount and an age; edit:'event' renders the
   // two type-in boxes (amount + age) alongside the amount slider.
   {key:'eventAmt',  name:'One-Time Event', min:0,max:500000,step:5000, edit:'event', fmt:(v,L)=>['$'+(v||0).toLocaleString('en-US'),'@ '+L.eventAge]},
-  // Buy a property — a one-time purchase at a chosen age, with an optional
-  // "fund by selling primary" toggle (shown only when the household owns one).
-  // A common what-if (vacation/second home), so it lives on the lever surface,
-  // not the base plan.
-  {key:'buyAmt',    name:'Buy Property',   min:0,max:2000000,step:25000, edit:'buy', fmt:(v,L)=>['$'+(v||0).toLocaleString('en-US'),'@ '+L.buyAge]},
   {key:'risk',      name:'Allocation',     min:1,max:6,step:1, fmt:v=>[RISK_LABELS[v],'']},
   {key:'savings',   name:'Savings / yr',   min:0,max:200000,step:1000, edit:'money', fmt:v=>['$'+v.toLocaleString('en-US'),'/yr']},
   // Pension snaps between the ages that actually have entered amounts (62, 65).
@@ -4554,8 +4571,10 @@ function renderBand(){
   // #solve-panel below the band (it needs room — the gutter is only ~148px).
   const addBtn = scenarios.length < MAX_SCENARIOS
     ? `<button class="add-scen" title="Add scenario">+ Add</button>` : '';
+  const resetBtn = scenarios.some(s=>!s.base)
+    ? `<button class="solve-btn reset-scen" title="Reset every scenario back to match Baseline">↺ Reset</button>` : '';
   const gut = `<span>Scenario</span>${addBtn}
-    <button class="solve-btn" title="Find the least-disruptive path to a goal">✦ Solve…</button>`;
+    <button class="solve-btn" title="Find the least-disruptive path to a goal">✦ Solve…</button>${resetBtn}`;
   h=h.replace('<span>Scenario</span>', gut);
   $('#scn-band').innerHTML=h;
 }
@@ -4681,7 +4700,9 @@ function buildLevers(){
 function renderScenGoals(){
   const host=$('#scn-goals'); if(!host) return;
   syncGridCols();
-  const goals=(Array.isArray(plan.goals)?plan.goals:[]).filter(g=>(g.amount||0)>0);
+  // Keep each goal's ORIGINAL plan.goals index (gi) — that's the stable key the
+  // per-scenario overrides (lev.goalAmts) and planForScenario use.
+  const goals=(Array.isArray(plan.goals)?plan.goals:[]).map((g,gi)=>({g,gi})).filter(x=>(x.g.amount||0)>0);
   // Section header row: a gold "Goals" label in the gutter + a tinted header
   // cell per column so the section reads as a block under the levers.
   let h=`<div class="sg-head">Goals</div>`;
@@ -4690,25 +4711,31 @@ function renderScenGoals(){
     h+=`<div class="sg-empty">No goals yet — add them on the Goals page to see them here.</div>`;
     host.innerHTML=h; return;
   }
-  // One row per goal: name + age window in the gutter, the amount mirrored in
-  // every scenario column (recurring → /yr, single-year window → one-time).
-  let totRec=0, totOnce=0;
-  goals.forEach(g=>{
+  // One row per goal: name + age window in the gutter, then an EDITABLE amount per
+  // scenario column (recurring → /yr, single-year window → one-time). Each column's
+  // amount is its override (lev.goalAmts) or the base goal amount.
+  const colTot=scenarios.map(()=>({rec:0,once:0}));
+  goals.forEach(({g,gi})=>{
     const once=(g.startAge===g.endAge);
     const win = once ? `at age ${g.startAge}` : `age ${g.startAge}–${g.endAge}`;
     const tag = once ? 'one-time' : '/yr';
-    if(once) totOnce+=(g.amount||0); else totRec+=(g.amount||0);
     h+=`<div class="sg-name">${escHtml(g.name||'Goal')}<span class="sg-win">${win}</span></div>`;
     scenarios.forEach((s,ci)=>{
-      h+=`<div class="sg-cell ${s.base?'base':''}" data-col="${ci}">$${(g.amount||0).toLocaleString('en-US')}<span class="sg-tag">${tag}</span></div>`;
+      const ov = s.lev.goalAmts && s.lev.goalAmts[gi];
+      const amt = (ov!=null) ? ov : (g.amount||0);
+      if(once) colTot[ci].once+=amt; else colTot[ci].rec+=amt;
+      h+=`<div class="sg-cell ${s.base?'base':''} ${ov!=null?'edited':''}" data-col="${ci}"><span class="sg-cur">$</span><input class="sg-amt" data-col="${ci}" data-gi="${gi}" inputmode="numeric" value="${amt.toLocaleString('en-US')}"><span class="sg-tag">${tag}</span></div>`;
     });
   });
-  // Total row: recurring annual goal spend (the steady draw), with any one-time
-  // total noted alongside so a single spike isn't hidden inside the annual line.
-  const totTxt = `$${totRec.toLocaleString('en-US')}`
-    + (totOnce>0 ? ` <span class="sg-tag">+ $${totOnce.toLocaleString('en-US')} one-time</span>` : '');
+  // Total row: recurring annual goal spend per column (the steady draw), with any
+  // one-time total noted alongside so a single spike isn't hidden in the annual line.
   h+=`<div class="sg-total">Annual goal spend</div>`;
-  scenarios.forEach((s,ci)=>{ h+=`<div class="sg-tcell ${s.base?'base':''}" data-col="${ci}">${totTxt}</div>`; });
+  scenarios.forEach((s,ci)=>{
+    const t=colTot[ci];
+    const txt = `$${t.rec.toLocaleString('en-US')}`
+      + (t.once>0 ? ` <span class="sg-tag">+ $${t.once.toLocaleString('en-US')} one-time</span>` : '');
+    h+=`<div class="sg-tcell ${s.base?'base':''}" data-col="${ci}">${txt}</div>`;
+  });
   host.innerHTML=h;
 }
 // Stepper buttons for the discrete levers (delegated — survives rebuilds).
@@ -4740,6 +4767,26 @@ $('#scn-levers').addEventListener('click', e=>{
 // Typed value writes into the plan's benefit-by-age map for that exact age,
 // then every column refreshes (the amount is reference data shared across
 // scenarios — the DECISION is the age, not the amount).
+// ── Per-scenario goal-amount edits (delegated on #scn-goals) ──
+// Each column's goal amount is editable; an edit stores a per-scenario override
+// (lev.goalAmts[gi]) and feeds planForScenario on the next Run. Editing back to
+// the base amount clears the override (the cell stops reading as "edited").
+$('#scn-goals').addEventListener('input', e=>{
+  const inp=e.target.closest('.sg-amt'); if(!inp) return;
+  liveCommas(inp);
+});
+$('#scn-goals').addEventListener('change', e=>{
+  const inp=e.target.closest('.sg-amt'); if(!inp) return;
+  const ci=+inp.dataset.col, gi=+inp.dataset.gi, s=scenarios[ci];
+  if(!s) return;
+  const val=Math.round(parseFloat(String(inp.value).replace(/[^0-9.]/g,''))||0);
+  const base=(plan.goals[gi] && plan.goals[gi].amount)||0;
+  if(!s.lev.goalAmts) s.lev.goalAmts={};
+  if(val===base) delete s.lev.goalAmts[gi]; else s.lev.goalAmts[gi]=val;
+  saveScenarios();
+  renderScenGoals();                              // refresh per-column totals + edited cue
+  $('#status').textContent='Adjusted · Run to update';
+});
 // ── Scenario header: rename / add / remove (delegated on #scn-band) ──
 $('#scn-band').addEventListener('input', e=>{
   if(e.target.classList && e.target.classList.contains('col-rename')){
@@ -4761,6 +4808,7 @@ $('#scn-band').addEventListener('change', e=>{
 $('#scn-band').addEventListener('click', e=>{
   const x=e.target.closest('.col-x');
   if(x){ removeScenario(+x.dataset.col); return; }
+  if(e.target.closest('.reset-scen')){ resetToBaseline(); return; }
   if(e.target.closest('.add-scen')){ addScenario(); return; }
   if(e.target.closest('.solve-btn')){ solverFormOpen = true; renderSolvePanel(); return; }
   // On a phone, tapping a circle makes that scenario the active (editable) one.
