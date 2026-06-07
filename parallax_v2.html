@@ -99,7 +99,7 @@ background-size:auto,auto,auto,auto,auto,72px 72px,72px 72px,auto;}
    ~210px per scenario + the 148px label gutter; centered. */
 .scn-scroll,.page[data-page="scenarios"] .cf-toggle,.page[data-page="scenarios"] .cf-drawer{max-width:1180px;width:100%;margin-left:auto;margin-right:auto}
 .page[data-page="scenarios"] .eyebrow{position:sticky;top:0;z-index:25;background:rgba(18,14,8,.76);backdrop-filter:blur(22px) saturate(1.12);-webkit-backdrop-filter:blur(22px) saturate(1.12);padding:20px 0 16px}
-.scn-band{position:sticky;top:53px;z-index:20;display:grid;grid-template-columns:218px repeat(3,1fr);column-gap:14px}
+.scn-band{position:sticky;top:53px;z-index:20;display:grid;grid-template-columns:218px repeat(3,1fr);column-gap:24px}
 /* Opaque backdrop behind the WHOLE sticky band (not just a 10px lip) so scrolling
    lever rows can't bleed through the translucent glass column-cards. */
 .scn-band::before{content:'';position:absolute;left:0;right:0;top:-10px;bottom:0;background:rgba(18,14,8,.76);backdrop-filter:blur(22px) saturate(1.12);-webkit-backdrop-filter:blur(22px) saturate(1.12);z-index:-1}
@@ -223,7 +223,7 @@ background-size:auto,auto,auto,auto,auto,72px 72px,72px 72px,auto;}
 .circle-delta{margin-top:10px;font-family:'Inter';font-size:13px;font-weight:600;letter-spacing:.01em;color:var(--ink-faint);font-variant-numeric:tabular-nums;text-align:center;min-height:14px}
 .circle-delta.base{color:var(--ink-ghost);font-weight:500;letter-spacing:.14em;text-transform:uppercase;font-size:10.5px}
 
-.scn-levers{display:grid;grid-template-columns:218px repeat(3,1fr);column-gap:14px}
+.scn-levers{display:grid;grid-template-columns:218px repeat(3,1fr);column-gap:24px}
 .lev-name{display:flex;align-items:center;padding:0 24px;min-height:62px;font-size:16.5px;letter-spacing:.035em;text-transform:uppercase;color:var(--ink-mute);font-weight:600;line-height:1.25;white-space:nowrap}
 .lev-cell{display:flex;flex-direction:column;justify-content:center;gap:7px;border-bottom:1px solid var(--rule-faint);padding:0 16px;min-height:62px;background:var(--surface)}
 .lev-val{font-family:'Inter';font-size:16.5px;font-weight:500;color:var(--ink-mute);display:flex;align-items:center;gap:6px}
@@ -265,7 +265,7 @@ background-size:auto,auto,auto,auto,auto,72px 72px,72px 72px,auto;}
 .lev-step{display:inline-flex;align-items:center;gap:7px;margin-left:auto}
 .step-btn{width:20px;height:20px;border-radius:5px;border:1px solid var(--rule-bright);background:var(--surface);color:var(--ink-mute);font-family:'Inter';font-size:15px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0}
 .step-btn:hover{border-color:var(--gold);color:var(--gold)}
-.scn-foot{display:grid;grid-template-columns:218px repeat(3,1fr);column-gap:14px}
+.scn-foot{display:grid;grid-template-columns:218px repeat(3,1fr);column-gap:24px}
 .foot-cell{padding:12px 14px;font-family:'Inter';font-size:14px;color:var(--ink-mute)}
 .foot-cell:not(:first-child){background:var(--surface);border-radius:0 0 18px 18px}
 .foot-cell b{color:var(--ink);font-weight:500}
@@ -280,8 +280,11 @@ background-size:auto,auto,auto,auto,auto,72px 72px,72px 72px,auto;}
 .band-cell:not(.label),.lev-cell,.sg-head.sg-col,.sg-cell,.sg-tcell,.foot-cell:not(:first-child){
   backdrop-filter:var(--glass-blur-sm);
   -webkit-backdrop-filter:var(--glass-blur-sm);
-  /* continuous tube: left rail catches light, right stays quiet, faint bronze ring */
-  box-shadow:inset 1px 0 0 rgba(255,255,255,.10), inset -1px 0 0 rgba(255,255,255,.035),
+  /* continuous tube: sharpened side rails define each column edge crisply (so
+     adjacent scenarios read as separate cards, not one blurred block) — only the
+     LEFT/RIGHT insets are strengthened, never top/bottom, so a column stays
+     seamless top-to-bottom. */
+  box-shadow:inset 2px 0 0 rgba(255,255,255,.16), inset -2px 0 0 rgba(255,255,255,.08),
              inset 0 0 0 1px rgba(200,160,70,.05);
 }
 .band-cell:not(.label){
@@ -300,7 +303,7 @@ background-size:auto,auto,auto,auto,auto,72px 72px,72px 72px,auto;}
 /* Goals section on the Scenarios tab — a read-only mirror of the base-plan
    goals. Same 148px + N-column grid as the levers so rows stay registered.
    Quiet (no inputs, no sliders): it's a reflection of the plan, not a lever. */
-.scn-goals{display:grid;grid-template-columns:218px repeat(3,1fr);column-gap:14px}
+.scn-goals{display:grid;grid-template-columns:218px repeat(3,1fr);column-gap:24px}
 .sg-head{display:flex;align-items:center;padding:14px 14px 8px;font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);font-weight:600}
 .sg-head.sg-col{background:var(--surface)}
 .sg-name{display:flex;flex-direction:column;justify-content:center;padding:0 24px;min-height:46px;font-size:15.5px;color:var(--ink-mute);line-height:1.25}
