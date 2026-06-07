@@ -1219,6 +1219,23 @@ function analyzeResults(sims, p){
   withCent.sort((a, b) => a.c - b.c);
   const typicalPath = withCent[0].sim;
 
+  // Representative seeded path for the cash-flow table: the BUNDLE INDEX of the path
+  // whose year-to-year return volatility is closest to the median across all sims —
+  // a typical real life, not a wild outlier. Exposed as an index (sims are in bundle
+  // order) so the UI can show the SAME seeded market draw in every scenario column
+  // (apples-to-apples). The "which path is representative" judgment lives HERE in the
+  // truth source; the UI only reads the index and coordinates it across columns.
+  function returnStdDev(sim){
+    const rs = sim.rows.map(r => r.realReturnUsed || r.returnRate || 0);
+    if(!rs.length) return 0;
+    const m = rs.reduce((a, b) => a + b, 0) / rs.length;
+    return Math.sqrt(rs.reduce((s, r) => s + (r - m) ** 2, 0) / rs.length);
+  }
+  const sdList = sims.map(returnStdDev);
+  const medianSd = sdList.slice().sort((a, b) => a - b)[Math.floor(sdList.length / 2)];
+  let representativePathIndex = 0, bestSdGap = Infinity;
+  sdList.forEach((sd, i) => { const g = Math.abs(sd - medianSd); if(g < bestSdGap){ bestSdGap = g; representativePathIndex = i; } });
+
   // DETERMINISTIC EXPECTED PATH — one coherent run at the allocation's expected
   // real return every year (no random draws). This is what the Scenarios cash-flow
   // table shows: smooth, steady growth + the real cash-flow mechanics (savings,
@@ -1297,6 +1314,7 @@ function analyzeResults(sims, p){
   return {
     paths, terminal, envelope,
     expectedReturn,
+    representativePathIndex,
     sims,
     successRate: (survived / ns) * 100,
     survived, total: ns,

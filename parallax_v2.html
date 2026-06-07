@@ -3143,29 +3143,14 @@ let running=false;
 // causing the % to drift between identical clicks). Invalidated to null
 // whenever the plan changes in the Inputs tab.
 let sharedPaths=null;
-// Index into the SEEDED block-bootstrap bundle used for the cash-flow table. The
-// bundle (sharedPaths) is generated from a fixed seed, so this path reconstructs
-// the EXACT same sequence of real historical blocks on every Run. We use the SAME
-// index for every scenario column, so the cash-flow shows one fixed market
-// sequence and only the LEVERS differ between columns (apples-to-apples, the
-// Scenarios doctrine). The index is chosen once (from the baseline) as the path
-// whose year-to-year volatility is closest to the bundle median — a representative
-// real life, not a wild outlier.
+// Bundle index used for the cash-flow table. The bundle (sharedPaths) is seeded, so
+// path i reconstructs the EXACT same real-block sequence every Run. The ENGINE picks
+// which index is representative (res.representativePathIndex — median-volatility, a
+// typical real life); the UI just reads the BASELINE's index and uses the SAME index
+// for every scenario column, so all columns share one fixed market sequence and only
+// the LEVERS differ (apples-to-apples, the Scenarios doctrine). The "which path is
+// representative" math stays in the engine (truth source), not here.
 let cfPathIndex=0;
-function pickRepresentativePathIndex(res){
-  if(!res || !res.sims || !res.sims.length) return 0;
-  const stdev = sim => {
-    const rs = (sim.rows||[]).map(r => r.realReturnUsed || r.returnRate || 0);
-    if(!rs.length) return 0;
-    const m = rs.reduce((a,b)=>a+b,0)/rs.length;
-    return Math.sqrt(rs.reduce((s,r)=>s+(r-m)**2,0)/rs.length);
-  };
-  const sds = res.sims.map(stdev);
-  const med = sds.slice().sort((a,b)=>a-b)[Math.floor(sds.length/2)];
-  let best=0, bestD=Infinity;
-  sds.forEach((v,i)=>{ const d=Math.abs(v-med); if(d<bestD){ bestD=d; best=i; } });
-  return best;
-}
 
 /* ── run the engine for all three columns (shared nothing; each its own MC) ── */
 function runAll(){
@@ -3202,9 +3187,10 @@ function runAll(){
           s.res=runSimulation(p, ov, sharedPaths);
         }catch(err){ s.res=null; failed++; if(window.PXDEBUG) console.error('Scenario failed:', s.name, err); }
       });
-      // Pick the representative seeded-path index ONCE (from the baseline), reused
+      // Read the engine's representative seeded-path index from the baseline, reused
       // for every column's cash-flow so all columns share the same market sequence.
-      cfPathIndex = pickRepresentativePathIndex(scenarios.find(s=>s.base)?.res || scenarios[0]?.res);
+      const baseRes = scenarios.find(s=>s.base)?.res || scenarios[0]?.res;
+      cfPathIndex = (baseRes && baseRes.representativePathIndex) || 0;
       renderBand(); renderSolvePanel(); renderFoot(); renderCashflow(); buildSeqSelect(); runSeq();
       $('#status').textContent = failed ? `Complete · ${failed} scenario${failed>1?'s':''} could not run` : 'Complete';
     }catch(e){ $('#status').textContent='Error'; if(window.PXDEBUG) console.error(e); }
@@ -4071,21 +4057,21 @@ function drawSeqChart(runs, retAge){
   const n=Math.max(...all.map(a=>a.length));
   const ageStart=retAge, ageEnd=retAge+n-1;
   // Decision-zone cap: for sequence risk the readable region is the entry balance
-  // DOWN to zero (will the money last?). A kind market can compound well above
-  // that and flatten the downside into an unreadable band. So cap the axis a bit
-  // above the entry balance; any line that climbs past it rises off the top
-  // (clipped) with its true ending still in its card. When nothing exceeds the
-  // ceiling (e.g. all-stress markets) we use the real max, so no space is wasted.
-  // Decision-zone ceiling (entry → 0 is the readable region for sequence risk).
-  // Fit everything when it stays under ~2.2x entry; only a true runaway gets
-  // capped — and then values are CLAMPED to the ceiling so the line rides the top
-  // cleanly instead of fragmenting in and out of view. Axis rounded to nice ticks.
+  // DOWN to zero (will the money last?). A kind market can compound far above that
+  // and squash the downside into an unreadable sliver. So condense the axis to just
+  // above the entry balance (~1.4x): the survival story (entry → 0) gets most of the
+  // height, and a runaway boom line simply RISES OFF THE TOP (clipped by #seqclip)
+  // with its true ending still shown in its card — it does NOT ride flat along the
+  // ceiling. When everything stays under the ceiling we use the real max, so no
+  // vertical space is wasted. Axis rounded to nice ticks.
   const realMax=Math.max(...all.map(a=>Math.max(...a)));
-  const ceiling=entry>0 ? entry*2.2 : realMax;
+  const ceiling=entry>0 ? entry*1.4 : realMax;
   const maxBal=niceCeil(Math.min(realMax, ceiling));
   const x0=PADL, x1=W-PADR, y0=PADT, y1=H-PADB;
   const X=idx=> x0+(x1-x0)*(idx/(Math.max(1,n-1)));
-  const Y=v => y1-(Math.min(Math.max(0,v),maxBal)/maxBal)*(y1-y0);
+  // No clamp to maxBal: values above the ceiling map above y0 and are clipped, so a
+  // boom line exits the top cleanly instead of flat-lining along it. (Floor stays 0.)
+  const Y=v => y1-(Math.max(0,v)/maxBal)*(y1-y0);
   let h=axes(W,H,ageStart,ageEnd,maxBal);
   h+=`<defs><clipPath id="seqclip"><rect x="${x0}" y="${y0-2}" width="${x1-x0}" height="${y1-y0+2}"/></clipPath></defs><g clip-path="url(#seqclip)">`;
   // Per line: a paper-colored HALO underneath, then the colored line on top. The
@@ -4128,8 +4114,11 @@ function drawSeqOverlay(){
   const sx=rect.width/seqHover.W, sy=rect.height/seqHover.H;
   // Persistent end-of-path $ labels (survivors only; depleted lines are carried
   // by the fingerprint cards). De-collide vertically so stacked ends stay legible.
+  // Clamp marker Y into the chart area: a boom line's value can map above the top
+  // (the line itself clips), but its end label must stay pinned at the top edge.
+  const clampY=v=>Math.max(seqHover.y0, Math.min(seqHover.y1, seqHover.Y(v)));
   const labs=seqHover.lines.filter(l=>!l.dep).map(l=>({
-    px:seqHover.X(l.idx)*sx, py:seqHover.Y(l.endV)*sy, c:l.c, txt:fmtM(l.endV) }));
+    px:seqHover.X(l.idx)*sx, py:clampY(l.endV)*sy, c:l.c, txt:fmtM(l.endV) }));
   labs.sort((a,b)=>a.py-b.py);
   for(let i=1;i<labs.length;i++){ if(labs[i].py-labs[i-1].py<15) labs[i].py=labs[i-1].py+15; }
   let html='<div id="seq-live"></div>';
@@ -4145,8 +4134,9 @@ function renderSeqHoverAt(idx){
   const gx=seqHover.X(idx)*sx, topPx=seqHover.y0*sy, botPx=seqHover.y1*sy;
   let html=`<div class="seq-guide" style="left:${gx}px;top:${topPx}px;height:${botPx-topPx}px"></div>`;
   const age=seqHover.ageStart+idx, rows=[];
+  const clampY=v=>Math.max(seqHover.y0, Math.min(seqHover.y1, seqHover.Y(v)));
   seqHover.lines.forEach(l=>{ if(idx>l.idx) return; const v=l.vals[idx]; if(v==null) return;
-    html+=`<div class="seq-dot" style="left:${gx}px;top:${seqHover.Y(v)*sy}px;background:${l.c}"></div>`;
+    html+=`<div class="seq-dot" style="left:${gx}px;top:${clampY(v)*sy}px;background:${l.c}"></div>`;
     rows.push({c:l.c,year:l.year,v}); });
   if(!rows.length){ live.innerHTML=html; return; }
   rows.sort((a,b)=>b.v-a.v);
