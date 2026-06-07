@@ -5140,8 +5140,11 @@ function monoPath(pts){
 // numbers (so ticks read $2M/$4M/… not $3.4M/$5.1M…).
 function niceCeil(v){
   if(!(v>0)) return 1;
+  // Round up to a value with nice quarter-gridlines (4 ticks). Finer step options
+  // (…3,4,6,8…) keep the overshoot small — e.g. $11.9M rounds to $12M, not $20M —
+  // so the condensed sequencing cap actually stays condensed.
   const step0=v/4, mag=Math.pow(10, Math.floor(Math.log10(step0))), n=step0/mag;
-  const niceN = n<=1?1 : n<=2?2 : n<=2.5?2.5 : n<=5?5 : 10;
+  const niceN = n<=1?1 : n<=1.5?1.5 : n<=2?2 : n<=2.5?2.5 : n<=3?3 : n<=4?4 : n<=5?5 : n<=6?6 : n<=8?8 : 10;
   return niceN*mag*4;
 }
 function smoothPath(pts){
