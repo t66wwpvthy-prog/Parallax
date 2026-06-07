@@ -78,7 +78,7 @@ background-size:auto,auto,auto,auto,auto,72px 72px,72px 72px,auto;}
 
 .hdr{display:flex;align-items:center;gap:18px;padding:6px 32px;background:rgba(15,11,6,.78);backdrop-filter:blur(30px) saturate(1.16);-webkit-backdrop-filter:blur(30px) saturate(1.16);flex:0 0 auto;position:relative;z-index:50;box-shadow:inset 0 -1px 0 var(--rule-faint),inset 0 1px 0 rgba(255,255,255,.06),0 18px 40px -30px rgba(0,0,0,.7)}
 .hdr-brand{display:flex;align-items:center}
-.brand-logo{height:46px;width:auto;display:block;opacity:1}
+.brand-logo{height:62px;width:auto;display:block;opacity:1}
 .wordmark{font-size:16px;font-weight:600;letter-spacing:.30em;text-transform:uppercase;color:var(--ink-bright)}
 .hdr-tabs{display:flex;margin-left:24px}
 .htab{background:none;border:none;border-bottom:2px solid transparent;color:var(--ink-mute);cursor:pointer;font-family:'Sora';font-size:13.5px;letter-spacing:.2em;text-transform:uppercase;padding:6px 20px;font-weight:500;transition:color .2s,border-color .2s}
@@ -432,9 +432,16 @@ background-size:auto,auto,auto,auto,auto,72px 72px,72px 72px,auto;}
 .np-snapshot-page{padding-top:4px}
 /* Two-gauge Snapshot: each gauge is its own glass card, side by side. Read-only
    diagnosis — big toned hero so good/bad reads at a glance. */
-.np-snapshot-page .snap-2{display:grid;grid-template-columns:1fr 1fr;gap:24px;max-width:960px;align-items:stretch}
-.np-snapshot-page .snap-2 .metric{gap:22px;padding:28px 30px 30px}
-.np-snapshot-page .m-hero{font-size:44px}
+/* Fill the page: the two gauges span the full width and a good chunk of height,
+   content pushed to the top and bottom of each card so there's no dead space. */
+.np-snapshot-page .snap-2{display:grid;grid-template-columns:1fr 1fr;gap:28px;max-width:none;align-items:stretch}
+.np-snapshot-page .snap-2 .metric{gap:24px;padding:40px 44px;min-height:64vh;justify-content:space-between}
+.np-snapshot-page .m-hero{font-size:60px}
+.np-snapshot-page .m-eye{font-size:13px}
+.np-snapshot-page .m-sub{font-size:15px}
+.np-snapshot-page .stat-lbl{font-size:11.5px}
+.np-snapshot-page .stat-val{font-size:19px}
+.np-snapshot-page .wr-zone{padding:13px 0;font-size:12.5px}
 /* Neutrality: the hero carries the verdict in colour — green when fine, gold at
    the moderate edge, clay when it's elevated. (Overrides the monochrome default.) */
 .np-snapshot-page .m-hero.teal{color:#6ec9a0}
@@ -731,7 +738,7 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield}
   /* Header wraps to two rows: brand + Run on top, the three tabs on a centered
      row below. Status text is hidden on a phone (the circles/levers show state). */
   .hdr{flex-wrap:wrap;gap:8px 12px;padding:6px 14px;position:sticky;top:0;z-index:60}
-  .brand-logo{height:40px}
+  .brand-logo{height:50px}
   .hdr-tabs{margin-left:0;order:3;width:100%;display:flex;justify-content:center;gap:2px;overflow-x:auto;-webkit-overflow-scrolling:touch}
   .hdr-tabs::-webkit-scrollbar{display:none}
   .htab{padding:7px 13px;font-size:13.5px;letter-spacing:.1em;white-space:nowrap;flex:0 0 auto}
@@ -2585,8 +2592,10 @@ function guaranteedAt(age){
   return g;
 }
 function snapshotMetrics(){
-  const a = plan.portfolio.accounts;
-  const invest = (a.taxable.balance||0) + (a.traditional.balance||0) + (a.roth.balance||0);
+  // Use the SHARED investable total (includes the 401k/IRA "extra accounts"),
+  // not just the three base buckets — otherwise the withdrawal rate divides by a
+  // fraction of the real portfolio and reads wildly high / broken.
+  const invest = investableTotal();
   const retireAge = plan.household.primary.retirementAge;
   const endAge    = plan.household.primary.planEndAge;
   // Year-one withdrawal: the spending the portfolio funds in the first
@@ -2601,7 +2610,7 @@ function snapshotMetrics(){
   let bridgeTotal = 0;
   for(let age=retireAge; age<fullOnAge; age++) bridgeTotal += Math.max(0, retireSpendAt(age) - guaranteedAt(age));
   const bridgeYears = Math.max(0, fullOnAge - retireAge);
-  const bridgeAvg = bridgeYears>0 ? bridgeTotal/bridgeYears : 0;
+  const bridgeAvg = bridgeYears>0 ? Math.round(bridgeTotal/bridgeYears) : 0;
   const hasPension = (plan.income.pension && plan.income.pension.startAge!=null &&
                       ((plan.income.pension.benefitByAge||{})[plan.income.pension.startAge]||0) > 0);
   return { invest, gap1, wr, bridgeTotal, bridgeYears, bridgeAvg, fullOnAge, hasPension };
@@ -4137,7 +4146,7 @@ const SEQ_YEARS=[
   {y:1966, tag:'the lost decade',   c:'#7e9fb5', on:true },
   {y:1973, tag:'stagflation',       c:'#6fa896', on:true },
   {y:1987, tag:'Black Monday',      c:'#a3a673', on:false},
-  {y:1995, tag:'the 90s boom',      c:'#c0975a', on:true },
+  {y:1995, tag:'the 90s boom',      c:'#c0975a', on:false},
   {y:2000, tag:'dot-com crash',     c:'#b8856b', on:true },
   {y:2008, tag:'financial crisis',  c:'#8095a8', on:false},
   {y:2009, tag:'the recovery bull', c:'#a8a085', on:false},
