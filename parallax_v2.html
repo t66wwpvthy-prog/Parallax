@@ -4338,8 +4338,8 @@ body.sg-on .wrap *{cursor:crosshair}
   const q=s=>document.querySelector(s);
   const fab=q('#sg-fab'),bar=q('#sg-bar'),pop=q('#sg-pop'),toast=q('#sg-toast');
   const nice={'net-worth':'Household','scenarios':'Scenarios','sequencing':'Sequencing'};
-  const save=()=>{ try{ localStorage.setItem(KEY,JSON.stringify(notes)) }catch{} };
-  const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const save=()=>{ try{ localStorage.setItem(KEY,JSON.stringify(notes)) }catch(e){ if(window.PXDEBUG) console.error('notes save failed:',e); } };
+  const esc=escHtml;
   const activePage=()=>document.querySelector('.htab.on')?.dataset.page||'';
   function colName(el){ const c=el.closest('[data-col]'); if(!c)return''; const i=+c.dataset.col;
     const names=[...document.querySelectorAll('.col-name')].map(n=>n.textContent.replace(/[✕✎]/g,'').trim());

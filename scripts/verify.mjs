@@ -235,5 +235,5 @@ try {
   await b.close();
   console.log(`\n✓ verify passed — screenshots in ${OUT}/`);
 } finally {
-  try { srv.kill('SIGTERM'); } catch {}
+  try { srv.kill('SIGTERM'); } catch { /* already dead — expected in fast-exit paths */ }
 }
