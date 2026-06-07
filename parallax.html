@@ -429,23 +429,20 @@ background-size:auto,auto,auto,auto,auto,72px 72px,72px 72px,auto;}
    panel — hairline-separated rows, smaller heroes, slim bars — not four forced
    boxes. Constrained width so it reads as a focused report card, not a sprawl. */
 .np-snapshot-page{padding-top:4px}
-.np-snapshot-page .snap{display:flex;flex-direction:column;gap:0;max-width:560px;
-  background:var(--surface);border-radius:var(--glass-radius);padding:2px 24px;
-  backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);
-  background-image:var(--glass-sheen);
-  box-shadow:var(--glass-shadow)}
-.np-snapshot-page .metric{background:none;background-image:none;backdrop-filter:none;-webkit-backdrop-filter:none;
-  box-shadow:none;border-radius:0;padding:16px 0;gap:8px;border-top:1px solid var(--rule-faint)}
-.np-snapshot-page .metric:first-child{border-top:none}
-.np-snapshot-page .m-hero{font-size:28px}
-.np-snapshot-page .m-eye{margin-bottom:5px}
-.np-snapshot-page .m-sub{font-size:13px;margin-top:5px;line-height:1.4}
-.np-snapshot-page .stat-row{gap:6px 18px;margin-top:8px}
-.np-snapshot-page .stat-val{font-size:15px}
-.np-snapshot-page .stat-lbl{font-size:10.5px}
-.np-snapshot-page .cov,.np-snapshot-page .seg{height:28px}
-.np-snapshot-page .cov .fill{font-size:11.5px}
-.np-snapshot-page .cov-legend,.np-snapshot-page .seg-legend{font-size:11.5px;margin-top:6px}
+/* Two-gauge Snapshot: each gauge is its own glass card, side by side. Read-only
+   diagnosis — big toned hero so good/bad reads at a glance. */
+.np-snapshot-page .snap-2{display:grid;grid-template-columns:1fr 1fr;gap:24px;max-width:960px;align-items:stretch}
+.np-snapshot-page .snap-2 .metric{gap:22px;padding:28px 30px 30px}
+.np-snapshot-page .m-hero{font-size:44px}
+/* Neutrality: the hero carries the verdict in colour — green when fine, gold at
+   the moderate edge, clay when it's elevated. (Overrides the monochrome default.) */
+.np-snapshot-page .m-hero.teal{color:#6ec9a0}
+.np-snapshot-page .m-hero.gold{color:var(--gold-bright)}
+.np-snapshot-page .m-hero.clay{color:#d47868}
+.np-snapshot-page .m-eye{margin-bottom:6px}
+.np-snapshot-page .m-sub{font-size:13.5px;margin-top:6px;line-height:1.45;max-width:42ch}
+.np-snapshot-page .wr-zone br{line-height:1.5}
+@media (max-width:760px){ .np-snapshot-page .snap-2{grid-template-columns:1fr} }
 .np-gutter{position:sticky;top:0}
 .np-gutter .lbl{font-family:'Sora';font-size:11.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-faint);font-weight:600;margin-bottom:4px}
 .np-gutter .big-num{font-family:'Inter';font-size:37px;line-height:1.05;font-weight:600;color:var(--champagne);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
@@ -3936,145 +3933,119 @@ function renderHybrid(pageKey){
 }
 
 /* ── Snapshot (the diagnosis) ──────────────────────────────────────
-   Three diagnostic gauges, each a RELATIONSHIP between numbers already
-   entered — not engine projections. These are static rules-of-thumb (like a
-   balance-sheet ratio): the income floor, the year-one withdrawal rate, and
-   the tax-location mix. The engine still owns the real probability (Scenarios);
-   this page is the at-a-glance condition of the household TODAY. Neutrality:
-   the same gauges read green when the news is good and red when it isn't —
-   the tool has no thesis, it just shows what's there. */
+   The Snapshot is the read-only condition of the household TODAY — the bridge
+   between the inputs and the planning in Scenarios. Every gauge is an
+   INTERACTION of two or more entered numbers (a tension), never a static
+   descriptor, and only things the advisor can actually move. Neutral by design:
+   the same gauge reads green when the news is good and clay when it isn't — the
+   tool has no thesis, it just shows what's there. Pure ratios/sums of entered
+   values (balance-sheet style) — NO simulation, the engine still owns
+   probability in Scenarios. */
+// Steady annual retirement spending at a given primary age, in today's dollars:
+// essentials + any age-active extra expenses + any age-active goals. (startAge/
+// endAge are kept in primary-age by syncAnchors, so anchored rows resolve here.)
+function retireSpendAt(age){
+  const e = plan.expenses || {};
+  let s = (e.living||0) + (e.housing||0) + (e.healthcare||0);
+  (e.extra||[]).forEach(x => { if(x && age>=x.startAge && age<=x.endAge) s += x.amount||0; });
+  (plan.goals||[]).forEach(g => { if(g && age>=g.startAge && age<=g.endAge) s += g.amount||0; });
+  return s;
+}
+// Guaranteed-for-LIFE income active at a given primary age: SS (primary +
+// spouse, each at its own claim age) + pension at its start age. Other income
+// is deliberately excluded — it isn't lifetime-guaranteed, so the bridge stays
+// honest about what the portfolio must RELIABLY cover.
+function guaranteedAt(age){
+  const inc = plan.income || {};
+  const ssP = inc.socialSecurity && inc.socialSecurity.primary;
+  const ssS = inc.socialSecurity && inc.socialSecurity.spouse;
+  const pen = inc.pension || {};
+  const sp  = plan.household && plan.household.spouse;
+  const sOff = sp ? (sp.currentAge - plan.household.primary.currentAge) : 0;
+  let g = 0;
+  if(ssP && age >= (ssP.claimAge||67)) g += ssP.pia||0;
+  if(ssS && sp && (age + sOff) >= (ssS.claimAge||67)) g += ssS.pia||0;
+  if(pen.startAge!=null && age >= pen.startAge) g += (pen.benefitByAge && pen.benefitByAge[pen.startAge]) || 0;
+  return g;
+}
 function snapshotMetrics(){
   const a = plan.portfolio.accounts;
-  const taxable = a.taxable.balance||0, trad = a.traditional.balance||0, roth = a.roth.balance||0;
-  const invest = taxable + trad + roth;
-  // Guaranteed-for-life income at retirement: both SS benefits + pension at its
-  // chosen start age (today's-dollar values straight off the inputs).
-  const ssP = plan.income.socialSecurity.primary.pia||0;
-  const ssS = (plan.income.socialSecurity.spouse && plan.income.socialSecurity.spouse.pia)||0;
-  const pen = plan.income.pension||{};
-  const penAmt = (pen.benefitByAge && pen.startAge!=null) ? (pen.benefitByAge[pen.startAge]||0) : 0;
-  const guaranteed = ssP + ssS + penAmt;
-  const essentials = (plan.expenses.living||0) + (plan.expenses.healthcare||0);
-  const goals = (Array.isArray(plan.goals) ? plan.goals : []).reduce((s,g)=>s+(g.amount||0),0);
-  const totalSpend = essentials + goals;
-  const floorPct = essentials>0 ? guaranteed/essentials : 0;
-  const fromPortfolioEssential = Math.max(0, essentials - guaranteed);
-  const gap = Math.max(0, totalSpend - guaranteed);
-  const wr = invest>0 ? gap/invest : 0;
-  // Replacement ratio: GUARANTEED retirement income (SS + pension) as a share of
-  // gross working income. Portfolio withdrawals are NOT income — they're spending
-  // the portfolio funds — so they're deliberately excluded here. (A "sustainable
-  // withdrawal amount" would need a solve, and would be framed as exactly that.)
-  const workingIncome = plan.income.workingIncome || 0;
-  const replacement = workingIncome>0 ? guaranteed/workingIncome : null;
-  return { taxable, trad, roth, invest, guaranteed, essentials, goals, totalSpend,
-           floorPct, fromPortfolioEssential, gap, wr, workingIncome, replacement };
+  const invest = (a.taxable.balance||0) + (a.traditional.balance||0) + (a.roth.balance||0);
+  const retireAge = plan.household.primary.retirementAge;
+  const endAge    = plan.household.primary.planEndAge;
+  // Year-one withdrawal: the spending the portfolio funds in the first
+  // retirement year ÷ investable. Interaction of spend × guaranteed income × pot.
+  const gap1 = Math.max(0, retireSpendAt(retireAge) - guaranteedAt(retireAge));
+  const wr = invest>0 ? gap1/invest : 0;
+  // The Bridge: the cumulative dollars the portfolio must front from retirement
+  // until guaranteed income reaches its steady maximum (all SS + pension on).
+  const steadyMax = guaranteedAt(endAge);
+  let fullOnAge = retireAge;
+  while(fullOnAge < endAge && guaranteedAt(fullOnAge) < steadyMax) fullOnAge++;
+  let bridgeTotal = 0;
+  for(let age=retireAge; age<fullOnAge; age++) bridgeTotal += Math.max(0, retireSpendAt(age) - guaranteedAt(age));
+  const bridgeYears = Math.max(0, fullOnAge - retireAge);
+  const bridgeAvg = bridgeYears>0 ? bridgeTotal/bridgeYears : 0;
+  const hasPension = (plan.income.pension && plan.income.pension.startAge!=null &&
+                      ((plan.income.pension.benefitByAge||{})[plan.income.pension.startAge]||0) > 0);
+  return { invest, gap1, wr, bridgeTotal, bridgeYears, bridgeAvg, fullOnAge, hasPension };
 }
 function renderSnapshot(){
   const m = snapshotMetrics();
-  const pct = v => (v*100);
   const pct1 = v => (v*100).toFixed(1)+'%';
-  const pct0 = v => Math.round(v*100)+'%';
 
-  // 1 · Income floor — floating stats (no bar: bar implied a grade, this is a fact).
-  const floorTone = m.floorPct>=0.9 ? 'teal' : m.floorPct>=0.6 ? 'gold' : 'clay';
-  const incomeFloor = `
-    <div class="metric">
-      <div>
-        <div class="m-eye">Income Floor</div>
-        <div class="m-hero ${floorTone}">${pct0(m.floorPct)}</div>
-        <div class="m-sub">of essential spending is covered for life by guaranteed income</div>
-      </div>
-      <div class="stat-row">
-        <div class="stat-item"><div class="stat-lbl">Guaranteed for life</div><div class="stat-val">${fmtMoney(m.guaranteed)}</div></div>
-        <div class="stat-item"><div class="stat-lbl">Drawn from portfolio</div><div class="stat-val">${fmtMoney(m.fromPortfolioEssential)}</div></div>
-        <div class="stat-item"><div class="stat-lbl">Essential spending</div><div class="stat-val">${fmtMoney(m.essentials)}</div></div>
-      </div>
-    </div>`;
-
-  // 2 · Withdrawal rate — neutral metric, no grading. Shown for reference and
-  // as a starting point for advisor conversation, not a verdict.
+  // 1 · Withdrawal Rate · Year One — spend the portfolio funds ÷ investable.
+  const wrTone = m.wr<=0.04 ? 'teal' : m.wr<=0.055 ? 'gold' : 'clay';
+  const z = t => wrTone===t ? ` active-${t}` : '';
   const withdrawal = `
     <div class="metric">
       <div>
         <div class="m-eye">Withdrawal Rate · Year One</div>
-        <div class="m-hero">${pct1(m.wr)}</div>
-        <div class="m-sub">of the portfolio drawn the first year of retirement</div>
-      </div>
-      <div class="stat-row">
-        <div class="stat-item"><div class="stat-lbl">Portfolio draws / yr</div><div class="stat-val">${fmtMoney(m.gap)}</div></div>
-        <div class="stat-item"><div class="stat-lbl">From invested</div><div class="stat-val">${fmtMoney(m.invest)}</div></div>
-        <div class="stat-item"><div class="stat-lbl">Total retirement spend</div><div class="stat-val">${fmtMoney(m.totalSpend)}</div></div>
-      </div>
-    </div>`;
-
-  // 3 · Tax location — segmented proportion bar. Hero = the tax-deferred share
-  // (the future-tax exposure). Labels hidden on slivers too thin to hold text.
-  const tP = m.invest>0 ? m.taxable/m.invest : 0;
-  const dP = m.invest>0 ? m.trad/m.invest : 0;
-  const rP = m.invest>0 ? m.roth/m.invest : 0;
-  const segLbl = (p) => pct(p)>=8 ? pct0(p) : '';
-  const taxLocation = `
-    <div class="metric">
-      <div>
-        <div class="m-eye">Tax Location</div>
-        <div class="m-hero">${pct0(dP)}</div>
-        <div class="m-sub">sits in tax-deferred accounts — taxed as income when withdrawn</div>
+        <div class="m-hero ${wrTone}">${pct1(m.wr)}</div>
+        <div class="m-sub">of the portfolio drawn in your first year of retirement</div>
       </div>
       <div>
-        <div class="seg">
-          <div class="s-tax" style="width:${(tP*100).toFixed(1)}%">${segLbl(tP)}</div>
-          <div class="s-def" style="width:${(dP*100).toFixed(1)}%">${segLbl(dP)}</div>
-          <div class="s-roth" style="width:${(rP*100).toFixed(1)}%">${segLbl(rP)}</div>
+        <div class="wr-zones">
+          <div class="wr-zone${z('teal')}">Conservative<br>≤ 4%</div>
+          <div class="wr-zone${z('gold')}">Moderate<br>4–5.5%</div>
+          <div class="wr-zone${z('clay')}">Elevated<br>5.5%+</div>
         </div>
-        <div class="seg-legend">
-          <span class="k"><span class="sw" style="background:var(--teal)"></span>Taxable<b>${fmtMoney(m.taxable)}</b></span>
-          <span class="k"><span class="sw" style="background:var(--gold)"></span>Tax-deferred<b>${fmtMoney(m.trad)}</b></span>
-          <span class="k"><span class="sw" style="background:#3c7d59"></span>Tax-free · Roth<b>${fmtMoney(m.roth)}</b></span>
+        <div class="stat-row">
+          <div class="stat-item"><div class="stat-lbl">Portfolio draw / yr</div><div class="stat-val">${fmtMoney(m.gap1)}</div></div>
+          <div class="stat-item"><div class="stat-lbl">Investable</div><div class="stat-val">${fmtMoney(m.invest)}</div></div>
         </div>
       </div>
     </div>`;
 
-  // 4 · Replacement ratio — retirement income as a share of working income.
-  // NEUTRAL by design: no safety zones, because a higher ratio isn't worse —
-  // it's the upside (live as well or better than today). Reference ticks only:
-  // a faint "typical ~75%" heuristic and a solid "100% = working income" line.
-  // Scale runs 0–120% so over-100% (spending up in retirement) still shows.
-  let replacement;
-  if(m.replacement == null){
-    replacement = `
-      <div class="metric">
+  // 2 · The Bridge — dollars the portfolio must cover before guaranteed income
+  // is fully on. Toned by its size relative to the portfolio (the strain it puts
+  // on the pot). No bridge = guaranteed income already on at retirement.
+  const brShare = m.invest>0 ? m.bridgeTotal/m.invest : 0;
+  const brTone = m.bridgeYears===0 ? 'teal' : brShare<=0.15 ? 'teal' : brShare<=0.30 ? 'gold' : 'clay';
+  const srcLbl = m.hasPension ? 'Social Security & pension' : 'Social Security';
+  const bridge = m.bridgeYears===0
+    ? `<div class="metric">
         <div>
-          <div class="m-eye">Replacement Ratio</div>
-          <div class="m-hero">—</div>
-          <div class="m-sub">add working income on the Balance Sheet to compare retirement to life today</div>
+          <div class="m-eye">The Bridge</div>
+          <div class="m-hero teal">$0</div>
+          <div class="m-sub">${srcLbl} is already on at retirement — no bridge years to self-fund</div>
         </div>
         <div></div>
-      </div>`;
-  } else {
-    // Coverage bar — same language as the income floor. The full track = working
-    // income; the teal fill = the share retirement income replaces. No vertical
-    // ticks cutting through text. Caps at the track; over-100% (spending more in
-    // retirement) shows full + the true % in the hero.
-    const fillPct = Math.min(100, m.replacement*100);
-    replacement = `
-      <div class="metric">
+      </div>`
+    : `<div class="metric">
         <div>
-          <div class="m-eye">Replacement Ratio</div>
-          <div class="m-hero teal">${pct0(m.replacement)}</div>
-          <div class="m-sub">of working income, replaced by guaranteed retirement income</div>
+          <div class="m-eye">The Bridge</div>
+          <div class="m-hero ${brTone}">${fmtMoney(m.bridgeTotal)}</div>
+          <div class="m-sub">the portfolio must cover this much spending before ${srcLbl} fully begins</div>
         </div>
-        <div>
-          <div class="cov"><div class="fill" style="width:${fillPct.toFixed(1)}%">Guaranteed&nbsp;·&nbsp;${fmtMoney(m.guaranteed)}</div></div>
-          <div class="cov-legend">
-            <span class="k"><span class="sw" style="background:var(--teal)"></span>Guaranteed income<b>${fmtMoney(m.guaranteed)}</b></span>
-            <span class="k"><span class="sw" style="background:#e3d9c5"></span>Working income<b>${fmtMoney(m.workingIncome)}</b></span>
-          </div>
+        <div class="stat-row">
+          <div class="stat-item"><div class="stat-lbl">Bridge length</div><div class="stat-val">${m.bridgeYears} yr${m.bridgeYears===1?'':'s'}</div></div>
+          <div class="stat-item"><div class="stat-lbl">Fully on at age</div><div class="stat-val">${m.fullOnAge}</div></div>
+          <div class="stat-item"><div class="stat-lbl">Average / yr</div><div class="stat-val">${fmtMoney(m.bridgeAvg)}</div></div>
         </div>
       </div>`;
-  }
 
-  return `<div class="snap">${incomeFloor}${withdrawal}${taxLocation}${replacement}</div>`;
+  return `<div class="snap snap-2">${withdrawal}${bridge}</div>`;
 }
 
 /* ── Goals board (the approved prioritisation surface) ─────────────

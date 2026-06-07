@@ -121,24 +121,22 @@ try {
     await page.screenshot({ path: `${OUT}/02-expenses.png`, fullPage: true });
   });
 
-  await step('net worth · snapshot is its own sub-page with four gauges', async () => {
+  await step('net worth · snapshot renders two interaction gauges', async () => {
     await page.click(`#np-subnav .stab[data-sub="snapshot"]`);
     await new Promise(r => setTimeout(r, 200));
     const m = await page.evaluate(() => ({
-      page:    !!document.querySelector('.np-snapshot-page .snap'),
+      page:    !!document.querySelector('.np-snapshot-page .snap-2'),
       metrics: document.querySelectorAll('.np-snapshot-page .metric').length,
       heroes:  [...document.querySelectorAll('.np-snapshot-page .m-hero')].map(e=>e.textContent),
-      cov:     !!document.querySelector('.np-snapshot-page .cov .fill'),
-      seg:     document.querySelectorAll('.np-snapshot-page .seg div').length,
+      eyes:    [...document.querySelectorAll('.np-snapshot-page .m-eye')].map(e=>e.textContent),
+      zones:   document.querySelectorAll('.np-snapshot-page .wr-zone').length,
     }));
     if(!m.page) throw new Error('snapshot page did not render');
-    if(m.metrics !== 4) throw new Error(`snapshot expected 4 metrics, got ${m.metrics}`);
-    if(m.seg !== 3) throw new Error(`snapshot tax bar expected 3 segments, got ${m.seg}`);
-    // Blank household: the replacement-ratio gauge shows "—" (no working income),
-    // so the coverage fill is absent and one hero is a dash. Require each hero to
-    // be a %, a dollar figure, or "—" — and the coverage fill only when present.
-    if(!m.heroes.every(h => /%$/.test(h) || h.startsWith('$') || h.includes('—')))
-      throw new Error(`snapshot hero numbers unexpected: ${JSON.stringify(m.heroes)}`);
+    if(m.metrics !== 2) throw new Error(`snapshot expected 2 gauges, got ${m.metrics}`);
+    if(m.zones !== 3) throw new Error(`withdrawal-rate zone badge expected 3 zones, got ${m.zones}`);
+    // Gauge 1 = a withdrawal % ; gauge 2 = the Bridge dollar figure (or $0).
+    if(!/%$/.test(m.heroes[0]||'')) throw new Error(`withdrawal hero not a %: ${JSON.stringify(m.heroes)}`);
+    if(!/^\$/.test(m.heroes[1]||'')) throw new Error(`bridge hero not a $ figure: ${JSON.stringify(m.heroes)}`);
     await page.screenshot({ path: `${OUT}/02-snapshot.png`, fullPage: true });
   });
 
