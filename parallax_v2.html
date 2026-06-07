@@ -472,17 +472,19 @@ background-size:auto,auto,auto,auto,auto,72px 72px,72px 72px,auto;}
 /* Household header — VARIANT A two-tier: People / Children / Plan, each a labeled
    tier. Identity (names) is grouped and roomy; household numbers sit in their own
    Plan tier with the management buttons, so nothing is stranded across an empty bar. */
-.hh-head{grid-column:1 / -1;border:1px solid var(--rule-faint);border-radius:16px;background:var(--surface-2);padding:14px 20px;margin-bottom:18px}
-.hh-tier{display:flex;align-items:flex-end;flex-wrap:wrap;gap:10px 22px}
-.hh-tier+.hh-tier{margin-top:14px;padding-top:13px;border-top:1px solid var(--rule-faint)}
-.hh-tag{font-family:'Sora';font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);font-weight:700;width:70px;flex:none;padding-bottom:5px}
-.hh-person{display:flex;align-items:flex-end;gap:14px}
+.hh-head{grid-column:1 / -1;border:1px solid var(--rule-faint);border-radius:14px;background:var(--surface-2);padding:8px 18px;margin-bottom:10px}
+.hh-tier{display:flex;align-items:center;flex-wrap:wrap;gap:6px 20px}
+.hh-tier+.hh-tier{margin-top:7px;padding-top:7px;border-top:1px solid var(--rule-faint)}
+.hh-tag{font-family:'Sora';font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);font-weight:700;width:58px;flex:none}
+.hh-tag.sm{width:auto;font-size:9.5px;letter-spacing:.16em;color:var(--ink-faint);margin-right:2px}
+.hh-kids{display:flex;align-items:center;flex-wrap:wrap;gap:7px}
+.hh-person{display:flex;align-items:center;gap:14px}
 .hh-div{width:1px;align-self:stretch;background:var(--rule-faint);margin:0 2px}
-.hh-mini,.hh-stat{display:flex;flex-direction:column;gap:3px}
-.hh-mini label,.hh-stat label{font-family:'Sora';font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);font-weight:600}
+.hh-mini,.hh-stat{display:flex;align-items:baseline;gap:6px}
+.hh-mini label,.hh-stat label{font-family:'Sora';font-size:10px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-faint);font-weight:600;white-space:nowrap}
 .hh-stat .field{display:flex;align-items:baseline;gap:3px}
 .hh-head .pre{color:var(--ink-faint);font-size:14.5px;font-family:'Inter'}
-.hh-head input{font-family:'Inter';font-size:16px;font-weight:500;color:var(--ink);background:transparent;border:none;border-bottom:1px dashed var(--rule-bright);padding:2px 1px;outline:none;font-variant-numeric:tabular-nums;transition:border-color .15s,background .15s}
+.hh-head input{font-family:'Inter';font-size:16px;font-weight:500;color:var(--ink);background:transparent;border:none;border-bottom:1px dashed var(--rule-bright);padding:1px 1px;outline:none;font-variant-numeric:tabular-nums;transition:border-color .15s,background .15s}
 .hh-head input:hover{border-bottom-color:var(--gold)}
 .hh-head input:focus{border-bottom:1px solid var(--gold);background:rgba(160,112,48,.07)}
 .hh-name input{width:160px;font-size:17px;color:var(--ink-bright)}
@@ -1937,17 +1939,18 @@ function buildHouseholdHeader(){
         F('household.spouse.retirementAge','age'),
         `<button class="ppl-link" data-ppl="rmspouse" title="Remove spouse">− spouse</button>`)
     : `<button class="ppl-link wide" data-ppl="addspouse" title="Add a spouse / partner">+ add spouse</button>`;
-  const peopleTier = `<div class="hh-tier">
-    <span class="hh-tag">People</span>${primary}${sp?'<div class="hh-div"></div>':''}${spouse}
-  </div>`;
-  // Children tier — name + age chips, each removable; "+ child" appends one.
+  // Children — name + age chips, each removable; "+ child" appends one. Folded
+  // onto the People row (right side) so the header stays two rows, not three.
   const kids = (plan.household.children||[]).map((c,i)=>
     `<span class="kid"><input class="kid-name" data-childidx="${i}" data-ck="name" value="${escHtml(c.name||'')}" placeholder="Child"><input class="kid-age" type="number" min="0" max="120" step="1" data-childidx="${i}" data-ck="age" value="${c.age!=null?c.age:''}" placeholder="age"><button class="kid-x" data-childidx="${i}" title="Remove">×</button></span>`
   ).join('');
-  const childTier = `<div class="hh-tier">
-    <span class="hh-tag">Children</span>${kids}<button class="ppl-link" data-ppl="addchild">+ child</button>
+  // Row 1 · People (+ children + spouse control) — the household identity.
+  const peopleTier = `<div class="hh-tier">
+    <span class="hh-tag">People</span>${primary}${sp?'<div class="hh-div"></div>':''}${spouse}
+    <div class="hh-grow"></div>
+    <span class="hh-kids"><span class="hh-tag sm">Kids</span>${kids}<button class="ppl-link" data-ppl="addchild">+ child</button></span>
   </div>`;
-  // Plan tier — household-level numbers + management buttons (Save lives in the
+  // Row 2 · Plan — household-level numbers + management buttons (Save lives in the
   // sub-nav, persistent across NW sub-pages, so it isn't duplicated here).
   const stat = (label, field) => `<div class="hh-stat"><label>${label}</label><span class="field">${field}</span></div>`;
   const planTier = `<div class="hh-tier">
@@ -1960,7 +1963,7 @@ function buildHouseholdHeader(){
     <button class="hh-demo" title="Load the Aman &amp; Awoman demo household">Load demo</button>
     <button class="hh-clear" title="Clear all household data and start a new household">Clear</button>
   </div>`;
-  return `<div class="hh-head">${peopleTier}${childTier}${planTier}</div>`;
+  return `<div class="hh-head">${peopleTier}${planTier}</div>`;
 }
 // Owner naming for account/property ownership selects (Primary / Spouse / Joint).
 function ownerName(o){
