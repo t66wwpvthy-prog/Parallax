@@ -2183,12 +2183,11 @@ function analyzeResults(sims, p){
   });
   const byCagr = sims.slice().sort((a, b) => a.cagr - b.cagr);
 
-  // Two-stage medoid selection — produces a path that both tracks the median
-  // balance AND has average-looking volatility (not a "wild swings that cancelled
-  // out" path whose balance happened to land near the median).
-  //
-  // Stage 1: centrality — sum of proportional balance deviations year-by-year.
-  // Proportional so late high-balance years don't dominate early ones.
+  // Centrality score: sum of proportional deviations from year-by-year median.
+  // Proportional (rather than absolute) so later high-balance years don't dominate.
+  // The most central path is the one that tracks the median envelope closest. (The
+  // cash-flow table picks its representative seeded path UI-side now, so this stays
+  // the simple central path for any percentile/diagnostic use.)
   function centrality(sim){
     let score = 0;
     for(let y = 0; y < sim.rows.length; y++){
@@ -2201,26 +2200,7 @@ function analyzeResults(sims, p){
   }
   const withCent = sims.map(s => ({ sim: s, c: centrality(s) }));
   withCent.sort((a, b) => a.c - b.c);
-  // Keep the top 10 % most central paths as candidates (at least 1).
-  const topN = Math.max(1, Math.floor(sims.length * 0.10));
-  const candidates = withCent.slice(0, topN).map(x => x.sim);
-
-  // Stage 2: among candidates, pick the one with return-sequence volatility
-  // (std dev of annual real returns) closest to the median across ALL sims.
-  // Prevents selecting a path that rode out a -10%/-11%/-18% stretch because
-  // later good years happened to restore the balance near the median — that
-  // path has high return std dev and looks unrepresentative in the table.
-  function returnStdDev(sim){
-    const rs = sim.rows.map(r => r.realReturnUsed || r.returnRate || 0);
-    const mean = rs.reduce((a, b) => a + b, 0) / rs.length;
-    return Math.sqrt(rs.reduce((s, r) => s + (r - mean) ** 2, 0) / rs.length);
-  }
-  const allSds = sims.map(returnStdDev).sort((a, b) => a - b);
-  const medianSd = allSds[Math.floor(allSds.length / 2)];
-  candidates.sort((a, b) =>
-    Math.abs(returnStdDev(a) - medianSd) - Math.abs(returnStdDev(b) - medianSd)
-  );
-  const typicalPath = candidates[0];
+  const typicalPath = withCent[0].sim;
 
   // DETERMINISTIC EXPECTED PATH — one coherent run at the allocation's expected
   // real return every year (no random draws). This is what the Scenarios cash-flow
@@ -4534,6 +4514,29 @@ let running=false;
 // causing the % to drift between identical clicks). Invalidated to null
 // whenever the plan changes in the Inputs tab.
 let sharedPaths=null;
+// Index into the SEEDED block-bootstrap bundle used for the cash-flow table. The
+// bundle (sharedPaths) is generated from a fixed seed, so this path reconstructs
+// the EXACT same sequence of real historical blocks on every Run. We use the SAME
+// index for every scenario column, so the cash-flow shows one fixed market
+// sequence and only the LEVERS differ between columns (apples-to-apples, the
+// Scenarios doctrine). The index is chosen once (from the baseline) as the path
+// whose year-to-year volatility is closest to the bundle median — a representative
+// real life, not a wild outlier.
+let cfPathIndex=0;
+function pickRepresentativePathIndex(res){
+  if(!res || !res.sims || !res.sims.length) return 0;
+  const stdev = sim => {
+    const rs = (sim.rows||[]).map(r => r.realReturnUsed || r.returnRate || 0);
+    if(!rs.length) return 0;
+    const m = rs.reduce((a,b)=>a+b,0)/rs.length;
+    return Math.sqrt(rs.reduce((s,r)=>s+(r-m)**2,0)/rs.length);
+  };
+  const sds = res.sims.map(stdev);
+  const med = sds.slice().sort((a,b)=>a-b)[Math.floor(sds.length/2)];
+  let best=0, bestD=Infinity;
+  sds.forEach((v,i)=>{ const d=Math.abs(v-med); if(d<bestD){ bestD=d; best=i; } });
+  return best;
+}
 
 /* ── run the engine for all three columns (shared nothing; each its own MC) ── */
 function runAll(){
@@ -4570,6 +4573,9 @@ function runAll(){
           s.res=runSimulation(p, ov, sharedPaths);
         }catch(err){ s.res=null; failed++; if(window.PXDEBUG) console.error('Scenario failed:', s.name, err); }
       });
+      // Pick the representative seeded-path index ONCE (from the baseline), reused
+      // for every column's cash-flow so all columns share the same market sequence.
+      cfPathIndex = pickRepresentativePathIndex(scenarios.find(s=>s.base)?.res || scenarios[0]?.res);
       renderBand(); renderSolvePanel(); renderFoot(); renderCashflow(); buildSeqSelect(); runSeq();
       $('#status').textContent = failed ? `Complete · ${failed} scenario${failed>1?'s':''} could not run` : 'Complete';
     }catch(e){ $('#status').textContent='Error'; if(window.PXDEBUG) console.error(e); }
@@ -5163,16 +5169,18 @@ function axes(W,H,ageStart,ageEnd,maxBal){
   return g;
 }
 /* ── Cash-flow drawer ────────────────────────────────────────────────────
-   Renders each scenario's res.paths.p50 — ONE REAL CENTRAL LIFE: the single
-   Monte-Carlo sim (out of all of them) whose balance tracks the year-by-year
-   median envelope closest (the medoid / "typical" path). It is a real, coherent
-   sequence of real-order returns, so the year-by-year table shows genuine
-   sequence-of-returns risk — good years, crash years, recoveries — which is the
-   whole point of Parallax: show the truth of reality. A flat constant-return
-   "expected" path (paths.expected) was tried here and rejected — it read as a
-   static positive return, which is exactly what this tool exists to disprove.
-   Its .rows carry year, age, socialSecurity, pension, otherIncome, withdrawal,
-   expenses, goals, taxes, realReturnUsed, startBalance, balance. */
+   Renders one SEEDED block-bootstrap life: res.sims[cfPathIndex] — a single real
+   path drawn from the fixed-seed bundle, so it reconstructs the identical sequence
+   of real historical blocks on every Run, and the SAME market sequence is used for
+   every scenario column (only the levers differ → apples-to-apples). The path is
+   the bundle's representative (median-volatility) draw, so it's a real life a
+   client could live, not a wild outlier. Because the blocks are real, the table
+   shows genuine sequence-of-returns risk — good years, crash years, recoveries —
+   which is the whole point of Parallax: show the truth of reality. A flat
+   constant-return "expected" path was tried here and rejected — it read as a static
+   positive return, exactly what this tool exists to disprove. Each row carries
+   year, age, socialSecurity, pension, otherIncome, withdrawal, expenses, goals,
+   taxes, realReturnUsed, startBalance, balance. */
 function cfMoney(v){
   if(!isFinite(v)) return '—';
   const n = Math.round(v);
@@ -5198,14 +5206,15 @@ function renderCashflow(){
   const shown = cfCompare != null ? [baseIdx, cfCompare] : [baseIdx];
   const rowsByScen = shown.map(i => {
     const res = scenarios[i].res;
-    // ONE REAL CENTRAL LIFE (engine paths.p50 = the "typical"/medoid sim): out of
-    // every simulated lifetime, the single one whose balance tracks the year-by-year
-    // median envelope closest. It is a REAL, coherent sequence of real-order returns,
-    // so the table shows genuine sequence-of-returns risk — good years, crash years,
-    // recoveries — instead of a flat constant-return projection. This is the Parallax
-    // truth: one honest life a client could actually live. (The smooth "Expected end"
-    // figure on the Scenarios cards stays the separate planning headline.)
-    const central = res && res.paths ? res.paths.p50 : null;
+    // ONE REAL SEEDED LIFE: the same fixed seeded block-bootstrap path (cfPathIndex)
+    // for every column, so the cash-flow shows one real historical-block sequence and
+    // only the LEVERS differ between columns (apples-to-apples). Seeded → it
+    // reconstructs the identical sequence every Run; real blocks → genuine
+    // sequence-of-returns (good years, crash years, recoveries), not a flat
+    // projection. (The smooth "Expected end" on the Scenarios cards is the separate
+    // planning headline.)
+    const central = (res && res.sims && res.sims.length)
+      ? res.sims[Math.min(cfPathIndex, res.sims.length-1)] : null;
     return central ? central.rows : [];
   });
   // No data anywhere (e.g. a failed/degenerate Run) → say so plainly instead of
