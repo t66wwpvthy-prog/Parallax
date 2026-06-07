@@ -110,19 +110,19 @@ try {
   });
 
   await step('net worth · goals renders the priority board (shell + slots)', async () => {
-    // Goals is the priority board. On a BLANK household there are no goal cards
-    // yet, so verify the shell: the board mode, the annual-spend hero ($0), and
-    // the ghost slots — cards appear once the advisor adds goals.
+    // Goals is the priority board: a pinned base-spending FOUNDATION card at rank 1
+    // (reads expenses.living), 6 ghost goal slots below it, and goal cards in the
+    // tray. Verify the shell — the board mode, the foundation card, the slots.
     await page.click(`#np-subnav .stab[data-sub="goals"]`);
     await new Promise(r => setTimeout(r, 300));
     const m = await page.evaluate(() => ({
       board:  !!document.querySelector('#np-content.g-mode .g-board'),
-      hero:   document.querySelector('.g-big')?.textContent || '',
+      pin:    document.querySelector('.g-card.pin .g-amt-in')?.value || '',
       slots:  document.querySelectorAll('.g-slot').length,
       boardH: Math.round(document.querySelector('.g-board')?.getBoundingClientRect().height || 0),
     }));
     if(!m.board)             throw new Error('goals board did not render (no #np-content.g-mode .g-board)');
-    if(!m.hero.startsWith('$')) throw new Error(`goals hero annual-spend missing (got "${m.hero}")`);
+    if(!m.pin)               throw new Error('goals foundation (base-spending) card missing (.g-card.pin)');
     if(m.slots < 6)          throw new Error(`goals board expected ≥6 ghost slots (slots=${m.slots})`);
     if(m.boardH < 200)       throw new Error(`goals board height = ${m.boardH}px (expected ≥200 — flex-fill regression?)`);
     await page.screenshot({ path: `${OUT}/02-goals.png`, fullPage: true });

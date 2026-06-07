@@ -800,6 +800,7 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield}
    scoped to #np-content.g-mode and never disturbs the other Net Worth pages. */
 #np-content.g-mode{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
 .g-hero{flex:0 0 auto;display:flex;align-items:flex-end;justify-content:space-between;padding:8px 4px 18px;max-width:1240px}
+.g-hero-min{justify-content:flex-end;padding:0 4px 10px}
 .g-eyebrow{font-size:13.5px;letter-spacing:.24em;text-transform:uppercase;color:var(--ink-mute);font-weight:600}
 .g-big{font-family:'Inter',sans-serif;font-variant-numeric:tabular-nums;font-size:34px;font-weight:700;color:var(--gold-bright);line-height:.94;margin-top:9px}
 .g-big .g-per{font-family:'Sora',sans-serif;font-size:19px;font-weight:500;color:var(--ink-faint);margin-left:11px}
@@ -1388,9 +1389,9 @@ const plan = {
   // goal spans many years; a ONE-TIME goal is a single-year window (startAge===endAge).
   // Applied flat-real. A legacy { vacation, property, gifts } object is still accepted.
   goals:      [
-    { name:'Vacation',         amount:15000, startAge:0, endAge:999 },
-    { name:'Home improvements', amount:10000, startAge:0, endAge:999 },
-    { name:'Gifts',            amount:5000,  startAge:0, endAge:999 },
+    { name:'Vacation',         amount:15000, startAge:65, endAge:95 },
+    { name:'Home improvements', amount:10000, startAge:65, endAge:95 },
+    { name:'Gifts',            amount:5000,  startAge:65, endAge:95 },
   ],
   taxes:      { ordinary: 22, capitalGains: 15 },
   simulation: { iterations: 1000 }
@@ -3909,9 +3910,7 @@ function goalsHeroHTML(){
 }
 function renderGoalsBoard(){
   const {list} = goalsView();
-  const empty = '';
-  return `<div class="g-hero">
-      <div class="g-lead" id="g-lead">${goalsHeroHTML()}</div>
+  return `<div class="g-hero g-hero-min">
       <div class="g-actions">
         <div class="g-addrow">
           <div class="g-add" data-add="goalRec"><span class="g-plus">+</span> Add a goal</div>
@@ -3922,8 +3921,7 @@ function renderGoalsBoard(){
     </div>
     <div class="g-board" id="g-board">
       <div class="g-axis"><div class="g-spine"></div></div>
-      <div class="g-traylab" id="g-traylab">Goals to place</div>
-      ${empty}
+      <div class="g-traylab" id="g-traylab"></div>
     </div>`;
 }
 // One editable goal card. Cards are the FULL editable surface (name, amount,

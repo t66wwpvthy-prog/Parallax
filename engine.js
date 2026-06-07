@@ -433,9 +433,9 @@ const plan = {
   // goal spans many years; a ONE-TIME goal is a single-year window (startAge===endAge).
   // Applied flat-real. A legacy { vacation, property, gifts } object is still accepted.
   goals:      [
-    { name:'Vacation',         amount:15000, startAge:0, endAge:999 },
-    { name:'Home improvements', amount:10000, startAge:0, endAge:999 },
-    { name:'Gifts',            amount:5000,  startAge:0, endAge:999 },
+    { name:'Vacation',         amount:15000, startAge:65, endAge:95 },
+    { name:'Home improvements', amount:10000, startAge:65, endAge:95 },
+    { name:'Gifts',            amount:5000,  startAge:65, endAge:95 },
   ],
   taxes:      { ordinary: 22, capitalGains: 15 },
   simulation: { iterations: 1000 }
