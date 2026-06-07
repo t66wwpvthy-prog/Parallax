@@ -1215,26 +1215,37 @@ function analyzeResults(sims, p){
     }
     return score;
   }
-  const withCent = sims.map(s => ({ sim: s, c: centrality(s) }));
+  const withCent = sims.map((s, i) => ({ sim: s, i, c: centrality(s) }));
   withCent.sort((a, b) => a.c - b.c);
   const typicalPath = withCent[0].sim;
 
-  // Representative seeded path for the cash-flow table: the BUNDLE INDEX of the path
-  // whose year-to-year return volatility is closest to the median across all sims —
-  // a typical real life, not a wild outlier. Exposed as an index (sims are in bundle
-  // order) so the UI can show the SAME seeded market draw in every scenario column
-  // (apples-to-apples). The "which path is representative" judgment lives HERE in the
-  // truth source; the UI only reads the index and coordinates it across columns.
+  // Representative seeded path for the cash-flow table — TWO-STAGE MEDOID so the
+  // shown life is central AND realistically bumpy, never a lucky/brutal outlier:
+  //   Stage 1: keep only the most CENTRAL-by-outcome decile (paths whose whole
+  //            trajectory tracks the median envelope). This is what makes it
+  //            "typical" — selecting by volatility ALONE ignores outcome and can
+  //            land ~3x off the median (a path can be median-volatility yet draw a
+  //            1930s-recovery block of +40% years and balloon).
+  //   Stage 2: within that central set, take the path whose year-to-year return
+  //            volatility is closest to the median, so it still reads like a real
+  //            market (bumps), not a smoothed line.
+  // Exposed as a BUNDLE INDEX (sims are in bundle order) so the UI shows the SAME
+  // seeded market draw in every scenario column (apples-to-apples).
   function returnStdDev(sim){
     const rs = sim.rows.map(r => r.realReturnUsed || r.returnRate || 0);
     if(!rs.length) return 0;
     const m = rs.reduce((a, b) => a + b, 0) / rs.length;
     return Math.sqrt(rs.reduce((s, r) => s + (r - m) ** 2, 0) / rs.length);
   }
-  const sdList = sims.map(returnStdDev);
-  const medianSd = sdList.slice().sort((a, b) => a - b)[Math.floor(sdList.length / 2)];
-  let representativePathIndex = 0, bestSdGap = Infinity;
-  sdList.forEach((sd, i) => { const g = Math.abs(sd - medianSd); if(g < bestSdGap){ bestSdGap = g; representativePathIndex = i; } });
+  const sdAll = sims.map(returnStdDev);
+  const medianSd = sdAll.slice().sort((a, b) => a - b)[Math.floor(sdAll.length / 2)];
+  const centralCount = Math.max(1, Math.ceil(withCent.length * 0.10));
+  let representativePathIndex = withCent[0].i, bestSdGap = Infinity;
+  for(let k = 0; k < centralCount; k++){
+    const idx = withCent[k].i;
+    const g = Math.abs(sdAll[idx] - medianSd);
+    if(g < bestSdGap){ bestSdGap = g; representativePathIndex = idx; }
+  }
 
   // DETERMINISTIC EXPECTED PATH — one coherent run at the allocation's expected
   // real return every year (no random draws). This is what the Scenarios cash-flow
