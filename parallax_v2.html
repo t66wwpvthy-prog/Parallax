@@ -1103,9 +1103,31 @@ function applySystemDefaults(p){
   if(!p.ltc) p.ltc = { amount: 0, onsetAge: SYSTEM_DEFAULTS.ltcOnsetAge };
   else if(p.ltc.onsetAge == null) p.ltc.onsetAge = SYSTEM_DEFAULTS.ltcOnsetAge;
 }
+// Medicare + out-of-pocket preload (note 4 — preloaded essential, NOT LTC). A
+// notional average per person from age 65 to plan end, surfaced as a pinned
+// foundation card on the board (like base spending) and stored as an age-gated
+// expenses.extra entry so the ENGINE consumes it through its existing extra-expense
+// path — no new engine math, no double count. Amount auto-scales with household
+// size ($6,500/person) until the advisor edits it (then it's theirs: userSet).
+const MEDICARE_PER_PERSON = 6500;
+function planPeopleCount(p){ return 1 + ((p.household && p.household.spouse) ? 1 : 0); }
+function ensureMedicarePreload(p){
+  if(!p || !p.expenses) return;
+  if(!Array.isArray(p.expenses.extra)) p.expenses.extra = [];
+  const end = (p.household && p.household.primary && p.household.primary.planEndAge) || 95;
+  let m = p.expenses.extra.find(e => e && e.preset === 'medicare');
+  if(!m){
+    m = { label:'Medicare + out-of-pocket', amount:0, startAge:65, endAge:end, preset:'medicare', userSet:false };
+    p.expenses.extra.push(m);
+  }
+  m.startAge = 65;
+  m.endAge = end;                                              // always runs to plan end
+  if(!m.userSet) m.amount = MEDICARE_PER_PERSON * planPeopleCount(p);
+}
 // On fresh open (no saved plan) start from the engine defaultPlan + system
 // defaults. If there's a saved plan, overlay it (the advisor's edits win).
 if(!loadPlan()) applySystemDefaults(plan);
+ensureMedicarePreload(plan);   // preload (or migrate in for older saved plans)
 
 // Scenario accent palette. Brass / steel-teal / dusty mauve are the core trio
 // (matches --s1/2/3); two more earthy tones extend it when the advisor adds a
@@ -2064,6 +2086,7 @@ function clearHousehold(){
   // healthcare inflation (CPI+2), sensible tax rates, LTC onset — so a cleared
   // plan never reads falsely rosy (e.g. 0% tax) or loses a baseline assumption.
   applySystemDefaults(p);
+  ensureMedicarePreload(p);   // even a blank household carries the Medicare preload
   // Persist the blank so the cleared state survives a reload (otherwise the demo
   // seed would re-appear), and drop the saved scenarios/goal-rank.
   savePlan();
@@ -2077,6 +2100,7 @@ function clearHousehold(){
 // Post-edit refresh (mirrors the balance-sheet field commit, minus setPath).
 // Persists the plan on every commit so household edits survive a reload.
 function commitPlanEdit(){
+  ensureMedicarePreload(plan);   // re-sync end age + auto amount on spouse/plan-end edits
   reseedScenarios(); buildLevers(); sharedPaths=null; plansDirty=true; savePlan(); renderInputs();
   $('#status').textContent='Plan edited · open Scenarios';
 }
@@ -2627,11 +2651,14 @@ function goalCardHTML(g){
 // into the cash-flow table and every scenario, never double-counted.
 function foundationCardHTML(f){
   const amtStr = (f.amount||0).toLocaleString('en-US');
+  // Binding: scalar foundations write to plan.expenses[exp] (data-exp); preload
+  // foundations write to their age-gated expenses.extra entry (data-extra=preset).
+  const binding = f.extra ? `data-extra="${f.extra}"` : `data-exp="${f.exp}"`;
   return `<div class="g-main">
        <div class="g-name">${escHtml(f.name)}<span class="g-tag pin">Foundation</span></div>
        <div class="g-kind">${f.kind}</div>
      </div>
-     <div class="g-amt"><span class="g-cur">$</span><input class="g-amt-in" data-exp="${f.exp}" data-type="money" inputmode="numeric" value="${amtStr}"><span class="g-per2">/yr</span></div>`;
+     <div class="g-amt"><span class="g-cur">$</span><input class="g-amt-in" ${binding} data-type="money" inputmode="numeric" value="${amtStr}"><span class="g-per2">/yr</span></div>`;
 }
 // Build slots + editable, draggable cards into the rendered shell; wire pointer
 // drag/snap/swap, inline editing, and rank persistence. Called after
@@ -2643,9 +2670,11 @@ function initGoalsBoard(){
   const RANK_KEY='parallax.goals.rank';
   // Foundation cards: pinned to the TOP slots, read/write plan.expenses (the engine's
   // single source of truth — no double count). Base spending now; healthcare later.
+  const medExtra=(plan.expenses&&plan.expenses.extra||[]).find(e=>e&&e.preset==='medicare');
   const foundations=[
     {name:'Base spending', kind:'Retirement living · funded first', exp:'living', amount:Math.round((plan.expenses&&plan.expenses.living)||0)},
   ];
+  if(medExtra) foundations.push({name:'Medicare + out-of-pocket', kind:'Healthcare · age 65 → plan end', extra:'medicare', amount:Math.round(medExtra.amount||0)});
   // Room for 6 goal slots PLUS the pinned foundations, so every goal can still rank.
   const NSLOT=Math.max(6, list.length)+foundations.length, CH=72, GAP=14;
   // On a phone the ladder + tray can't sit side-by-side; stack them in one full-
@@ -2739,18 +2768,28 @@ function initGoalsBoard(){
   // ── Inline editing (local; preserves the drag rank — no board rebuild) ──
   const refreshHero=()=>{ if(lead) lead.innerHTML=goalsHeroHTML(); };
   board.addEventListener('input', e=>{
-    const inp=e.target.closest('[data-f],[data-exp]'); if(!inp) return;
+    const inp=e.target.closest('[data-f],[data-exp],[data-extra]'); if(!inp) return;
     e.stopPropagation();                       // don't double-fire the global liveCommas
     if(inp.classList.contains('g-amt-in')) liveCommas(inp);
   });
   board.addEventListener('change', e=>{
-    const inp=e.target.closest('[data-f],[data-exp]'); if(!inp) return;
+    const inp=e.target.closest('[data-f],[data-exp],[data-extra]'); if(!inp) return;
     e.stopPropagation();                       // value edits stay local (rank intact)
     // Foundation card → write back to plan.expenses (the engine's source of truth),
     // so base spending flows into cash flow + every scenario, never double-counted.
     if(inp.dataset.exp){
       const v=Math.round(parseFloat(String(inp.value).replace(/[^0-9.]/g,''))||0);
       if(plan.expenses) plan.expenses[inp.dataset.exp]=v;
+      reseedScenarios(); buildLevers(); sharedPaths=null; plansDirty=true; savePlan();
+      $('#status').textContent='Plan edited · open Scenarios';
+      return;
+    }
+    // Preload foundation (Medicare) → write to its age-gated expenses.extra entry and
+    // mark it userSet so it stops auto-scaling with household size.
+    if(inp.dataset.extra){
+      const v=Math.round(parseFloat(String(inp.value).replace(/[^0-9.]/g,''))||0);
+      const m=(plan.expenses&&plan.expenses.extra||[]).find(x=>x&&x.preset===inp.dataset.extra);
+      if(m){ m.amount=v; m.userSet=true; }
       reseedScenarios(); buildLevers(); sharedPaths=null; plansDirty=true; savePlan();
       $('#status').textContent='Plan edited · open Scenarios';
       return;
@@ -2877,7 +2916,7 @@ $('#np-content').addEventListener('click', e => {
   const demoB=e.target.closest('.hh-demo');
   if(demoB){
     if(!confirm('Load the Aman & Awoman demo household? This will replace the current household.')) return;
-    seedDemoHousehold(); savePlan();
+    seedDemoHousehold(); ensureMedicarePreload(plan); savePlan();
     scenarios = demoScenarios(); baseSnapshot = defaultLevers();
     try{ localStorage.removeItem(SCEN_KEY); localStorage.removeItem('parallax.goals.rank'); }catch(e2){}
     // Rebuild the Scenarios lever DOM too — otherwise the columns keep showing the
