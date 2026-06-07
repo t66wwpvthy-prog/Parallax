@@ -835,6 +835,12 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield}
 .g-card:hover{transform:translateY(-2px);box-shadow:inset 0 1px 0 rgba(255,255,255,.34),inset 0 0 0 1px rgba(200,160,70,.18),0 32px 56px -20px rgba(0,0,0,.80)}
 .g-card.drag{cursor:grabbing;z-index:99;transform:scale(1.03);box-shadow:inset 0 1px 0 rgba(255,255,255,.46),inset 0 0 0 1px rgba(201,146,74,.4),0 40px 64px -18px rgba(0,0,0,.82),0 0 42px -12px rgba(201,146,74,.34)}
 .g-card.once{background:linear-gradient(152deg,rgba(130,96,42,.40),rgba(84,62,26,.40) 52%,rgba(56,42,18,.48));box-shadow:inset 0 1px 0 rgba(255,228,190,.34),inset 0 0 0 1px rgba(201,146,74,.3),0 22px 40px -22px rgba(0,0,0,.68)}
+/* Foundation card (base spending): pinned, teal bedrock look, not grabbable. */
+.g-card.pin{cursor:default;background:linear-gradient(152deg,rgba(52,78,74,.50),rgba(34,54,51,.52) 52%,rgba(22,38,36,.58));box-shadow:inset 0 1px 0 rgba(200,235,228,.26),inset 0 0 0 1px rgba(122,163,158,.24),0 22px 40px -22px rgba(0,0,0,.7)}
+.g-card.pin::after{background:linear-gradient(180deg,var(--teal-bright),rgba(80,120,114,.06))}
+.g-card.pin:hover{transform:none}
+.g-card.pin .g-name{color:var(--ink)}
+.g-card.pin .g-tag.pin{background:rgba(122,163,158,.22);color:var(--teal-bright)}
 .g-main{display:flex;flex-direction:column;gap:5px;min-width:0;flex:1 1 auto}
 .g-name{font-size:16px;font-weight:500;color:var(--ink-mute);white-space:nowrap;display:flex;align-items:center;gap:9px;min-width:0}
 .g-name .g-tag{font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;font-weight:700;padding:3px 7px;border-radius:6px;background:rgba(201,146,74,.18);color:var(--gold-bright)}
@@ -3939,6 +3945,18 @@ function goalCardHTML(g){
      <div class="g-amt"><span class="g-cur">$</span><input class="g-amt-in" data-f="amount" data-type="money" inputmode="numeric" value="${amtStr}">${per}</div>
      <button class="row-x g-del" data-rmpath="goals.${g.i}" title="Remove this goal">×</button>`;
 }
+// A foundation card (e.g. base spending). Pinned to the top of the ladder, not
+// draggable, not deletable. Its amount edits write straight to plan.expenses
+// (data-exp) so the value stays the engine's single source of truth — it flows
+// into the cash-flow table and every scenario, never double-counted.
+function foundationCardHTML(f){
+  const amtStr = (f.amount||0).toLocaleString('en-US');
+  return `<div class="g-main">
+       <div class="g-name">${escHtml(f.name)}<span class="g-tag pin">Foundation</span></div>
+       <div class="g-kind">${f.kind}</div>
+     </div>
+     <div class="g-amt"><span class="g-cur">$</span><input class="g-amt-in" data-exp="${f.exp}" data-type="money" inputmode="numeric" value="${amtStr}"><span class="g-per2">/yr</span></div>`;
+}
 // Build slots + editable, draggable cards into the rendered shell; wire pointer
 // drag/snap/swap, inline editing, and rank persistence. Called after
 // renderInputs() injects the board markup.
@@ -3947,7 +3965,13 @@ function initGoalsBoard(){
   const board = $('#g-board'), traylab = $('#g-traylab'), lead = $('#g-lead');
   if(!board) return;
   const RANK_KEY='parallax.goals.rank';
-  const NSLOT=Math.max(6, list.length), CH=72, GAP=14;
+  // Foundation cards: pinned to the TOP slots, read/write plan.expenses (the engine's
+  // single source of truth — no double count). Base spending now; healthcare later.
+  const foundations=[
+    {name:'Base spending', kind:'Retirement living · funded first', exp:'living', amount:Math.round((plan.expenses&&plan.expenses.living)||0)},
+  ];
+  // Room for 6 goal slots PLUS the pinned foundations, so every goal can still rank.
+  const NSLOT=Math.max(6, list.length)+foundations.length, CH=72, GAP=14;
   // On a phone the ladder + tray can't sit side-by-side; stack them in one full-
   // width column (slots on top, tray below) and size cards to the board.
   const mobBoard=isMobileView();
@@ -3966,6 +3990,17 @@ function initGoalsBoard(){
     if(mobBoard) el.style.width=CW+'px';
     board.appendChild(el);
     const c={el,slot:null,fromSlot:null,homeX:0,homeY:0,idx:g.i,gid:g.gid}; el._c=c; cards.push(c);
+  });
+  // Pin each foundation card into a top slot (rank 1, 2, …) before goal ranks
+  // restore — those slots read as occupied, so goals fill below them.
+  const fcards=[];
+  foundations.forEach((f,fi)=>{
+    const el=document.createElement('div'); el.className='g-card pin';
+    if(mobBoard) el.style.width=CW+'px';
+    el.innerHTML=foundationCardHTML(f);
+    board.appendChild(el);
+    const c={el,slot:null,pinned:true}; el._c=c; fcards.push(c);
+    const s=slots[fi]; if(s){ s.card=c; c.slot=s; s.el.classList.add('filled'); }
   });
   // Restore the saved rank by STABLE goal id, so adding or deleting a goal keeps
   // every other goal exactly where it was placed: surviving ids snap back to
@@ -4002,6 +4037,7 @@ function initGoalsBoard(){
         if(c.slot){ c.el.style.left=c.slot.x+'px'; c.el.style.top=c.slot.y+'px'; }
         else      { c.el.style.left=c.homeX+'px';  c.el.style.top=c.homeY+'px'; }
       });
+      fcards.forEach(c=>{ if(c.slot){ c.el.style.left=c.slot.x+'px'; c.el.style.top=c.slot.y+'px'; } });
       const nh=trayTop + cards.length*(CH+GAP) + 24;
       if(Math.abs(board.offsetHeight-nh)>1) board.style.height=nh+'px';
       return;
@@ -4018,6 +4054,7 @@ function initGoalsBoard(){
       if(c.slot){ c.el.style.left=c.slot.x+'px'; c.el.style.top=c.slot.y+'px'; }
       else      { c.el.style.left=c.homeX+'px';  c.el.style.top=c.homeY+'px'; }
     });
+    fcards.forEach(c=>{ if(c.slot){ c.el.style.left=c.slot.x+'px'; c.el.style.top=c.slot.y+'px'; } });
   }
   layout();
   // Re-layout on board resize; one observer at a time (renderInputs disconnects).
@@ -4026,13 +4063,22 @@ function initGoalsBoard(){
   // ── Inline editing (local; preserves the drag rank — no board rebuild) ──
   const refreshHero=()=>{ if(lead) lead.innerHTML=goalsHeroHTML(); };
   board.addEventListener('input', e=>{
-    const inp=e.target.closest('[data-f]'); if(!inp) return;
+    const inp=e.target.closest('[data-f],[data-exp]'); if(!inp) return;
     e.stopPropagation();                       // don't double-fire the global liveCommas
     if(inp.classList.contains('g-amt-in')) liveCommas(inp);
   });
   board.addEventListener('change', e=>{
-    const inp=e.target.closest('[data-f]'); if(!inp) return;
+    const inp=e.target.closest('[data-f],[data-exp]'); if(!inp) return;
     e.stopPropagation();                       // value edits stay local (rank intact)
+    // Foundation card → write back to plan.expenses (the engine's source of truth),
+    // so base spending flows into cash flow + every scenario, never double-counted.
+    if(inp.dataset.exp){
+      const v=Math.round(parseFloat(String(inp.value).replace(/[^0-9.]/g,''))||0);
+      if(plan.expenses) plan.expenses[inp.dataset.exp]=v;
+      reseedScenarios(); buildLevers(); sharedPaths=null; plansDirty=true; savePlan();
+      $('#status').textContent='Plan edited · open Scenarios';
+      return;
+    }
     const i=+inp.closest('.g-card').dataset.i, f=inp.dataset.f, type=inp.dataset.type;
     let val;
     if(type==='money')    val=Math.round(parseFloat(String(inp.value).replace(/[^0-9.]/g,''))||0);
@@ -4045,20 +4091,22 @@ function initGoalsBoard(){
   });
 
   // ── Drag / snap / swap (skip when the pointer lands on an editable control) ──
-  let active=null,offX=0,offY=0;
+  let active=null,offX=0,offY=0,downX=0,downY=0,moved=false;
   // Drop by REGION, not a radius: if the card's centre sits on the ladder side of
   // the midline between the two columns, it lands in the nearest slot by height
   // (so a near-miss still ranks, never bounces); on the tray side it un-ranks.
+  // Pinned foundation slots are never a target (they can't be displaced).
   const dropTarget=(cx,cy)=>{
+    const open=slots.filter(s=>!(s.card&&s.card.pinned));
     if(mobBoard){                                         // stacked: judge by Y
       if(cy >= trayTop-8) return null;                   // below ladder → unplaced
-      let best=slots[0],bd=1e9;
-      slots.forEach(s=>{ const d=Math.abs(cy-(s.y+CH/2)); if(d<bd){bd=d;best=s;} });
+      let best=open[0],bd=1e9;
+      open.forEach(s=>{ const d=Math.abs(cy-(s.y+CH/2)); if(d<bd){bd=d;best=s;} });
       return best;
     }
     if(cx >= (ladderX+CW + trayX)/2) return null;        // tray side → unplaced
-    let best=slots[0],bd=1e9;                             // ladder side → nearest by Y
-    slots.forEach(s=>{ const d=Math.abs(cy-(s.y+CH/2)); if(d<bd){bd=d;best=s;} });
+    let best=open[0],bd=1e9;                              // ladder side → nearest by Y
+    open.forEach(s=>{ const d=Math.abs(cy-(s.y+CH/2)); if(d<bd){bd=d;best=s;} });
     return best;
   };
   const moveTo=(c,x,y)=>{ c.el.style.transition=SNAP; c.el.style.left=x+'px'; c.el.style.top=y+'px'; };
@@ -4066,13 +4114,16 @@ function initGoalsBoard(){
   board.addEventListener('pointerdown',e=>{
     if(e.target.closest('input,button,select')) return;   // let edits/delete work
     const el=e.target.closest('.g-card'); if(!el) return;
-    active=el._c; active.fromSlot=active.slot; el.classList.add('drag');
+    if(el._c.pinned) return;                               // foundation: pinned, not draggable
+    active=el._c; active.fromSlot=active.slot; downX=e.clientX; downY=e.clientY; moved=false;
     el.style.transition='box-shadow .16s,transform .12s'; el.setPointerCapture(e.pointerId);
     offX=e.clientX-el.offsetLeft; offY=e.clientY-el.offsetTop;
     if(active.slot){ active.slot.card=null; active.slot.el.classList.remove('filled'); active.slot=null; }
   });
   board.addEventListener('pointermove',e=>{
     if(!active) return;
+    if(!moved && Math.abs(e.clientX-downX)+Math.abs(e.clientY-downY)>6){ moved=true; active.el.classList.add('drag'); }
+    if(!moved) return;                                     // a click, not a drag — leave the card put
     const W=board.clientWidth,H=board.clientHeight;
     const nx=Math.max(8,Math.min(e.clientX-offX,W-CW-8)), ny=Math.max(8,Math.min(e.clientY-offY,H-CH-8));
     active.el.style.left=nx+'px'; active.el.style.top=ny+'px';
@@ -4081,7 +4132,15 @@ function initGoalsBoard(){
   });
   board.addEventListener('pointerup',()=>{
     if(!active) return;
-    const a=active,el=a.el,cx=el.offsetLeft+CW/2,cy=el.offsetTop+CH/2;
+    const a=active,el=a.el;
+    if(!moved){
+      // CLICK (no drag): toggle placement. A ranked card returns to the tray; a
+      // tray card drops into the next open slot (pinned slots are skipped).
+      if(a.fromSlot){ moveTo(a,a.homeX,a.homeY); a.slot=null; }
+      else { const s=slots.find(s=>!s.card); if(s){ moveTo(a,s.x,s.y); fillSlot(a,s,true); } else { moveTo(a,a.homeX,a.homeY); a.slot=null; } }
+      slots.forEach(s=>s.el.classList.remove('hot')); active=null; saveRank(); return;
+    }
+    const cx=el.offsetLeft+CW/2,cy=el.offsetTop+CH/2;
     const hit=dropTarget(cx,cy);
     if(hit){
       if(hit.card){ const other=hit.card;
