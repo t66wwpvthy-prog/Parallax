@@ -2438,8 +2438,6 @@ const GOALS = {
 };
 
 // One solved lever → a clean "was → needs to be (delta)" descriptor.
-
-// One solved lever → a clean "was → needs to be (delta)" descriptor.
 function soloRowText(key, baseV, newV){
   const cfg = LEVCFG.find(c=>c.key===key);
   const fmt = v => { const [a,u]=cfg.fmt(v, {...defaultLevers(), [key]:v, eventAge:70}); return u && u!=='growth / defensive' ? `${a} ${u}` : a; };
@@ -2530,7 +2528,7 @@ function renderSolvePanel(){
         ? `<span class="solo-to">${t.to}</span><span class="solo-delta">no setting reaches it</span>`
         : `<span class="solo-from">${t.from}</span><span class="solo-arrow">→</span><span class="solo-to">${t.to}</span><span class="solo-delta">${t.delta}</span>`;
     return `<div class="solo-row ${capped?'capped':''} ${justMeets?'unchanged':''}">
-      <div class="solo-name">${t.name}</div>
+      <div class="solo-name">${escHtml(t.name)}</div>
       <div class="solo-move">${move}</div>
       <div class="solo-pct ${capped?'capped':''}">${capped ? `best hits ${row.reachedPct.toFixed(0)}%` : `${row.reachedPct.toFixed(0)}% ✓`}</div>
       <button class="solve-load" data-solo-idx="${i}" ${capped||justMeets||!R.canLoad?'disabled':''}>Load</button>
@@ -4043,7 +4041,7 @@ function buildLevers(){
   syncGridCols();
   let h='';
   LEVCFG.forEach(cfg=>{
-    h+=`<div class="lev-name">${cfg.name}</div>`;
+    h+=`<div class="lev-name">${escHtml(cfg.name)}</div>`;
     const r=levRange(cfg);
     scenarios.forEach((s,ci)=>{
       const last=ci===scenarios.length-1?'col-last':'';
