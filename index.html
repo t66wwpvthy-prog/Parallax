@@ -984,6 +984,195 @@ body::after{
   padding:18px 0;
 }
 .np-snapshot-page .metric:first-child{border-top:0}
+.gw-shell{
+  flex:1 1 auto;
+  min-height:calc(100vh - 202px);
+  max-width:min(1780px, calc(100vw - 64px));
+  display:grid;
+  grid-template-columns:minmax(280px,330px) minmax(560px,1fr) minmax(280px,330px);
+  gap:16px;
+  align-items:stretch;
+}
+.gw-panel{
+  position:relative;
+  overflow:hidden;
+  border-radius:22px;
+  border:1px solid rgba(245,224,188,.18);
+  background:
+    linear-gradient(135deg,rgba(255,244,218,.16),rgba(255,244,218,.045) 44%,rgba(73,43,20,.10)),
+    rgba(31,22,14,.38);
+  box-shadow:inset 0 1px 0 rgba(255,245,219,.28),inset 0 -1px 0 rgba(255,245,219,.05),0 34px 90px -56px #000;
+  backdrop-filter:blur(30px) saturate(1.25);
+  -webkit-backdrop-filter:blur(30px) saturate(1.25);
+}
+.gw-panel::before{
+  content:'';
+  position:absolute;
+  inset:-25% -18%;
+  pointer-events:none;
+  background:
+    radial-gradient(circle at 22% 18%,rgba(255,255,240,.34),transparent 14%),
+    linear-gradient(105deg,transparent 0 24%,rgba(255,255,235,.22) 34%,transparent 45% 100%);
+  filter:blur(12px);
+  opacity:.62;
+}
+.gw-panel>*{position:relative;z-index:1}
+.gw-editor,.gw-stack{padding:24px 22px}
+.gw-kicker{
+  font-family:Georgia,"Times New Roman",serif;
+  font-size:12px;
+  letter-spacing:.28em;
+  text-transform:uppercase;
+  color:rgba(236,214,176,.68);
+  margin-bottom:10px;
+}
+.gw-panel h3{
+  font-family:Georgia,"Times New Roman",serif;
+  font-size:28px;
+  line-height:1.05;
+  color:var(--ink-bright);
+  font-weight:600;
+  margin-bottom:10px;
+}
+.gw-copy{
+  font-size:12px;
+  line-height:1.45;
+  color:rgba(234,217,191,.68);
+  max-width:270px;
+  margin-bottom:18px;
+}
+.gw-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:18px 0 20px}
+.gw-stat{
+  min-height:70px;
+  border:1px solid rgba(245,224,188,.16);
+  border-radius:14px;
+  padding:12px 12px;
+  background:rgba(255,244,218,.06);
+}
+.gw-stat span{display:block;font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:rgba(234,217,191,.58);margin-bottom:8px}
+.gw-stat b{font-family:Georgia,"Times New Roman",serif;font-size:20px;color:var(--ink-bright);font-weight:600}
+.gw-form{border-top:1px solid rgba(245,224,188,.16);padding-top:18px}
+.gw-form.empty{min-height:150px}
+.gw-selected{display:flex;align-items:center;gap:9px;margin-bottom:14px;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:rgba(234,217,191,.7);font-weight:700}
+.gw-selected i,.gw-r-dot{width:9px;height:9px;border-radius:50%;display:inline-block;box-shadow:0 0 15px currentColor}
+.gw-selected i.rec,.gw-r-dot.rec{background:#d8f1d2;color:#d8f1d2}
+.gw-selected i.once,.gw-r-dot.once{background:#e8bd7e;color:#e8bd7e}
+.gw-field{display:flex;flex-direction:column;gap:6px;margin-bottom:13px}
+.gw-field span{
+  font-size:10px;
+  letter-spacing:.2em;
+  text-transform:uppercase;
+  color:rgba(234,217,191,.56);
+  font-weight:700;
+}
+.gw-field input{
+  width:100%;
+  height:40px;
+  border:1px solid rgba(245,224,188,.16);
+  border-radius:12px;
+  background:rgba(20,13,8,.34);
+  color:var(--ink-bright);
+  font:600 15px Georgia,"Times New Roman",serif;
+  padding:0 12px;
+  outline:none;
+}
+.gw-field input:focus{border-color:rgba(232,189,126,.58);box-shadow:0 0 0 3px rgba(232,189,126,.10)}
+.gw-field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.gw-field.small input{text-align:center}
+.gw-delete{
+  width:100%;
+  height:36px;
+  border:1px solid rgba(245,224,188,.18)!important;
+  border-radius:12px!important;
+  background:rgba(255,244,218,.035)!important;
+  color:rgba(234,217,191,.66)!important;
+  font-size:11px!important;
+  letter-spacing:.16em!important;
+  text-transform:uppercase;
+  margin-top:4px;
+}
+.gw-actions{display:flex;gap:10px;margin-top:18px}
+.gw-btn{
+  height:40px;
+  flex:1;
+  border:1px solid rgba(245,224,188,.22);
+  border-radius:999px;
+  background:rgba(255,244,218,.055);
+  color:rgba(234,217,191,.78);
+  font-size:11px;
+  letter-spacing:.16em;
+  text-transform:uppercase;
+  font-weight:700;
+  cursor:pointer;
+}
+.gw-btn.primary{background:linear-gradient(180deg,#f0c989,#bd7d34);border-color:rgba(255,231,184,.44);color:#1c130b}
+.gw-map{padding:20px}
+.gw-map-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:10px}
+.gw-map-head span{display:block;font-size:10px;letter-spacing:.26em;text-transform:uppercase;color:rgba(234,217,191,.55);font-weight:700}
+.gw-map-head b{display:block;margin-top:4px;font-family:Georgia,"Times New Roman",serif;font-size:22px;color:var(--ink-bright)}
+.gw-toggles{display:flex;gap:8px}
+.gw-toggles button{
+  border:1px solid rgba(245,224,188,.22);
+  border-radius:999px;
+  background:rgba(255,244,218,.055);
+  color:rgba(234,217,191,.74);
+  padding:7px 11px;
+  font-size:9px;
+  letter-spacing:.15em;
+  text-transform:uppercase;
+  font-weight:800;
+  cursor:pointer;
+}
+.gw-toggles button.on{background:rgba(232,189,126,.16);border-color:rgba(232,189,126,.48);color:var(--ink-bright)}
+.gw-shell.links-off .gw-link{opacity:0}
+.gw-shell.motion-on .gw-sphere{animation:gw-breathe 4.8s ease-in-out infinite}
+@keyframes gw-breathe{0%,100%{filter:brightness(1)}50%{filter:brightness(1.18)}}
+.gw-svg{width:100%;height:calc(100% - 46px);min-height:580px;display:block}
+.gw-orbit{fill:none;stroke:rgba(245,224,188,.18);stroke-width:1.4}
+.gw-orbit.soft{stroke:rgba(245,224,188,.11)}
+.gw-lens{fill:none;stroke:rgba(245,224,188,.18);stroke-width:1}
+.gw-link{stroke:rgba(203,227,235,.38);stroke-width:4;stroke-linecap:round;filter:drop-shadow(0 0 8px rgba(191,221,231,.35))}
+.gw-link.faint{stroke:rgba(245,224,188,.18);stroke-width:1.2;filter:none}
+.gw-link.on{stroke:rgba(232,189,126,.86);stroke-width:7}
+.gw-node{cursor:pointer}
+.gw-halo{fill:rgba(255,255,255,.08);stroke:rgba(255,250,234,.48);stroke-width:2;filter:drop-shadow(0 0 20px rgba(255,242,216,.32))}
+.gw-node.on .gw-halo{stroke:rgba(255,233,180,.92);filter:drop-shadow(0 0 30px rgba(232,189,126,.68))}
+.gw-sphere{fill:url(#gwRec);stroke:rgba(255,250,234,.75);stroke-width:2.3}
+.gw-node.once .gw-sphere{fill:url(#gwOnce)}
+.gw-sheen{fill:rgba(255,255,255,.34)}
+.gw-node-label{fill:var(--ink-bright);font:700 18px Georgia,"Times New Roman",serif;paint-order:stroke;stroke:rgba(20,13,8,.72);stroke-width:3px}
+.gw-node-money{fill:rgba(234,217,191,.88);font:700 13px Georgia,"Times New Roman",serif;paint-order:stroke;stroke:rgba(20,13,8,.72);stroke-width:3px}
+.gw-node.core .gw-node-label{font-size:20px}
+.gw-empty{position:absolute;left:50%;top:52%;transform:translate(-50%,-50%);max-width:320px;text-align:center;color:rgba(234,217,191,.64);line-height:1.45}
+.gw-ranks{display:flex;flex-direction:column;gap:10px;margin-top:18px}
+.gw-rank{
+  width:100%;
+  display:grid;
+  grid-template-columns:12px minmax(0,1fr) auto;
+  gap:11px;
+  align-items:center;
+  min-height:60px;
+  border:1px solid rgba(245,224,188,.17);
+  border-radius:14px;
+  background:rgba(255,244,218,.055);
+  color:var(--ink);
+  text-align:left;
+  padding:10px 12px;
+  cursor:pointer;
+}
+.gw-rank.on{border-color:rgba(232,189,126,.58);background:rgba(232,189,126,.12);box-shadow:inset 0 1px 0 rgba(255,245,219,.22)}
+.gw-r-main{min-width:0}
+.gw-r-main b{display:block;color:var(--ink-bright);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gw-r-main em{display:block;color:rgba(234,217,191,.56);font-style:normal;font-size:11px;margin-top:3px}
+.gw-rank strong{font-family:Georgia,"Times New Roman",serif;font-size:14px;color:var(--ink-bright);white-space:nowrap}
+.gw-stack-empty{margin-top:20px;color:rgba(234,217,191,.62)}
+.gw-split{display:grid;grid-template-columns:1fr auto;gap:8px 12px;margin-top:18px;border-top:1px solid rgba(245,224,188,.15);padding-top:14px;font-size:12px;color:rgba(234,217,191,.64)}
+.gw-split b{color:var(--ink-bright)}
+.gw-stack h3{margin-bottom:0}
+@media (max-width:1100px){
+  .gw-shell{grid-template-columns:1fr;min-height:0}
+  .gw-svg{min-height:520px}
+}
 .suggest{
   background:rgba(28,18,10,.78)!important;
   border-color:rgba(228,189,130,.45)!important;
@@ -3955,6 +4144,181 @@ function initGoalsBoard(){
    sub-nav click, on field change, and on row delete — same wiring pattern
    as before so live-commas / scenario re-seeding / plansDirty all still
    work without per-layout duplication. */
+// Goals Web overrides. These replace the older ladder renderer while keeping
+// plan.goals as the only data source used by Scenarios and Cash Flow.
+function goalsHeroWebHTML(){
+  const {recurring, oneTime} = goalsView();
+  const oneTimeMeta = oneTime>0 ? `<span><b>${fmtMoney(oneTime)}</b> one-time</span>` : '<span>No one-time goals</span>';
+  return `<div class="gw-stats">
+    <div class="gw-stat"><span>Annual</span><b>${fmtMoney(recurring)}</b></div>
+    <div class="gw-stat">${oneTimeMeta}</div>
+  </div>`;
+}
+function renderGoalsWebBoard(){
+  const {list} = goalsView();
+  const stored = Number(window.__gSelectedGoal);
+  const selected = list.find(g=>g.i===stored) || list[0] || null;
+  if(selected) window.__gSelectedGoal = selected.i;
+  const recurring = list.filter(g=>!g.once);
+  const oneTime = list.filter(g=>g.once);
+  const empty = list.length ? '' : `<div class="gw-empty">No goals yet. Add a recurring or one-time goal to start the map.</div>`;
+  return `<div class="gw-shell motion-on" id="g-board">
+    <aside class="gw-panel gw-editor">
+      <div class="gw-kicker">Household - Goals</div>
+      <h3>Liquid Goals Web</h3>
+      <p class="gw-copy">Goal inputs stay live here. Scenarios and cash flow read the same plan goals.</p>
+      ${goalsHeroWebHTML()}
+      ${selected ? goalFormHTML(selected) : goalEmptyFormHTML()}
+      <div class="gw-actions">
+        <button class="gw-btn primary" data-add="goalRec">Add a goal</button>
+        <button class="gw-btn" data-add="goalOnce">One-time</button>
+      </div>
+    </aside>
+    <section class="gw-panel gw-map">
+      <div class="gw-map-head">
+        <div><span>Interactive map</span><b>Liquid retirement lens</b></div>
+        <div class="gw-toggles"><button type="button" class="on" data-gw-toggle="motion">Motion</button><button type="button" class="on" data-gw-toggle="links">Links</button></div>
+      </div>
+      ${goalMapHTML(list, selected ? selected.i : null)}
+      ${empty}
+    </section>
+    <aside class="gw-panel gw-stack">
+      <div class="gw-kicker">Goal stack</div>
+      <h3>Priority order</h3>
+      ${goalStackHTML(list, selected ? selected.i : null)}
+      <div class="gw-split"><span>Recurring</span><b>${recurring.length}</b><span>One-time</span><b>${oneTime.length}</b></div>
+    </aside>
+  </div>`;
+}
+function goalFormHTML(g){
+  const amtStr = (g.amount||0).toLocaleString('en-US');
+  const timing = g.once
+    ? `<label class="gw-field small"><span>At age</span><input data-f="startAge" data-sync="endAge" data-type="num" value="${g.startAge}"></label>`
+    : `<label class="gw-field small"><span>Start age</span><input data-f="startAge" data-type="num" value="${g.startAge}"></label>
+       <label class="gw-field small"><span>End age</span><input data-f="endAge" data-type="num" value="${g.endAge}"></label>`;
+  return `<div class="gw-form" data-goal-i="${g.i}">
+    <div class="gw-selected"><i class="${g.once?'once':'rec'}"></i><span>${g.once?'One-time goal':'Recurring goal'}</span></div>
+    <label class="gw-field"><span>Goal name</span><input data-f="name" data-type="text" value="${escHtml(g.name)}" placeholder="Goal name"></label>
+    <label class="gw-field"><span>${g.once?'Target':'Annual amount'}</span><input data-f="amount" data-type="money" inputmode="numeric" value="${amtStr}"></label>
+    <div class="gw-field-row">${timing}</div>
+    <button class="gw-delete row-x" data-rmpath="goals.${g.i}" title="Remove this goal">Delete</button>
+  </div>`;
+}
+function goalEmptyFormHTML(){
+  return `<div class="gw-form empty"><div class="gw-selected"><i class="rec"></i><span>No goal selected</span></div></div>`;
+}
+function shortMoney(n){
+  n = Math.max(0, Number(n)||0);
+  if(n >= 1000000) return '$' + (n/1000000).toFixed(n >= 10000000 ? 0 : 1).replace(/\.0$/,'') + 'M';
+  if(n >= 1000) return '$' + Math.round(n/1000) + 'k';
+  return '$' + Math.round(n);
+}
+function goalNodes(list, selectedIdx){
+  const center = {x:500,y:330};
+  const annual = list.filter(g=>!g.once).reduce((s,g)=>s+(g.amount||0),0);
+  const nodes = [{i:'core', name:'Annual goals', amount:annual, once:false, x:center.x, y:center.y, r:60, core:true, selected:false}];
+  list.forEach((g,idx)=>{
+    const count = Math.max(1, list.length);
+    const angle = -Math.PI/2 + idx * (Math.PI*2/count);
+    const ring = 210 + (idx % 2) * 46;
+    const r = Math.max(34, Math.min(56, 32 + Math.sqrt(Math.max(0,g.amount||0))/95));
+    nodes.push({...g, x:center.x + Math.cos(angle)*ring, y:center.y + Math.sin(angle)*ring, r, core:false, selected:g.i===selectedIdx});
+  });
+  return nodes;
+}
+function goalMapHTML(list, selectedIdx){
+  const nodes = goalNodes(list, selectedIdx);
+  const center = nodes.find(n=>n.core) || {x:500,y:330,i:null};
+  const links = nodes.filter(n=>n.i!==center.i).map(n=>`<line class="gw-link ${n.selected?'on':''}" x1="${center.x}" y1="${center.y}" x2="${n.x}" y2="${n.y}"></line>`).join('');
+  const cross = nodes.length > 2 ? nodes.slice(1).map((n,idx,arr)=>{
+    const next = arr[(idx+1)%arr.length];
+    return `<line class="gw-link faint" x1="${n.x}" y1="${n.y}" x2="${next.x}" y2="${next.y}"></line>`;
+  }).join('') : '';
+  const balls = nodes.map(n=>{
+    const label = escHtml(n.name || 'Goal');
+    const cls = `gw-node ${n.once?'once':'rec'} ${n.selected?'on':''} ${n.core?'core':''}`;
+    const attrs = n.core ? '' : `data-select-goal="${n.i}" tabindex="0" role="button"`;
+    return `<g class="${cls}" ${attrs} transform="translate(${n.x} ${n.y})">
+      <circle class="gw-halo" r="${n.r+14}"></circle>
+      <circle class="gw-sphere" r="${n.r}"></circle>
+      <circle class="gw-sheen" cx="${-n.r*.28}" cy="${-n.r*.32}" r="${n.r*.42}"></circle>
+      <text class="gw-node-label" y="${n.r+25}" text-anchor="middle">${label}</text>
+      <text class="gw-node-money" y="${n.r+43}" text-anchor="middle">${shortMoney(n.amount)}${n.once?'':'/yr'}</text>
+    </g>`;
+  }).join('');
+  return `<svg class="gw-svg" viewBox="0 0 1000 660" aria-label="Goals map">
+    <defs>
+      <radialGradient id="gwRec" cx="35%" cy="25%" r="70%">
+        <stop offset="0%" stop-color="#fff8df" stop-opacity=".96"/>
+        <stop offset="38%" stop-color="#d9f0dc" stop-opacity=".78"/>
+        <stop offset="100%" stop-color="#7fa36d" stop-opacity=".64"/>
+      </radialGradient>
+      <radialGradient id="gwOnce" cx="35%" cy="25%" r="70%">
+        <stop offset="0%" stop-color="#fff5df" stop-opacity=".98"/>
+        <stop offset="42%" stop-color="#e8bd7e" stop-opacity=".82"/>
+        <stop offset="100%" stop-color="#b77a35" stop-opacity=".66"/>
+      </radialGradient>
+    </defs>
+    <circle class="gw-orbit" cx="500" cy="330" r="265"></circle>
+    <circle class="gw-orbit soft" cx="500" cy="330" r="170"></circle>
+    <path class="gw-lens" d="M500 102 C635 210 635 450 500 558 C365 450 365 210 500 102Z"></path>
+    ${cross}${links}${balls}
+  </svg>`;
+}
+function goalStackHTML(list, selectedIdx){
+  if(!list.length) return `<div class="gw-stack-empty">No goals yet.</div>`;
+  return `<div class="gw-ranks">${list.map(g=>{
+    const cls = `gw-rank ${g.i===selectedIdx?'on':''}`;
+    return `<button class="${cls}" type="button" data-select-goal="${g.i}">
+      <span class="gw-r-dot ${g.once?'once':'rec'}"></span>
+      <span class="gw-r-main"><b>${escHtml(g.name || 'Goal')}</b><em>${g.once?'age '+g.startAge:'ages '+g.startAge+'-'+g.endAge}</em></span>
+      <strong>${shortMoney(g.amount)}${g.once?'':'/yr'}</strong>
+    </button>`;
+  }).join('')}</div>`;
+}
+function initGoalsWebBoard(){
+  const board = $('#g-board');
+  if(!board) return;
+  board.addEventListener('click', e=>{
+    const toggle = e.target.closest('[data-gw-toggle]');
+    if(toggle){
+      const mode = toggle.dataset.gwToggle;
+      if(mode === 'motion'){
+        const on = board.classList.toggle('motion-on');
+        toggle.classList.toggle('on', on);
+      }
+      if(mode === 'links'){
+        const off = board.classList.toggle('links-off');
+        toggle.classList.toggle('on', !off);
+      }
+      return;
+    }
+    const pick = e.target.closest('[data-select-goal]');
+    if(!pick) return;
+    window.__gSelectedGoal = +pick.dataset.selectGoal;
+    renderInputs();
+  });
+  board.addEventListener('input', e=>{
+    const inp=e.target.closest('[data-f]'); if(!inp) return;
+    e.stopPropagation();
+    if(inp.dataset.type==='money') liveCommas(inp);
+  });
+  board.addEventListener('change', e=>{
+    const inp=e.target.closest('[data-f]'); if(!inp) return;
+    e.stopPropagation();
+    const wrap=inp.closest('[data-goal-i]');
+    if(!wrap) return;
+    const i=+wrap.dataset.goalI, f=inp.dataset.f, type=inp.dataset.type;
+    let val;
+    if(type==='money')    val=Math.round(parseFloat(String(inp.value).replace(/[^0-9.]/g,''))||0);
+    else if(type==='num') val=parseInt(inp.value,10)||0;
+    else                  val=inp.value;
+    if(plan.goals[i]){ plan.goals[i][f]=val; if(inp.dataset.sync) plan.goals[i][inp.dataset.sync]=val; }
+    window.__gSelectedGoal = i;
+    commitPlanEdit();
+  });
+}
+
 function renderInputs(){
   // sub-nav active state
   $$('#np-subnav .stab').forEach(b => b.classList.toggle('on', b.dataset.sub===activeSub));
@@ -3967,10 +4331,10 @@ function renderInputs(){
   // page made that page too busy to read.
   const html = layout==='statement' ? renderStatement()
              : layout==='snapshot'  ? `<div class="np-snapshot-page">${renderSnapshot()}</div>`
-             : layout==='board'     ? renderGoalsBoard()
+             : layout==='board'     ? renderGoalsWebBoard()
              :                        renderHybrid(activeSub);
   np.innerHTML = html;
-  if(layout==='board') initGoalsBoard();
+  if(layout==='board') initGoalsWebBoard();
 }
 // ── Net Worth input bindings — delegated on the stable #np-content ────────────
 // Input listeners are set once here so re-renders via renderInputs() (which
