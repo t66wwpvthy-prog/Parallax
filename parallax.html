@@ -796,7 +796,7 @@ body::after{
 }
 .hdr{
   min-height:76px;
-  padding:9px 28px 8px 42px;
+  padding:9px 32px 8px 32px;
   gap:30px;
   border-bottom:1px solid rgba(229,202,158,.12);
   background:linear-gradient(180deg,rgba(28,19,11,.72),rgba(25,17,10,.42));
@@ -838,7 +838,7 @@ body::after{
 .page{padding:0 32px 28px}
 .page[data-page="net-worth"]{padding-top:22px}
 .subnav{
-  max-width:min(1320px, calc(100vw - 64px));
+  max-width:min(1720px, calc(100vw - 64px));
   margin:0 0 30px;
   border-bottom-color:rgba(238,218,182,.2);
   background:linear-gradient(90deg,rgba(235,213,178,.028),transparent 68%);
@@ -1127,6 +1127,9 @@ body::after{
 .gw-shell.links-off .gw-link{opacity:0}
 .gw-shell.motion-on .gw-sphere{animation:gw-breathe 4.8s ease-in-out infinite}
 @keyframes gw-breathe{0%,100%{filter:brightness(1)}50%{filter:brightness(1.18)}}
+.gw-node[data-select-goal]{cursor:grab}
+.gw-node.dragging{cursor:grabbing}
+.gw-node.dragging .gw-halo{stroke:rgba(255,233,180,.96);filter:drop-shadow(0 0 36px rgba(232,189,126,.78))}
 .gw-svg{width:100%;height:calc(100% - 46px);min-height:580px;display:block}
 .gw-orbit{fill:none;stroke:rgba(245,224,188,.18);stroke-width:1.4}
 .gw-orbit.soft{stroke:rgba(245,224,188,.11)}
@@ -4213,31 +4216,46 @@ function shortMoney(n){
   if(n >= 1000) return '$' + Math.round(n/1000) + 'k';
   return '$' + Math.round(n);
 }
+const GW_POS_KEY='parallax.goals.web.positions';
+function goalWebPositions(){
+  try{ return JSON.parse(localStorage.getItem(GW_POS_KEY)||'{}') || {}; }catch{ return {}; }
+}
+function saveGoalWebPosition(id,x,y){
+  try{
+    const p=goalWebPositions();
+    p[id]={x:Math.round(x*10)/10,y:Math.round(y*10)/10};
+    localStorage.setItem(GW_POS_KEY, JSON.stringify(p));
+  }catch{}
+}
 function goalNodes(list, selectedIdx){
   const center = {x:500,y:330};
   const annual = list.filter(g=>!g.once).reduce((s,g)=>s+(g.amount||0),0);
   const nodes = [{i:'core', name:'Annual goals', amount:annual, once:false, x:center.x, y:center.y, r:60, core:true, selected:false}];
+  const saved = goalWebPositions();
   list.forEach((g,idx)=>{
     const count = Math.max(1, list.length);
     const angle = -Math.PI/2 + idx * (Math.PI*2/count);
     const ring = 210 + (idx % 2) * 46;
     const r = Math.max(34, Math.min(56, 32 + Math.sqrt(Math.max(0,g.amount||0))/95));
-    nodes.push({...g, x:center.x + Math.cos(angle)*ring, y:center.y + Math.sin(angle)*ring, r, core:false, selected:g.i===selectedIdx});
+    const p = saved[g.i];
+    const x = p && Number.isFinite(p.x) ? Math.max(110,Math.min(890,p.x)) : center.x + Math.cos(angle)*ring;
+    const y = p && Number.isFinite(p.y) ? Math.max(105,Math.min(560,p.y)) : center.y + Math.sin(angle)*ring;
+    nodes.push({...g, x, y, r, core:false, selected:g.i===selectedIdx});
   });
   return nodes;
 }
 function goalMapHTML(list, selectedIdx){
   const nodes = goalNodes(list, selectedIdx);
   const center = nodes.find(n=>n.core) || {x:500,y:330,i:null};
-  const links = nodes.filter(n=>n.i!==center.i).map(n=>`<line class="gw-link ${n.selected?'on':''}" x1="${center.x}" y1="${center.y}" x2="${n.x}" y2="${n.y}"></line>`).join('');
+  const links = nodes.filter(n=>n.i!==center.i).map(n=>`<line class="gw-link ${n.selected?'on':''}" data-link-from="core" data-link-to="${n.i}" x1="${center.x}" y1="${center.y}" x2="${n.x}" y2="${n.y}"></line>`).join('');
   const cross = nodes.length > 2 ? nodes.slice(1).map((n,idx,arr)=>{
     const next = arr[(idx+1)%arr.length];
-    return `<line class="gw-link faint" x1="${n.x}" y1="${n.y}" x2="${next.x}" y2="${next.y}"></line>`;
+    return `<line class="gw-link faint" data-link-from="${n.i}" data-link-to="${next.i}" x1="${n.x}" y1="${n.y}" x2="${next.x}" y2="${next.y}"></line>`;
   }).join('') : '';
   const balls = nodes.map(n=>{
     const label = escHtml(n.name || 'Goal');
     const cls = `gw-node ${n.once?'once':'rec'} ${n.selected?'on':''} ${n.core?'core':''}`;
-    const attrs = n.core ? '' : `data-select-goal="${n.i}" tabindex="0" role="button"`;
+    const attrs = n.core ? 'data-node-id="core"' : `data-node-id="${n.i}" data-select-goal="${n.i}" tabindex="0" role="button"`;
     return `<g class="${cls}" ${attrs} transform="translate(${n.x} ${n.y})">
       <circle class="gw-halo" r="${n.r+14}"></circle>
       <circle class="gw-sphere" r="${n.r}"></circle>
@@ -4279,6 +4297,7 @@ function goalStackHTML(list, selectedIdx){
 function initGoalsWebBoard(){
   const board = $('#g-board');
   if(!board) return;
+  initGoalsWebMap(board);
   board.addEventListener('click', e=>{
     const toggle = e.target.closest('[data-gw-toggle]');
     if(toggle){
@@ -4318,12 +4337,98 @@ function initGoalsWebBoard(){
     commitPlanEdit();
   });
 }
+function initGoalsWebMap(board){
+  const svg = board.querySelector('.gw-svg');
+  if(!svg) return;
+  if(window.__gwRaf){ cancelAnimationFrame(window.__gwRaf); window.__gwRaf=null; }
+  const states = new Map();
+  const readXY = el => {
+    const m = String(el.getAttribute('transform')||'').match(/translate\(([-0-9.]+)\s+([-0-9.]+)\)/);
+    return m ? {x:+m[1],y:+m[2]} : {x:0,y:0};
+  };
+  const place = (s,x,y) => {
+    s.x=x; s.y=y;
+    s.el.setAttribute('transform',`translate(${x.toFixed(2)} ${y.toFixed(2)})`);
+  };
+  const updateLinks = () => {
+    svg.querySelectorAll('[data-link-from]').forEach(line=>{
+      const a=states.get(String(line.dataset.linkFrom)), b=states.get(String(line.dataset.linkTo));
+      if(!a || !b) return;
+      line.setAttribute('x1',a.x.toFixed(2)); line.setAttribute('y1',a.y.toFixed(2));
+      line.setAttribute('x2',b.x.toFixed(2)); line.setAttribute('y2',b.y.toFixed(2));
+    });
+  };
+  svg.querySelectorAll('.gw-node').forEach((el,idx)=>{
+    const id = String(el.dataset.nodeId || '');
+    const p = readXY(el);
+    states.set(id,{id,el,baseX:p.x,baseY:p.y,x:p.x,y:p.y,phase:idx*1.17,amp:id==='core'?0:4+(idx%3)*2});
+  });
+  let drag=null;
+  const svgPoint = e => {
+    const pt = svg.createSVGPoint();
+    pt.x=e.clientX; pt.y=e.clientY;
+    return pt.matrixTransform(svg.getScreenCTM().inverse());
+  };
+  svg.addEventListener('pointerdown',e=>{
+    const node = e.target.closest('.gw-node[data-select-goal]');
+    if(!node) return;
+    const s = states.get(String(node.dataset.nodeId));
+    if(!s) return;
+    const p = svgPoint(e);
+    drag = {s,dx:p.x-s.x,dy:p.y-s.y,moved:false,pointerId:e.pointerId};
+    node.classList.add('dragging');
+    node.setPointerCapture(e.pointerId);
+    e.preventDefault();
+    e.stopPropagation();
+  });
+  svg.addEventListener('pointermove',e=>{
+    if(!drag) return;
+    const p = svgPoint(e);
+    const x = Math.max(105,Math.min(895,p.x-drag.dx));
+    const y = Math.max(100,Math.min(565,p.y-drag.dy));
+    if(Math.abs(x-drag.s.baseX)>2 || Math.abs(y-drag.s.baseY)>2) drag.moved=true;
+    drag.s.baseX=x; drag.s.baseY=y;
+    place(drag.s,x,y);
+    updateLinks();
+    e.preventDefault();
+  });
+  const endDrag = e => {
+    if(!drag) return;
+    const s=drag.s;
+    s.el.classList.remove('dragging');
+    if(drag.moved) saveGoalWebPosition(s.id,s.baseX,s.baseY);
+    window.__gSelectedGoal = +s.id;
+    drag=null;
+    renderInputs();
+    e.preventDefault();
+    e.stopPropagation();
+  };
+  svg.addEventListener('pointerup',endDrag);
+  svg.addEventListener('pointercancel',endDrag);
+  const tick = t => {
+    const moving = board.classList.contains('motion-on');
+    states.forEach(s=>{
+      if(drag && drag.s===s) return;
+      if(!moving || s.id==='core'){
+        place(s,s.baseX,s.baseY);
+      }else{
+        const x=s.baseX + Math.sin(t/1650+s.phase)*s.amp;
+        const y=s.baseY + Math.cos(t/2100+s.phase)*s.amp*.72;
+        place(s,x,y);
+      }
+    });
+    updateLinks();
+    window.__gwRaf = requestAnimationFrame(tick);
+  };
+  window.__gwRaf = requestAnimationFrame(tick);
+}
 
 function renderInputs(){
   // sub-nav active state
   $$('#np-subnav .stab').forEach(b => b.classList.toggle('on', b.dataset.sub===activeSub));
   // Drop any prior board resize-observer before the shell is replaced.
   if(window.__gObs){ window.__gObs.disconnect(); window.__gObs=null; }
+  if(window.__gwRaf){ cancelAnimationFrame(window.__gwRaf); window.__gwRaf=null; }
   const layout = SUB_PAGES[activeSub].layout;
   const np = $('#np-content');
   np.classList.toggle('g-mode', layout==='board');
