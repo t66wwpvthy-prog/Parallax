@@ -16,9 +16,14 @@ Single source of truth for "is the app actually working." Runs:
 
 Screenshots land in `./verify-out/`:
 
-- `01-scenarios.png` — scenarios tab with circles + levers
-- `02-scenarios-cashflow.png` — scenarios tab with cash-flow drawer open
-- `03-sequencing.png` — sequencing chart with all chips enabled
+- `01-balance-sheet.png` — Net Worth / Balance Sheet
+- `02-cashflow.png` — Net Worth / Cash Flow
+- `02-goals.png` — Net Worth / Goals priority board
+- `02-snapshot.png` — Net Worth / Snapshot
+- `03-scenarios.png` — scenarios tab with circles + levers
+- `04-cashflow.png` — scenarios tab with cash-flow drawer open
+- `05-sequencing.png` — sequencing chart with all chips enabled
+- `06-property.png` — property card detail
 
 ## When to invoke
 

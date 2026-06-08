@@ -10,7 +10,7 @@ Use when a change is verified and ready to deploy.
 ## Steps (in order, abort on any failure)
 
 1. **Build** — `node build-standalone.mjs` regenerates `index.html` + `parallax.html` from the source `parallax_v2.html`. The built files MUST be committed (Pages serves them).
-2. **Engine tests** — `node --test engine.test.js`. Must be ALL pass (currently 27/27). Engine is sacred.
+2. **Engine tests** — `node --test engine.test.js`. Must be ALL pass (currently 38/38). Engine is sacred.
 3. **Visual verify** — `node scripts/verify.mjs`. Must exit 0. Screenshots land in `verify-out/`.
 4. **Commit** — short title, body explains the WHY of the change. Include source file + built artifacts.
 5. **Reconcile with main FIRST** — `git fetch origin main`, then `git merge origin/main` (or rebase onto it). This is the step that stops the half-day ghost: another session may have pushed work (a re-theme, a new feature) to main that your branch lacks. Skip it and force-push, and you SILENTLY DROP their work. After merging, re-run build + verify so the merged result is what ships.

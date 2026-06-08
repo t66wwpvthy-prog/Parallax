@@ -1,28 +1,39 @@
-// Build a single self-contained HTML file Nathan can just double-click.
-// Inlines engine.js into parallax_v2.html so there's no ES-module import
-// (file:// browsers block module imports — that's why opening the split
-// version locally appears dead).
-// Output: parallax.html
+// Build a single self-contained HTML file that can be opened directly.
+// Inlines engine.js into parallax_v2.html so file:// browsers do not need
+// to load a separate ES module.
 import { readFileSync, writeFileSync } from 'fs';
 
-const html   = readFileSync('parallax_v2.html', 'utf8');
-let   engine = readFileSync('engine.js', 'utf8');
+const html = readFileSync('parallax_v2.html', 'utf8');
+let engine = readFileSync('engine.js', 'utf8');
 
-// Strip the engine's export block; we're not loading it as a module anymore.
-engine = engine.replace(/export\s*\{[\s\S]*?\};?\s*$/m, '');
+const exportBlockPattern = /export\s*\{[\s\S]*?\};?\s*$/m;
+const exportBlocks = engine.match(exportBlockPattern) || [];
+if (exportBlocks.length !== 1) {
+  throw new Error(`Expected exactly one engine export block, found ${exportBlocks.length}.`);
+}
 
-// Replace the HTML's `import { ... } from "./engine.js";` line with the
-// engine source itself. Everything the UI imports becomes a top-level
-// binding inside the same module scope.
+engine = engine.replace(exportBlockPattern, '');
+if (/\bexport\s*\{/.test(engine)) {
+  throw new Error('Engine still contains an export block after inlining cleanup.');
+}
+
+const engineImportPattern = /import\s*\{[\s\S]*?\}\s*from\s*["']\.\/engine\.js["'];?/;
+const engineImports = html.match(engineImportPattern) || [];
+if (engineImports.length !== 1) {
+  throw new Error(`Expected exactly one ./engine.js import in parallax_v2.html, found ${engineImports.length}.`);
+}
+
 const out = html.replace(
-  /import\s*\{[\s\S]*?\}\s*from\s*["']\.\/engine\.js["'];?/,
-  // The engine already declares `plan` (exported as defaultPlan); the UI uses
-  // that same binding, so no aliasing line is needed.
-  `/* ── engine.js inlined for single-file use ── */\n${engine}\n/* ── end engine ── */`
+  engineImportPattern,
+  `/* engine.js inlined for single-file use */\n${engine}\n/* end engine */`
 );
+if (out === html || /from\s*["']\.\/engine\.js["']/.test(out)) {
+  throw new Error('Standalone build did not inline the engine import.');
+}
+if (/\bexport\s*\{/.test(out)) {
+  throw new Error('Standalone build still contains an engine export block.');
+}
 
-// Write to BOTH names: parallax.html for explicit download, index.html so the
-// bare GitHub Pages URL serves the tool directly.
 writeFileSync('parallax.html', out);
-writeFileSync('index.html',    out);
+writeFileSync('index.html', out);
 console.log('wrote parallax.html + index.html (' + out.length + ' bytes)');

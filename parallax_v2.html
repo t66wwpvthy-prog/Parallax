@@ -564,8 +564,8 @@ background-size:auto,auto,auto,64px 64px,64px 64px,auto;}
 /* Alternating per-scenario column tint in the cash-flow table — two faint
    washes that cycle regardless of how many scenarios there are. */
 .cf-g0{background:rgba(90,160,120,.04)} .cf-g1{background:rgba(196,123,49,.04)}
-.cf-table tr.retire td{border-top:1px dashed var(--gold);}
-.cf-table tr.retire td.age::after{content:'  retire';color:var(--gold);font-size:10px;font-weight:500;letter-spacing:.1em}
+.cf-table td.retire{border-top:1px dashed var(--gold);}
+.cf-table td.retire-start::after{content:'  retire';color:var(--gold);font-size:10px;font-weight:500;letter-spacing:.1em}
 
 /* ──────────────────────────────────────────────────────────────────────────
    PHONE / TOUCH (iOS-first). The desktop layout is a fixed 100vh, no-scroll,
@@ -3073,11 +3073,13 @@ function renderCashflow(){
     // Engine keys every event off age = currentAge + y (y=0 is the current age),
     // so the table must too — otherwise a goal/SS/retirement lands one row late.
     const age = curAge + y;
-    const retireAge = plan.household.primary.retirementAge;
-    const isRetire = (age === retireAge);
-    h += `<tr class="${isRetire?'retire':''}"><td class="age">${age}</td>`;
+    h += `<tr><td class="age">${age}</td>`;
     scenarios.forEach((s,i)=>{
       const r = rowsByScen[i][y];
+      const prev = y > 0 ? rowsByScen[i][y-1] : null;
+      const isRetire = r && r.phase !== 'accum' && (!prev || prev.phase === 'accum');
+      const retireCls = isRetire ? ' retire' : '';
+      const retireStartCls = isRetire ? ' retire retire-start' : '';
       if(!r){ h += `<td colspan="${cols}" class="dim ${gcls[i]}">—</td>`; return; }
       // Pre-retirement (still working) years: income/withdrawal aren't part of the
       // post-retirement story, so show a neutral dash — never a $0 that reads as a
@@ -3085,14 +3087,14 @@ function renderCashflow(){
       const acc = r.phase === 'accum';
       const dash = '<span style="color:var(--ink-faint)">—</span>';
       const inc = (r.socialSecurity || 0) + (r.pension || 0) + (r.otherIncome || 0);
-      h += `<td class="${gcls[i]}">${acc ? dash : cfMoney(inc)}</td>`;
-      h += `<td class="${gcls[i]}">${acc ? dash : cfMoney(r.withdrawal || 0)}</td>`;
-      if(hasRmd)  h += `<td class="${gcls[i]}">${(!acc && r.rmd > 0) ? cfMoney(r.rmd) : dash}</td>`;
+      h += `<td class="${gcls[i]}${retireStartCls}">${acc ? dash : cfMoney(inc)}</td>`;
+      h += `<td class="${gcls[i]}${retireCls}">${acc ? dash : cfMoney(r.withdrawal || 0)}</td>`;
+      if(hasRmd)  h += `<td class="${gcls[i]}${retireCls}">${(!acc && r.rmd > 0) ? cfMoney(r.rmd) : dash}</td>`;
       // Goals show in EVERY phase (even accumulation) so a pre-retirement
       // one-time goal still appears in its year.
-      if(hasGoals) h += `<td class="${gcls[i]}">${(r.goals > 0) ? cfMoney(r.goals) : dash}</td>`;
+      if(hasGoals) h += `<td class="${gcls[i]}${retireCls}">${(r.goals > 0) ? cfMoney(r.goals) : dash}</td>`;
       // One-time event (Scenarios lever) — shows in whichever phase it lands.
-      if(hasLump)  h += `<td class="${gcls[i]}">${(r.lumpSum > 0) ? cfMoney(r.lumpSum) : dash}</td>`;
+      if(hasLump)  h += `<td class="${gcls[i]}${retireCls}">${(r.lumpSum > 0) ? cfMoney(r.lumpSum) : dash}</td>`;
       // Portfolio return (% and $) — shown in every phase; the market acts on the
       // balance whether you're still saving or drawing down. Real return that year
       // (realReturnUsed in retirement, returnRate while accumulating); $ gain is
@@ -3100,9 +3102,9 @@ function renderCashflow(){
       const rr = (r.realReturnUsed ?? r.returnRate);
       const gain = (r.startBalance || 0) * rr;
       const rc = rr >= 0 ? 'cf-pos' : 'cf-neg';
-      h += `<td class="${gcls[i]} ${isFinite(rr)?rc:''}">${isFinite(rr) ? cfRetPct(rr) : dash}</td>`;
-      h += `<td class="${gcls[i]} ${isFinite(rr)?rc:''}">${isFinite(rr) ? cfGain(gain) : dash}</td>`;
-      h += `<td class="${gcls[i]}">${cfMoney(r.balance || 0)}</td>`;
+      h += `<td class="${gcls[i]}${retireCls} ${isFinite(rr)?rc:''}">${isFinite(rr) ? cfRetPct(rr) : dash}</td>`;
+      h += `<td class="${gcls[i]}${retireCls} ${isFinite(rr)?rc:''}">${isFinite(rr) ? cfGain(gain) : dash}</td>`;
+      h += `<td class="${gcls[i]}${retireCls}">${cfMoney(r.balance || 0)}</td>`;
     });
     h += '</tr>';
   }

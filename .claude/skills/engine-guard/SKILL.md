@@ -25,7 +25,7 @@ You may NOT modify `engine.js` casually. If you must touch it:
 node --test engine.test.js
 ```
 
-Expected: 13 tests, all pass.
+Expected: 38 tests, all pass.
 
 ## What the tests lock
 
@@ -40,6 +40,9 @@ Expected: 13 tests, all pass.
 - Recurring liabilities reduce wealth, stop at endAge, erode in real terms.
 - A pre-retirement lump sum debits the portfolio (no longer ignored).
 - Empty liabilities = byte-identical to before (no regression).
+- Property sales net commission, mortgage payoff, taxes, and proceeds.
+- Healthcare real growth and other-income taxability flow through retirement rows.
+- Savings splits and account buckets affect ending wealth as expected.
 
 A failure in any of these = a behavior the project explicitly trusts has
 changed. Treat it as a stop sign.
