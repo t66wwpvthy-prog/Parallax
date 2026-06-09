@@ -534,3 +534,27 @@ test('selling an asset can rescue a plan that would otherwise run dry', () => {
   assert.ok(sell.successRate > keep.successRate + 1,
     `selling to fund spending must raise success (keep ${keep.successRate}%, sell ${sell.successRate}%)`);
 });
+
+test('spouse retirement age extends accumulation on the same calendar timeline', () => {
+  const p = JSON.parse(JSON.stringify(defaultPlan));
+  p.household.primary = { currentAge: 58, retirementAge: 65, planEndAge: 90 };
+  p.household.spouse = { currentAge: 57, retirementAge: 67 };
+  p.savings.annual = 50000;
+  p.portfolio.accounts.taxable.balance = 5e6;
+  p.portfolio.accounts.traditional.balance = 0;
+  p.portfolio.accounts.roth.balance = 0;
+
+  const resolved = resolveInputs(p, {});
+  assert.strictEqual(resolved.retirementAge, 68,
+    'spouse age 57 retiring at 67 maps to primary age 68');
+
+  const m = runHistoricalPath(p, 1995, 'taxable-first');
+  assert.strictEqual(m.rows.find(r => r.age === 67).phase, 'accum',
+    'household remains in accumulation until spouse retirement calendar year');
+  assert.notStrictEqual(m.rows.find(r => r.age === 68).phase, 'accum',
+    'retirement cash flows start when both spouse retirement ages have arrived');
+
+  p.household.spouse.retirementAge = 64;
+  assert.strictEqual(resolveInputs(p, {}).retirementAge, 65,
+    'same-calendar spouse retirement preserves the client retirement year');
+});
