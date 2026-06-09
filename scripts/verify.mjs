@@ -98,98 +98,75 @@ try {
     await new Promise(r => setTimeout(r, 1500));
   });
 
-  await step('net worth balance sheet renders', async () => {
+  await step('household input page renders final prototype nav and fields', async () => {
     const m = await page.evaluate(() => ({
-      title: document.querySelectorAll('.bs-title').length,
+      nav: [...document.querySelectorAll('.hdr-tabs .htab')].map(b => b.textContent.trim()),
+      hasSubnav: !!document.querySelector('#np-subnav'),
+      title: [...document.querySelectorAll('.bs-title')].map(e => e.textContent.trim()),
       heads: document.querySelectorAll('.bs-head').length,
-      inputs: document.querySelectorAll('.bs-row input').length,
-      hhbar: document.querySelectorAll('.hh-f input').length,
+      labels: [...document.querySelectorAll('.bs-row label')].map(e => e.textContent.trim()),
+      fields: document.querySelectorAll('.bs-row input, .bs-row select').length,
+      propertyCards: document.querySelectorAll('.prop').length,
+      accountPicker: document.querySelectorAll('.acct-picker').length,
     }));
-    if(m.title < 1 || m.heads < 3 || m.inputs < 3 || m.hhbar < 4) {
-      throw new Error(`Balance Sheet did not render (title=${m.title}, heads=${m.heads}, inputs=${m.inputs}, hhbar=${m.hhbar})`);
+    const expectedNav = ['Household', 'Goals', 'Scenarios', 'Sequencing'];
+    if(JSON.stringify(m.nav) !== JSON.stringify(expectedNav)) throw new Error(`main nav mismatch: ${JSON.stringify(m.nav)}`);
+    if(m.hasSubnav) throw new Error('old net-worth subnav is still rendered');
+    if(m.title.length !== 2 || m.heads < 4 || m.fields < 14) {
+      throw new Error(`Household page did not render enough inputs (titles=${m.title.length}, heads=${m.heads}, fields=${m.fields})`);
     }
-    await page.screenshot({ path: join(OUT, '01-balance-sheet.png'), fullPage: true });
+    for(const label of ['Current age','Spouse age','Retirement age','Plan end age','Taxable','Traditional','Roth','Annual savings','Monthly spending','Social Security','Pension','Healthcare','Risk profile','Withdrawal strategy','Simulation paths']){
+      if(!m.labels.includes(label)) throw new Error(`Household label missing: ${label}`);
+    }
+    if(m.propertyCards || m.accountPicker) throw new Error(`parked detail UI still visible (propertyCards=${m.propertyCards}, accountPicker=${m.accountPicker})`);
+    await page.screenshot({ path: join(OUT, '01-household.png'), fullPage: true });
   });
 
-  await step('net worth cash flow renders two hybrid columns + gutter', async () => {
-    await page.click('#np-subnav .stab[data-sub="cashflow"]');
-    await new Promise(r => setTimeout(r, 200));
-    const m = await page.evaluate(() => ({
-      gutterBig: document.querySelector('.np-gutter .big-num')?.textContent || '',
-      gutterRows: document.querySelectorAll('.np-gutter .row').length,
-      cols: document.querySelectorAll('.hp-col').length,
-    }));
-    if(m.cols !== 2) throw new Error(`cashflow hybrid did not render two columns (cols=${m.cols})`);
-    if(!m.gutterBig.startsWith('$')) throw new Error(`cashflow gutter big-number missing (got "${m.gutterBig}")`);
-    if(m.gutterRows < 2) throw new Error(`cashflow gutter breakdown rows missing (got ${m.gutterRows})`);
-    await page.screenshot({ path: join(OUT, '02-cashflow.png'), fullPage: true });
-  });
-
-  await step('net worth goals renders the goals web', async () => {
-    await page.click('#np-subnav .stab[data-sub="goals"]');
+  await step('goals renders the editable priority board', async () => {
+    await page.click('.htab[data-sub-target="goals"]');
     await new Promise(r => setTimeout(r, 300));
     const m = await page.evaluate(() => ({
-      board: !!document.querySelector('#np-content.g-mode .gw-shell'),
-      stat: document.querySelector('.gw-stat b')?.textContent || '',
-      nodes: document.querySelectorAll('.gw-node').length,
-      ranks: document.querySelectorAll('.gw-rank').length,
-      formInputs: document.querySelectorAll('.gw-form input').length,
-      mapH: Math.round(document.querySelector('.gw-map')?.getBoundingClientRect().height || 0),
+      board: !!document.querySelector('#np-content.g-mode .g-board'),
+      hero: document.querySelector('.g-big')?.textContent || '',
+      cards: document.querySelectorAll('.g-card').length,
+      once: document.querySelectorAll('.g-card.once').length,
+      slots: document.querySelectorAll('.g-slot').length,
+      inputs: document.querySelectorAll('.g-card input').length,
+      boardH: Math.round(document.querySelector('.g-board')?.getBoundingClientRect().height || 0),
     }));
-    if(!m.board) throw new Error('goals web did not render');
-    if(!m.stat.startsWith('$')) throw new Error(`goals annual-spend stat missing (got "${m.stat}")`);
-    if(m.nodes < 2) throw new Error(`goals web rendered too few nodes (nodes=${m.nodes})`);
-    if(m.ranks < 1) throw new Error(`goals stack rendered no goal rows (ranks=${m.ranks})`);
-    if(m.formInputs < 3) throw new Error(`goals editor inputs missing (formInputs=${m.formInputs})`);
-    if(m.mapH < 200) throw new Error(`goals map height = ${m.mapH}px (expected >=200)`);
+    if(!m.board) throw new Error('goals board did not render');
+    if(!m.hero.startsWith('$')) throw new Error(`goals annual-spend hero missing (got "${m.hero}")`);
+    if(m.cards < 1) throw new Error(`goals board rendered no cards (cards=${m.cards})`);
+    if(m.once < 1) throw new Error(`goals board missing one-time card (once=${m.once})`);
+    if(m.slots < 6) throw new Error(`goals board expected >=6 rank slots (slots=${m.slots})`);
+    if(m.inputs < 3) throw new Error(`goals editable inputs missing (inputs=${m.inputs})`);
+    if(m.boardH < 200) throw new Error(`goals board height = ${m.boardH}px (expected >=200)`);
     await page.screenshot({ path: join(OUT, '02-goals.png'), fullPage: true });
   });
 
-  await step('net worth snapshot renders four gauges', async () => {
-    await page.click('#np-subnav .stab[data-sub="snapshot"]');
+  await step('goals add workflows append and delete editable cards', async () => {
+    await page.click('.htab[data-sub-target="goals"]');
+    await new Promise(r => setTimeout(r, 300));
+    const before = await page.evaluate(() => document.querySelectorAll('.g-card').length);
+    await page.click('[data-add="goalRec"]');
     await new Promise(r => setTimeout(r, 200));
-    const m = await page.evaluate(() => ({
-      page: !!document.querySelector('.np-snapshot-page .snap'),
-      metrics: document.querySelectorAll('.np-snapshot-page .metric').length,
-      heroes: [...document.querySelectorAll('.np-snapshot-page .m-hero')].map(e => e.textContent),
-      cov: !!document.querySelector('.np-snapshot-page .cov .fill'),
-      seg: document.querySelectorAll('.np-snapshot-page .seg div').length,
-    }));
-    if(!m.page) throw new Error('snapshot page did not render');
-    if(m.metrics !== 4) throw new Error(`snapshot expected 4 metrics, got ${m.metrics}`);
-    if(!m.cov) throw new Error('snapshot coverage bar missing');
-    if(m.seg !== 3) throw new Error(`snapshot tax bar expected 3 segments, got ${m.seg}`);
-    if(!m.heroes.every(h => /%$/.test(h))) throw new Error(`snapshot hero numbers not all %: ${JSON.stringify(m.heroes)}`);
-    await page.screenshot({ path: join(OUT, '02-snapshot.png'), fullPage: true });
-  });
-
-  await step('net worth property card with engine-derived mortgage', async () => {
-    await page.click('#np-subnav .stab[data-sub="balance-sheet"]');
-    await new Promise(r => setTimeout(r, 200));
-    const m = await page.evaluate(() => ({
-      props: document.querySelectorAll('.prop').length,
-      meta: document.querySelector('.prop-meta')?.textContent || '',
-      mortInputs: document.querySelectorAll('.prop-mort input').length,
-    }));
-    if(m.props < 1) throw new Error('no property card rendered');
-    if(m.mortInputs < 3) throw new Error(`property mortgage inputs missing (got ${m.mortInputs})`);
-    if(!/paid off at age/.test(m.meta)) throw new Error(`property meta missing engine payoff line: "${m.meta}"`);
-    const card = await page.$('.prop');
-    await card.screenshot({ path: join(OUT, '06-property.png') });
-  });
-
-  await step('add-row workflow appends and deletes an editable row', async () => {
-    await page.click('#np-subnav .stab[data-sub="cashflow"]');
-    await new Promise(r => setTimeout(r, 200));
-    const before = await page.evaluate(() => document.querySelectorAll('.hp-col .erow').length);
-    await page.click('.hp-add[data-add="income"]');
-    await new Promise(r => setTimeout(r, 200));
-    const after = await page.evaluate(() => document.querySelectorAll('.hp-col .erow').length);
-    if(after !== before + 1) throw new Error(`add-row did not append (before=${before}, after=${after})`);
-    await page.click('.erow .row-x');
+    const after = await page.evaluate(() => document.querySelectorAll('.g-card').length);
+    if(after !== before + 1) throw new Error(`recurring goal did not append (before=${before}, after=${after})`);
+    await page.click('.g-card:last-child .row-x');
     await new Promise(r => setTimeout(r, 150));
-    const final = await page.evaluate(() => document.querySelectorAll('.hp-col .erow').length);
-    if(final !== before) throw new Error(`row delete did not splice (final=${final}, expected ${before})`);
+    const final = await page.evaluate(() => document.querySelectorAll('.g-card').length);
+    if(final !== before) throw new Error(`recurring goal delete did not splice (final=${final}, expected ${before})`);
+    await page.click('[data-add="goalOnce"]');
+    await new Promise(r => setTimeout(r, 200));
+    const afterOnce = await page.evaluate(() => ({
+      cards: document.querySelectorAll('.g-card').length,
+      once: document.querySelectorAll('.g-card.once').length,
+    }));
+    if(afterOnce.cards !== before + 1 || afterOnce.once < 2) throw new Error(`one-time goal did not append (${JSON.stringify(afterOnce)})`);
+    await page.click('.g-card:last-child .row-x');
+    await new Promise(r => setTimeout(r, 150));
+    const finalOnce = await page.evaluate(() => document.querySelectorAll('.g-card').length);
+    if(finalOnce !== before) throw new Error(`one-time goal delete did not splice (final=${finalOnce}, expected ${before})`);
   });
 
   await step('scenarios renders after tab switch', async () => {
@@ -201,15 +178,21 @@ try {
       goalRows: document.querySelectorAll('#scn-goals .sg-name').length,
       goalCells: document.querySelectorAll('#scn-goals .sg-cell').length,
       goalTotal: document.querySelector('#scn-goals .sg-tcell')?.textContent || '',
+      solve: !!document.querySelector('.solve-btn'),
+      saleLever: [...document.querySelectorAll('.lev-lbl')].some(e => /^Sell\b/.test(e.textContent.trim())),
+      scenarioNames: [...document.querySelectorAll('.col-name')].map(e => e.textContent.trim()),
     }));
     if(m.band < 1) throw new Error(`scenarios did not render (band circles=${m.band}, status="${m.status}")`);
     if(m.goalRows < 1) throw new Error(`scenarios goals section rendered no goal rows (goalRows=${m.goalRows})`);
     if(m.goalCells < m.goalRows) throw new Error(`goals not mirrored into columns (cells=${m.goalCells}, rows=${m.goalRows})`);
     if(!m.goalTotal.startsWith('$')) throw new Error(`goals total row missing a dollar figure (got "${m.goalTotal}")`);
+    if(!m.solve) throw new Error('Solve-For button missing from scenarios');
+    if(m.saleLever) throw new Error('parked property-sale lever is visible in scenarios');
+    if(m.scenarioNames.some(n => /sell\s*home/i.test(n))) throw new Error(`stale sale scenario visible: ${JSON.stringify(m.scenarioNames)}`);
     await page.screenshot({ path: join(OUT, '03-scenarios.png'), fullPage: true });
   });
 
-  await step('cash-flow drawer opens with real height + rows', async () => {
+  await step('cash-flow drawer opens with path replay controls and rows', async () => {
     await page.click('#cf-btn');
     await new Promise(r => setTimeout(r, 400));
     const m = await page.evaluate(() => {
@@ -217,6 +200,10 @@ try {
       return {
         rows: d?.querySelectorAll('.cf-table tbody tr').length || 0,
         height: d?.getBoundingClientRect().height || 0,
+        mode: document.querySelector('#path-mode')?.value || '',
+        header: d?.querySelector('.cf-drawer-head')?.textContent || '',
+        sources: [...(d?.querySelectorAll('td.source') || [])].slice(0, 8).map(td => td.textContent.trim()),
+        sourceHead: !!d?.querySelector('th.source'),
         retireAges: [...(d?.querySelectorAll('td.retire-start') || [])]
           .map(td => td.parentElement.querySelector('td.age')?.textContent.trim())
           .filter(Boolean),
@@ -224,8 +211,26 @@ try {
     });
     if(m.rows < 10) throw new Error(`cash-flow rows = ${m.rows} (expected >=10)`);
     if(m.height < 100) throw new Error(`cash-flow height = ${m.height}px (expected >=100)`);
+    if(m.mode !== 'typical') throw new Error(`path replay default mode not typical (${m.mode})`);
+    if(!/Path Replay/.test(m.header) || !/Seed/.test(m.header) || !/Path/.test(m.header)) throw new Error(`path replay header missing metadata: "${m.header}"`);
+    if(!m.sourceHead || !m.sources.some(v => /^\d{4}$/.test(v))) throw new Error(`cash-flow source years missing: ${JSON.stringify(m.sources)}`);
     if(m.retireAges.length < 3) throw new Error(`cash-flow scenario retirement markers missing (${JSON.stringify(m.retireAges)})`);
     if(!new Set(m.retireAges).has('67')) throw new Error(`moved-retirement scenario marker missing (${JSON.stringify(m.retireAges)})`);
+    await page.select('#path-mode', 'choose');
+    await new Promise(r => setTimeout(r, 100));
+    await page.evaluate(() => {
+      const input = document.querySelector('#path-index');
+      input.value = '47';
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    await new Promise(r => setTimeout(r, 250));
+    const chosen = await page.evaluate(() => ({
+      chooseVisible: document.querySelector('#path-choose')?.classList.contains('on') || false,
+      seedVisible: document.querySelector('#path-seed-wrap')?.classList.contains('on') || false,
+      header: document.querySelector('#cf-drawer .cf-drawer-head')?.textContent || '',
+    }));
+    if(!chosen.chooseVisible || !chosen.seedVisible) throw new Error(`choose-path advanced controls not visible: ${JSON.stringify(chosen)}`);
+    if(!/Path 047/.test(chosen.header)) throw new Error(`chosen path header did not update: "${chosen.header}"`);
     await page.evaluate(() => document.querySelector('#cf-drawer').scrollIntoView());
     await new Promise(r => setTimeout(r, 200));
     await page.screenshot({ path: join(OUT, '04-cashflow.png'), fullPage: true });

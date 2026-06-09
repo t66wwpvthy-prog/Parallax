@@ -543,9 +543,15 @@ background-size:auto,auto,auto,64px 64px,64px 64px,auto;}
    by side; each scenario's columns are softly tinted in its line color so the
    eye groups them without needing dividers. The Age column is sticky so the
    advisor can scroll into late years and still know which row they're reading. */
-.cf-toggle{margin:18px 0 12px;display:flex;justify-content:flex-end;flex-shrink:0}
+.cf-toggle{margin:18px 0 12px;display:flex;justify-content:flex-end;align-items:center;gap:10px;flex-wrap:wrap;flex-shrink:0}
 .cf-toggle button{background:transparent;border:1px solid var(--rule);color:var(--ink-mute);font-family:'Sora';font-size:11px;letter-spacing:.16em;text-transform:uppercase;padding:8px 16px;border-radius:5px;cursor:pointer}
 .cf-toggle button:hover{color:var(--gold);border-color:var(--gold)}
+.path-control{display:flex;align-items:center;gap:8px;border:1px solid var(--rule);border-radius:5px;padding:7px 10px;color:var(--ink-mute);font-family:'Sora';font-size:10px;letter-spacing:.14em;text-transform:uppercase}
+.path-control select,.path-control input{height:24px;border:0;background:rgba(16,10,6,.38);color:var(--ink);font-family:inherit;font-size:11px;outline:none}
+.path-control select{min-width:132px}
+.path-control input{width:64px;text-align:center}
+.path-control.advanced{display:none}
+.path-control.advanced.on{display:flex}
 .cf-drawer{border-radius:14px;background:var(--surface);overflow:hidden;margin-bottom:18px;flex-shrink:0}
 .cf-drawer-head{padding:12px 18px;border-bottom:1px solid var(--rule);font-family:'Sora';font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);display:flex;justify-content:space-between;align-items:center}
 .cf-drawer-head .sub{color:var(--ink-faint);font-family:'Sora';font-weight:400;letter-spacing:.04em;text-transform:none;font-size:11px}
@@ -558,6 +564,7 @@ background-size:auto,auto,auto,64px 64px,64px 64px,auto;}
 .cf-table th.scen{text-align:center;font-weight:600;letter-spacing:.12em}
 .cf-table th.age, .cf-table td.age{position:sticky;left:0;background:var(--surface);text-align:left;color:var(--ink);font-weight:600;z-index:1}
 .cf-table thead th.age{background:var(--bg-deep);z-index:6}
+.cf-table th.source,.cf-table td.source{text-align:left;color:var(--ink-faint);font-size:11px}
 .cf-table td.dim{color:var(--ink-faint)}
 .cf-table .cf-pos{color:var(--positive)} .cf-table .cf-neg{color:var(--negative)}
 /* Alternating per-scenario column tint in the cash-flow table — two faint
@@ -1199,7 +1206,8 @@ body::after{
   <header class="hdr">
     <img class="brand-logo" src="./assets/parallax-logo.png" alt="Parallax"/>
     <div class="hdr-tabs">
-      <button class="htab on" data-page="net-worth">Household</button>
+      <button class="htab on" data-page="net-worth" data-sub-target="balance-sheet">Household</button>
+      <button class="htab" data-page="net-worth" data-sub-target="goals">Goals</button>
       <button class="htab" data-page="scenarios">Scenarios</button>
       <button class="htab" data-page="sequencing">Sequencing</button>
     </div>
@@ -1210,12 +1218,6 @@ body::after{
   </header>
 
   <section class="page on" data-page="net-worth">
-    <nav class="subnav" id="np-subnav">
-      <button class="stab on" data-sub="balance-sheet">Net Worth</button>
-      <button class="stab" data-sub="cashflow">Cash Flow</button>
-      <button class="stab" data-sub="goals">Goals</button>
-      <button class="stab" data-sub="snapshot">Snapshot</button>
-    </nav>
     <div id="np-content"></div>
   </section>
 
@@ -1240,7 +1242,24 @@ body::after{
          scenario (income, withdrawals, ending balance), side-by-side. The
          engine already emits these rows from its typical simulated path —
          this is purely a view of existing truth, no new math. -->
-    <div class="cf-toggle"><button id="cf-btn">Show year-by-year cash flow ▾</button></div>
+    <div class="cf-toggle">
+      <button id="cf-btn">View cash flow ▾</button>
+      <label class="path-control">Path
+        <select id="path-mode">
+          <option value="typical">Typical path</option>
+          <option value="stressed">Stressed path</option>
+          <option value="failed">Failed path</option>
+          <option value="lowest-survivor">Lowest survivor</option>
+          <option value="choose">Choose path...</option>
+        </select>
+      </label>
+      <label class="path-control advanced" id="path-choose">Path #
+        <input id="path-index" type="number" min="0" value="0" inputmode="numeric">
+      </label>
+      <label class="path-control advanced" id="path-seed-wrap">Seed
+        <input id="path-seed" type="number" min="1" value="20260609" inputmode="numeric">
+      </label>
+    </div>
     <div class="cf-drawer" id="cf-drawer" style="display:none"></div>
   </section>
 
@@ -2651,6 +2670,7 @@ const escHtml=s=>String(s).replace(/[&<>"']/g, c=>(
    raises the wealth line but leaves success BELOW the retire-later case (vol
    drag) — the risk/return truth the tool exists to show. */
 plan.household.primary.currentAge    = 58;
+plan.household.spouse = { currentAge: 57 };
 plan.household.primary.retirementAge = 65;
 plan.household.primary.planEndAge    = 95;
 plan.portfolio.accounts.taxable.balance      = 800000;
@@ -2670,13 +2690,9 @@ plan.goals = [
   // cash-flow column the year it lands, then gone.
   { name:'New car',           amount:40000, startAge:72, endAge:72 },
 ];
-// Demo real asset: a primary residence with a remaining mortgage. The engine
-// amortizes it (balance/rate/term) into a payment that runs until payoff; value
-// and purchasePrice are captured for a future sale event and are inert today.
-plan.properties = [
-  { name:'Primary residence', value:1200000, purchasePrice:520000, commissionPct:5,
-    mortgage:{ balance:280000, rate:5.5, termYears:9 } },
-];
+// Real assets and sale workflows stay parked in the engine for now. The visible
+// prototype keeps Household focused on the planning inputs advisors need first.
+plan.properties = [];
 // Two earners: one maxed (~$48k PIA at FRA), spouse a strong earner (~$30k).
 // pia = benefit at FRA (67) in today's dollars, straight off the SSA statement.
 plan.income.socialSecurity.primary = { pia: 48000, claimAge: 67 };
@@ -2757,8 +2773,16 @@ function loadScenarios(){
     // Backfill any lever keys added since the save (forward-compat) so old saves
     // don't break when defaultLevers() grows new fields.
     const proto=defaultLevers();
-    return arr.map(s=>({ name:String(s.name||'Scenario'), base:!!s.base,
-                         lev:{...proto, ...s.lev}, res:null }));
+    const hasProperty = !!(plan.properties && plan.properties.length);
+    return arr.map(s=>{
+      const lev={...proto, ...s.lev};
+      let name=String(s.name||'Scenario');
+      if(!hasProperty){
+        lev.sellAge = proto.sellAge;
+        if(/sell\s*home|allocation\s*tilt/i.test(name)) name = 'Risk tilt';
+      }
+      return { name, base:!!s.base, lev, res:null };
+    });
   }catch(e){ return null; }
 }
 // Wipe saved state and return to the first-run demo (escape hatch).
@@ -3256,13 +3280,10 @@ function demoScenarios(){
   const s=[
     {name:'Baseline',   base:true,  lev:defaultLevers(), res:null},
     {name:'Scenario B', base:false, lev:defaultLevers(), res:null},
-    {name:'Sell home',  base:false, lev:defaultLevers(), res:null},
+    {name:'Risk tilt', base:false, lev:defaultLevers(), res:null},
   ];
   s[1].lev.retireAge = 67;
-  // Scenario C demonstrates the earmarked-asset sale: sell the home at 72 and
-  // watch the success circle move — the Baseline keeps it (no sale baked in).
-  if(plan.properties && plan.properties.length) s[2].lev.sellAge = 72;
-  else s[2].lev.risk = 5;
+  s[2].lev.risk = 5;
   return s;
 }
 let scenarios = loadScenarios() || demoScenarios();
@@ -3291,7 +3312,7 @@ function leversToOverrides(L){
   ov.pensionStartAge = L.pensionAge;
   // Earmarked-asset sale — emitted ONLY when an age is chosen (≥ currentAge), so
   // the Baseline (sellAge = off) carries no sale and stays clean.
-  if(L.sellAge != null && L.sellAge >= plan.household.primary.currentAge){
+  if(plan.properties && plan.properties.length && L.sellAge != null && L.sellAge >= plan.household.primary.currentAge){
     ov.assetSale = { asset: 0, age: L.sellAge };
   }
   return ov;
@@ -3331,36 +3352,48 @@ const RISK_NAMES={1:'Conservative',2:'Mod-Cons',3:'Moderate',4:'Mod-Agg',5:'Aggr
    Each hybrid page's gutter computes its own running total from the live
    plan values — same place on every page so the eye knows where to land. */
 const SUB_PAGES = {
-  'balance-sheet': { label:'Net Worth', layout:'statement' },
+  'balance-sheet': { label:'Household', layout:'statement' },
   'cashflow':      { label:'Cash Flow', layout:'hybrid', totLabel:'Annual income' },
   'goals':         { label:'Goals',     layout:'board',  totLabel:'Annual goal spend' },
   'snapshot':      { label:'Snapshot',  layout:'snapshot' },
 };
 
-/* ── Balance Sheet (Statement) sections ───────────────────────────
-   Each section becomes a small-caps header with a thin gold underline,
-   then a list of leader-dot rows. `add:` becomes a quiet "+ add …" affordance
-   below empty sections (Real Assets, Liabilities are placeholders awaiting
-   the engine's real-assets layer — committed but unused inputs would lie). */
+/* ── Household / Plan input sections ───────────────────────────────
+   One calm planning-input page. The engine still supports more detailed real
+   assets, liabilities, and tax data; those controls stay out of this prototype
+   surface until the core advisor flow is clean. */
 const BALANCE_SHEET = [
-  { head:'Investment accounts', subtotal:'invest', fields:[
-    {path:'portfolio.accounts.taxable.balance',     label:'Taxable brokerage', type:'money'},
-    {path:'portfolio.accounts.taxable.basisPct',    label:'cost basis',        type:'pct',   sub:true},
-    {path:'portfolio.accounts.traditional.balance', label:'Traditional / IRA', type:'money'},
-    {path:'portfolio.accounts.roth.balance',        label:'Roth IRA',          type:'money'},
+  { head:'Household', col:'left', fields:[
+    {path:'household.primary.currentAge',    label:'Current age',    type:'age'},
+    {path:'household.spouse.currentAge',     label:'Spouse age',     type:'age'},
+    {path:'household.primary.retirementAge', label:'Retirement age', type:'age'},
+    {path:'household.primary.planEndAge',    label:'Plan end age',   type:'age'},
   ]},
-  { head:'Real assets',  fields:[], kind:'property',  add:'+ add a property or other real asset' },
-  { head:'Liabilities',  liab:true, fields:[], kind:'liability', add:'+ add a loan or recurring obligation' },
+  { head:'Investment accounts', col:'left', subtotal:'invest', fields:[
+    {path:'portfolio.accounts.taxable.balance',     label:'Taxable',     type:'money'},
+    {path:'portfolio.accounts.traditional.balance', label:'Traditional', type:'money'},
+    {path:'portfolio.accounts.roth.balance',        label:'Roth',        type:'money'},
+  ]},
+  { head:'Cash flow', col:'right', fields:[
+    {path:'savings.annual',                         label:'Annual savings',    type:'money'},
+    {path:'expenses.living',                        label:'Monthly spending',  type:'monthlyMoney'},
+    {path:'income.socialSecurity.primary.pia',      label:'Social Security',   type:'money'},
+    {path:'income.socialSecurity.primary.claimAge', label:'Social Security age', type:'age'},
+    {path:'income.pension.benefitByAge.65',         label:'Pension',           type:'money'},
+    {path:'income.pension.startAge',                label:'Pension age',       type:'age'},
+    {path:'expenses.healthcare',                    label:'Healthcare',        type:'money'},
+  ]},
+  { head:'Assumptions', col:'right', fields:[
+    {path:'portfolio.riskProfile',        label:'Risk profile',        type:'risk'},
+    {path:'portfolio.withdrawalStrategy', label:'Withdrawal strategy', type:'strategy'},
+    {path:'simulation.iterations',        label:'Simulation paths',    type:'num', min:100, step:100},
+  ]},
 ];
-// Household & Plan inputs — plain framing data (ages, income), rendered as a
-// short horizontal stat bar across the top of the Net Worth page rather than a
-// full section; they frame the plan, they aren't balance-sheet lines.
-const HH_FIELDS = [
-  {path:'household.primary.currentAge',    label:'Current age',    type:'age'},
-  {path:'household.primary.retirementAge', label:'Retirement age', type:'age'},
-  {path:'household.primary.planEndAge',    label:'Plan end age',   type:'age'},
-  {path:'income.workingIncome',            label:'Income / yr',    type:'money'},
-];
+const STRATEGY_NAMES = {
+  'taxable-first':'Taxable first',
+  'traditional-first':'Traditional first',
+  proportional:'Proportional'
+};
 
 /* ── Hybrid columns: each sub-page has a LEFT and a RIGHT column.
    Each item carries name + path + type, and an optional meta() that draws
@@ -3394,7 +3427,7 @@ const HYBRID = {
 /* Active sub-page persisted across sessions so the advisor returns to where
    they were. Falls back to balance-sheet if the saved key is unknown. */
 const SUB_KEY = 'parallax.netWorth.sub';
-let activeSub = (()=>{ try{ const k=localStorage.getItem(SUB_KEY); return SUB_PAGES[k]?k:'balance-sheet'; }catch{ return 'balance-sheet'; } })();
+let activeSub = 'balance-sheet';
 const getPath=(o,p)=>p.split('.').reduce((a,k)=>a&&a[k],o);
 const setPath=(o,p,v)=>{const ks=p.split('.');const last=ks.pop();let t=o;for(const k of ks){if(t==null)return;t=t[k];}if(t!=null)t[last]=v;};
 
@@ -3541,16 +3574,16 @@ const fmtMoney = v => '$'+(v||0).toLocaleString('en-US');
 function renderGutter(pageKey){
   const sp = SUB_PAGES[pageKey];
   if(pageKey === 'balance-sheet'){
-    const assets = investableTotal() + realAssetsTotal();
-    const liab   = liabilitiesPVTotal();
-    const nw     = assets - liab;
+    const goalsAnnual = (plan.goals||[])
+      .filter(g => g.startAge !== g.endAge)
+      .reduce((s,g)=>s+(g.amount||0),0);
     return `<div class="np-gutter">
-      <div class="lbl">Net Worth</div>
-      <div class="big-num teal">${fmtMoney(nw)}</div>
+      <div class="lbl">Household</div>
+      <div class="big-num teal">${fmtMoney(investableTotal())}</div>
       <hr class="gut-rule"/>
-      <div class="row"><span>Investable</span><b>${fmtMoney(investableTotal())}</b></div>
-      <div class="row"><span>Real assets</span><b>${fmtMoney(realAssetsTotal())}</b></div>
-      <div class="row"><span>Liabilities</span><b>${fmtMoney(liab)}</b></div>
+      <div class="row"><span>Savings / yr</span><b>${fmtMoney(plan.savings.annual||0)}</b></div>
+      <div class="row"><span>Spending / mo</span><b>${fmtMoney(Math.round((plan.expenses.living||0)/12))}</b></div>
+      <div class="row"><span>Goals / yr</span><b>${fmtMoney(goalsAnnual)}</b></div>
     </div>`;
   }
   const def = HYBRID[pageKey];
@@ -3588,6 +3621,11 @@ function renderField(f, klass){
       `<option value="${k}" ${+k===+v?'selected':''}>${RISK_NAMES[k]} · ${RISK_LABELS[k]}</option>`).join('');
     return `<select data-path="${f.path}" data-type="risk">${opts}</select>`;
   }
+  if(f.type==='strategy'){
+    const opts = Object.entries(STRATEGY_NAMES).map(([k,label]) =>
+      `<option value="${k}" ${k===v?'selected':''}>${label}</option>`).join('');
+    return `<select data-path="${f.path}" data-type="strategy">${opts}</select>`;
+  }
   if(f.type==='text'){
     return `<input type="text" data-path="${f.path}" data-type="text" value="${escHtml(v||'')}" placeholder="${f.ph||''}">`;
   }
@@ -3595,9 +3633,16 @@ function renderField(f, klass){
     const dv = (v||0).toLocaleString('en-US');
     return `<span class="pre">$</span><input type="text" inputmode="numeric" data-path="${f.path}" data-type="money" value="${dv}">`;
   }
+  if(f.type==='monthlyMoney'){
+    const dv = Math.round((v||0)/12).toLocaleString('en-US');
+    return `<span class="pre">$</span><input type="text" inputmode="numeric" data-path="${f.path}" data-type="monthlyMoney" value="${dv}">`;
+  }
   if(f.type==='pct'){
     const dv = Math.round((v||0)*100);
     return `<input type="number" data-path="${f.path}" data-type="pct" value="${dv}" step="1"><span class="pre">%</span>`;
+  }
+  if(f.type==='num'){
+    return `<input type="number" data-path="${f.path}" data-type="num" value="${v}" min="${f.min||0}" step="${f.step||1}">`;
   }
   // age
   return `<input type="number" data-path="${f.path}" data-type="${f.type}" value="${v}" step="1">`;
@@ -3702,47 +3747,24 @@ function renderStatement(){
     let h = '';
     secs.forEach(sec => {
       h += `<div class="bs-head">${sec.head}</div>`;
-      if(sec.subtotal==='invest') h += renderAcctPicker();
       (sec.fields||[]).forEach(f => {
         const rowCls = f.sub ? 'bs-row sub' : 'bs-row';
         h += `<div class="${rowCls}"><label>${f.label}</label><span class="bs-dots"></span><span class="field">${renderField(f)}</span></div>`;
       });
       if(sec.subtotal==='invest'){
-        h += renderExtraAccounts();
         h += `<div class="bs-sub"><span class="bs-sub-l">Investable total</span><span class="bs-sub-d"></span><span class="bs-sub-v">${fmtMoney(investableTotal())}</span></div>`;
       }
-      // Editable array rows: property cards (Real assets) or flow rows (Liabilities).
-      if(sec.kind==='property'){
-        h += `<div class="erows">${(plan.properties||[]).map((_,i)=>propRow(i)).join('')}</div>`;
-      } else if(sec.kind==='liability'){
-        // Property mortgages mirror onto the Liabilities side as READ-ONLY lines so
-        // the balance sheet ties out — the property card stays the source of truth.
-        const linked = (plan.properties||[])
-          .filter(pr => pr.mortgage && (pr.mortgage.balance > 0))
-          .map(pr => `<div class="erow ro-row">
-            <span class="ro-name">Mortgage · ${escHtml(pr.name||'Property')}</span>
-            <span class="ro-amt">${fmtMoney(pr.mortgage.balance)}</span>
-            <span class="ro-tag" title="Edit on the property in Real assets">linked</span>
-          </div>`).join('');
-        const editable = (plan.liabilities||[]).map((_,i)=>flowRow('liabilities',i,'label','Loan / obligation')).join('');
-        h += `<div class="erows">${linked}${editable}</div>`;
-      }
-      if(sec.add) h += `<div class="bs-add" data-add="${sec.kind||''}">${sec.add}</div>`;
     });
     return h;
   };
-  const assetSecs = BALANCE_SHEET.filter(s => s.subtotal === 'invest');
-  const liabSecs  = BALANCE_SHEET.filter(s => s.kind === 'property' || s.liab);
-  const hh = HH_FIELDS.map(f =>
-    `<div class="hh-f"><label>${f.label}</label><span class="field">${renderField(f)}</span></div>`
-  ).join('');
+  const leftSecs = BALANCE_SHEET.filter(s => s.col !== 'right');
+  const rightSecs = BALANCE_SHEET.filter(s => s.col === 'right');
   return `<div class="np-page np-bal">
-    <div class="hh-bar">${hh}</div>
     ${renderGutter('balance-sheet')}
     <div class="bs-sheet">
-      <div class="bs-col"><div class="bs-title">Assets</div>${renderSecs(assetSecs)}</div>
+      <div class="bs-col"><div class="bs-title">Plan</div>${renderSecs(leftSecs)}</div>
       <div class="bs-divider"></div>
-      <div class="bs-col"><div class="bs-title">Liabilities</div>${renderSecs(liabSecs)}</div>
+      <div class="bs-col"><div class="bs-title">Cash Flow</div>${renderSecs(rightSecs)}</div>
     </div>
   </div>`;
 }
@@ -4437,10 +4459,10 @@ function renderInputs(){
   // page made that page too busy to read.
   const html = layout==='statement' ? renderStatement()
              : layout==='snapshot'  ? `<div class="np-snapshot-page">${renderSnapshot()}</div>`
-             : layout==='board'     ? renderGoalsWebBoard()
+             : layout==='board'     ? renderGoalsBoard()
              :                        renderHybrid(activeSub);
   np.innerHTML = html;
-  if(layout==='board') initGoalsWebBoard();
+  if(layout==='board') initGoalsBoard();
 }
 // ── Net Worth input bindings — delegated on the stable #np-content ────────────
 // Input listeners are set once here so re-renders via renderInputs() (which
@@ -4508,27 +4530,33 @@ $('#np-content').addEventListener('click', e => {
 });
 // Live commas on money fields.
 $('#np-content').addEventListener('input', e => {
-  if(e.target.dataset.type === 'money') liveCommas(e.target);
+  if(e.target.dataset.type === 'money' || e.target.dataset.type === 'monthlyMoney') liveCommas(e.target);
 });
 $('#np-content').addEventListener('change', e => {
   // Field edits (data-path bindings)
   const path = e.target.dataset.path, type = e.target.dataset.type;
   if(path){
     const raw = e.target.value;
-    if(type==='text'){            // free-text row labels (income/expense/goal/property names)
+    if(type==='text' || type==='strategy'){            // free-text row labels or select values
       setPath(plan, path, raw);
       reseedScenarios(); buildLevers(); sharedPaths=null; plansDirty=true; renderInputs();
       $('#status').textContent='Plan edited · open Scenarios';
       return;
     }
     let v;
-    if(type==='money')      v = parseFloat(String(raw).replace(/[^0-9.]/g,''));
+    if(type==='money' || type==='monthlyMoney') v = parseFloat(String(raw).replace(/[^0-9.]/g,''));
     else if(type==='risk')  v = +raw;
     else                    v = parseFloat(raw);
     if(!isFinite(v)) return;
     if(type==='pct')   v = Math.max(0, Math.min(100, v))/100;
     if(type==='gpct')  v = Math.max(-20, Math.min(20, v))/100;   // signed growth %/yr
     if(type==='money'){ v = Math.max(0, Math.round(v)); e.target.value = v.toLocaleString('en-US'); }
+    if(type==='monthlyMoney'){
+      const monthly = Math.max(0, Math.round(v));
+      v = monthly * 12;
+      e.target.value = monthly.toLocaleString('en-US');
+    }
+    if(type==='num') v = Math.max(1, Math.round(v));
     setPath(plan, path, v);
     // A one-time goal edits a single "at age": mirror it into endAge so the
     // engine's window is exactly that year.
@@ -4619,6 +4647,23 @@ if(plan.properties && plan.properties.length && plan.properties[0]){
 }
 
 let running=false;
+const PATH_KEY='parallax.pathReplay.v1';
+const DEFAULT_PATH_SEED=20260609;
+let pathReplay = (()=> {
+  try{
+    const saved = JSON.parse(localStorage.getItem(PATH_KEY)||'{}');
+    return {
+      mode: ['typical','stressed','failed','lowest-survivor','choose'].includes(saved.mode) ? saved.mode : 'typical',
+      index: Math.max(0, parseInt(saved.index,10) || 0),
+      seed: Math.max(1, parseInt(saved.seed,10) || DEFAULT_PATH_SEED)
+    };
+  }catch{
+    return { mode:'typical', index:0, seed:DEFAULT_PATH_SEED };
+  }
+})();
+function savePathReplay(){
+  try{ localStorage.setItem(PATH_KEY, JSON.stringify(pathReplay)); }catch{}
+}
 // Cached market bundle. Generated once, reused across Runs so that hitting Run
 // twice with no changes yields the EXACT same numbers (sampling noise was
 // causing the % to drift between identical clicks). Invalidated to null
@@ -4645,7 +4690,7 @@ function runAll(){
         btn.disabled=false; running=false; return;
       }
       if(!sharedPaths || sharedPaths.length !== iters || sharedPaths[0].length !== horizon){
-        resetSeed();              // fixed seed → identical bundle every load, no % drift
+        resetSeed(pathReplay.seed);              // fixed seed → identical bundle every load, no % drift
         sharedPaths = [];
         for(let i=0;i<iters;i++) sharedPaths.push(generateReturnPath(horizon));
       }
@@ -5158,10 +5203,62 @@ function cfMoney(v){
 }
 function cfRetPct(r){ if(!isFinite(r)) return '—'; const p = r*100; return (p>=0?'+':'−') + Math.abs(p).toFixed(1) + '%'; }
 function cfGain(v){ if(!isFinite(v) || Math.round(v)===0) return '$0'; return (v<0?'−':'+') + '$' + Math.abs(Math.round(v)).toLocaleString('en-US'); }
+function simByIndex(res, idx){
+  if(!res || !Array.isArray(res.sims)) return null;
+  return res.sims.find(s => s.simIndex === idx) || res.sims[idx] || null;
+}
+function baselineResult(){
+  return (scenarios.find(s=>s.base) || scenarios[0] || {}).res || null;
+}
+function selectedPathIndex(){
+  const res = baselineResult();
+  if(!res || !Array.isArray(res.sims) || !res.sims.length) return 0;
+  if(pathReplay.mode === 'choose'){
+    return Math.max(0, Math.min(res.sims.length - 1, pathReplay.index || 0));
+  }
+  if(pathReplay.mode === 'typical'){
+    return (res.paths && res.paths.p50 && res.paths.p50.simIndex != null) ? res.paths.p50.simIndex : 0;
+  }
+  if(pathReplay.mode === 'stressed'){
+    return (res.paths && res.paths.p10 && res.paths.p10.simIndex != null) ? res.paths.p10.simIndex : 0;
+  }
+  if(pathReplay.mode === 'failed'){
+    const failed = res.sims
+      .filter(s => s.failed)
+      .sort((a,b) => (a.depletionAge || 999) - (b.depletionAge || 999));
+    return failed.length ? failed[0].simIndex : ((res.paths && res.paths.p10 && res.paths.p10.simIndex != null) ? res.paths.p10.simIndex : 0);
+  }
+  if(pathReplay.mode === 'lowest-survivor'){
+    const survivors = res.sims
+      .filter(s => !s.failed)
+      .sort((a,b) => a.terminalBalance - b.terminalBalance);
+    return survivors.length ? survivors[0].simIndex : ((res.paths && res.paths.p10 && res.paths.p10.simIndex != null) ? res.paths.p10.simIndex : 0);
+  }
+  return 0;
+}
+function pathModeLabel(){
+  return ({
+    typical:'Typical path',
+    stressed:'Stressed path',
+    failed:'Failed path',
+    'lowest-survivor':'Lowest survivor',
+    choose:'Chosen path'
+  })[pathReplay.mode] || 'Typical path';
+}
+function pathOutcomeText(sim){
+  if(!sim) return '';
+  return sim.failed
+    ? `Ran dry at age ${sim.depletionAge || 'n/a'}`
+    : `Survived with ${cfMoney(sim.terminalBalance || 0)}`;
+}
 function renderCashflow(){
   const drawer = $('#cf-drawer');
   if(drawer.style.display !== 'block') return;   // only render when open; runAll re-renders if so
-  const rowsByScen = scenarios.map(s => (s.res && s.res.paths && s.res.paths.p50) ? s.res.paths.p50.rows : []);
+  const pathIdx = selectedPathIndex();
+  pathReplay.index = pathIdx;
+  savePathReplay();
+  const simsByScen = scenarios.map(s => simByIndex(s.res, pathIdx));
+  const rowsByScen = simsByScen.map(sim => sim ? sim.rows : []);
   // No data anywhere (e.g. a failed/degenerate Run) → say so plainly instead of
   // rendering an empty headers-only table that looks like it "didn't load".
   if(!rowsByScen.some(r => r.length)){
@@ -5178,7 +5275,7 @@ function renderCashflow(){
   const hasGoals = rowsByScen.some(rows => rows.some(r => r && r.goals > 0));
   const hasLump  = rowsByScen.some(rows => rows.some(r => r && r.lumpSum > 0));
   const cols = 5 + (hasRmd?1:0) + (hasGoals?1:0) + (hasLump?1:0);   // +Return %, +Return $
-  let h = '<table class="cf-table"><thead><tr><th class="age" rowspan="2">Age</th>';
+  let h = '<table class="cf-table"><thead><tr><th class="age" rowspan="2">Age</th><th class="source" rowspan="2">Source</th>';
   scenarios.forEach((s,i)=>{
     h += `<th class="scen ${gcls[i]}" colspan="${cols}" style="color:${colorFor(i)}">${escHtml(s.name)}</th>`;
   });
@@ -5198,7 +5295,8 @@ function renderCashflow(){
     // Engine keys every event off age = currentAge + y (y=0 is the current age),
     // so the table must too — otherwise a goal/SS/retirement lands one row late.
     const age = curAge + y;
-    h += `<tr><td class="age">${age}</td>`;
+    const source = rowsByScen.map(rows => rows[y]).find(Boolean)?.source;
+    h += `<tr><td class="age">${age}</td><td class="source">${source || '-'}</td>`;
     scenarios.forEach((s,i)=>{
       const r = rowsByScen[i][y];
       const prev = y > 0 ? rowsByScen[i][y-1] : null;
@@ -5234,8 +5332,10 @@ function renderCashflow(){
     h += '</tr>';
   }
   h += '</tbody></table>';
+  const baselineSim = simsByScen[scenarios.findIndex(s=>s.base)] || simsByScen[0];
+  const replayMeta = `${pathModeLabel()} · Seed ${pathReplay.seed} · Path ${String(pathIdx).padStart(3,'0')} · ${pathOutcomeText(baselineSim)}`;
   drawer.innerHTML =
-    `<div class="cf-drawer-head"><span>Annual Cash Flow</span><span class="sub">Typical simulated path · today's dollars</span></div>` +
+    `<div class="cf-drawer-head"><span>Path Replay</span><span class="sub">${replayMeta}</span></div>` +
     `<div class="cf-scroll">${h}</div>`;
 }
 
@@ -5441,6 +5541,10 @@ function renderPrints(runs){
 $$('.htab').forEach(t=>t.onclick=()=>{
   $$('.htab').forEach(x=>x.classList.remove('on'));
   $$('.page').forEach(x=>x.classList.remove('on'));
+  if(t.dataset.subTarget){
+    activeSub = t.dataset.subTarget;
+    try { localStorage.setItem(SUB_KEY, activeSub); } catch {}
+  }
   t.classList.add('on'); $(`.page[data-page="${t.dataset.page}"]`).classList.add('on');
   // Returning to Scenarios after a base-plan edit re-runs the engine so the
   // columns reflect the new source; otherwise just redraw.
@@ -5455,17 +5559,47 @@ $$('#np-subnav .stab').forEach(b => b.onclick = () => {
   renderInputs();
 });
 $('#run-btn').onclick=runAll;
+function syncPathControls(){
+  const mode=$('#path-mode'), idx=$('#path-index'), seed=$('#path-seed');
+  const choose=$('#path-choose'), seedWrap=$('#path-seed-wrap');
+  if(mode) mode.value = pathReplay.mode;
+  if(idx) idx.value = pathReplay.index;
+  if(seed) seed.value = pathReplay.seed;
+  const advanced = pathReplay.mode === 'choose';
+  if(choose) choose.classList.toggle('on', advanced);
+  if(seedWrap) seedWrap.classList.toggle('on', advanced);
+}
+$('#path-mode').onchange=e=>{
+  pathReplay.mode=e.target.value;
+  savePathReplay();
+  syncPathControls();
+  renderCashflow();
+};
+$('#path-index').onchange=e=>{
+  pathReplay.index=Math.max(0, parseInt(e.target.value,10)||0);
+  savePathReplay();
+  syncPathControls();
+  renderCashflow();
+};
+$('#path-seed').onchange=e=>{
+  pathReplay.seed=Math.max(1, parseInt(e.target.value,10)||DEFAULT_PATH_SEED);
+  savePathReplay();
+  sharedPaths=null;
+  syncPathControls();
+  runAll();
+};
 // Cash-flow drawer toggle. We render on open (and every Run while open).
 $('#cf-btn').onclick=()=>{
   const d=$('#cf-drawer');
   const open = d.style.display === 'block';
   d.style.display = open ? 'none' : 'block';
-  $('#cf-btn').textContent = open ? 'Show year-by-year cash flow ▾' : 'Hide cash flow ▴';
+  $('#cf-btn').textContent = open ? 'View cash flow ▾' : 'Hide cash flow ▴';
   if(!open) renderCashflow();
 };
 
 buildLevers();
 renderSolvePanel();
+syncPathControls();
 renderInputs();
 runAll();   // first iteration runs immediately so the tool opens populated
 </script>
