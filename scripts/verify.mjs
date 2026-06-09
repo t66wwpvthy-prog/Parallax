@@ -202,6 +202,7 @@ try {
         height: d?.getBoundingClientRect().height || 0,
         mode: document.querySelector('#path-mode')?.value || '',
         header: d?.querySelector('.cf-drawer-head')?.textContent || '',
+        columnLabels: [...(d?.querySelectorAll('.cf-table thead tr:nth-child(2) th') || [])].map(th => th.textContent.trim()),
         sources: [...(d?.querySelectorAll('td.source') || [])].slice(0, 8).map(td => td.textContent.trim()),
         sourceHead: !!d?.querySelector('th.source'),
         retireAges: [...(d?.querySelectorAll('td.retire-start') || [])]
@@ -213,6 +214,12 @@ try {
     if(m.height < 100) throw new Error(`cash-flow height = ${m.height}px (expected >=100)`);
     if(m.mode !== 'typical') throw new Error(`path replay default mode not typical (${m.mode})`);
     if(!/Path Replay/.test(m.header) || !/Seed/.test(m.header) || !/Path/.test(m.header)) throw new Error(`path replay header missing metadata: "${m.header}"`);
+    for(const label of ['Starting value','Income','Outflows','Inflows','Annual return','Ending value']){
+      if(!m.columnLabels.includes(label)) throw new Error(`cash-flow column missing: ${label}`);
+    }
+    if(m.columnLabels.some(label => ['Withdraw','RMD','Goals','One-time','Return $'].includes(label))) {
+      throw new Error(`old cash-flow columns still visible: ${JSON.stringify(m.columnLabels)}`);
+    }
     if(!m.sourceHead || !m.sources.some(v => /^\d{4}$/.test(v))) throw new Error(`cash-flow source years missing: ${JSON.stringify(m.sources)}`);
     if(m.retireAges.length < 3) throw new Error(`cash-flow scenario retirement markers missing (${JSON.stringify(m.retireAges)})`);
     if(!new Set(m.retireAges).has('67')) throw new Error(`moved-retirement scenario marker missing (${JSON.stringify(m.retireAges)})`);

@@ -565,6 +565,8 @@ background-size:auto,auto,auto,64px 64px,64px 64px,auto;}
 .cf-table th.age, .cf-table td.age{position:sticky;left:0;background:var(--surface);text-align:left;color:var(--ink);font-weight:600;z-index:1}
 .cf-table thead th.age{background:var(--bg-deep);z-index:6}
 .cf-table th.source,.cf-table td.source{text-align:left;color:var(--ink-faint);font-size:11px}
+.cf-table th.cf-start,.cf-table td.cf-start{border-left:1px solid var(--rule)}
+.cf-table th.cf-end,.cf-table td.cf-end{border-right:1px solid var(--rule)}
 .cf-table td.dim{color:var(--ink-faint)}
 .cf-table .cf-pos{color:var(--positive)} .cf-table .cf-neg{color:var(--negative)}
 /* Alternating per-scenario column tint in the cash-flow table — two faint
@@ -5268,25 +5270,19 @@ function renderCashflow(){
     return;
   }
   const gcls = scenarios.map((_,i)=>`cf-g${i%2}`);
-  const hasRmd = rowsByScen.some(rows => rows.some(r => r && r.rmd > 0));
-  // Show a Goals column whenever any year has goal spend — so a one-time goal
-  // (a single-year spike) or a recurring goal feeds visibly through to the
-  // cash flow instead of just inflating that year's withdrawal silently.
-  const hasGoals = rowsByScen.some(rows => rows.some(r => r && r.goals > 0));
-  const hasLump  = rowsByScen.some(rows => rows.some(r => r && r.lumpSum > 0));
-  const cols = 5 + (hasRmd?1:0) + (hasGoals?1:0) + (hasLump?1:0);   // +Return %, +Return $
+  const cols = 6;
   let h = '<table class="cf-table"><thead><tr><th class="age" rowspan="2">Age</th><th class="source" rowspan="2">Source</th>';
   scenarios.forEach((s,i)=>{
     h += `<th class="scen ${gcls[i]}" colspan="${cols}" style="color:${colorFor(i)}">${escHtml(s.name)}</th>`;
   });
   h += '</tr><tr>';
   scenarios.forEach((s,i)=>{
-    h += `<th class="${gcls[i]}">Income</th><th class="${gcls[i]}">Withdraw</th>`;
-    if(hasRmd)  h += `<th class="${gcls[i]}">RMD</th>`;
-    if(hasGoals) h += `<th class="${gcls[i]}">Goals</th>`;
-    if(hasLump)  h += `<th class="${gcls[i]}">One-time</th>`;
-    h += `<th class="${gcls[i]}">Return %</th><th class="${gcls[i]}">Return $</th>`;
-    h += `<th class="${gcls[i]}">End Balance</th>`;
+    h += `<th class="${gcls[i]} cf-start">Starting value</th>`;
+    h += `<th class="${gcls[i]}">Income</th>`;
+    h += `<th class="${gcls[i]}">Outflows</th>`;
+    h += `<th class="${gcls[i]}">Inflows</th>`;
+    h += `<th class="${gcls[i]}">Annual return</th>`;
+    h += `<th class="${gcls[i]} cf-end">Ending value</th>`;
   });
   h += '</tr></thead><tbody>';
   const len = Math.max(0, ...rowsByScen.map(r => r.length));
@@ -5365,6 +5361,75 @@ const SEQ_YEARS=[
   {y:2008, tag:'financial crisis',  c:'#6dd091', on:false},
   {y:2009, tag:'the recovery bull', c:'#a8c6c6', on:false},
 ];
+
+renderCashflow = function(){
+  const drawer = $('#cf-drawer');
+  if(drawer.style.display !== 'block') return;
+  const pathIdx = selectedPathIndex();
+  pathReplay.index = pathIdx;
+  savePathReplay();
+  const simsByScen = scenarios.map(s => simByIndex(s.res, pathIdx));
+  const rowsByScen = simsByScen.map(sim => sim ? sim.rows : []);
+  if(!rowsByScen.some(r => r.length)){
+    drawer.innerHTML =
+      `<div class="cf-drawer-head"><span>Path Replay</span></div>` +
+      `<div class="cf-empty">No cash-flow data yet. Press Run, or check the plan inputs if the status bar shows a warning.</div>`;
+    return;
+  }
+  const gcls = scenarios.map((_,i)=>`cf-g${i%2}`);
+  const cols = 6;
+  let h = '<table class="cf-table"><thead><tr><th class="age" rowspan="2">Age</th><th class="source" rowspan="2">Source</th>';
+  scenarios.forEach((s,i)=>{
+    h += `<th class="scen ${gcls[i]} cf-start cf-end" colspan="${cols}" style="color:${colorFor(i)}">${escHtml(s.name)}</th>`;
+  });
+  h += '</tr><tr>';
+  scenarios.forEach((s,i)=>{
+    h += `<th class="${gcls[i]} cf-start">Starting value</th>`;
+    h += `<th class="${gcls[i]}">Income</th>`;
+    h += `<th class="${gcls[i]}">Outflows</th>`;
+    h += `<th class="${gcls[i]}">Inflows</th>`;
+    h += `<th class="${gcls[i]}">Annual return</th>`;
+    h += `<th class="${gcls[i]} cf-end">Ending value</th>`;
+  });
+  h += '</tr></thead><tbody>';
+  const len = Math.max(0, ...rowsByScen.map(r => r.length));
+  const curAge = plan.household.primary.currentAge;
+  for(let y = 0; y < len; y++){
+    const age = curAge + y;
+    const source = rowsByScen.map(rows => rows[y]).find(Boolean)?.source;
+    h += `<tr><td class="age">${age}</td><td class="source">${source || '-'}</td>`;
+    scenarios.forEach((s,i)=>{
+      const r = rowsByScen[i][y];
+      const prev = y > 0 ? rowsByScen[i][y-1] : null;
+      const isRetire = r && r.phase !== 'accum' && (!prev || prev.phase === 'accum');
+      const retireCls = isRetire ? ' retire' : '';
+      const retireStartCls = isRetire ? ' retire retire-start' : '';
+      if(!r){
+        h += `<td colspan="${cols}" class="dim ${gcls[i]} cf-start cf-end">-</td>`;
+        return;
+      }
+      const dash = '<span style="color:var(--ink-faint)">-</span>';
+      const inc = (r.socialSecurity || 0) + (r.pension || 0) + (r.otherIncome || 0);
+      const outflows = (r.expenses || 0) + (r.goals || 0) + (r.liabilities || 0) + (r.taxes || 0) + (r.lumpSum || 0);
+      const inflows = (r.savings || 0) + (r.assetSale || 0);
+      const rr = (r.realReturnUsed ?? r.returnRate);
+      const rc = rr >= 0 ? 'cf-pos' : 'cf-neg';
+      h += `<td class="${gcls[i]}${retireStartCls} cf-start">${cfMoney(r.startBalance || 0)}</td>`;
+      h += `<td class="${gcls[i]}${retireCls}">${inc > 0 ? cfMoney(inc) : dash}</td>`;
+      h += `<td class="${gcls[i]}${retireCls}">${outflows > 0 ? cfMoney(outflows) : dash}</td>`;
+      h += `<td class="${gcls[i]}${retireCls}">${inflows > 0 ? cfMoney(inflows) : dash}</td>`;
+      h += `<td class="${gcls[i]}${retireCls} ${isFinite(rr)?rc:''}">${isFinite(rr) ? cfRetPct(rr) : dash}</td>`;
+      h += `<td class="${gcls[i]}${retireCls} cf-end">${cfMoney(r.balance || 0)}</td>`;
+    });
+    h += '</tr>';
+  }
+  h += '</tbody></table>';
+  const baselineSim = simsByScen[scenarios.findIndex(s=>s.base)] || simsByScen[0];
+  const replayMeta = `${pathModeLabel()} · Seed ${pathReplay.seed} · Path ${String(pathIdx).padStart(3,'0')} · ${pathOutcomeText(baselineSim)}`;
+  drawer.innerHTML =
+    `<div class="cf-drawer-head"><span>Path Replay</span><span class="sub">${replayMeta}</span></div>` +
+    `<div class="cf-scroll">${h}</div>`;
+};
 
 function buildSeqSelect(){
   const sel=$('#seq-select'), cur=sel.value;
