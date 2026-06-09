@@ -64,6 +64,17 @@ function closeServer(server){
   return new Promise(resolveClose => server.close(resolveClose));
 }
 
+async function ensureCashflowDrawer(page, open = true){
+  await page.evaluate(wantOpen => {
+    const d = document.querySelector('#cf-drawer');
+    const b = document.querySelector('#cf-btn');
+    if(!d || !b) return;
+    const isOpen = d.style.display === 'block';
+    if(isOpen !== wantOpen) b.click();
+  }, open);
+  await new Promise(r => setTimeout(r, 350));
+}
+
 rmSync(OUT, { recursive: true, force: true });
 mkdirSync(OUT, { recursive: true });
 
@@ -112,14 +123,79 @@ try {
     const expectedNav = ['Household', 'Goals', 'Scenarios', 'Sequencing'];
     if(JSON.stringify(m.nav) !== JSON.stringify(expectedNav)) throw new Error(`main nav mismatch: ${JSON.stringify(m.nav)}`);
     if(m.hasSubnav) throw new Error('old net-worth subnav is still rendered');
-    if(m.title.length !== 2 || m.heads < 4 || m.fields < 14) {
+    if(m.title.length !== 2 || m.heads < 4 || m.fields < 20) {
       throw new Error(`Household page did not render enough inputs (titles=${m.title.length}, heads=${m.heads}, fields=${m.fields})`);
     }
-    for(const label of ['Current age','Spouse age','Retirement age','Plan end age','Taxable','Traditional','Roth','Annual savings','Monthly spending','Social Security','Pension','Healthcare','Risk profile','Withdrawal strategy','Simulation paths']){
+    for(const label of ['Client name','Spouse name','Client age','Spouse age','Client retirement age','Spouse retirement age','Plan end age','Taxable','Traditional','Roth','Annual savings','Monthly spending','Working income','Client Social Security','Client SS age','Spouse Social Security','Spouse SS age','Pension','Healthcare','Risk profile','Withdrawal strategy','Simulation paths']){
       if(!m.labels.includes(label)) throw new Error(`Household label missing: ${label}`);
     }
     if(m.propertyCards || m.accountPicker) throw new Error(`parked detail UI still visible (propertyCards=${m.propertyCards}, accountPicker=${m.accountPicker})`);
     await page.screenshot({ path: join(OUT, '01-household.png'), fullPage: true });
+  });
+
+  await step('household spouse inputs flow into cash-flow engine rows', async () => {
+    const before = await page.evaluate(() => {
+      document.querySelector('input[data-path="income.socialSecurity.spouse.pia"]').value = '30,000';
+      document.querySelector('input[data-path="income.socialSecurity.spouse.pia"]').dispatchEvent(new Event('change', { bubbles: true }));
+      return {
+        spouseAge: document.querySelector('input[data-path="household.spouse.currentAge"]')?.value,
+        spouseRetirementAge: document.querySelector('input[data-path="household.spouse.retirementAge"]')?.value,
+        spouseSS: document.querySelector('input[data-path="income.socialSecurity.spouse.pia"]')?.value,
+      };
+    });
+    if(before.spouseAge !== '57' || before.spouseRetirementAge !== '64' || !/30,000/.test(before.spouseSS)) throw new Error(`spouse household inputs not visible (${JSON.stringify(before)})`);
+    await page.click('button[data-page="scenarios"]');
+    await new Promise(r => setTimeout(r, 900));
+    await ensureCashflowDrawer(page, true);
+    const withSpouse = await page.evaluate(() => {
+      const row = [...document.querySelectorAll('#cf-drawer .cf-table tbody tr')]
+        .find(tr => tr.querySelector('td.age')?.textContent.trim() === '68');
+      return row ? row.querySelectorAll('td')[3]?.textContent.trim() : '';
+    });
+    await page.click('button[data-sub-target="balance-sheet"]');
+    await new Promise(r => setTimeout(r, 200));
+    await page.evaluate(() => {
+      const input = document.querySelector('input[data-path="income.socialSecurity.spouse.pia"]');
+      input.value = '0';
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    await page.click('button[data-page="scenarios"]');
+    await new Promise(r => setTimeout(r, 900));
+    const withoutSpouse = await page.evaluate(() => {
+      const row = [...document.querySelectorAll('#cf-drawer .cf-table tbody tr')]
+        .find(tr => tr.querySelector('td.age')?.textContent.trim() === '68');
+      return row ? row.querySelectorAll('td')[3]?.textContent.trim() : '';
+    });
+    if(withSpouse === withoutSpouse) throw new Error(`spouse SS edit did not change baseline income at age 68 (${withSpouse} vs ${withoutSpouse})`);
+    await page.click('button[data-sub-target="balance-sheet"]');
+    await new Promise(r => setTimeout(r, 200));
+    await page.evaluate(() => {
+      const input = document.querySelector('input[data-path="income.socialSecurity.spouse.pia"]');
+      input.value = '30,000';
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+      const retire = document.querySelector('input[data-path="household.spouse.retirementAge"]');
+      retire.value = '67';
+      retire.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    await page.click('button[data-page="scenarios"]');
+    await new Promise(r => setTimeout(r, 900));
+    await ensureCashflowDrawer(page, true);
+    const laterSpouseRetirement = await page.evaluate(() => {
+      const row = [...document.querySelectorAll('#cf-drawer .cf-table tbody tr')]
+        .find(tr => tr.querySelector('td.age')?.textContent.trim() === '67');
+      const tds = row ? [...row.querySelectorAll('td')].map(td => td.textContent.trim()) : [];
+      return { income: tds[3] || '', inflows: tds[5] || '' };
+    });
+    if(laterSpouseRetirement.income !== '-' || !/\$30,000/.test(laterSpouseRetirement.inflows)) {
+      throw new Error(`spouse retirement age did not keep age 67 in accumulation (${JSON.stringify(laterSpouseRetirement)})`);
+    }
+    await page.click('button[data-sub-target="balance-sheet"]');
+    await new Promise(r => setTimeout(r, 200));
+    await page.evaluate(() => {
+      const retire = document.querySelector('input[data-path="household.spouse.retirementAge"]');
+      retire.value = '64';
+      retire.dispatchEvent(new Event('change', { bubbles: true }));
+    });
   });
 
   await step('goals renders the editable priority board', async () => {
@@ -193,8 +269,7 @@ try {
   });
 
   await step('cash-flow drawer opens with path replay controls and rows', async () => {
-    await page.click('#cf-btn');
-    await new Promise(r => setTimeout(r, 400));
+    await ensureCashflowDrawer(page, true);
     const m = await page.evaluate(() => {
       const d = document.querySelector('#cf-drawer');
       return {

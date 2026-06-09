@@ -633,8 +633,16 @@ function resolveInputs(plan, ov){
 
   // ── Accumulation, pension, and LTC resolution (all no-op at plan defaults) ──
   const curAge        = plan.household.primary.currentAge;
-  const retirementAge = Math.max(curAge, (plan.household.primary.retirementAge != null
-                          ? plan.household.primary.retirementAge : curAge) + (ov.retireDelay || 0));
+  const retireDelay   = ov.retireDelay || 0;
+  const primaryRetirementAge = Math.max(curAge, (plan.household.primary.retirementAge != null
+                          ? plan.household.primary.retirementAge : curAge) + retireDelay);
+  const spouse = plan.household.spouse || null;
+  let spouseRetirementAgeOnPrimaryTimeline = null;
+  if(spouse && spouse.retirementAge != null){
+    const spouseAge = (spouse.currentAge != null) ? spouse.currentAge : curAge;
+    spouseRetirementAgeOnPrimaryTimeline = curAge + Math.max(0, (spouse.retirementAge + retireDelay) - spouseAge);
+  }
+  const retirementAge = Math.max(curAge, primaryRetirementAge, spouseRetirementAgeOnPrimaryTimeline ?? curAge);
   const savingsAnnual = Math.max(0, ((plan.savings && plan.savings.annual) || 0) * (1 + (ov.savingsBump || 0)));
   // Contribution split — where accumulation savings land across the three sleeves.
   // Default 100% pre-tax (Traditional) so existing plans are byte-identical. Lets

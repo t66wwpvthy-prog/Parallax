@@ -1312,8 +1312,10 @@ const escHtml=s=>String(s).replace(/[&<>"']/g, c=>(
    shows it honestly: retiring 2yr later lifts success markedly; going aggressive
    raises the wealth line but leaves success BELOW the retire-later case (vol
    drag) — the risk/return truth the tool exists to show. */
+plan.meta.primaryName = 'Client';
+plan.meta.spouseName = 'Spouse';
 plan.household.primary.currentAge    = 58;
-plan.household.spouse = { currentAge: 57 };
+plan.household.spouse = { currentAge: 57, retirementAge: 64 };
 plan.household.primary.retirementAge = 65;
 plan.household.primary.planEndAge    = 95;
 plan.portfolio.accounts.taxable.balance      = 800000;
@@ -2007,9 +2009,12 @@ const SUB_PAGES = {
    surface until the core advisor flow is clean. */
 const BALANCE_SHEET = [
   { head:'Household', col:'left', fields:[
-    {path:'household.primary.currentAge',    label:'Current age',    type:'age'},
+    {path:'meta.primaryName',               label:'Client name',    type:'text'},
+    {path:'meta.spouseName',                label:'Spouse name',    type:'text'},
+    {path:'household.primary.currentAge',    label:'Client age',     type:'age'},
     {path:'household.spouse.currentAge',     label:'Spouse age',     type:'age'},
-    {path:'household.primary.retirementAge', label:'Retirement age', type:'age'},
+    {path:'household.primary.retirementAge', label:'Client retirement age', type:'age'},
+    {path:'household.spouse.retirementAge',  label:'Spouse retirement age', type:'age'},
     {path:'household.primary.planEndAge',    label:'Plan end age',   type:'age'},
   ]},
   { head:'Investment accounts', col:'left', subtotal:'invest', fields:[
@@ -2020,8 +2025,11 @@ const BALANCE_SHEET = [
   { head:'Cash flow', col:'right', fields:[
     {path:'savings.annual',                         label:'Annual savings',    type:'money'},
     {path:'expenses.living',                        label:'Monthly spending',  type:'monthlyMoney'},
-    {path:'income.socialSecurity.primary.pia',      label:'Social Security',   type:'money'},
-    {path:'income.socialSecurity.primary.claimAge', label:'Social Security age', type:'age'},
+    {path:'income.workingIncome',                   label:'Working income',    type:'money'},
+    {path:'income.socialSecurity.primary.pia',      label:'Client Social Security', type:'money'},
+    {path:'income.socialSecurity.primary.claimAge', label:'Client SS age',     type:'age'},
+    {path:'income.socialSecurity.spouse.pia',       label:'Spouse Social Security', type:'money'},
+    {path:'income.socialSecurity.spouse.claimAge',  label:'Spouse SS age',     type:'age'},
     {path:'income.pension.benefitByAge.65',         label:'Pension',           type:'money'},
     {path:'income.pension.startAge',                label:'Pension age',       type:'age'},
     {path:'expenses.healthcare',                    label:'Healthcare',        type:'money'},
