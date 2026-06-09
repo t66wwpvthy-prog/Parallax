@@ -36,14 +36,13 @@ bullet("Don't let it bloat.", "the last build became “a bloated PowerPoint of 
 section("The jewels (learned the hard way)")
 bullet("Logic checks lie; pixels don't.", "look at the rendered screen before calling it done. (The cash-flow drawer shipped 2px tall for 10 messages because nobody looked.)")
 bullet("Faithful-and-ugly beats clever-and-broken.", "a clever CSS shortcut silently wrecked the whole look.")
-bullet("Mock big visual changes first.", "static study → screenshot → you approve → then build. A dark theme shipped live and got rejected; a 5-minute mock would've caught it.")
-bullet("Push to BOTH the branch and main.", "the live site serves main; a stale main once cost half a day.")
+bullet("Mock big visual changes first.", "static study → screenshot → you approve → then build.")
 bullet("Terminal wealth is NOT the goal.", "it's only a ranking device. Plan for spending security, surviving bad markets, and meeting goals.")
-bullet("Look rules.", "no bright white, no mint green, no code fonts. Warm paper, brass + teal. Charts smooth and trackable, never jagged.")
+bullet("Look rules.", "no bright white, no mint green, no code fonts. Use only the currently approved theme tokens for the active build. Charts smooth and trackable, never jagged.")
 
 section("How we work together")
 bullet("Short over long.", "lead with the result; skip the recap.")
 bullet("Never guess.", "verify (run it, read it) or say “I can't verify that.”")
-bullet("One feature ≈ one session.", "finish it, bank the state to the notes, then clear — the repo is the memory, not the chat.")
+bullet("One feature ≈ one session.", "finish it, bank only current truth, then clear — stale notes must never compete with doctrine.")
 
 doc.save("/home/user/Parallax/Parallax-Principles.docx"); print("Done.")
