@@ -34,14 +34,11 @@ Engine changes require explicit agreement and tests.
 
 ## Repository Layout
 
-- `parallax_v2.html`: source UI shell.
 - `engine.js`: financial engine and simulation logic.
 - `engine.test.js`: Node test suite for engine behavior.
-- `build-standalone.mjs`: inlines the engine into standalone `index.html` and
   `parallax.html`.
 - `scripts/verify.mjs`: builds, tests, serves, drives Chromium, and captures
   verification screenshots.
-- `README.md`, `ROADMAP.md`, `CURRENT_STATUS.md`, `DEPLOYMENT_RUNBOOK.md`, and
   `PRINCIPLES.md`: current project truth.
 - `archive/`: old notes, handoffs, idea documents, and static demos that should
   not drive new work.
@@ -62,8 +59,7 @@ main screens, and writes screenshots to `verify-out/`.
 
 ## Shipping Notes
 
-GitHub Pages serves `main` from the root. After changing `parallax_v2.html` or
-`engine.js`, rebuild with `node build-standalone.mjs` and commit the regenerated
+GitHub Pages serves `main` from the root. , rebuild with `node build-standalone.mjs` and commit the regenerated
 `index.html` and `parallax.html` with the source change.
 
 Run engine tests before trusting model changes. Run visual verification before
