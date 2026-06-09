@@ -1,14 +1,11 @@
-# Auto-rebuild the single-file standalone (index.html + parallax.html) on every
-# push, so the GitHub Pages URL always serves the latest version. The commit-back
-# uses [skip ci] in the message so it doesn't trigger another run.
+# Manual standalone rebuild.
+# Run this only when you intentionally want GitHub Actions to rebuild
+# index.html and parallax.html from the source files.
+
 name: build-standalone
 
 on:
-  push:
-    branches: ['**']
-    paths-ignore:
-      - 'index.html'
-      - 'parallax.html'
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -30,7 +27,7 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           if [ -n "$(git status --porcelain index.html parallax.html)" ]; then
             git add index.html parallax.html
-            git commit -m "Auto-rebuild standalone [skip ci]"
+            git commit -m "Manual standalone rebuild [skip ci]"
             git push
           else
             echo "no changes to commit"
