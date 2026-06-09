@@ -125,23 +125,23 @@ try {
     await page.screenshot({ path: join(OUT, '02-cashflow.png'), fullPage: true });
   });
 
-  await step('net worth goals renders the priority board', async () => {
+  await step('net worth goals renders the goals web', async () => {
     await page.click('#np-subnav .stab[data-sub="goals"]');
     await new Promise(r => setTimeout(r, 300));
     const m = await page.evaluate(() => ({
-      board: !!document.querySelector('#np-content.g-mode .g-board'),
-      hero: document.querySelector('.g-big')?.textContent || '',
-      cards: document.querySelectorAll('.g-card').length,
-      once: document.querySelectorAll('.g-card.once').length,
-      slots: document.querySelectorAll('.g-slot').length,
-      boardH: Math.round(document.querySelector('.g-board')?.getBoundingClientRect().height || 0),
+      board: !!document.querySelector('#np-content.g-mode .gw-shell'),
+      stat: document.querySelector('.gw-stat b')?.textContent || '',
+      nodes: document.querySelectorAll('.gw-node').length,
+      ranks: document.querySelectorAll('.gw-rank').length,
+      formInputs: document.querySelectorAll('.gw-form input').length,
+      mapH: Math.round(document.querySelector('.gw-map')?.getBoundingClientRect().height || 0),
     }));
-    if(!m.board) throw new Error('goals board did not render');
-    if(!m.hero.startsWith('$')) throw new Error(`goals hero annual-spend missing (got "${m.hero}")`);
-    if(m.cards < 1) throw new Error(`goals board rendered no cards (cards=${m.cards})`);
-    if(m.once < 1) throw new Error(`goals board missing the one-time card (once=${m.once})`);
-    if(m.slots < 6) throw new Error(`goals board expected >=6 ghost slots (slots=${m.slots})`);
-    if(m.boardH < 200) throw new Error(`goals board height = ${m.boardH}px (expected >=200)`);
+    if(!m.board) throw new Error('goals web did not render');
+    if(!m.stat.startsWith('$')) throw new Error(`goals annual-spend stat missing (got "${m.stat}")`);
+    if(m.nodes < 2) throw new Error(`goals web rendered too few nodes (nodes=${m.nodes})`);
+    if(m.ranks < 1) throw new Error(`goals stack rendered no goal rows (ranks=${m.ranks})`);
+    if(m.formInputs < 3) throw new Error(`goals editor inputs missing (formInputs=${m.formInputs})`);
+    if(m.mapH < 200) throw new Error(`goals map height = ${m.mapH}px (expected >=200)`);
     await page.screenshot({ path: join(OUT, '02-goals.png'), fullPage: true });
   });
 

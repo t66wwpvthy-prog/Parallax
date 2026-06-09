@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test"
+    "test": "node --test engine.test.js"
   },
   "devDependencies": {
     "playwright": "^1.60.0",
