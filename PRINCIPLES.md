@@ -2,16 +2,68 @@
 
 Date: 2026-06-09
 
+This is the active doctrine file for Parallax. If any document, prompt, branch note, handoff, roadmap, mockup, or generated artifact conflicts with this file, this file wins.
+
 ## What The Tool Is
 
-Parallax models retirement planning interactions. The value is watching one
-lever move another and seeing the client decision clearly.
+Parallax is an advisor-led retirement planning instrument.
 
-The program shows the story; the advisor tells it. If the picture is right, the
-sentence is redundant.
+Parallax models financial planning interactions. The value is watching one lever move another and seeing the client decision clearly.
 
-Parallax is neutral. It has no opinion about whether a client should spend more
-or cut back. It runs the math and reports what is there.
+The program shows the story; the advisor tells it. If the picture is right, the sentence is redundant.
+
+Parallax is neutral. It has no opinion about whether a client should spend more or cut back. It runs the math and reports what is there.
+
+## Coherent Path Doctrine
+
+Parallax is not a collection of feature ideas.
+
+Every surface must serve the same product spine:
+
+1. Show a real planning interaction.
+2. Reveal truth produced by the engine.
+3. Help the advisor explain a client decision.
+
+If a feature, chart, tab, tile, drawer, label, or visual treatment does not do at least one of those three things, it should be removed, archived, or rejected.
+
+No feature ships because it is interesting. It ships only if it strengthens the coherent path from household facts to engine truth to planning interaction to advisor explanation.
+
+The advisor-facing product should remain one coherent planning instrument, not a dashboard pile, report generator, generic stress-test suite, advice narrator, CRM, tax app, estate app, or sales deck.
+
+## Engine Truth Doctrine
+
+The engine is the only source of financial truth.
+
+The UI may:
+
+- collect inputs
+- pass controlled variables to the engine
+- display engine outputs
+- filter, sort, compare, label, or format engine outputs
+- summarize entered inputs for clarity
+- visually arrange engine outputs so the advisor can explain them
+
+The UI may not:
+
+- calculate expected returns
+- calculate expected wealth paths
+- create deterministic financial projections
+- invent success scores, risk scores, resilience scores, tax outcomes, withdrawal outcomes, balances, or terminal values
+- smooth, interpolate, or fabricate financial outcomes outside the engine
+- present any path as expected, likely, normal, average, representative, or forecasted unless it is explicitly selected from engine output and labeled as such
+
+Any financial number shown in the UI must be traceable to an engine function, engine output row, or approved pure engine module.
+
+## Allowed Clarifications
+
+These are allowed and should not be mistaken for doctrine violations:
+
+- Formatting, sorting, filtering, grouping, labeling, and comparing engine outputs.
+- Summing entered input fields for an input-page subtotal, as long as it is not presented as a planning result.
+- Running Solve-For logic by repeatedly calling the engine; the solver may search, but it may not create a separate financial formula.
+- Seeded reproducibility: same inputs plus the same seed may produce the same simulation bundle. That is software determinism, not a deterministic financial projection.
+- New truth-source modules, such as a future tax engine, if explicitly approved, isolated, and tested.
+- Showing a selected historical sequence or sampled engine path, if it is labeled as selected/sampled and not described as expected, normal, likely, or forecasted.
 
 ## Product Tests
 
@@ -34,6 +86,7 @@ If no, delete or archive it.
 - Do not touch engine math without explicit agreement and tests.
 - When two builds compete, pick the one most faithful to the truth.
 - Do not let the product become a collection of disconnected tabs.
+- Do not use stale archive notes, old roadmaps, old handoffs, or generated pitch artifacts as build authority.
 
 ## Verification Rules
 
@@ -48,7 +101,8 @@ If no, delete or archive it.
 - Avoid bright white.
 - Avoid mint green.
 - Avoid code-font styling in the client-facing UI.
-- Prefer warm paper, brass, and teal.
+- Use only the currently approved theme tokens for the active build.
+- Do not revive old theme names, palettes, or visual systems unless explicitly approved.
 - Charts should be smooth and trackable, never jagged.
 
 ## Working Rules
@@ -56,4 +110,5 @@ If no, delete or archive it.
 - Lead with the result.
 - Verify by running, reading, or inspecting before making a claim.
 - Keep one current source of project truth in the root docs.
-- Archive old notes instead of letting them compete with current guidance.
+- Archive old notes only when they cannot compete with current guidance.
+- Prefer deletion over preservation when stale material creates conflicting instructions.
