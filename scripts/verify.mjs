@@ -1,6 +1,6 @@
-/* Visual verification probe: build, test, serve the standalone app, drive
-   headless Chromium through the real built index.html, and write screenshots
-   to ./verify-out/. Exit non-zero if anything fails.
+/* Visual verification probe: test, serve the app, drive headless Chromium
+   through the real index.html, and write screenshots to ./verify-out/.
+   Exit non-zero if anything fails.
 
    Run: node scripts/verify.mjs */
 import puppeteer from 'puppeteer';
@@ -77,10 +77,6 @@ async function ensureCashflowDrawer(page, open = true){
 
 rmSync(OUT, { recursive: true, force: true });
 mkdirSync(OUT, { recursive: true });
-
-console.log('build');
-const build = spawnSync('node', [join(ROOT, 'build-standalone.mjs')], { cwd: ROOT, stdio: 'inherit' });
-if(build.status !== 0){ console.error('build failed'); process.exit(1); }
 
 console.log('engine tests');
 const test = spawnSync('node', ['--test', join(ROOT, 'engine.test.js')], { cwd: ROOT, stdio: 'inherit' });
