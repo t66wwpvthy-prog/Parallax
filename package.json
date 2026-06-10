@@ -6,7 +6,6 @@
     "test": "node --test engine.test.js"
   },
   "devDependencies": {
-    "playwright": "^1.60.0",
     "puppeteer": "^25.1.0"
   }
 }

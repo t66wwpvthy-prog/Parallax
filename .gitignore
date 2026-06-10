@@ -1,11 +1,9 @@
 node_modules/
+verify-out/
+.cache/
+
+# Throwaway visual studies stay out of version control (mock-first workflow).
 *.png
 variant-*.html
 *_mock.html
 _*.mjs
-.cache/
-
-# Reference screenshots (inspiration / competitor UI) are deliberately tracked.
-!reference/
-!reference/**
-verify-out/
