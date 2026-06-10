@@ -674,6 +674,13 @@ html,body{height:100%;background:var(--bg);font-family:'Sora',sans-serif;color:v
   .cf-toggle{justify-content:stretch}
   .cf-toggle button{width:100%}
 
+  /* Goals statement rows wrap on a phone: name + dollars on the first line,
+     window + toggle + measured cost flowing underneath. The thread itself
+     stays full fidelity and pans horizontally (.gt-scroll). */
+  .gl-rows .erow.gl-row{flex-wrap:wrap;row-gap:4px}
+  .gl-row .er-name{flex:1 1 100%}
+  .gl-row .gl-dots{display:none}
+  .gl-cost{min-width:0;flex:1 1 100%;text-align:left}
 }
 /* ===== Goals — tributaries ==================================================
    One gold thread runs across the plan's ages; each kept recurring goal is a
