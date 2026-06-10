@@ -194,51 +194,82 @@ try {
     });
   });
 
-  await step('goals renders the editable priority board', async () => {
+  await step('goals renders tributaries and statement rows', async () => {
     await page.click('.htab[data-sub-target="goals"]');
-    await new Promise(r => setTimeout(r, 300));
+    await new Promise(r => setTimeout(r, 400));
     const m = await page.evaluate(() => ({
-      board: !!document.querySelector('#np-content.g-mode .g-board'),
-      hero: document.querySelector('.g-big')?.textContent || '',
-      cards: document.querySelectorAll('.g-card').length,
-      once: document.querySelectorAll('.g-card.once').length,
-      slots: document.querySelectorAll('.g-slot').length,
-      inputs: document.querySelectorAll('.g-card input').length,
-      boardH: Math.round(document.querySelector('.g-board')?.getBoundingClientRect().height || 0),
+      svg: !!document.querySelector('#goal-thread svg'),
+      svgH: Math.round(document.querySelector('#goal-thread svg')?.getBoundingClientRect().height || 0),
+      flows: document.querySelectorAll('.gt-flow:not(.ghost)').length,
+      once: document.querySelectorAll('.gt-once').length,
+      spine: document.querySelectorAll('.gt-spine').length,
+      hits: document.querySelectorAll('.gt-hit').length,
+      rows: document.querySelectorAll('.gl-row').length,
+      goals: window.__planGoalsCount ?? null,
+      rowInputs: document.querySelector('.gl-row')?.querySelectorAll('input').length || 0,
+      toggles: document.querySelectorAll('.gl-keep').length,
+      facts: document.querySelector('.gl-facts')?.textContent || '',
+      oldBoard: document.querySelectorAll('.g-board, .g-slot, .g-card, .gw-shell').length,
     }));
-    if(!m.board) throw new Error('goals board did not render');
-    if(!m.hero.startsWith('$')) throw new Error(`goals annual-spend hero missing (got "${m.hero}")`);
-    if(m.cards < 1) throw new Error(`goals board rendered no cards (cards=${m.cards})`);
-    if(m.once < 1) throw new Error(`goals board missing one-time card (once=${m.once})`);
-    if(m.slots < 6) throw new Error(`goals board expected >=6 rank slots (slots=${m.slots})`);
-    if(m.inputs < 3) throw new Error(`goals editable inputs missing (inputs=${m.inputs})`);
-    if(m.boardH < 200) throw new Error(`goals board height = ${m.boardH}px (expected >=200)`);
+    if(!m.svg) throw new Error('goal thread svg missing');
+    if(m.svgH < 150) throw new Error(`goal thread svg too short (${m.svgH}px)`);
+    if(m.flows < 3) throw new Error(`expected >=3 recurring ribbons, got ${m.flows}`);
+    if(m.once < 1) throw new Error('one-time diamond missing');
+    if(m.spine !== 1) throw new Error(`expected one spine, got ${m.spine}`);
+    if(m.hits < 4) throw new Error(`hit targets missing (${m.hits})`);
+    if(m.rows < 4) throw new Error(`expected a statement row per goal, got ${m.rows}`);
+    if(m.rowInputs < 3) throw new Error(`row inline inputs missing (${m.rowInputs})`);
+    if(m.toggles !== m.rows) throw new Error(`keep toggles (${m.toggles}) != rows (${m.rows})`);
+    if(!/\$/.test(m.facts)) throw new Error(`facts line missing dollar totals: "${m.facts}"`);
+    if(m.oldBoard !== 0) throw new Error('old goals board/web DOM still present');
     await page.screenshot({ path: join(OUT, '02-goals.png'), fullPage: true });
   });
 
-  await step('goals add workflows append and delete editable cards', async () => {
+  await step('goals add, delete, what-if toggle and select workflows', async () => {
     await page.click('.htab[data-sub-target="goals"]');
     await new Promise(r => setTimeout(r, 300));
-    const before = await page.evaluate(() => document.querySelectorAll('.g-card').length);
+    const before = await page.evaluate(() => document.querySelectorAll('.gl-row').length);
     await page.click('[data-add="goalRec"]');
-    await new Promise(r => setTimeout(r, 200));
-    const after = await page.evaluate(() => document.querySelectorAll('.g-card').length);
+    await new Promise(r => setTimeout(r, 250));
+    const after = await page.evaluate(() => document.querySelectorAll('.gl-row').length);
     if(after !== before + 1) throw new Error(`recurring goal did not append (before=${before}, after=${after})`);
-    await page.click('.g-card:last-child .row-x');
-    await new Promise(r => setTimeout(r, 150));
-    const final = await page.evaluate(() => document.querySelectorAll('.g-card').length);
-    if(final !== before) throw new Error(`recurring goal delete did not splice (final=${final}, expected ${before})`);
-    await page.click('[data-add="goalOnce"]');
+    await page.click('.gl-row:last-child .row-x');
     await new Promise(r => setTimeout(r, 200));
-    const afterOnce = await page.evaluate(() => ({
-      cards: document.querySelectorAll('.g-card').length,
-      once: document.querySelectorAll('.g-card.once').length,
+    const final = await page.evaluate(() => document.querySelectorAll('.gl-row').length);
+    if(final !== before) throw new Error(`recurring goal delete did not splice (final=${final})`);
+    await page.click('[data-add="goalOnce"]');
+    await new Promise(r => setTimeout(r, 250));
+    const onceRow = await page.evaluate(() => {
+      const r = document.querySelector('.gl-row:last-child');
+      return { rows: document.querySelectorAll('.gl-row').length, text: r?.textContent || '' };
+    });
+    if(onceRow.rows !== before + 1 || !/once at/.test(onceRow.text)) throw new Error(`one-time goal did not append as once (${JSON.stringify(onceRow)})`);
+    await page.click('.gl-row:last-child .row-x');
+    await new Promise(r => setTimeout(r, 200));
+    // What-if toggle: row drops, its ribbon turns ghost, plan.goals untouched
+    // (the Scenarios goals-mirror step later asserts every goal still funded).
+    await page.click('.gl-row .gl-keep');
+    await new Promise(r => setTimeout(r, 250));
+    const dropped = await page.evaluate(() => ({
+      droppedRows: document.querySelectorAll('.gl-row.dropped').length,
+      ghosts: document.querySelectorAll('.gt-flow.ghost, .gt-once.ghost').length,
+      label: document.querySelector('.gl-row.dropped .gl-keep')?.textContent.trim() || '',
     }));
-    if(afterOnce.cards !== before + 1 || afterOnce.once < 2) throw new Error(`one-time goal did not append (${JSON.stringify(afterOnce)})`);
-    await page.click('.g-card:last-child .row-x');
+    if(dropped.droppedRows !== 1 || dropped.ghosts !== 1) throw new Error(`what-if drop did not ghost the ribbon (${JSON.stringify(dropped)})`);
+    if(dropped.label !== 'dropped') throw new Error(`toggle label wrong: "${dropped.label}"`);
+    await page.click('.gl-row.dropped .gl-keep');
+    await new Promise(r => setTimeout(r, 250));
+    const restored = await page.evaluate(() => document.querySelectorAll('.gl-row.dropped, .gt-flow.ghost').length);
+    if(restored !== 0) throw new Error('what-if drop did not restore');
+    // Click-select: svg hit path highlights its statement row.
+    await page.evaluate(() => document.querySelector('.gt-hit').dispatchEvent(new MouseEvent('click', { bubbles: true })));
     await new Promise(r => setTimeout(r, 150));
-    const finalOnce = await page.evaluate(() => document.querySelectorAll('.g-card').length);
-    if(finalOnce !== before) throw new Error(`one-time goal delete did not splice (final=${finalOnce}, expected ${before})`);
+    const sel = await page.evaluate(() => ({
+      selRows: document.querySelectorAll('.gl-row.sel').length,
+      onFlows: document.querySelectorAll('.gt-flow.on, .gt-once.on').length,
+    }));
+    if(sel.selRows !== 1 || sel.onFlows < 1) throw new Error(`svg click-select did not sync (${JSON.stringify(sel)})`);
+    await page.evaluate(() => document.querySelector('.gt-hit').dispatchEvent(new MouseEvent('click', { bubbles: true })));
   });
 
   await step('scenarios renders after tab switch', async () => {
