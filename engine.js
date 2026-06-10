@@ -943,6 +943,7 @@ function runSinglePath(p, returnPath){
       if(peakBalance > 0){ const dd = (peakBalance - endBalanceA) / peakBalance; if(dd > maxDrawdown) maxDrawdown = dd; }
       rows.push({
         year: y+1, age, source: rp.y, returnRate: r, phase: 'accum',
+        returnDollars: startBalanceA * r,
         socialSecurity: 0, otherIncome: 0, pension: 0, withdrawal: 0, assetSale: saleProceeds,
         expenses: 0, goals: goalsA, liabilities: 0, taxes: 0, savings: p.savingsAnnual, lumpSum: lumpA,
         startBalance: startBalanceA, wdRate: 0,
@@ -1095,6 +1096,7 @@ function runSinglePath(p, returnPath){
 
     rows.push({
       year: y+1, age, source: rp.y, returnRate: r,
+      returnDollars: startBalance * r,
       nominalReturn: (rp && rp.proxyNominalReturn != null) ? rp.proxyNominalReturn : null,
       inflationRate: (rp && rp.proxyInflationRate != null) ? rp.proxyInflationRate : null,
       realReturnUsed: r,
@@ -1120,7 +1122,7 @@ function runSinglePath(p, returnPath){
     if(failed){
       for(let z = y+1; z < p.horizonYears; z++){
         rows.push({
-          year:z+1, age:p.currentAge+z, source:null, returnRate:0,
+          year:z+1, age:p.currentAge+z, source:null, returnRate:0, returnDollars:0,
           socialSecurity:0, otherIncome:0, withdrawal:0,
           expenses:0, goals:0, taxes:0,
           startBalance:0, wdRate:0, netCashflow:0, balance:0, failed:true,
@@ -1366,6 +1368,145 @@ function runHistoricalPath(plan, startYear, strategy, transform, overrides){
   return result;
 }
 
+/* ── PATH DIGEST ─────────────────────────────────────────────────────────────
+   Pure read-only summary of ONE simulation result (Monte Carlo path or
+   historical run). Computes the aggregates the narrative surfaces print, so
+   every number on screen is engine output rather than UI math. No state, no
+   mutation: same input → same digest. `params` (a resolveInputs result) is
+   optional and only unlocks spendShareOfStart. */
+function pathDigest(sim, params){
+  const rows    = (sim && sim.rows) ? sim.rows : [];
+  // Real rows exclude post-depletion filler (source === null after failure).
+  const real    = rows.filter(r => r.source != null);
+  const retRows = real.filter(r => r.phase !== 'accum');
+  const wdRows  = retRows.filter(r => r.wdRate > 0);
+
+  // Withdrawal pressure — wdRate is stored in PERCENT on the row.
+  let peakWdRate = 0, peakWdAge = null, wdSum = 0;
+  for(const r of wdRows){
+    wdSum += r.wdRate;
+    if(r.wdRate > peakWdRate){ peakWdRate = r.wdRate; peakWdAge = r.age; }
+  }
+  const avgWdRate = wdRows.length ? wdSum / wdRows.length : 0;
+
+  // Early sequence — the first 10 retirement years, where sequence risk lives.
+  const early = retRows.slice(0, 10);
+  const negEarlyYears = early.filter(r => r.returnRate < 0).length;
+
+  // Damage window — longest run of retirement years the cumulative return sat
+  // below its retirement-day level. (Same definition the Sequencing prints use.)
+  let g = 1, cur = 0, underwaterSpellMax = 0;
+  for(const r of retRows){
+    g *= (1 + r.returnRate);
+    if(g < 1){ cur++; if(cur > underwaterSpellMax) underwaterSpellMax = cur; }
+    else cur = 0;
+  }
+
+  // Taxes by source. Row taxBySource covers SS / other income / funding
+  // withdrawals; forced-RMD tax is inside row.taxes but not the breakdown, so
+  // traditional is taken as the residual — RMD tax lands where it belongs.
+  let taxTotal = 0, ssTax = 0, oiTax = 0, taxableTax = 0;
+  for(const r of retRows){
+    taxTotal   += (r.taxes || 0);
+    if(r.taxBySource){
+      ssTax      += (r.taxBySource.ss      || 0);
+      oiTax      += (r.taxBySource.oi      || 0);
+      taxableTax += (r.taxBySource.taxable || 0);
+    }
+  }
+  const tradTax = Math.max(0, taxTotal - ssTax - oiTax - taxableTax);
+  const taxSourceTotals = { socialSecurity: ssTax, otherIncome: oiTax, traditional: tradTax, taxable: taxableTax };
+  const taxSourceShares = {};
+  let dominantTaxSource = null, dominantTaxShare = 0;
+  for(const k of Object.keys(taxSourceTotals)){
+    const share = taxTotal > 0 ? taxSourceTotals[k] / taxTotal : 0;
+    taxSourceShares[k] = share;
+    if(share > dominantTaxShare){ dominantTaxShare = share; dominantTaxSource = k; }
+  }
+
+  // Guaranteed-income coverage — SS + pension over all retirement outflows.
+  let guaranteed = 0, outflows = 0;
+  for(const r of retRows){
+    guaranteed += (r.socialSecurity || 0) + (r.pension || 0);
+    outflows   += (r.expenses || 0) + (r.goals || 0) + (r.liabilities || 0) + (r.taxes || 0);
+  }
+  const fixedIncomeShare = outflows > 0 ? guaranteed / outflows : null;
+
+  // Core annual spend vs starting assets — needs resolved params.
+  let spendShareOfStart = null;
+  if(params && params.expenses && params.accounts){
+    let spend = 0;
+    for(const v of Object.values(params.expenses)) if(typeof v === 'number') spend += v;
+    const start = params.accounts.taxable.balance + params.accounts.traditional.balance + params.accounts.roth.balance;
+    spendShareOfStart = start > 0 ? spend / start : null;
+  }
+
+  return {
+    startBalance: rows.length ? rows[0].startBalance : null,
+    endBalance:   sim.terminalBalance,
+    realCagr:     sim.cagr,
+    first10Cagr:  sim.first10Cagr,
+    first10Supports: sim.first10Cagr >= 0,
+    minBalance:   sim.minBalance,
+    failed:       !!sim.failed,
+    depletionAge: sim.depletionAge != null ? sim.depletionAge : null,
+    withdrawalYears: wdRows.length,
+    avgWdRate, peakWdRate, peakWdAge,
+    earlyWindowYears: early.length,
+    negEarlyYears,
+    underwaterSpellMax,
+    lifetimeTax: sim.lifetimeTax,
+    avgTax: retRows.length ? taxTotal / retRows.length : 0,
+    taxSourceTotals, taxSourceShares, dominantTaxSource, dominantTaxShare,
+    fixedIncomeShare, spendShareOfStart
+  };
+}
+
+/* ── PLAN ASSESSMENT ─────────────────────────────────────────────────────────
+   Rule table applied to an analyzeResults() object. Emits facts only —
+   which observations apply and the numbers behind them. The UI maps ids to
+   fixed sentences; nothing here recommends an action. Thresholds live in one
+   place so they are visible, testable, and arguable. */
+const ASSESSMENT_RULES = {
+  lowFixedSpending:  { maxSpendShareOfStart: 0.045 },  // core spend ≤ 4.5% of starting assets
+  taxDiversified:    { minBucketShare: 0.15, minBuckets: 2 },
+  highSuccess:       { minSuccessRate: 85 },
+  withdrawalLoad:    { peakWdRatePct: 10 },            // wdRate rows are in percent
+  portfolioFunded:   { minFixedIncomeShare: 0.33 }
+};
+
+function assessPlan(analysis){
+  const p   = analysis.params;
+  const mid = pathDigest(analysis.paths.p50, p);
+  const low = pathDigest(analysis.paths.p10, p);
+  const strengths = [], pressures = [], tossups = [];
+
+  if(mid.spendShareOfStart != null && mid.spendShareOfStart <= ASSESSMENT_RULES.lowFixedSpending.maxSpendShareOfStart){
+    strengths.push({ id:'low-fixed-spending', value: mid.spendShareOfStart });
+  }
+  const startTotal = p.accounts.taxable.balance + p.accounts.traditional.balance + p.accounts.roth.balance;
+  if(startTotal > 0){
+    const shares = ['taxable','traditional','roth'].map(k => p.accounts[k].balance / startTotal);
+    const buckets = shares.filter(s => s >= ASSESSMENT_RULES.taxDiversified.minBucketShare).length;
+    if(buckets >= ASSESSMENT_RULES.taxDiversified.minBuckets){
+      strengths.push({ id:'tax-diversified', value: buckets });
+    }
+  }
+  if(analysis.successRate >= ASSESSMENT_RULES.highSuccess.minSuccessRate){
+    strengths.push({ id:'high-success', value: analysis.successRate });
+  }
+  if(mid.peakWdRate >= ASSESSMENT_RULES.withdrawalLoad.peakWdRatePct){
+    pressures.push({ id:'withdrawal-load', value: { avg: mid.avgWdRate, peak: mid.peakWdRate, age: mid.peakWdAge } });
+  }
+  if(mid.fixedIncomeShare != null && mid.fixedIncomeShare < ASSESSMENT_RULES.portfolioFunded.minFixedIncomeShare){
+    pressures.push({ id:'portfolio-funded-spending', value: mid.fixedIncomeShare });
+  }
+  if(low.failed && !mid.failed){
+    tossups.push({ id:'return-timing', value: { stressedDepletionAge: low.depletionAge } });
+  }
+  return { strengths, pressures, tossups };
+}
+
 /* ---- exports (so the UI and tests import instead of sharing globals) ---- */
 export {
   RETURN_DATA, ASSET_META, ASSET_KEYS, EQUITY_MIX, DEFENSIVE_MIX,
@@ -1373,5 +1514,6 @@ export {
   buildAssetWeights, computeAssetStats, generateReturnPath, resetSeed, weightedAssetReturn,
   runSimulation, resolveInputs, runSinglePath, analyzeResults, runHistoricalPath,
   annualMortgagePayment,
+  pathDigest, assessPlan, ASSESSMENT_RULES,
   plan as defaultPlan
 };
