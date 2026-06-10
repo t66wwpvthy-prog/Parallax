@@ -264,6 +264,38 @@ try {
     await page.screenshot({ path: join(OUT, '03-scenarios.png'), fullPage: true });
   });
 
+  await step('path story + plan assessment render from engine digests', async () => {
+    const s = await page.evaluate(() => ({
+      chips: [...document.querySelectorAll('#story-panel [data-story-mode]')].map(b => b.textContent.trim()),
+      headline: document.querySelector('#story-panel .story-head')?.textContent || '',
+      stats: document.querySelectorAll('#story-panel .story-stat').length,
+      chart: document.querySelectorAll('#story-panel .story-chart svg path').length,
+      reads: document.querySelectorAll('#story-panel .story-read').length,
+      ledgers: document.querySelectorAll('#assess-panel .ledger h5').length,
+      ledRows: document.querySelectorAll('#assess-panel .led-row').length,
+    }));
+    if(JSON.stringify(s.chips) !== JSON.stringify(['Stressed','Median','Favorable'])) throw new Error(`story path picker wrong: ${JSON.stringify(s.chips)}`);
+    if(!/real growth, year over year/.test(s.headline)) throw new Error(`story headline missing: "${s.headline}"`);
+    if(s.stats < 5) throw new Error(`story stat line incomplete (${s.stats})`);
+    if(s.chart < 2) throw new Error('story balance chart missing');
+    if(s.reads !== 3) throw new Error(`expected 3 annotated readings, got ${s.reads}`);
+    if(s.ledgers !== 2 || s.ledRows < 1) throw new Error(`assessment ledger incomplete (h5=${s.ledgers}, rows=${s.ledRows})`);
+    await page.evaluate(() => [...document.querySelectorAll('[data-story-mode]')].find(b => b.dataset.storyMode === 'stressed').click());
+    await new Promise(r => setTimeout(r, 300));
+    const stressed = await page.evaluate(() => ({
+      headline: document.querySelector('#story-panel .story-head')?.textContent || '',
+      mode: document.querySelector('#path-mode')?.value || '',
+      on: document.querySelector('#story-panel [data-story-mode="stressed"]')?.classList.contains('on') || false,
+    }));
+    if(stressed.headline === s.headline) throw new Error('stressed pick did not change the story headline');
+    if(stressed.mode !== 'stressed' || !stressed.on) throw new Error(`story picker and drawer path-mode out of sync (${JSON.stringify(stressed)})`);
+    await page.evaluate(() => document.querySelector('#story-panel').scrollIntoView({ block: 'start' }));
+    await new Promise(r => setTimeout(r, 250));
+    await page.screenshot({ path: join(OUT, '03b-story.png') });
+    await page.evaluate(() => [...document.querySelectorAll('[data-story-mode]')].find(b => b.dataset.storyMode === 'typical').click());
+    await new Promise(r => setTimeout(r, 300));
+  });
+
   await step('cash-flow drawer opens with path replay controls and rows', async () => {
     await ensureCashflowDrawer(page, true);
     const m = await page.evaluate(() => {
@@ -309,6 +341,14 @@ try {
     }));
     if(!chosen.chooseVisible || !chosen.seedVisible) throw new Error(`choose-path advanced controls not visible: ${JSON.stringify(chosen)}`);
     if(!/Path 047/.test(chosen.header)) throw new Error(`chosen path header did not update: "${chosen.header}"`);
+    const hasFavorable = await page.evaluate(() => [...document.querySelectorAll('#path-mode option')].some(o => o.value === 'favorable'));
+    if(!hasFavorable) throw new Error('favorable option missing from path-mode select');
+    await page.select('#path-mode', 'favorable');
+    await new Promise(r => setTimeout(r, 250));
+    const favHeader = await page.evaluate(() => document.querySelector('#cf-drawer .cf-drawer-head')?.textContent || '');
+    if(!/Favorable path/.test(favHeader)) throw new Error(`favorable path did not relabel the drawer: "${favHeader}"`);
+    await page.select('#path-mode', 'choose');
+    await new Promise(r => setTimeout(r, 250));
     await page.evaluate(() => document.querySelector('#cf-drawer').scrollIntoView());
     await new Promise(r => setTimeout(r, 200));
     await page.screenshot({ path: join(OUT, '04-cashflow.png'), fullPage: true });
@@ -323,6 +363,38 @@ try {
     if(!ok) throw new Error('sequencing chart missing paths');
     const el = await page.$('.seq-chart');
     await el.screenshot({ path: join(OUT, '05-sequencing.png') });
+  });
+
+  await step('playback verdict, strategy comparison and year table', async () => {
+    await page.evaluate(() => [...document.querySelectorAll('[data-pb-year]')].find(b => b.textContent === '2000')?.click());
+    await new Promise(r => setTimeout(r, 400));
+    const m = await page.evaluate(() => ({
+      verdict: document.querySelector('#pb-verdict')?.textContent || '',
+      sub: document.querySelector('#playback-panel .pb-sub')?.textContent || '',
+      stratRows: document.querySelectorAll('#pb-strats tr').length,
+      stratText: document.querySelector('#pb-strats')?.textContent || '',
+      years: [...document.querySelectorAll('[data-pb-year]')].map(b => b.textContent.trim()),
+    }));
+    if(!/(survives 2000|2000 breaks the plan at age \d+)/.test(m.verdict)) throw new Error(`playback verdict wrong: "${m.verdict}"`);
+    if(!/\$/.test(m.sub) && !/exhausted/.test(m.sub)) throw new Error(`playback subline missing figures: "${m.sub}"`);
+    if(m.stratRows !== 4) throw new Error(`expected header + 3 strategy rows, got ${m.stratRows}`);
+    if(!/the plan’s strategy/.test(m.stratText) || !/baseline/.test(m.stratText)) throw new Error('plan strategy row not marked as baseline');
+    if(m.years.length < 6) throw new Error(`playback year picker too small: ${JSON.stringify(m.years)}`);
+    await page.click('#pb-detail-btn');
+    await new Promise(r => setTimeout(r, 300));
+    const t = await page.evaluate(() => ({
+      rows: document.querySelectorAll('#pb-table tr').length,
+      heads: [...document.querySelectorAll('#pb-table th')].map(th => th.textContent.trim()),
+      money: [...document.querySelectorAll('#pb-table td.end')].slice(0, 3).map(td => td.textContent.trim()),
+    }));
+    if(t.rows < 20) throw new Error(`year table too short (${t.rows} rows)`);
+    for(const h of ['Age','Era','Return','Return $','Drawn','End']){
+      if(!t.heads.includes(h)) throw new Error(`year table header missing: ${h} (${JSON.stringify(t.heads)})`);
+    }
+    if(!t.money.every(v => v.startsWith('$'))) throw new Error(`year table end balances not dollars: ${JSON.stringify(t.money)}`);
+    await page.evaluate(() => document.querySelector('#playback-panel').scrollIntoView({ block: 'start' }));
+    await new Promise(r => setTimeout(r, 250));
+    await page.screenshot({ path: join(OUT, '06-playback.png') });
   });
 
   if(errs.length){
