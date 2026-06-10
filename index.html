@@ -2840,9 +2840,67 @@ function initGoalsPage(){
   }));
   scheduleGoalCosts();
 }
-// Engine-measured per-goal cost — fills .gl-cost cells and #gl-runs.
-// Stub until the cost-runs commit lands.
-function scheduleGoalCosts(){}
+/* Engine-measured per-goal cost. Composes runSimulation over plan clones on
+   the SAME seeded path bundle the scenarios use: baseline (kept goals), one
+   run per goal (kept minus it — or, for a dropped goal, kept plus it), and
+   all-goals-off. Every figure painted below is an engine output or a
+   difference of two engine outputs; the UI adds no math. Async with a token
+   so a stale run set never paints over a newer page state. */
+let goalCostCache=null, goalCostToken=0;
+function goalCostKey(dropped){
+  return JSON.stringify([plan.goals, [...dropped].sort((a,b)=>a-b), pathReplay.seed, plan.simulation.iterations]);
+}
+function scheduleGoalCosts(){
+  if(!$('#gl-runs')) return;                       // not on the goals page
+  const dropped=droppedGoals();
+  const key=goalCostKey(dropped);
+  if(goalCostCache && goalCostCache.key===key){ paintGoalCosts(goalCostCache); return; }
+  const token=++goalCostToken;
+  setTimeout(()=>{                                  // paint first, run after
+    if(token!==goalCostToken || !$('#gl-runs')) return;
+    const paths=ensureSharedPaths();
+    if(!paths) return;
+    const goals=plan.goals||[];
+    const keptIdx=goals.map((g,i)=>i).filter(i=>!dropped.has(i));
+    const runFor=idx=>{
+      const clone=structuredClone(plan);
+      clone.goals=idx.map(i=>goals[i]);
+      const r=runSimulation(clone, {}, paths);
+      return { success:r.successRate, median:r.terminal.p50 };
+    };
+    try{
+      const base=runFor(keptIdx);
+      const allOff=runFor([]);
+      const per={};
+      for(let i=0;i<goals.length;i++){
+        if(token!==goalCostToken) return;
+        per[i]=dropped.has(i)
+          ? runFor([...keptIdx, i].sort((a,b)=>a-b))   // what keeping it back would do
+          : runFor(keptIdx.filter(j=>j!==i));          // what dropping it would free
+      }
+      goalCostCache={ key, base, allOff, per, dropped:[...dropped] };
+      if(token===goalCostToken) paintGoalCosts(goalCostCache);
+    }catch(err){ console.error('goal cost runs failed', err); }
+  }, 20);
+}
+function fmtPts(v){ return (v>=0?'+':'−')+Math.abs(v).toFixed(1)+' pts'; }
+function fmtMDelta(v){ return (v>=0?'+':'−')+fmtM(Math.abs(v)); }
+function paintGoalCosts(c){
+  const dropped=new Set(c.dropped);
+  $$('#np-content .gl-cost').forEach(el=>{
+    const i=+el.dataset.costI, r=c.per[i];
+    if(!r){ el.textContent='—'; return; }
+    if(dropped.has(i)){
+      el.innerHTML=`if kept: <b>${fmtPts(r.success-c.base.success)}</b> · ${fmtMDelta(r.median-c.base.median)} median`;
+    }else{
+      el.innerHTML=`if dropped: <b>${fmtPts(r.success-c.base.success)}</b> · ${fmtMDelta(r.median-c.base.median)} median`;
+    }
+  });
+  const runs=$('#gl-runs');
+  if(runs) runs.innerHTML=`
+    <span>kept goals: <b>${c.base.success.toFixed(1)}%</b> success · <b>${fmtM(c.base.median)}</b> median end</span>
+    <span>all goals off: <b>${c.allOff.success.toFixed(1)}%</b> · <b>${fmtM(c.allOff.median)}</b></span>`;
+}
 
 /* ── Sub-page render + wiring ─────────────────────────────────────
    One renderInputs() drives whichever sub-page is active. Re-renders on
@@ -3070,6 +3128,21 @@ function savePathReplay(){
 let sharedPaths=null;
 
 /* ── run the engine for all three columns (shared nothing; each its own MC) ── */
+// ONE seeded bundle of return paths, shared by every surface that compares
+// runs (scenario columns, the goals page's per-goal cost runs). Identical
+// markets across runs make any difference a pure decision-effect, and the
+// fixed seed keeps an unchanged plan at an identical % between Runs.
+function ensureSharedPaths(){
+  const horizon = plan.household.primary.planEndAge - plan.household.primary.currentAge;
+  if(!(horizon > 0)) return null;
+  const iters = plan.simulation.iterations;
+  if(!sharedPaths || sharedPaths.length !== iters || sharedPaths[0].length !== horizon){
+    resetSeed(pathReplay.seed);
+    sharedPaths = [];
+    for(let i=0;i<iters;i++) sharedPaths.push(generateReturnPath(horizon));
+  }
+  return sharedPaths;
+}
 function runAll(){
   if(running) return; running=true;
   const btn=$('#run-btn'); btn.disabled=true; $('#status').textContent='Running…';
@@ -3088,11 +3161,7 @@ function runAll(){
         $('#status').textContent='Check plan: end age must be after current age';
         btn.disabled=false; running=false; return;
       }
-      if(!sharedPaths || sharedPaths.length !== iters || sharedPaths[0].length !== horizon){
-        resetSeed(pathReplay.seed);              // fixed seed → identical bundle every load, no % drift
-        sharedPaths = [];
-        for(let i=0;i<iters;i++) sharedPaths.push(generateReturnPath(horizon));
-      }
+      ensureSharedPaths();
       // Isolate each scenario: one bad column (e.g. an out-of-range saved lever)
       // must not abort the whole Run and blank every other column + the cash
       // flow drawer. Failed scenarios get res=null and are skipped downstream.

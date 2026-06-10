@@ -222,6 +222,19 @@ try {
     if(m.toggles !== m.rows) throw new Error(`keep toggles (${m.toggles}) != rows (${m.rows})`);
     if(!/\$/.test(m.facts)) throw new Error(`facts line missing dollar totals: "${m.facts}"`);
     if(m.oldBoard !== 0) throw new Error('old goals board/web DOM still present');
+    // Engine-measured cost cells fill asynchronously - poll, don't sleep-assert.
+    const deadline = Date.now() + 8000;
+    let cost = '';
+    while(Date.now() < deadline){
+      cost = await page.evaluate(() => document.querySelector('.gl-cost')?.textContent || '');
+      if(/pts/.test(cost)) break;
+      await new Promise(r => setTimeout(r, 250));
+    }
+    if(!/pts/.test(cost) || !/\$/.test(cost)) throw new Error(`per-goal cost cell never filled: "${cost}"`);
+    const runsLine = await page.evaluate(() => document.querySelector('#gl-runs')?.textContent || '');
+    if(!/%/.test(runsLine) || !/\$/.test(runsLine) || !/all goals off/.test(runsLine)) {
+      throw new Error(`kept/all-off engine fact lines missing: "${runsLine}"`);
+    }
     await page.screenshot({ path: join(OUT, '02-goals.png'), fullPage: true });
   });
 
@@ -257,6 +270,15 @@ try {
     }));
     if(dropped.droppedRows !== 1 || dropped.ghosts !== 1) throw new Error(`what-if drop did not ghost the ribbon (${JSON.stringify(dropped)})`);
     if(dropped.label !== 'dropped') throw new Error(`toggle label wrong: "${dropped.label}"`);
+    // The dropped row's cell flips to the "if kept" phrasing once runs land.
+    const dl = Date.now() + 8000;
+    let droppedCost = '';
+    while(Date.now() < dl){
+      droppedCost = await page.evaluate(() => document.querySelector('.gl-row.dropped .gl-cost')?.textContent || '');
+      if(/if kept/.test(droppedCost)) break;
+      await new Promise(r => setTimeout(r, 250));
+    }
+    if(!/if kept/.test(droppedCost)) throw new Error(`dropped goal cost did not recompute: "${droppedCost}"`);
     await page.click('.gl-row.dropped .gl-keep');
     await new Promise(r => setTimeout(r, 250));
     const restored = await page.evaluate(() => document.querySelectorAll('.gl-row.dropped, .gt-flow.ghost').length);
