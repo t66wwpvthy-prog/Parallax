@@ -523,6 +523,47 @@ html,body{height:100%;background:var(--bg);font-family:'Sora',sans-serif;color:v
    by side; each scenario's columns are softly tinted in its line color so the
    eye groups them without needing dividers. The Age column is sticky so the
    advisor can scroll into late years and still know which row they're reading. */
+/* ── Path Story + Plan Assessment — editorial statement layout ─────────────
+   No boxes: verdict sentences set large in the serif voice, hero numbers
+   directly on the page in one open stat line with hairline dividers, a
+   full-bleed unframed chart, annotated readings separated by rules, and a
+   two-column dotted-leader ledger. Role tokens only. */
+.story-wrap{max-width:1180px;width:100%;margin:0 auto}
+.story-sec{display:flex;align-items:baseline;gap:18px;margin:34px 0 6px}
+.story-sec span{font-family:'Sora';font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-mute);font-weight:600;white-space:nowrap}
+.story-sec::after{content:'';flex:1;border-top:1px solid var(--rule-faint);transform:translateY(-3px)}
+.story-pick{display:flex;align-items:baseline;gap:26px;margin:14px 0 4px;flex-wrap:wrap}
+.story-pick .pk-l{font-family:'Sora';font-size:11px;letter-spacing:.06em;color:var(--ink-faint)}
+.story-pick button{background:none;border:none;padding:0 0 3px;cursor:pointer;font-family:'Sora';font-size:12.5px;color:var(--ink-faint);border-bottom:1.5px solid transparent}
+.story-pick button.on{color:var(--ink-bright);font-weight:700;border-bottom-color:var(--accent)}
+.story-pick .pk-note{margin-left:auto;font-family:Georgia,"Times New Roman",serif;font-style:italic;font-size:12px;color:var(--ink-faint)}
+.story-head{font-family:Georgia,"Times New Roman",serif;font-size:27px;line-height:1.25;color:var(--ink-bright);margin:18px 0 4px}
+.story-sub{font-family:Georgia,"Times New Roman",serif;font-style:italic;font-size:15px;color:var(--ink-mute);margin-bottom:26px}
+.story-stats{display:flex;flex-wrap:wrap;margin:0 0 8px}
+.story-stat{flex:1 1 0;min-width:150px;padding:4px 22px 10px 0}
+.story-stat+.story-stat{border-left:1px solid var(--rule);padding-left:22px}
+.story-stat b{display:block;font-family:'Inter';font-size:27px;font-weight:600;color:var(--value-highlight);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.story-stat i{display:block;font-style:normal;font-family:'Sora';font-size:11px;color:var(--ink-faint);margin-top:5px}
+.story-rule{border:none;border-top:1px solid var(--rule);margin:10px 0 26px}
+.story-chart-l{font-family:'Sora';font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-faint);font-weight:600;margin-bottom:8px}
+.story-chart svg{display:block;width:100%;height:auto}
+.story-read{display:flex;gap:26px;align-items:baseline;padding:16px 0}
+.story-read+.story-read{border-top:1px solid var(--rule-faint)}
+.story-read b{flex:0 0 150px;font-family:'Inter';font-size:23px;font-weight:600;color:var(--value-highlight);font-variant-numeric:tabular-nums}
+.story-read .rd-h{display:block;font-family:'Sora';font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-mute);font-weight:600;margin-bottom:5px}
+.story-read .rd-b{font-family:'Sora';font-size:13px;color:var(--ink);line-height:1.5}
+.ledger{display:grid;grid-template-columns:1fr 1fr;gap:8px 70px;margin:16px 0 8px}
+.ledger h5{grid-row:1;font-family:Georgia,"Times New Roman",serif;font-style:italic;font-size:14.5px;font-weight:600;color:var(--ink-bright);margin-bottom:8px}
+.led-row{display:flex;align-items:baseline;padding:7px 0;font-family:'Sora';font-size:12.5px;color:var(--ink-mute)}
+.led-row .dots{flex:1;border-bottom:1px dotted var(--rule-faint);margin:0 10px;transform:translateY(-3px)}
+.led-row b{font-family:'Inter';font-size:13px;font-weight:600;color:var(--ink-bright);font-variant-numeric:tabular-nums;white-space:nowrap}
+.led-none{font-family:Georgia,"Times New Roman",serif;font-style:italic;font-size:12.5px;color:var(--ink-faint);padding:7px 0}
+@media (max-width:760px){
+  .ledger{grid-template-columns:1fr}
+  .ledger h5{grid-row:auto}
+  .story-stat{flex:1 1 40%}
+}
+
 .cf-toggle{margin:18px 0 12px;display:flex;justify-content:flex-end;align-items:center;gap:10px;flex-wrap:wrap;flex-shrink:0}
 .cf-toggle button{background:transparent;border:1px solid var(--rule);color:var(--ink-mute);font-family:'Sora';font-size:11px;letter-spacing:.16em;text-transform:uppercase;padding:8px 16px;border-radius:5px;cursor:pointer}
 .cf-toggle button:hover{color:var(--accent);border-color:var(--accent)}
@@ -1517,9 +1558,15 @@ body::after{inset:16px;border-radius:28px;border-color:rgba(248,228,191,.145);bo
       <div class="scn-goals" id="scn-goals"></div>
       <div class="scn-foot" id="scn-foot"></div>
     </div>
-    <!-- The Scenarios line chart was removed: it duplicated what the % circles +
-         cash-flow drawer already say. A richer wealth-path visual is planned for
-         the Sequencing tab, where sequence-of-returns risk gives it real teeth. -->
+    <!-- Path Story: one coherent simulated path from the baseline run, told
+         as a statement — headline sentence, open stat line, full-bleed balance
+         chart, three annotated readings. Shares the drawer's path-replay
+         mechanism (same selected sim, same seed), so the chart here IS the
+         table below. Every figure comes from engine pathDigest(). -->
+    <div class="story-wrap" id="story-panel"></div>
+    <!-- Plan Assessment: a two-column ledger of engine-observed facts
+         (assessPlan ids + figures mapped to fixed sentences). No advice. -->
+    <div class="story-wrap" id="assess-panel"></div>
     <!-- Cash-flow drawer: expand to see the year-by-year breakdown for each
          scenario (income, withdrawals, ending balance), side-by-side. The
          engine already emits these rows from its typical simulated path —
@@ -1530,6 +1577,7 @@ body::after{inset:16px;border-radius:28px;border-color:rgba(248,228,191,.145);bo
         <select id="path-mode">
           <option value="typical">Typical path</option>
           <option value="stressed">Stressed path</option>
+          <option value="favorable">Favorable path</option>
           <option value="failed">Failed path</option>
           <option value="lowest-survivor">Lowest survivor</option>
           <option value="choose">Choose path...</option>
@@ -1569,7 +1617,7 @@ body::after{inset:16px;border-radius:28px;border-color:rgba(248,228,191,.145);bo
 
 
 <script type="module">
-import { runSimulation, runHistoricalPath, generateReturnPath, resetSeed, annualMortgagePayment, LONGRUN_INFLATION, defaultPlan as plan } from './engine.js';
+import { runSimulation, runHistoricalPath, generateReturnPath, resetSeed, annualMortgagePayment, LONGRUN_INFLATION, pathDigest, assessPlan, defaultPlan as plan } from './engine.js';
 /* ╔══════════════════════════════════════════════════════════════╗
    ║  PARALLAX V2 — UI WIRING (calls the engine above)             ║
    ╚══════════════════════════════════════════════════════════════╝ */
@@ -3578,7 +3626,7 @@ let pathReplay = (()=> {
   try{
     const saved = JSON.parse(localStorage.getItem(PATH_KEY)||'{}');
     return {
-      mode: ['typical','stressed','failed','lowest-survivor','choose'].includes(saved.mode) ? saved.mode : 'typical',
+      mode: ['typical','stressed','favorable','failed','lowest-survivor','choose'].includes(saved.mode) ? saved.mode : 'typical',
       index: Math.max(0, parseInt(saved.index,10) || 0),
       seed: Math.max(1, parseInt(saved.seed,10) || DEFAULT_PATH_SEED)
     };
@@ -3630,7 +3678,7 @@ function runAll(){
           s.res=runSimulation(p, ov, sharedPaths);
         }catch(err){ s.res=null; failed++; console.error('Scenario failed:', s.name, err); }
       });
-      renderBand(); renderSolvePanel(); renderFoot(); renderCashflow(); buildSeqSelect(); runSeq();
+      renderBand(); renderSolvePanel(); renderFoot(); renderCashflow(); renderStory(); renderAssess(); buildSeqSelect(); runSeq();
       $('#status').textContent = failed ? `Complete · ${failed} scenario${failed>1?'s':''} could not run` : 'Complete';
     }catch(e){ $('#status').textContent='Error'; console.error(e); }
     btn.disabled=false; running=false;
@@ -4146,6 +4194,9 @@ function selectedPathIndex(){
   if(pathReplay.mode === 'stressed'){
     return (res.paths && res.paths.p10 && res.paths.p10.simIndex != null) ? res.paths.p10.simIndex : 0;
   }
+  if(pathReplay.mode === 'favorable'){
+    return (res.paths && res.paths.p90 && res.paths.p90.simIndex != null) ? res.paths.p90.simIndex : 0;
+  }
   if(pathReplay.mode === 'failed'){
     const failed = res.sims
       .filter(s => s.failed)
@@ -4164,6 +4215,7 @@ function pathModeLabel(){
   return ({
     typical:'Typical path',
     stressed:'Stressed path',
+    favorable:'Favorable path',
     failed:'Failed path',
     'lowest-survivor':'Lowest survivor',
     choose:'Chosen path'
@@ -4175,6 +4227,124 @@ function pathOutcomeText(sim){
     ? `Ran dry at age ${sim.depletionAge || 'n/a'}`
     : `Survived with ${cfMoney(sim.terminalBalance || 0)}`;
 }
+
+/* ── Path Story ───────────────────────────────────────────────────────────
+   The baseline run's selected coherent path, told as a statement. The same
+   selected sim the cash-flow drawer replays (selectedPathIndex), digested by
+   the engine (pathDigest) — the prose here and the table below are two views
+   of one path. Pure formatting of engine fields; no UI math. */
+const TAX_SOURCE_LABELS = {
+  socialSecurity:'Social Security', otherIncome:'other income',
+  traditional:'Traditional withdrawals', taxable:'capital gains'
+};
+function storyChart(rows){
+  const W=1120, H=300, PADL=58, PADR=16, PADT=14, PADB=30;
+  const real = rows.filter(r => r.source != null);
+  if(real.length < 2) return '';
+  const hi = Math.max(...real.map(r => Math.max(r.balance, r.startBalance))) * 1.05;
+  if(!(hi > 0)) return '';
+  const x = i => PADL + (W-PADL-PADR) * i / (real.length-1);
+  const y = v => PADT + (H-PADT-PADB) * (1 - v/hi);
+  const pts = real.map((r,i) => [x(i), y(r.balance)]);
+  let g = '';
+  for(const f of [0,.5,1]){
+    const gy = PADT + (H-PADT-PADB)*f;
+    g += `<line x1="${PADL}" y1="${gy}" x2="${W-PADR}" y2="${gy}" stroke="var(--rule-faint)"/>`;
+    g += `<text x="${PADL-8}" y="${gy+4}" fill="var(--ink-faint)" font-size="10.5" font-family="Inter" text-anchor="end">${fmtM(hi*(1-f))}</text>`;
+  }
+  const y0 = y(real[0].startBalance);
+  g += `<line x1="${PADL}" y1="${y0}" x2="${W-PADR}" y2="${y0}" stroke="var(--ink-faint)" stroke-dasharray="3 6"/>`;
+  const a0 = real[0].age, a1 = real[real.length-1].age;
+  for(let a = Math.ceil(a0/5)*5; a <= a1; a += 5){
+    const ax = x(Math.round((a-a0)/(a1-a0)*(real.length-1)));
+    g += `<text x="${ax}" y="${H-8}" fill="var(--ink-faint)" font-size="10.5" font-family="Inter" text-anchor="middle">${a===Math.ceil(a0/5)*5?'Age '+a:a}</text>`;
+  }
+  const d = smoothPath(pts);
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Balance path">
+    ${g}
+    <path d="${d} L ${pts[pts.length-1][0].toFixed(1)} ${H-PADB} L ${PADL} ${H-PADB} Z" fill="var(--ink-bright)" fill-opacity="0.05"/>
+    <path d="${d}" fill="none" stroke="var(--accent-bright)" stroke-width="2.2"/>
+    <circle cx="${pts[pts.length-1][0].toFixed(1)}" cy="${pts[pts.length-1][1].toFixed(1)}" r="4.5" fill="var(--accent-bright)"/>
+  </svg>`;
+}
+function renderStory(){
+  const el = $('#story-panel'); if(!el) return;
+  const res = baselineResult();
+  if(!res || !Array.isArray(res.sims) || !res.sims.length){ el.innerHTML=''; return; }
+  const sim = simByIndex(res, selectedPathIndex());
+  if(!sim){ el.innerHTML=''; return; }
+  const d = pathDigest(sim);
+  const pc = v => (v>=0?'+':'−') + Math.abs(v*100).toFixed(1) + '%';
+  const endAge = sim.rows.length ? sim.rows[sim.rows.length-1].age : '';
+  const endStat = d.failed
+    ? `<b>${fmtM(0)}</b><i>depleted at age ${d.depletionAge}</i>`
+    : `<b>${fmtM(d.endBalance)}</b><i>ends at age ${endAge}</i>`;
+  const picks = [['stressed','Stressed'],['typical','Median'],['favorable','Favorable']]
+    .map(([m,l]) => `<button class="${pathReplay.mode===m?'on':''}" data-story-mode="${m}">${l}</button>`).join('');
+  const verb = d.first10Supports ? 'cooperate' : 'push back';
+  const reads = [
+    [pc(d.first10Cagr), 'Market sequence',
+     `The first 10 years ${d.first10Supports?'support':'work against'} the plan. ${d.negEarlyYears} of the first ${d.earlyWindowYears} ${d.negEarlyYears===1?'year is':'years are'} negative.`],
+    [d.avgWdRate.toFixed(1)+'%', 'Spending pressure',
+     `Average withdrawal pressure is ${d.avgWdRate.toFixed(1)}% across ${d.withdrawalYears} withdrawal years${d.peakWdAge!=null?` — the peak year touches ${d.peakWdRate.toFixed(1)}% at age ${d.peakWdAge}`:''}.`],
+    [fmtM(d.avgTax)+'/yr', 'Tax + sourcing',
+     `${TAX_SOURCE_LABELS[d.dominantTaxSource]||'Withdrawals'} drive ${Math.round(d.dominantTaxShare*100)}% of the ${fmtM(d.lifetimeTax)} lifetime tax bill.`]
+  ].map(([b,h,t]) => `<div class="story-read"><b>${b}</b><div><span class="rd-h">${h}</span><span class="rd-b">${t}</span></div></div>`).join('');
+  el.innerHTML = `
+    <div class="story-sec"><span>Path Story · ${escHtml((scenarios.find(s=>s.base)||scenarios[0]||{}).name||'Base plan')}</span></div>
+    <div class="story-pick"><span class="pk-l">Path:</span>${picks}
+      <span class="pk-note">selected from ${res.sims.length.toLocaleString('en-US')} simulated paths · not a forecast</span></div>
+    <div class="story-head">${(d.realCagr*100).toFixed(1)}% real growth, year over year, along this path.</div>
+    <div class="story-sub">Return timing matters most while withdrawals are active — and these first ten years ${verb}.</div>
+    <div class="story-stats">
+      <div class="story-stat"><b>${fmtM(d.startBalance)}</b><i>starts the plan</i></div>
+      <div class="story-stat">${endStat}</div>
+      <div class="story-stat"><b>${pc(d.first10Cagr)}</b><i>first decade, real</i></div>
+      <div class="story-stat"><b>${d.avgWdRate.toFixed(1)}%</b><i>avg withdrawal · peak ${d.peakWdRate.toFixed(1)}%</i></div>
+      <div class="story-stat"><b>${fmtM(d.avgTax)}</b><i>tax per year, avg</i></div>
+    </div>
+    <hr class="story-rule">
+    <div class="story-chart-l">Balance path · ${pathModeLabel().toUpperCase()} · ages ${sim.rows.length?sim.rows[0].age:''}–${endAge}</div>
+    <div class="story-chart">${storyChart(sim.rows)}</div>
+    <div class="story-sec"><span>What shapes this outcome</span></div>
+    ${reads}`;
+  el.querySelectorAll('[data-story-mode]').forEach(b => b.onclick = () => {
+    pathReplay.mode = b.dataset.storyMode;
+    savePathReplay(); syncPathControls(); renderCashflow(); renderStory();
+  });
+}
+
+/* ── Plan Assessment ──────────────────────────────────────────────────────
+   assessPlan() ids + figures mapped to fixed, factual sentences in a
+   two-column ledger. The engine decides what applies; the UI only words it. */
+function renderAssess(){
+  const el = $('#assess-panel'); if(!el) return;
+  const res = baselineResult();
+  if(!res || !res.paths){ el.innerHTML=''; return; }
+  const a = assessPlan(res);
+  const pct1 = v => (v*100).toFixed(1)+'%';
+  const SENT = {
+    'low-fixed-spending':       v => ['Low fixed spending — core spend vs starting assets', pct1(v)],
+    'tax-diversified':          v => ['Tax-diversified mix — account types carrying weight', `${v} of 3`],
+    'high-success':             v => ['High success rate — paths lasting the full horizon', Math.round(v)+'%'],
+    'withdrawal-load':          v => [`Withdrawal load — average ${v.avg.toFixed(1)}%, peak at age ${v.age}`, v.peak.toFixed(1)+'%'],
+    'portfolio-funded-spending':v => ['Portfolio-funded spending — guaranteed income covers', pct1(v)],
+    'return-timing':            v => [`Return timing — stressed path depletes${v.stressedDepletionAge?` at age ${v.stressedDepletionAge}`:''}, median survives`, 'path-dependent']
+  };
+  const row = it => {
+    const [label, val] = (SENT[it.id] || (x=>[it.id, '']))(it.value);
+    return `<div class="led-row"><span>${label}</span><span class="dots"></span><b>${val}</b></div>`;
+  };
+  const left  = a.strengths.map(row).join('') || `<div class="led-none">Nothing clears the bar on this run.</div>`;
+  const right = [...a.pressures, ...a.tossups].map(row).join('') || `<div class="led-none">No pressure points on this run.</div>`;
+  el.innerHTML = `
+    <div class="story-sec"><span>Plan Assessment · what the engine sees</span></div>
+    <div class="ledger">
+      <div><h5>Working for the plan</h5>${left}</div>
+      <div><h5>Working against it</h5>${right}</div>
+    </div>`;
+}
+
 function renderCashflow(){
   const drawer = $('#cf-drawer');
   if(drawer.style.display !== 'block') return;   // only render when open; runAll re-renders if so
@@ -4560,12 +4730,14 @@ $('#path-mode').onchange=e=>{
   savePathReplay();
   syncPathControls();
   renderCashflow();
+  renderStory();
 };
 $('#path-index').onchange=e=>{
   pathReplay.index=Math.max(0, parseInt(e.target.value,10)||0);
   savePathReplay();
   syncPathControls();
   renderCashflow();
+  renderStory();
 };
 $('#path-seed').onchange=e=>{
   pathReplay.seed=Math.max(1, parseInt(e.target.value,10)||DEFAULT_PATH_SEED);
