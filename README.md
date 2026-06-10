@@ -27,10 +27,10 @@ explain a client decision:
   Do not change engine math without explicit agreement and tests.
 - `engine.test.js` — Node test suite guarding the engine. Runs in CI on every
   push (`.github/workflows/test.yml`).
-- `index.html` — the current app prototype. A single self-contained file: it
-  carries an inlined copy of the engine, a leftover of the retired standalone
-  build step. New builds should import `engine.js` directly instead of
-  layering onto this file.
+- `index.html` — the current app prototype. UI only: it imports the engine
+  from `engine.js` as an ES module, so the page must be served over HTTP
+  (as `scripts/verify.mjs` and GitHub Pages both do) rather than opened
+  via `file://`.
 - `scripts/verify.mjs` — visual verification: runs the engine tests, serves
   the repo, drives headless Chromium through `index.html`, and writes
   screenshots to `verify-out/`.
