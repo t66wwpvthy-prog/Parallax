@@ -4440,6 +4440,131 @@ renderSolvePanel();
 syncPathControls();
 renderInputs();
 runAll();   // first iteration runs immediately so the tool opens populated
+
+// ── STICKY NOTES OVERLAY ─────────────────────────────────────────────────────
+(function(){
+  const STORE_KEY = 'px_sticky_notes_v1';
+  let active = false;
+  let notes = [];
+  let dragging = null, dragOX = 0, dragOY = 0;
+
+  function save(){ try{ localStorage.setItem(STORE_KEY, JSON.stringify(notes)); }catch{} }
+  function load(){ try{ const d=localStorage.getItem(STORE_KEY); if(d) notes=JSON.parse(d); }catch{} }
+
+  function makeNoteEl(note){
+    const el = document.createElement('div');
+    el.className = 'sn-note';
+    el.dataset.id = note.id;
+    el.style.cssText = `left:${note.x}px;top:${note.y}px`;
+    el.innerHTML = `<div class="sn-handle"><span class="sn-num">${note.num}</span><button class="sn-del" title="Remove">×</button></div><textarea class="sn-text" placeholder="Type note…">${note.text}</textarea>`;
+    // drag via handle
+    const handle = el.querySelector('.sn-handle');
+    handle.addEventListener('mousedown', e => {
+      if(e.target.classList.contains('sn-del')) return;
+      dragging = el;
+      const r = el.getBoundingClientRect();
+      dragOX = e.clientX - r.left;
+      dragOY = e.clientY - r.top;
+      el.style.zIndex = 10001;
+      e.preventDefault();
+    });
+    // delete
+    el.querySelector('.sn-del').addEventListener('click', () => {
+      notes = notes.filter(n => n.id !== note.id);
+      save();
+      el.remove();
+    });
+    // text update
+    el.querySelector('.sn-text').addEventListener('input', e => {
+      const n = notes.find(n => n.id === note.id);
+      if(n){ n.text = e.target.value; save(); }
+    });
+    return el;
+  }
+
+  function placeNote(x, y){
+    const num = notes.length ? Math.max(...notes.map(n=>n.num)) + 1 : 1;
+    const note = { id: Date.now(), num, x, y, text: '' };
+    notes.push(note);
+    save();
+    const el = makeNoteEl(note);
+    document.body.appendChild(el);
+    el.querySelector('.sn-text').focus();
+  }
+
+  function setActive(on){
+    active = on;
+    document.body.classList.toggle('sn-mode', on);
+    btn.classList.toggle('sn-btn-on', on);
+    btn.title = on ? 'Exit notes mode (click anywhere to add a note)' : 'Add sticky notes';
+    overlay.style.display = on ? 'block' : 'none';
+  }
+
+  // overlay intercepts clicks for note placement
+  const overlay = document.createElement('div');
+  overlay.className = 'sn-overlay';
+  overlay.addEventListener('click', e => {
+    placeNote(e.clientX - 12, e.clientY - 12);
+  });
+  document.body.appendChild(overlay);
+
+  // drag on document
+  document.addEventListener('mousemove', e => {
+    if(!dragging) return;
+    const n = notes.find(n => n.id === +dragging.dataset.id);
+    const x = e.clientX - dragOX, y = e.clientY - dragOY;
+    dragging.style.left = x + 'px';
+    dragging.style.top  = y + 'px';
+    if(n){ n.x = x; n.y = y; }
+  });
+  document.addEventListener('mouseup', () => {
+    if(dragging){ save(); dragging.style.zIndex=''; dragging=null; }
+  });
+
+  // toggle button
+  const btn = document.createElement('button');
+  btn.className = 'sn-btn';
+  btn.textContent = '✎';
+  btn.title = 'Add sticky notes';
+  btn.addEventListener('click', () => setActive(!active));
+  document.body.appendChild(btn);
+
+  // clear button (only visible in active mode)
+  const clearBtn = document.createElement('button');
+  clearBtn.className = 'sn-clear';
+  clearBtn.textContent = 'Clear all';
+  clearBtn.title = 'Remove all sticky notes';
+  clearBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    notes = [];
+    save();
+    document.querySelectorAll('.sn-note').forEach(el => el.remove());
+  });
+  document.body.appendChild(clearBtn);
+
+  // restore persisted notes
+  load();
+  notes.forEach(n => document.body.appendChild(makeNoteEl(n)));
+})();
 </script>
+
+<style>
+/* ── STICKY NOTES ── */
+.sn-btn{position:fixed;bottom:24px;right:24px;z-index:9998;width:44px;height:44px;border-radius:50%;border:none;background:var(--accent);color:#06121a;font-size:20px;line-height:1;cursor:pointer;box-shadow:0 4px 18px -4px rgba(0,0,0,.6);transition:background .2s,transform .15s}
+.sn-btn:hover{background:var(--accent-bright);transform:scale(1.08)}
+.sn-btn.sn-btn-on{background:#e0c060;box-shadow:0 0 0 3px rgba(224,192,96,.35),0 4px 18px -4px rgba(0,0,0,.6)}
+.sn-overlay{display:none;position:fixed;inset:0;z-index:9990;cursor:crosshair}
+.sn-note{position:fixed;z-index:10000;width:200px;display:flex;flex-direction:column;border-radius:4px;box-shadow:0 6px 24px -6px rgba(0,0,0,.7),0 0 0 1px rgba(255,255,255,.1);background:#f5e97a;overflow:hidden;font-family:'Sora',sans-serif}
+.sn-handle{display:flex;align-items:center;gap:6px;padding:5px 8px;background:#e6d848;cursor:grab;user-select:none}
+.sn-handle:active{cursor:grabbing}
+.sn-num{font-size:11px;font-weight:700;color:#4a3e00;min-width:16px}
+.sn-del{margin-left:auto;background:none;border:none;font-size:15px;line-height:1;color:#7a6600;cursor:pointer;padding:0 2px;opacity:.6}
+.sn-del:hover{opacity:1;color:#c00}
+.sn-text{border:none;outline:none;resize:none;background:#f5e97a;color:#2a2000;font-family:'Sora',sans-serif;font-size:12px;line-height:1.45;padding:8px;min-height:72px;width:100%}
+.sn-clear{position:fixed;bottom:24px;right:78px;z-index:9998;display:none;padding:8px 14px;border:1px solid var(--rule);background:rgba(30,20,10,.85);color:var(--ink-mute);font-family:'Sora',sans-serif;font-size:11px;letter-spacing:.1em;border-radius:3px;cursor:pointer}
+.sn-clear:hover{color:var(--ink);border-color:var(--rule-bright)}
+.sn-mode .sn-clear{display:block}
+</style>
+
 </body>
 </html>
