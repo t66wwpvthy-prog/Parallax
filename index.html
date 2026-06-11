@@ -736,6 +736,28 @@ html,body{height:100%;background:var(--bg);font-family:'Sora',sans-serif;color:v
 .gl-runs{margin-top:20px;padding-top:12px;border-top:1px solid var(--rule-faint);font-family:'Sora';font-size:12.5px;color:var(--ink-mute);display:flex;gap:34px;flex-wrap:wrap}
 .gl-runs b{font-family:'Inter';color:var(--ink-bright);font-weight:600;font-variant-numeric:tabular-nums}
 .gl-none{font-family:Georgia,"Times New Roman",serif;font-style:italic;color:var(--ink-faint);padding:18px 0}
+/* Life-area chips + intake strip. Areas are STRUCTURE only — the tool never
+   suggests goal content; the client names the goal in their own words. */
+.ga-chips{display:flex;flex-wrap:wrap;gap:9px;padding:2px 2px 16px}
+.ga-chip{border:1px solid var(--rule-faint);border-radius:20px;padding:6px 16px;font-family:'Sora';font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;background:var(--surface-3);color:var(--ink-faint);cursor:pointer;transition:all .18s}
+.ga-chip.lit{color:var(--ink);border-color:var(--rule-bright);background:var(--surface-2)}
+.ga-chip.open{color:var(--accent-bright);border-color:var(--accent);background:var(--surface-2);box-shadow:0 0 10px var(--accent-glow)}
+.ga-intake{display:flex;align-items:baseline;gap:18px;padding:4px 2px 18px;border-bottom:1px solid var(--rule);margin-bottom:4px}
+.ga-intake .er-name{flex:0 1 340px;font-size:13.5px}
+.ga-presets{display:inline-flex;gap:16px}
+.ga-preset{background:none;border:none;font-family:'Sora';font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-mute);padding:2px 0;border-bottom:1px dashed var(--rule);cursor:pointer;white-space:nowrap;transition:color .15s}
+.ga-preset.sel{color:var(--accent-bright);border-bottom-color:var(--accent-bright)}
+.ga-go{font-family:'Sora';font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;padding:6px 14px;border-radius:7px;border:none;background:var(--accent);color:#1a130a;cursor:pointer}
+.ga-tag{font-family:'Sora';font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:var(--ink-faint);border:1px solid var(--rule-faint);border-radius:20px;padding:2px 8px;white-space:nowrap}
+/* Unpriced ("price later") goal states — amount 0 is engine-inert, so these
+   markers keep the picture complete without inventing a number. */
+.er-amt.unpriced .pre{color:var(--ink-ghost)}
+.er-amt.unpriced input::placeholder{color:var(--ink-ghost);font-style:italic;font-weight:400}
+.gl-keep-slot{min-width:42px}
+.gl-cost.unpriced-cell{color:var(--ink-ghost);font-style:italic}
+.gt-flow.unpriced{stroke:var(--ink-faint);stroke-dasharray:3 4;opacity:.45}
+.gt-once.unpriced{fill:none;stroke:var(--ink-faint);stroke-width:1.5px;stroke-dasharray:3 3;opacity:.6}
+.gt-lbl.unpriced{fill:var(--ink-ghost);font-style:italic}
 
 /* ===== Surface & depth pass ================================================
    Structural skin only: page background layers, header, and decorative depth.
@@ -2722,6 +2744,7 @@ function goalsView(){
   const list = (Array.isArray(plan.goals)?plan.goals:[]).map((g,i)=>({
     i, name:g.name||'', amount:g.amount||0,
     once:g.startAge===g.endAge, startAge:g.startAge, endAge:g.endAge,
+    area:g.area||null, unpriced:!(g.amount>0),
   }));
   return {
     list,
@@ -2753,6 +2776,46 @@ function saveDroppedGoals(set){
 }
 let goalSelected=null;
 
+/* ── Goals — life-area intake ─────────────────────────────────────────────
+   A row of dimmed life-area chips. Clicking one glows it open and shows an
+   intake strip: the client names the goal IN THEIR OWN WORDS (the tool never
+   suggests content — areas are empty structure), picks rough timing, and the
+   goal lands in plan.goals with amount 0 — "price later". Amount 0 is
+   engine-inert (goals add via goalsA += g.amount), so an unpriced goal can
+   sit in the picture without inventing a number. Timing presets are input
+   defaulting from household ages, not financial math; the row's age inputs
+   stay the source of truth. */
+const GOAL_AREAS=[['travel','Travel'],['home','Home'],['family','Family'],['health','Health'],['purpose','Purpose'],['other','Other']];
+const GOAL_AREA_LBL=Object.fromEntries(GOAL_AREAS);
+let goalAreaOpen=null, goalAreaTiming='ongoing';
+function goalAreaAges(timing){
+  const p=plan.household.primary, cur=p.currentAge, end=p.planEndAge;
+  const r0=Math.max(cur, Math.min(p.retirementAge||cur, end));
+  const clamp=v=>Math.min(end, Math.max(Math.min(cur+1,end), Math.round(v)));
+  if(timing==='ongoing') return { startAge:r0, endAge:end };
+  const at = timing==='soon' ? r0
+           : timing==='mid'  ? (r0+end)/2
+           :                    r0+0.8*(end-r0);
+  const a=clamp(at);
+  return { startAge:a, endAge:a };
+}
+function goalAreaChipsHTML(){
+  const have=new Set((plan.goals||[]).map(g=>g.area).filter(Boolean));
+  const chips=GOAL_AREAS.map(([key,lbl])=>
+    `<button class="ga-chip${have.has(key)?' lit':''}${goalAreaOpen===key?' open':''}" data-area="${key}">${lbl}</button>`).join('');
+  let intake='';
+  if(goalAreaOpen){
+    const presets=[['soon','soon'],['mid','mid-retirement'],['later','later'],['ongoing','ongoing']].map(([k,lbl])=>
+      `<button class="ga-preset${goalAreaTiming===k?' sel':''}" data-preset="${k}">${lbl}</button>`).join('');
+    intake=`<div class="ga-intake">
+      <input class="er-name" id="ga-name" type="text" placeholder="Describe it in your own words">
+      <span class="ga-presets">${presets}</span>
+      <button class="ga-go" id="ga-go">Add</button>
+    </div>`;
+  }
+  return `<div class="ga-chips">${chips}</div>${intake}`;
+}
+
 function goalsThreadSVG(view, dropped){
   const a0=plan.household.primary.currentAge;
   const a1=plan.household.primary.planEndAge;
@@ -2768,8 +2831,10 @@ function goalsThreadSVG(view, dropped){
   const W=1000, PADL=34, PADR=30, threadY=44;
   const H=Math.max(190, threadY+44+rec.length*30+44);
   const x=age=>PADL+(W-PADL-PADR)*(age-a0)/(a1-a0);
-  // Ribbon widths: kept recurring goals share a ~12px bundle ∝ amount.
-  const keptRec=rec.filter(g=>!dropped.has(g.i));
+  // Ribbon widths: kept PRICED recurring goals share a ~12px bundle ∝ amount.
+  // Unpriced goals have no width to claim — they ride outside the bundle as
+  // dashed lanes, like dropped ghosts but visually distinct.
+  const keptRec=rec.filter(g=>!dropped.has(g.i) && !g.unpriced);
   const keptSum=keptRec.reduce((s,g)=>s+g.amount,0)||1;
   const wOf=g=>Math.max(2, Math.min(10, 12*g.amount/keptSum));
   // Stack: the LAST goal to peel rides closest to the spine, so peels never
@@ -2788,25 +2853,28 @@ function goalsThreadSVG(view, dropped){
   const laneIdx=new Map(rec.map((g,k)=>[g.i,k]));
   let lastPeelX=-99;
   for(const g of rec){
-    const isDrop=dropped.has(g.i);
+    const isDrop=dropped.has(g.i), isUn=g.unpriced;
     let px=x(g.sa); if(px-lastPeelX<6) px=lastPeelX+6; lastPeelX=px;
     const laneY=threadY+34+laneIdx.get(g.i)*30;
     const ex=Math.max(x(g.ea), px+70);
     const peel=yr=>`${px.toFixed(1)} ${yr.toFixed(1)} C ${(px+26).toFixed(1)} ${yr.toFixed(1)}, ${(px+26).toFixed(1)} ${laneY}, ${(px+52).toFixed(1)} ${laneY} L ${ex.toFixed(1)} ${laneY}`;
     // Kept ribbons travel inside the bundle from the left edge, then peel;
-    // a dropped ghost has no place in the bundle — it only marks the lane.
-    const d=isDrop ? `M ${peel(threadY)}` : `M ${PADL} ${yOf.get(g.i).toFixed(1)} L ${peel(yOf.get(g.i))}`;
-    s+=`<path class="gt-flow${isDrop?' ghost':''}${g.i===goalSelected?' on':''}" data-goal-i="${g.i}" d="${d}" stroke-width="${isDrop?1.5:wOf(g).toFixed(1)}"/>`;
+    // dropped ghosts and unpriced lanes have no place in the bundle — they
+    // only mark the lane.
+    const d=(isDrop||isUn) ? `M ${peel(threadY)}` : `M ${PADL} ${yOf.get(g.i).toFixed(1)} L ${peel(yOf.get(g.i))}`;
+    const cls=isUn?' unpriced':isDrop?' ghost':'';
+    s+=`<path class="gt-flow${cls}${g.i===goalSelected?' on':''}" data-goal-i="${g.i}" d="${d}" stroke-width="${(isDrop||isUn)?1.5:wOf(g).toFixed(1)}"/>`;
     hits+=`<path class="gt-hit" data-goal-i="${g.i}" d="${d}" stroke-width="22"/>`;
-    labels+=`<text class="gt-lbl${g.i===goalSelected?' on':''}" data-goal-i="${g.i}" x="${(px+58).toFixed(1)}" y="${laneY-7}">${escHtml(g.name||'Goal')} · ${fmtMoney(g.amount)}/yr</text>`;
+    labels+=`<text class="gt-lbl${isUn?' unpriced':''}${g.i===goalSelected?' on':''}" data-goal-i="${g.i}" x="${(px+58).toFixed(1)}" y="${laneY-7}">${escHtml(g.name||'Goal')} · ${isUn?'unpriced':fmtMoney(g.amount)+'/yr'}</text>`;
   }
   s+=`<line class="gt-spine" x1="${PADL}" y1="${threadY}" x2="${W-PADR}" y2="${threadY}"/>`;
   for(const g of once){
-    const isDrop=dropped.has(g.i);
-    const cx=x(g.sa), r=Math.max(5, Math.min(11, 4+Math.sqrt(g.amount||0)/40));
-    s+=`<rect class="gt-once${isDrop?' ghost':''}${g.i===goalSelected?' on':''}" data-goal-i="${g.i}" x="${(cx-r).toFixed(1)}" y="${(threadY-r).toFixed(1)}" width="${(2*r).toFixed(1)}" height="${(2*r).toFixed(1)}" transform="rotate(45 ${cx.toFixed(1)} ${threadY})"/>`;
+    const isDrop=dropped.has(g.i), isUn=g.unpriced;
+    const cx=x(g.sa), r=isUn?6:Math.max(5, Math.min(11, 4+Math.sqrt(g.amount||0)/40));
+    const cls=isUn?' unpriced':isDrop?' ghost':'';
+    s+=`<rect class="gt-once${cls}${g.i===goalSelected?' on':''}" data-goal-i="${g.i}" x="${(cx-r).toFixed(1)}" y="${(threadY-r).toFixed(1)}" width="${(2*r).toFixed(1)}" height="${(2*r).toFixed(1)}" transform="rotate(45 ${cx.toFixed(1)} ${threadY})"/>`;
     hits+=`<circle class="gt-hit dot" data-goal-i="${g.i}" cx="${cx.toFixed(1)}" cy="${threadY}" r="16"/>`;
-    labels+=`<text class="gt-lbl${g.i===goalSelected?' on':''}" data-goal-i="${g.i}" x="${cx.toFixed(1)}" y="${threadY-16}" text-anchor="middle">${escHtml(g.name||'One-time')} · ${fmtMoney(g.amount)} · ${g.startAge}</text>`;
+    labels+=`<text class="gt-lbl${isUn?' unpriced':''}${g.i===goalSelected?' on':''}" data-goal-i="${g.i}" x="${cx.toFixed(1)}" y="${threadY-16}" text-anchor="middle">${escHtml(g.name||'One-time')} · ${isUn?'unpriced':fmtMoney(g.amount)} · ${g.startAge}</text>`;
   }
   return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Goal spending, ages ${a0} to ${a1}">${s}${labels}${hits}</svg>`;
 }
@@ -2816,12 +2884,21 @@ function goalRowHTML(g, isDropped){
   const win=g.once
     ? `<span class="gl-win">once at <input class="er-num" type="number" step="1" data-path="${base}.startAge" data-sync="${base}.endAge" data-type="num" value="${g.startAge}"></span>`
     : `<span class="gl-win">/yr · age <input class="er-num" type="number" step="1" data-path="${base}.startAge" data-type="num" value="${g.startAge}">–<input class="er-num" type="number" step="1" data-path="${base}.endAge" data-type="num" value="${g.endAge}"></span>`;
-  return `<div class="erow gl-row${isDropped?' dropped':''}${g.i===goalSelected?' sel':''}" data-gl-row="${g.i}">
-    ${name(plan,base,'name', g.once?'One-time goal':'Goal')}
+  const tag=g.area?`<span class="ga-tag">${escHtml(GOAL_AREA_LBL[g.area]||g.area)}</span>`:'';
+  // Unpriced: same money binding, rendered empty — typing a number prices it.
+  // No keep/drop toggle ($0 has nothing to drop); an empty slot keeps columns aligned.
+  const amt=g.unpriced
+    ? `<span class="er-amt unpriced"><span class="pre">$</span><input type="text" inputmode="numeric" data-path="${base}.amount" data-type="money" value="" placeholder="price later"></span>`
+    : money(plan,base,'amount');
+  const keep=g.unpriced
+    ? `<span class="gl-keep-slot"></span>`
+    : `<button class="gl-keep" data-drop="${g.i}" title="What-if only — scenarios still fund every goal">${isDropped?'dropped':'kept'}</button>`;
+  return `<div class="erow gl-row${isDropped&&!g.unpriced?' dropped':''}${g.i===goalSelected?' sel':''}" data-gl-row="${g.i}">
+    ${name(plan,base,'name', g.once?'One-time goal':'Goal')}${tag}
     <span class="gl-dots"></span>
-    ${money(plan,base,'amount')}${win}
-    <button class="gl-keep" data-drop="${g.i}" title="What-if only — scenarios still fund every goal">${isDropped?'dropped':'kept'}</button>
-    <span class="gl-cost" data-cost-i="${g.i}">—</span>
+    ${amt}${win}
+    ${keep}
+    <span class="gl-cost${g.unpriced?' unpriced-cell':''}" data-cost-i="${g.i}">${g.unpriced?'unpriced':'—'}</span>
     ${rmX(base)}
   </div>`;
 }
@@ -2834,6 +2911,7 @@ function renderGoalsPage(){
   facts.push('today’s dollars');
   const rows=view.list.map(g=>goalRowHTML(g, dropped.has(g.i))).join('');
   return `<div class="gl-wrap">
+    ${goalAreaChipsHTML()}
     <div id="goal-thread" class="gt-scroll">${goalsThreadSVG(view, dropped)}</div>
     <div class="gl-facts">${facts.join(' · ')}</div>
     <div class="gl-rows">${rows||'<div class="gl-none">No goals entered.</div>'}</div>
@@ -2851,6 +2929,32 @@ function syncGoalSelection(){
 }
 function initGoalsPage(){
   const np=$('#np-content');
+  // Life-area chips: toggle open (re-render shows/hides the intake strip).
+  np.querySelectorAll('.ga-chip').forEach(b=>b.onclick=()=>{
+    const k=b.dataset.area;
+    goalAreaOpen = goalAreaOpen===k ? null : k;
+    renderInputs();
+    const inp=$('#ga-name'); if(inp) inp.focus();
+  });
+  // Timing presets: class swap only — no re-render, typed text survives.
+  np.querySelectorAll('.ga-preset').forEach(b=>b.onclick=()=>{
+    goalAreaTiming=b.dataset.preset;
+    np.querySelectorAll('.ga-preset').forEach(x=>x.classList.toggle('sel', x===b));
+  });
+  const addAreaGoal=()=>{
+    const inp=$('#ga-name'), nm=((inp&&inp.value)||'').trim();
+    if(!nm){ if(inp) inp.focus(); return; }
+    if(!Array.isArray(plan.goals)) plan.goals=[];
+    plan.goals.push({ name:nm, amount:0, area:goalAreaOpen, ...goalAreaAges(goalAreaTiming) });
+    commitPlanEdit();   // re-render keeps the chip open (and now lit) for the next one
+    const again=$('#ga-name'); if(again) again.focus();
+  };
+  const go=$('#ga-go');
+  if(go){
+    go.onclick=addAreaGoal;
+    const inp=$('#ga-name');
+    if(inp) inp.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); addAreaGoal(); } });
+  }
   np.querySelectorAll('[data-drop]').forEach(b=>b.onclick=()=>{
     const i=+b.dataset.drop, set=droppedGoals();
     if(set.has(i)) set.delete(i); else set.add(i);
@@ -2902,6 +3006,7 @@ function scheduleGoalCosts(){
       const per={};
       for(let i=0;i<goals.length;i++){
         if(token!==goalCostToken) return;
+        if(!(goals[i].amount>0)) continue;          // unpriced: $0 is inert — no runs to make
         per[i]=dropped.has(i)
           ? runFor([...keptIdx, i].sort((a,b)=>a-b))   // what keeping it back would do
           : runFor(keptIdx.filter(j=>j!==i));          // what dropping it would free
@@ -2917,7 +3022,7 @@ function paintGoalCosts(c){
   const dropped=new Set(c.dropped);
   $$('#np-content .gl-cost').forEach(el=>{
     const i=+el.dataset.costI, r=c.per[i];
-    if(!r){ el.textContent='—'; return; }
+    if(!r){ el.textContent=el.classList.contains('unpriced-cell')?'unpriced':'—'; return; }
     if(dropped.has(i)){
       el.innerHTML=`if kept: <b>${fmtPts(r.success-c.base.success)}</b> · ${fmtMDelta(r.median-c.base.median)} median`;
     }else{
@@ -3032,7 +3137,11 @@ $('#np-content').addEventListener('change', e => {
     if(type==='money' || type==='monthlyMoney') v = parseFloat(String(raw).replace(/[^0-9.]/g,''));
     else if(type==='risk')  v = +raw;
     else                    v = parseFloat(raw);
-    if(!isFinite(v)) return;
+    // Blanking a goal amount returns the goal to unpriced ($0 is engine-inert).
+    if(!isFinite(v)){
+      if(type==='money' && String(raw).trim()==='' && /^goals\.\d+\.amount$/.test(path)) v=0;
+      else return;
+    }
     if(type==='pct')   v = Math.max(0, Math.min(100, v))/100;
     if(type==='gpct')  v = Math.max(-20, Math.min(20, v))/100;   // signed growth %/yr
     if(type==='money'){ v = Math.max(0, Math.round(v)); e.target.value = v.toLocaleString('en-US'); }
