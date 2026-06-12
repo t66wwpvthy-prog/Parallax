@@ -3394,10 +3394,19 @@ function syncGridCols(){
 }
 function renderBand(){
   syncGridCols();
+  const baseSr = scenarios.find(s=>s.base)?.res?.successRate;
   let h=`<div class="band-cell label"><span>Scenario</span></div>`;
   scenarios.forEach((s,ci)=>{
     const sr=s.res?s.res.successRate:0;
     const col= sr>=80?'#7AA76C':sr>=71?'#D8B371':'#5E1916';
+    // Delta vs baseline, mirrored under the gauge: anchor reads BASELINE, the
+    // others show signed points (engine successRate difference, no UI math).
+    let deltaEl;
+    if(s.base){ deltaEl=`<div class="col-delta base">Baseline</div>`; }
+    else if(baseSr==null || s.res==null){ deltaEl=`<div class="col-delta">—</div>`; }
+    else { const d=sr-baseSr; const sign=d>0?'+':d<0?'−':'';
+      const tone=d>0?'up':d<0?'down':'flat';
+      deltaEl=`<div class="col-delta ${tone}">${sign}${Math.abs(d).toFixed(1)} pts</div>`; }
     // Header: a small identity dot (column color) + the name. Baseline's name is
     // locked (the anchor); other scenarios render an inline editable field so the
     // advisor can label them ("Retire at 62"). A ✕ removes non-baseline columns.
@@ -3409,6 +3418,7 @@ function renderBand(){
       ${nameEl}
       <div class="circle-wrap">${ring(sr)}
         <div class="circle-val"><span class="big" style="color:${col}">${sr.toFixed(1)}%</span><span class="lbl">Success</span></div></div>
+      ${deltaEl}
     </div>`;
   });
   // Label gutter: just buttons. The solver FORM renders in the full-width
@@ -3504,11 +3514,32 @@ function commitLever(ci, cfg){
   $('#status').textContent='Adjusted · Run to update';
   saveScenarios();
 }
+// Small line-icons for the lever rail, keyed by lever. Inline SVG (currentColor)
+// so they tint with the rail's muted ink. Purely decorative — labels still carry
+// the meaning. Matched to lever key with a name-based fallback.
+function levIcon(cfg){
+  const k=cfg.key||'', n=(cfg.name||'').toLowerCase();
+  const I={
+    retireAge:'<circle cx="8" cy="4.6" r="2.6"/><path d="M2.5 14c0-3 2.5-5 5.5-5s5.5 2 5.5 5"/>',
+    ssAge:'<path d="M8 1.5l5 2v4c0 3.2-2.2 5.6-5 6.5C5.2 13.1 3 10.7 3 7.5v-4z"/>',
+    spend:'<rect x="2" y="3.5" width="12" height="9" rx="1.4"/><path d="M2 6.5h12"/>',
+    event:'<circle cx="8" cy="8" r="6"/><path d="M8 4.5V8l2.5 1.6"/>',
+    risk:'<circle cx="8" cy="8" r="6"/><path d="M8 8l3.2-2.2"/><circle cx="8" cy="8" r="1.1" fill="currentColor" stroke="none"/>',
+    savings:'<path d="M2.5 6.5L8 2.5l5.5 4"/><path d="M3.5 6.5v7h9v-7"/><path d="M6.5 13.5v-3h3v3"/>',
+    pension:'<path d="M2.5 6L8 2.5 13.5 6"/><path d="M3.5 13.5h9"/><path d="M5 6.5v6M8 6.5v6M11 6.5v6"/>',
+  };
+  let p=I[k];
+  if(!p){ if(/spend|lifestyle/.test(n))p=I.spend; else if(/sav/.test(n))p=I.savings;
+    else if(/pension/.test(n))p=I.pension; else if(/alloc/.test(n))p=I.risk;
+    else if(/event|once|one-?time/.test(n))p=I.event; else if(/ss|social/.test(n))p=I.ssAge;
+    else p=I.retireAge; }
+  return `<span class="lev-ic" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">${p}</svg></span>`;
+}
 function buildLevers(){
   syncGridCols();
   let h='';
   LEVCFG.forEach(cfg=>{
-    h+=`<div class="lev-name">${escHtml(cfg.name)}</div>`;
+    h+=`<div class="lev-name">${levIcon(cfg)}<span>${escHtml(cfg.name)}</span></div>`;
     const r=levRange(cfg);
     scenarios.forEach((s,ci)=>{
       const last=ci===scenarios.length-1?'col-last':'';
@@ -4736,34 +4767,41 @@ runAll();   // first iteration runs immediately so the tool opens populated
    nothing here leaks to the other tabs. The backdrop is built from gradients
    (no image asset): cool sky, a sunset bloom on the right, a hazy city mass
    along the bottom, and a fading field of warm window-lights. */
-body.scn-navy{background:#16242f}
+body.scn-navy{background:#27343f}
 body.scn-navy .wrap{position:relative;z-index:1}
 body.scn-navy::before{
   content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
   background:
-    radial-gradient(72% 95% at 92% 80%, rgba(246,188,120,.55), rgba(246,188,120,0) 55%),
-    radial-gradient(60% 70% at 12% 8%, rgba(120,160,200,.20), transparent 60%),
-    linear-gradient(180deg, transparent 50%, rgba(18,30,44,.55) 72%, rgba(8,15,24,.92) 100%),
-    linear-gradient(180deg, #1a2937 0%, #22333f 40%, #2b3a44 62%, #1d2c38 100%);
-  filter:blur(2px) saturate(1.06);
+    radial-gradient(74% 96% at 92% 80%, rgba(250,200,134,.58), rgba(250,200,134,0) 56%),
+    radial-gradient(60% 70% at 12% 6%, rgba(158,192,224,.24), transparent 60%),
+    linear-gradient(180deg, transparent 46%, rgba(16,27,39,.5) 78%, rgba(11,20,30,.78) 100%),
+    linear-gradient(180deg, #2a3743 0%, #37494f 42%, #44565f 64%, #30404a 100%);
+  filter:blur(2px) saturate(1.08);
 }
 body.scn-navy::after{
   content:'';position:fixed;left:0;right:0;bottom:0;height:36vh;z-index:0;pointer-events:none;
-  background:radial-gradient(rgba(247,207,150,.6) .6px, transparent 1.4px) 0 0/11px 13px;
+  background:radial-gradient(rgba(250,212,156,.62) .6px, transparent 1.4px) 0 0/11px 13px;
   -webkit-mask-image:linear-gradient(180deg, transparent 0%, #000 65%);
           mask-image:linear-gradient(180deg, transparent 0%, #000 65%);
-  filter:blur(1.4px);opacity:.75;
+  filter:blur(1.4px);opacity:.7;
 }
 
 .page[data-page="scenarios"]{
   --bg-deep:#0a141d; --bg:#101d28;
-  --surface:rgba(150,182,216,.10); --surface-2:rgba(150,182,216,.07); --surface-3:rgba(150,182,216,.05);
-  --rule:rgba(170,200,230,.20); --rule-bright:rgba(190,214,238,.34); --rule-faint:rgba(170,200,230,.11);
-  --ink:#e0e9f3; --ink-bright:#f6fafe; --ink-mute:#aebfd1; --ink-faint:rgba(220,231,243,.58); --ink-ghost:rgba(220,231,243,.24);
-  --value-highlight:#edf3f9;
+  --surface:rgba(200,220,242,.17); --surface-2:rgba(200,220,242,.12); --surface-3:rgba(200,220,242,.08);
+  --rule:rgba(196,218,240,.26); --rule-bright:rgba(212,230,246,.42); --rule-faint:rgba(196,218,240,.15);
+  --ink:#e9f0f7; --ink-bright:#fbfdff; --ink-mute:#bccddd; --ink-faint:rgba(228,237,246,.62); --ink-ghost:rgba(228,237,246,.26);
+  --value-highlight:#f1f6fb;
   background:transparent;
 }
 .page[data-page="scenarios"] > *{position:relative;z-index:1}
+/* Outer frame: a large rounded hairline container around the whole panel, like
+   the mockup. Wraps the grid area; subtle frost + light border, no layout pull. */
+.page[data-page="scenarios"] .scn-scroll{
+  border:1px solid var(--rule);border-radius:24px;padding:20px 20px 8px;
+  background:linear-gradient(180deg, rgba(202,222,244,.07), rgba(202,222,244,.025));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.14), 0 30px 60px -40px rgba(0,0,0,.6)}
+.page[data-page="scenarios"] .scn-band{top:0}
 /* Sticky gauge-row backdrop: a soft dark fade instead of an opaque lip, so the
    cityscape still reads behind the translucent column-cards. */
 .page[data-page="scenarios"] .scn-band::before{
@@ -4783,15 +4821,78 @@ body.scn-navy::after{
 /* Rounder card corners + brighter glass rim/lift on the column ends. */
 .page[data-page="scenarios"] .band-cell:not(.label){
   border-radius:18px 18px 0 0;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.20), inset 0 0 0 1px rgba(255,255,255,.05);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.28), inset 0 0 0 1px rgba(255,255,255,.07);
 }
 .page[data-page="scenarios"] .foot-cell:not(:first-child){
   border-radius:0 0 18px 18px;
-  box-shadow:inset 0 0 0 1px rgba(255,255,255,.05), 0 26px 52px -28px rgba(0,0,0,.6);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.07), 0 28px 54px -28px rgba(0,0,0,.55);
 }
+
+/* Left rail as its own continuous glass card: the gutter cells stack with no
+   row-gaps, so frosting them all and rounding only the very top/bottom reads as
+   one panel (labels, lever icons, goals). */
+.page[data-page="scenarios"] .band-cell.label,
+.page[data-page="scenarios"] .lev-name,
+.page[data-page="scenarios"] .sg-name,
+.page[data-page="scenarios"] .sg-head:not(.sg-col),
+.page[data-page="scenarios"] .sg-total,
+.page[data-page="scenarios"] .foot-cell:first-child{
+  background:rgba(190,212,236,.08);
+  backdrop-filter:blur(22px) saturate(1.2);
+  -webkit-backdrop-filter:blur(22px) saturate(1.2);
+}
+.page[data-page="scenarios"] .band-cell.label{
+  border-radius:18px 18px 0 0;padding-left:18px;padding-right:14px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.22), inset 0 0 0 1px rgba(255,255,255,.06);
+}
+.page[data-page="scenarios"] .lev-name,
+.page[data-page="scenarios"] .sg-name,
+.page[data-page="scenarios"] .sg-head:not(.sg-col),
+.page[data-page="scenarios"] .sg-total{padding-left:18px}
+.page[data-page="scenarios"] .foot-cell:first-child{
+  border-radius:0 0 18px 18px;padding-left:18px;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.06), 0 28px 54px -28px rgba(0,0,0,.55);
+}
+/* Lever-name icons: a small glyph chip before each label, like the mockup rail. */
+.page[data-page="scenarios"] .lev-name .lev-ic{
+  display:inline-flex;align-items:center;justify-content:center;width:17px;margin-right:9px;
+  opacity:.72;flex:0 0 auto;color:var(--ink-mute)}
+.page[data-page="scenarios"] .lev-name .lev-ic svg{width:15px;height:15px;display:block}
+
+/* Wider channels between the column-cards so the skyline reads between them. */
+.page[data-page="scenarios"] .scn-band,
+.page[data-page="scenarios"] .scn-levers,
+.page[data-page="scenarios"] .scn-goals,
+.page[data-page="scenarios"] .scn-foot{column-gap:20px}
+
+/* Goals values inside each scenario card sit in a recessed sub-block — a darker
+   inset with a hairline top divider — so they read apart from the levers. */
+.page[data-page="scenarios"] .sg-cell,
+.page[data-page="scenarios"] .sg-tcell{
+  background:rgba(10,20,30,.26);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.03);
+}
+.page[data-page="scenarios"] .sg-head.sg-col{box-shadow:inset 0 1px 0 var(--rule-faint)}
+
+/* Scenario controls (Add / Solve) as stacked full-width glass pills in the rail. */
+.page[data-page="scenarios"] .add-scen,
+.page[data-page="scenarios"] .solve-btn{
+  width:calc(100% - 4px);margin:8px 0 0;padding:9px 12px;border-radius:9px;
+  border:1px solid var(--rule-bright);background:rgba(200,220,242,.06);
+  color:var(--ink-mute);letter-spacing:.16em;text-align:left;
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.page[data-page="scenarios"] .add-scen:hover,
+.page[data-page="scenarios"] .solve-btn:hover{border-color:var(--accent);color:var(--ink-bright);background:rgba(200,220,242,.1)}
 /* Gauge polish. */
 .page[data-page="scenarios"] .circle-wrap{filter:drop-shadow(0 6px 16px rgba(0,0,0,.45))}
 .page[data-page="scenarios"] .circle-val .big{font-weight:500;text-shadow:0 0 18px rgba(255,255,255,.14)}
+/* Delta line under each gauge: anchor label + signed points vs baseline. */
+.col-delta{font-family:'Sora';font-size:10px;letter-spacing:.16em;text-transform:uppercase;font-weight:600;margin-top:-2px}
+.col-delta.base{color:var(--ink-faint)}
+.col-delta.up{color:var(--status-positive-bright)}
+.col-delta.down{color:var(--negative-bright)}
+.col-delta.flat,.col-delta{color:var(--ink-mute)}
+.col-delta.up{color:var(--status-positive-bright)}
 .page[data-page="scenarios"] .combo-field{background:linear-gradient(180deg,rgba(30,52,74,.5),rgba(15,29,45,.5))}
 
 /* Header: translucent so the cityscape shows through; cool-toned text. */
