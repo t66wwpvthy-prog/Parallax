@@ -1328,34 +1328,58 @@ body::after{inset:var(--frame-inset);border-radius:var(--frame-radius);border-co
 <body>
 <div class="wrap">
   <header class="hdr">
-    <svg class="brand-logo" viewBox="0 0 248 56" role="img" aria-label="Parallax" xmlns="http://www.w3.org/2000/svg">
+    <svg class="brand-logo" viewBox="0 0 212 56" role="img" aria-label="Parallax" xmlns="http://www.w3.org/2000/svg">
       <defs>
-        <linearGradient id="pxGold" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stop-color="#f4dcb3"/>
-          <stop offset="0.5" stop-color="#d9a86a"/>
-          <stop offset="1" stop-color="#b0773c"/>
+        <linearGradient id="pxGold" x1="0" y1="19" x2="0" y2="37" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stop-color="#f6e0b6"/>
+          <stop offset="0.5" stop-color="#d8a368"/>
+          <stop offset="1" stop-color="#a06a34"/>
         </linearGradient>
-        <radialGradient id="pxNode" cx="0.5" cy="0.5" r="0.5">
-          <stop offset="0" stop-color="#ffe9c4"/>
-          <stop offset="0.45" stop-color="#f0c178"/>
-          <stop offset="1" stop-color="#f0c178" stop-opacity="0"/>
+        <linearGradient id="pxRim" x1="0" y1="5" x2="0" y2="52" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stop-color="#f0cf9a"/>
+          <stop offset="0.55" stop-color="#cf9a5c"/>
+          <stop offset="1" stop-color="#8e5c2c"/>
+        </linearGradient>
+        <!-- all three discs share one light source: the flare on the sight line -->
+        <radialGradient id="pxDisc" cx="19" cy="28" r="32" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stop-color="#e8b274" stop-opacity="0.50"/>
+          <stop offset="0.4" stop-color="#8a5c30" stop-opacity="0.26"/>
+          <stop offset="1" stop-color="#070b13" stop-opacity="0.78"/>
+        </radialGradient>
+        <radialGradient id="pxFlare" cx="0.5" cy="0.5" r="0.5">
+          <stop offset="0" stop-color="#fff3d8"/>
+          <stop offset="0.35" stop-color="#f3c279" stop-opacity="0.85"/>
+          <stop offset="1" stop-color="#f3c279" stop-opacity="0"/>
         </radialGradient>
       </defs>
-      <!-- parallax sight line -->
-      <line x1="3" y1="28" x2="53" y2="28" stroke="url(#pxGold)" stroke-width="0.9" opacity="0.55"/>
-      <!-- nested phase circles: one object seen from shifting viewpoints -->
-      <circle cx="24" cy="28" r="13" fill="none" stroke="url(#pxGold)" stroke-width="1.3" opacity="0.9"/>
-      <circle cx="30" cy="28" r="13" fill="none" stroke="url(#pxGold)" stroke-width="1.1" opacity="0.5"/>
-      <circle cx="36" cy="28" r="13" fill="none" stroke="url(#pxGold)" stroke-width="1" opacity="0.3"/>
-      <!-- bright parallax node + halo -->
-      <circle cx="16" cy="28" r="7" fill="url(#pxNode)"/>
-      <circle cx="16" cy="28" r="2" fill="#ffe9c4"/>
-      <!-- sight dots receding along the axis -->
-      <circle cx="43" cy="28" r="1.1" fill="url(#pxGold)" opacity="0.85"/>
-      <circle cx="48" cy="28" r="1" fill="url(#pxGold)" opacity="0.6"/>
-      <circle cx="52.5" cy="28" r="0.9" fill="url(#pxGold)" opacity="0.4"/>
-      <!-- wordmark -->
-      <text x="70" y="36" font-family="'Sora','Inter',sans-serif" font-size="21" font-weight="300" letter-spacing="6.5" fill="url(#pxGold)">PARALLAX</text>
+      <!-- phase discs: one body seen from three shifted viewpoints (back to front) -->
+      <circle cx="35.6" cy="28" r="16.4" fill="url(#pxDisc)" stroke="url(#pxRim)" stroke-width="0.7" opacity="0.85"/>
+      <circle cx="30" cy="28" r="17.5" fill="url(#pxDisc)" stroke="url(#pxRim)" stroke-width="0.8" opacity="0.92"/>
+      <circle cx="24" cy="28" r="18" fill="url(#pxDisc)" stroke="url(#pxRim)" stroke-width="0.9"/>
+      <!-- outer ring -->
+      <circle cx="29" cy="28" r="23" fill="none" stroke="url(#pxRim)" stroke-width="1.15"/>
+      <!-- parallax sight line, extending past the ring -->
+      <line x1="1" y1="28" x2="57" y2="28" stroke="url(#pxRim)" stroke-width="0.7" opacity="0.6"/>
+      <!-- flare on the line + lens streak -->
+      <ellipse cx="19" cy="28" rx="11" ry="1.4" fill="url(#pxFlare)" opacity="0.9"/>
+      <circle cx="19" cy="28" r="6.5" fill="url(#pxFlare)"/>
+      <circle cx="19" cy="28" r="1.5" fill="#fff3d8"/>
+      <!-- dots where the line crosses each phase edge -->
+      <circle cx="42" cy="28" r="1.15" fill="#eec88e" opacity="0.95"/>
+      <circle cx="47.5" cy="28" r="1" fill="#eec88e" opacity="0.7"/>
+      <circle cx="52" cy="28" r="0.85" fill="#eec88e" opacity="0.5"/>
+      <!-- wordmark: thin geometric letterforms drawn as paths (P A R A L L A X)
+           so the lockup never depends on a loaded font -->
+      <g fill="none" stroke="url(#pxGold)" stroke-width="1.5">
+        <path d="M70,35.5 V20.5 h6.6 a4.3,4.3 0 0 1 0,8.6 h-6.6"/>
+        <path d="M87.5,35.5 L93,20.5 L98.5,35.5 M90.4,30 h5.2"/>
+        <path d="M105,35.5 V20.5 h6.6 a4.3,4.3 0 0 1 0,8.6 h-6.6 M110.4,29.1 L115.5,35.5"/>
+        <path d="M122.5,35.5 L128,20.5 L133.5,35.5 M125.4,30 h5.2"/>
+        <path d="M140,20.5 V35.5 h8.5"/>
+        <path d="M157.5,20.5 V35.5 h8.5"/>
+        <path d="M175,35.5 L180.5,20.5 L186,35.5 M177.9,30 h5.2"/>
+        <path d="M192.5,20.5 L202.5,35.5 M202.5,20.5 L192.5,35.5"/>
+      </g>
     </svg>
     <div class="hdr-tabs">
       <button class="htab on" data-page="net-worth" data-sub-target="balance-sheet">Household</button>
@@ -4746,8 +4770,9 @@ body.scn-navy .hdr{
 }
 
 /* The header logo is now inline SVG (transparent), so the raster screen-blend
-   trick is no longer needed — it would only wash out the gold gradient. */
-svg.brand-logo{mix-blend-mode:normal}
+   trick is no longer needed — it would only wash out the gold gradient.
+   Sized for the wider emblem+wordmark lockup (212:56 viewBox). */
+svg.brand-logo{mix-blend-mode:normal;width:182px;height:48px}
 </style>
 
 </body>
