@@ -18,7 +18,7 @@
   --rule:rgba(206,226,246,.30); --rule-bright:rgba(222,236,250,.46); --rule-faint:rgba(206,226,246,.17);
   --ink:#eef4fa; --ink-bright:#ffffff; --ink-mute:#c7d6e4; --ink-faint:rgba(234,242,250,.66); --ink-ghost:rgba(234,242,250,.3);
   /* Primary accent — small emphasis only (links, active rules, key figures). */
-  --accent:#c59152; --accent-bright:#e4bd82; --accent-deep:#9f713c; --accent-glow:rgba(226,181,117,.32);
+  --accent:#9fb8cd; --accent-bright:#d9e8f5; --accent-deep:#6f8aa0; --accent-glow:rgba(176,206,236,.32);
   /* Highlight tone for hero financial values. */
   --value-highlight:#f1f6fb;
   /* Status roles. Positive is reserved for genuinely positive/healthy signals. */
@@ -51,7 +51,7 @@ html,body{height:100%;background:var(--bg);font-family:'Sora',sans-serif;color:v
 .htab:hover{color:var(--ink)} .htab.on{color:var(--ink-bright);font-weight:600;border-bottom-color:var(--accent)}
 .hdr-right{margin-left:auto;display:flex;align-items:center;gap:16px}
 .status{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-mute)}
-.run-btn{padding:9px 22px;background:linear-gradient(180deg,var(--accent-bright),var(--accent));color:#06121a;border:none;border-radius:3px;font-family:'Sora',sans-serif;font-weight:700;font-size:10.5px;letter-spacing:.26em;text-transform:uppercase;cursor:pointer;box-shadow:0 6px 18px -8px rgba(217,160,126,.45)}
+.run-btn{padding:9px 22px;background:linear-gradient(180deg,var(--accent-bright),var(--accent));color:#16242f;border:none;border-radius:3px;font-family:'Sora',sans-serif;font-weight:700;font-size:10.5px;letter-spacing:.26em;text-transform:uppercase;cursor:pointer;box-shadow:0 6px 18px -8px rgba(176,206,236,.4)}
 .run-btn:active{transform:translateY(1px)} .run-btn:disabled{filter:saturate(.3) brightness(.7);cursor:wait}
 
 .page{flex:1 1 auto;min-height:0;display:none;flex-direction:column;padding:0 28px 22px}
@@ -99,12 +99,12 @@ html,body{height:100%;background:var(--bg);font-family:'Sora',sans-serif;color:v
 /* Same idiom as every other input in the app: dashed underline, transparent,
    accent on focus. Just bigger. */
 .sf-box{font-family:'Inter',sans-serif;font-size:19px;font-weight:500;color:var(--ink);background:rgba(255,255,255,.05);border:none;border-radius:6px;padding:3px 6px;outline:none;width:64px;text-align:right;-moz-appearance:textfield;transition:background .15s}
-.sf-box:focus{background:rgba(196,123,49,.13)}
+.sf-box:focus{background:rgba(159,184,205,.16)}
 .sf-box::-webkit-outer-spin-button,.sf-box::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .sf-box:hover{border-bottom-color:var(--accent)}
 .sf-box:focus{border-bottom:1px solid var(--accent)}
 .sf-money{width:150px}
-.sf-go{font-family:'Sora',sans-serif;font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;padding:11px 20px;border-radius:6px;cursor:pointer;border:1px solid var(--accent);background:var(--accent);color:#1a130a;margin-left:auto}
+.sf-go{font-family:'Sora',sans-serif;font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;padding:11px 20px;border-radius:6px;cursor:pointer;border:1px solid var(--accent);background:var(--accent);color:#16242f;margin-left:auto}
 .sf-go:hover{background:var(--accent-bright);border-color:var(--accent-bright)}
 /* Per-row loading spinner during a solve. Sits in place of the lever value
    until that row resolves; tiny pulse so it reads as work in progress. */
@@ -158,14 +158,14 @@ html,body{height:100%;background:var(--bg);font-family:'Sora',sans-serif;color:v
 .combo-sub b{color:var(--accent);font-family:'Inter',sans-serif;font-weight:700}
 .combo-card{display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:20px;padding:15px 18px;margin-bottom:11px;border-radius:13px;background:var(--surface);box-shadow:inset 0 0 0 1px var(--rule-faint)}
 .combo-card:last-child{margin-bottom:0}
-.combo-card.lead{box-shadow:inset 0 0 0 1px rgba(190,140,70,.22)}
+.combo-card.lead{box-shadow:inset 0 0 0 1px rgba(159,184,205,.28)}
 .cc-moves{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
 .cpill{display:inline-flex;align-items:baseline;gap:7px;padding:7px 12px;border-radius:9px;font-family:'Inter',sans-serif;white-space:nowrap}
 .cpill .pk{font-family:'Sora',sans-serif;font-size:9px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;opacity:.7}
 .cpill .pv{font-size:15px;font-weight:700}
 .cpill.pin{background:rgba(255,255,255,.04);color:var(--ink-mute)}
 .cpill.pin .pk{color:var(--ink-faint)}
-.cpill.move{background:rgba(190,140,70,.10);color:var(--accent)}
+.cpill.move{background:rgba(159,184,205,.12);color:var(--accent)}
 .cpill.move .pk{color:var(--accent-deep)}
 .cpill.cut{background:rgba(190,130,116,.10);color:#BE8475}
 .cpill.cut .pk{color:#A86F62}
@@ -203,7 +203,7 @@ html,body{height:100%;background:var(--bg);font-family:'Sora',sans-serif;color:v
 /* No spreadsheet underlines — editability shows as a soft glassy fill on
    hover/focus instead, keeping the levers in the glass language. */
 .lev-val .pen-in:hover,.lev-val .lev-in:hover{background:rgba(255,255,255,.05)}
-.lev-val .pen-in:focus,.lev-val .lev-in:focus{background:rgba(196,123,49,.13)}
+.lev-val .pen-in:focus,.lev-val .lev-in:focus{background:rgba(159,184,205,.16)}
 /* Inline type-in boxes for the dollar/age levers; width tuned per content. */
 .lev-val .lev-in{font-family:'Inter',sans-serif;font-size:16.5px;font-weight:500;color:inherit;background:transparent;border:none;border-radius:5px;width:78px;padding:1px 3px;outline:none;text-align:right;transition:background .15s}
 .lev-val .lev-in.age-in{width:34px;text-align:center}
@@ -398,7 +398,7 @@ html,body{height:100%;background:var(--bg);font-family:'Sora',sans-serif;color:v
 .acct-foot .lbl{font-size:10.5px;color:var(--ink-faint);display:block;margin-bottom:4px}
 .acct-amt{font-family:'Inter',sans-serif;font-size:14px;font-weight:500;color:var(--ink);background:var(--surface-2);border:1px solid var(--rule-faint);border-radius:7px;padding:7px 10px;width:130px;text-align:right;outline:none}
 .acct-amt:focus{border-color:var(--accent)}
-.acct-add{font-family:'Sora',sans-serif;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;padding:8px 15px;border-radius:7px;border:none;background:var(--accent);color:#1a130a;cursor:pointer;margin-left:auto}
+.acct-add{font-family:'Sora',sans-serif;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;padding:8px 15px;border-radius:7px;border:none;background:var(--accent);color:#16242f;cursor:pointer;margin-left:auto}
 .acct-add:disabled{opacity:.45;cursor:default}
 .bs-row .acct-x{margin-left:8px;width:20px;height:20px;border:none;background:transparent;color:var(--ink-faint);font-size:16px;line-height:1;cursor:pointer;border-radius:4px;padding:0}
 .bs-row .acct-x:hover{color:var(--negative-bright)}
@@ -624,7 +624,7 @@ html,body{height:100%;background:var(--bg);font-family:'Sora',sans-serif;color:v
 .cf-table .cf-pos{color:var(--status-positive)} .cf-table .cf-neg{color:var(--negative)}
 /* Alternating per-scenario column tint in the cash-flow table — two faint
    washes that cycle regardless of how many scenarios there are. */
-.cf-g0{background:rgba(255,255,255,.03)} .cf-g1{background:rgba(196,123,49,.04)}
+.cf-g0{background:rgba(255,255,255,.03)} .cf-g1{background:rgba(159,184,205,.05)}
 .cf-table td.retire{border-top:1px dashed var(--accent);}
 .cf-table td.retire-start::after{content:'  retire';color:var(--accent);font-size:10px;font-weight:500;letter-spacing:.1em}
 
@@ -750,7 +750,7 @@ html,body{height:100%;background:var(--bg);font-family:'Sora',sans-serif;color:v
 .ga-presets{display:inline-flex;gap:16px}
 .ga-preset{background:none;border:none;font-family:'Sora',sans-serif;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-mute);padding:2px 0;border-bottom:1px dashed var(--rule);cursor:pointer;white-space:nowrap;transition:color .15s}
 .ga-preset.sel{color:var(--accent-bright);border-bottom-color:var(--accent-bright)}
-.ga-go{font-family:'Sora',sans-serif;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;padding:6px 14px;border-radius:7px;border:none;background:var(--accent);color:#1a130a;cursor:pointer}
+.ga-go{font-family:'Sora',sans-serif;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;padding:6px 14px;border-radius:7px;border:none;background:var(--accent);color:#16242f;cursor:pointer}
 .ga-tag{font-family:'Sora',sans-serif;font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:var(--ink-faint);border:1px solid var(--rule-faint);border-radius:20px;padding:2px 8px;white-space:nowrap}
 /* Unpriced ("price later") goal states — amount 0 is engine-inert, so these
    markers keep the picture complete without inventing a number. */
@@ -1331,40 +1331,45 @@ body::after{inset:var(--frame-inset);border-radius:var(--frame-radius);border-co
 <body>
 <div class="wrap">
   <header class="hdr">
-    <svg class="brand-logo" viewBox="0 0 212 56" role="img" aria-label="Parallax" xmlns="http://www.w3.org/2000/svg">
+    <svg class="brand-logo" viewBox="0 0 140 96" role="img" aria-label="Parallax" xmlns="http://www.w3.org/2000/svg">
       <defs>
-        <linearGradient id="pxGold" x1="0" y1="19" x2="0" y2="37" gradientUnits="userSpaceOnUse">
-          <stop offset="0" stop-color="#f6e0b6"/>
-          <stop offset="0.5" stop-color="#d8a368"/>
-          <stop offset="1" stop-color="#a06a34"/>
+        <linearGradient id="pxRim" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#f4f8fc"/>
+          <stop offset="0.55" stop-color="#c2d3e2"/>
+          <stop offset="1" stop-color="#7e95aa"/>
         </linearGradient>
-        <linearGradient id="pxRim" x1="0" y1="5" x2="0" y2="52" gradientUnits="userSpaceOnUse">
-          <stop offset="0" stop-color="#f0cf9a"/>
-          <stop offset="0.55" stop-color="#cf9a5c"/>
-          <stop offset="1" stop-color="#8e5c2c"/>
+        <linearGradient id="pxWord" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#f6fafd"/>
+          <stop offset="0.55" stop-color="#c6d6e4"/>
+          <stop offset="1" stop-color="#8fa5b8"/>
         </linearGradient>
+        <radialGradient id="pxGlow" cx="0.38" cy="0.5" r="0.75">
+          <stop offset="0" stop-color="#dcebf8" stop-opacity="0.6"/>
+          <stop offset="0.45" stop-color="#dcebf8" stop-opacity="0.18"/>
+          <stop offset="1" stop-color="#070b12" stop-opacity="0.85"/>
+        </radialGradient>
         <radialGradient id="pxFlare" cx="0.5" cy="0.5" r="0.5">
-          <stop offset="0" stop-color="#fff3d8"/>
-          <stop offset="0.35" stop-color="#f3c279" stop-opacity="0.85"/>
-          <stop offset="1" stop-color="#f3c279" stop-opacity="0"/>
+          <stop offset="0" stop-color="#ffffff"/>
+          <stop offset="0.35" stop-color="#dcebf8" stop-opacity="0.85"/>
+          <stop offset="1" stop-color="#dcebf8" stop-opacity="0"/>
         </radialGradient>
       </defs>
-      <!-- wireframe emblem: three thin phase circles seen from shifting
-           viewpoints, a fine sight line, a bright node, receding dots -->
-      <g fill="none" stroke="url(#pxRim)">
-        <circle cx="22" cy="28" r="17" stroke-width="1.15" opacity="0.95"/>
-        <circle cx="29" cy="28" r="17" stroke-width="0.95" opacity="0.55"/>
-        <circle cx="36" cy="28" r="17" stroke-width="0.8" opacity="0.32"/>
-        <line x1="0" y1="28" x2="58" y2="28" stroke-width="0.7" opacity="0.5"/>
-      </g>
-      <circle cx="15" cy="28" r="5" fill="url(#pxFlare)"/>
-      <circle cx="15" cy="28" r="1.4" fill="#fff3d8"/>
-      <circle cx="39" cy="28" r="0.95" fill="#ecd2a2" opacity="0.9"/>
-      <circle cx="46" cy="28" r="0.85" fill="#ecd2a2" opacity="0.6"/>
-      <circle cx="53" cy="28" r="0.75" fill="#ecd2a2" opacity="0.4"/>
+      <!-- stacked brand lockup: three filled phase discs (front-left largest)
+           lit from the flare on the sight line, dots at the rim crossings,
+           wordmark centered beneath -->
+      <circle cx="78" cy="31" r="19.5" fill="url(#pxGlow)" stroke="url(#pxRim)" stroke-width="0.9" opacity="0.85"/>
+      <circle cx="71" cy="31" r="20.5" fill="url(#pxGlow)" stroke="url(#pxRim)" stroke-width="1" opacity="0.92"/>
+      <circle cx="63" cy="31" r="21.5" fill="url(#pxGlow)" stroke="url(#pxRim)" stroke-width="1.15"/>
+      <line x1="12" y1="31" x2="128" y2="31" stroke="url(#pxRim)" stroke-width="0.7" opacity="0.6"/>
+      <circle cx="55" cy="31" r="7" fill="url(#pxFlare)"/>
+      <circle cx="55" cy="31" r="1.6" fill="#ffffff"/>
+      <ellipse cx="55" cy="31" rx="15" ry="1.2" fill="url(#pxFlare)" opacity="0.85"/>
+      <circle cx="84.5" cy="31" r="1" fill="#dcebf8" opacity="0.9"/>
+      <circle cx="91" cy="31" r="0.95" fill="#dcebf8" opacity="0.65"/>
+      <circle cx="97.5" cy="31" r="0.85" fill="#dcebf8" opacity="0.45"/>
       <!-- wordmark: thin geometric letterforms drawn as paths (P A R A L L A X)
            so the lockup never depends on a loaded font -->
-      <g fill="none" stroke="url(#pxGold)" stroke-width="1.35">
+      <g fill="none" stroke="url(#pxWord)" stroke-width="1.3" transform="translate(-32.5,57.4) scale(0.75)">
         <path d="M70,35.5 V19.5 h6.7 a4.45,4.45 0 0 1 0,8.9 h-6.7"/>
         <path d="M87.5,35.5 L93,19.5 L98.5,35.5 M90.3,30 h5.4"/>
         <path d="M105,35.5 V19.5 h6.7 a4.45,4.45 0 0 1 0,8.9 h-6.7 M110.5,28.6 L115.7,35.5"/>
@@ -4756,7 +4761,7 @@ runAll();   // first iteration runs immediately so the tool opens populated
 
 <style>
 /* ── STICKY NOTES ── */
-.sn-btn{position:fixed;bottom:24px;right:24px;z-index:9998;width:44px;height:44px;border-radius:50%;border:none;background:var(--accent);color:#06121a;font-size:20px;line-height:1;cursor:pointer;box-shadow:0 4px 18px -4px rgba(0,0,0,.6);transition:background .2s,transform .15s}
+.sn-btn{position:fixed;bottom:24px;right:24px;z-index:9998;width:44px;height:44px;border-radius:50%;border:none;background:var(--accent);color:#16242f;font-size:20px;line-height:1;cursor:pointer;box-shadow:0 4px 18px -4px rgba(0,0,0,.6);transition:background .2s,transform .15s}
 .sn-btn:hover{background:var(--accent-bright);transform:scale(1.08)}
 .sn-btn.sn-btn-on{background:#e0c060;box-shadow:0 0 0 3px rgba(224,192,96,.35),0 4px 18px -4px rgba(0,0,0,.6)}
 .sn-overlay{display:none;position:fixed;inset:0;z-index:9990;cursor:crosshair}
@@ -4991,7 +4996,9 @@ body::after{
 /* The header logo is now inline SVG (transparent), so the raster screen-blend
    trick is no longer needed — it would only wash out the gold gradient.
    Sized for the wider emblem+wordmark lockup (212:56 viewBox). */
-svg.brand-logo{mix-blend-mode:normal;width:196px;height:52px}
+svg.brand-logo{mix-blend-mode:normal;width:126px;height:86px}
+.hdr{padding-top:8px;padding-bottom:8px}
+.hdr-tabs{border-left:1px solid var(--rule);padding-left:26px}
 </style>
 
 </body>
