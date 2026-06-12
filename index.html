@@ -4729,43 +4729,76 @@ runAll();   // first iteration runs immediately so the tool opens populated
 .sn-clear:hover{color:var(--ink);border-color:var(--rule-bright)}
 .sn-mode .sn-clear{display:block}
 
-/* ── SCENARIOS NAVY PREVIEW ───────────────────────────────────────────
-   Scoped re-tone of the Scenarios tab to the cool-navy mockup. The role
-   tokens are overridden on THIS PAGE ONLY, so every child card inherits the
-   new palette while the gold accent is kept. Nothing here leaks to the other
-   tabs — remove this block to revert, or lift it to :root to apply app-wide. */
-.page[data-page="scenarios"]{
-  --bg-deep:#070d15; --bg:#0c1825;
-  --surface:rgba(150,186,222,.10); --surface-2:rgba(150,186,222,.068); --surface-3:rgba(150,186,222,.046);
-  --rule:rgba(156,190,224,.18); --rule-bright:rgba(176,206,236,.32); --rule-faint:rgba(156,190,224,.10);
-  --ink:#dce6f1; --ink-bright:#f3f8fd; --ink-mute:#9cb1c7; --ink-faint:rgba(214,227,240,.56); --ink-ghost:rgba(214,227,240,.22);
-  --value-highlight:#e8eff7;
+/* ── SCENARIOS — DUSK CITYSCAPE PREVIEW ───────────────────────────────
+   Scoped to the Scenarios tab. A blurred dusk-skyline backdrop sits FIXED
+   behind the whole app (body.scn-navy) and the panels become true frosted
+   glass that refract it. Palette tokens are overridden on this page only;
+   nothing here leaks to the other tabs. The backdrop is built from gradients
+   (no image asset): cool sky, a sunset bloom on the right, a hazy city mass
+   along the bottom, and a fading field of warm window-lights. */
+body.scn-navy{background:#16242f}
+body.scn-navy .wrap{position:relative;z-index:1}
+body.scn-navy::before{
+  content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
   background:
-    radial-gradient(135% 92% at 88% 110%, rgba(228,180,120,.18), rgba(228,180,120,0) 52%),
-    radial-gradient(120% 80% at 6% -8%, rgba(96,138,182,.16), rgba(96,138,182,0) 55%),
-    linear-gradient(180deg,#0c1825 0%, #0a1420 60%, #0b1622 100%);
+    radial-gradient(72% 95% at 92% 80%, rgba(246,188,120,.55), rgba(246,188,120,0) 55%),
+    radial-gradient(60% 70% at 12% 8%, rgba(120,160,200,.20), transparent 60%),
+    linear-gradient(180deg, transparent 50%, rgba(18,30,44,.55) 72%, rgba(8,15,24,.92) 100%),
+    linear-gradient(180deg, #1a2937 0%, #22333f 40%, #2b3a44 62%, #1d2c38 100%);
+  filter:blur(2px) saturate(1.06);
 }
-/* Dusk haze pooled along the bottom-right — ambiance behind the glass cards.
-   Fixed to the viewport so it stays put as the tab scrolls. */
-.page[data-page="scenarios"]::after{
-  content:'';position:fixed;left:0;right:0;bottom:0;height:38vh;pointer-events:none;z-index:0;
-  background:radial-gradient(85% 130% at 82% 100%, rgba(232,176,108,.13), transparent 62%);
+body.scn-navy::after{
+  content:'';position:fixed;left:0;right:0;bottom:0;height:36vh;z-index:0;pointer-events:none;
+  background:radial-gradient(rgba(247,207,150,.6) .6px, transparent 1.4px) 0 0/11px 13px;
+  -webkit-mask-image:linear-gradient(180deg, transparent 0%, #000 65%);
+          mask-image:linear-gradient(180deg, transparent 0%, #000 65%);
+  filter:blur(1.4px);opacity:.75;
+}
+
+.page[data-page="scenarios"]{
+  --bg-deep:#0a141d; --bg:#101d28;
+  --surface:rgba(150,182,216,.10); --surface-2:rgba(150,182,216,.07); --surface-3:rgba(150,182,216,.05);
+  --rule:rgba(170,200,230,.20); --rule-bright:rgba(190,214,238,.34); --rule-faint:rgba(170,200,230,.11);
+  --ink:#e0e9f3; --ink-bright:#f6fafe; --ink-mute:#aebfd1; --ink-faint:rgba(220,231,243,.58); --ink-ghost:rgba(220,231,243,.24);
+  --value-highlight:#edf3f9;
+  background:transparent;
 }
 .page[data-page="scenarios"] > *{position:relative;z-index:1}
-/* Gauge polish: depth shadow under the ring + a faint glow on the % figure. */
+/* Sticky gauge-row backdrop: a soft dark fade instead of an opaque lip, so the
+   cityscape still reads behind the translucent column-cards. */
+.page[data-page="scenarios"] .scn-band::before{
+  background:linear-gradient(180deg, rgba(9,16,25,.5), rgba(9,16,25,.18));
+}
+/* Frosted glass: band / lever / goal / foot cells blur the backdrop, so each
+   column reads as one translucent slab over the skyline. */
+.page[data-page="scenarios"] .band-cell:not(.label),
+.page[data-page="scenarios"] .lev-cell,
+.page[data-page="scenarios"] .sg-cell,
+.page[data-page="scenarios"] .sg-head.sg-col,
+.page[data-page="scenarios"] .sg-tcell,
+.page[data-page="scenarios"] .foot-cell:not(:first-child){
+  backdrop-filter:blur(22px) saturate(1.3);
+  -webkit-backdrop-filter:blur(22px) saturate(1.3);
+}
+/* Rounder card corners + brighter glass rim/lift on the column ends. */
+.page[data-page="scenarios"] .band-cell:not(.label){
+  border-radius:18px 18px 0 0;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.20), inset 0 0 0 1px rgba(255,255,255,.05);
+}
+.page[data-page="scenarios"] .foot-cell:not(:first-child){
+  border-radius:0 0 18px 18px;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.05), 0 26px 52px -28px rgba(0,0,0,.6);
+}
+/* Gauge polish. */
 .page[data-page="scenarios"] .circle-wrap{filter:drop-shadow(0 6px 16px rgba(0,0,0,.45))}
-.page[data-page="scenarios"] .circle-val .big{font-weight:500;text-shadow:0 0 18px rgba(255,255,255,.12)}
-/* Keep the folded combo-solver field in the navy family (its base fill is warm). */
+.page[data-page="scenarios"] .circle-val .big{font-weight:500;text-shadow:0 0 18px rgba(255,255,255,.14)}
 .page[data-page="scenarios"] .combo-field{background:linear-gradient(180deg,rgba(30,52,74,.5),rgba(15,29,45,.5))}
 
-/* The header sits OUTSIDE the .page scope, so it can't inherit the page's
-   navy tokens. The tab handler flags <body> with .scn-navy while Scenarios is
-   active; this re-tones the shared header to match (gold accent untouched). */
-body.scn-navy{background:#0c1825}
+/* Header: translucent so the cityscape shows through; cool-toned text. */
 body.scn-navy .hdr{
-  --rule:rgba(156,190,224,.18); --rule-bright:rgba(176,206,236,.32); --rule-faint:rgba(156,190,224,.10);
-  --ink:#dce6f1; --ink-bright:#f3f8fd; --ink-mute:#9cb1c7; --ink-faint:rgba(214,227,240,.56);
-  background:rgba(12,24,37,.55);
+  --rule:rgba(170,200,230,.20); --rule-bright:rgba(190,214,238,.34); --rule-faint:rgba(170,200,230,.11);
+  --ink:#e0e9f3; --ink-bright:#f6fafe; --ink-mute:#aebfd1; --ink-faint:rgba(220,231,243,.58);
+  background:rgba(14,24,34,.42);
   border-bottom-color:var(--rule);
 }
 
