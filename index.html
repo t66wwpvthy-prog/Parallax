@@ -1328,7 +1328,35 @@ body::after{inset:var(--frame-inset);border-radius:var(--frame-radius);border-co
 <body>
 <div class="wrap">
   <header class="hdr">
-    <img class="brand-logo" src="./assets/parallax-logo.png" alt="Parallax"/>
+    <svg class="brand-logo" viewBox="0 0 248 56" role="img" aria-label="Parallax" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="pxGold" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#f4dcb3"/>
+          <stop offset="0.5" stop-color="#d9a86a"/>
+          <stop offset="1" stop-color="#b0773c"/>
+        </linearGradient>
+        <radialGradient id="pxNode" cx="0.5" cy="0.5" r="0.5">
+          <stop offset="0" stop-color="#ffe9c4"/>
+          <stop offset="0.45" stop-color="#f0c178"/>
+          <stop offset="1" stop-color="#f0c178" stop-opacity="0"/>
+        </radialGradient>
+      </defs>
+      <!-- parallax sight line -->
+      <line x1="3" y1="28" x2="53" y2="28" stroke="url(#pxGold)" stroke-width="0.9" opacity="0.55"/>
+      <!-- nested phase circles: one object seen from shifting viewpoints -->
+      <circle cx="24" cy="28" r="13" fill="none" stroke="url(#pxGold)" stroke-width="1.3" opacity="0.9"/>
+      <circle cx="30" cy="28" r="13" fill="none" stroke="url(#pxGold)" stroke-width="1.1" opacity="0.5"/>
+      <circle cx="36" cy="28" r="13" fill="none" stroke="url(#pxGold)" stroke-width="1" opacity="0.3"/>
+      <!-- bright parallax node + halo -->
+      <circle cx="16" cy="28" r="7" fill="url(#pxNode)"/>
+      <circle cx="16" cy="28" r="2" fill="#ffe9c4"/>
+      <!-- sight dots receding along the axis -->
+      <circle cx="43" cy="28" r="1.1" fill="url(#pxGold)" opacity="0.85"/>
+      <circle cx="48" cy="28" r="1" fill="url(#pxGold)" opacity="0.6"/>
+      <circle cx="52.5" cy="28" r="0.9" fill="url(#pxGold)" opacity="0.4"/>
+      <!-- wordmark -->
+      <text x="70" y="36" font-family="'Sora','Inter',sans-serif" font-size="21" font-weight="300" letter-spacing="6.5" fill="url(#pxGold)">PARALLAX</text>
+    </svg>
     <div class="hdr-tabs">
       <button class="htab on" data-page="net-worth" data-sub-target="balance-sheet">Household</button>
       <button class="htab" data-page="net-worth" data-sub-target="goals">Goals</button>
@@ -4673,6 +4701,39 @@ runAll();   // first iteration runs immediately so the tool opens populated
 .sn-clear{position:fixed;bottom:24px;right:78px;z-index:9998;display:none;padding:8px 14px;border:1px solid var(--rule);background:rgba(30,20,10,.85);color:var(--ink-mute);font-family:'Sora',sans-serif;font-size:11px;letter-spacing:.1em;border-radius:3px;cursor:pointer}
 .sn-clear:hover{color:var(--ink);border-color:var(--rule-bright)}
 .sn-mode .sn-clear{display:block}
+
+/* ── SCENARIOS NAVY PREVIEW ───────────────────────────────────────────
+   Scoped re-tone of the Scenarios tab to the cool-navy mockup. The role
+   tokens are overridden on THIS PAGE ONLY, so every child card inherits the
+   new palette while the gold accent is kept. Nothing here leaks to the other
+   tabs — remove this block to revert, or lift it to :root to apply app-wide. */
+.page[data-page="scenarios"]{
+  --bg-deep:#070d15; --bg:#0c1825;
+  --surface:rgba(150,186,222,.10); --surface-2:rgba(150,186,222,.068); --surface-3:rgba(150,186,222,.046);
+  --rule:rgba(156,190,224,.18); --rule-bright:rgba(176,206,236,.32); --rule-faint:rgba(156,190,224,.10);
+  --ink:#dce6f1; --ink-bright:#f3f8fd; --ink-mute:#9cb1c7; --ink-faint:rgba(214,227,240,.56); --ink-ghost:rgba(214,227,240,.22);
+  --value-highlight:#e8eff7;
+  background:
+    radial-gradient(135% 92% at 88% 110%, rgba(228,180,120,.18), rgba(228,180,120,0) 52%),
+    radial-gradient(120% 80% at 6% -8%, rgba(96,138,182,.16), rgba(96,138,182,0) 55%),
+    linear-gradient(180deg,#0c1825 0%, #0a1420 60%, #0b1622 100%);
+}
+/* Dusk haze pooled along the bottom-right — ambiance behind the glass cards.
+   Fixed to the viewport so it stays put as the tab scrolls. */
+.page[data-page="scenarios"]::after{
+  content:'';position:fixed;left:0;right:0;bottom:0;height:38vh;pointer-events:none;z-index:0;
+  background:radial-gradient(85% 130% at 82% 100%, rgba(232,176,108,.13), transparent 62%);
+}
+.page[data-page="scenarios"] > *{position:relative;z-index:1}
+/* Gauge polish: depth shadow under the ring + a faint glow on the % figure. */
+.page[data-page="scenarios"] .circle-wrap{filter:drop-shadow(0 6px 16px rgba(0,0,0,.45))}
+.page[data-page="scenarios"] .circle-val .big{font-weight:500;text-shadow:0 0 18px rgba(255,255,255,.12)}
+/* Keep the folded combo-solver field in the navy family (its base fill is warm). */
+.page[data-page="scenarios"] .combo-field{background:linear-gradient(180deg,rgba(30,52,74,.5),rgba(15,29,45,.5))}
+
+/* The header logo is now inline SVG (transparent), so the raster screen-blend
+   trick is no longer needed — it would only wash out the gold gradient. */
+svg.brand-logo{mix-blend-mode:normal}
 </style>
 
 </body>
