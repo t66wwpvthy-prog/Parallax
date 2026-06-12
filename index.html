@@ -4518,6 +4518,9 @@ $$('.htab').forEach(t=>t.onclick=()=>{
     try { localStorage.setItem(SUB_KEY, activeSub); } catch {}
   }
   t.classList.add('on'); $(`.page[data-page="${t.dataset.page}"]`).classList.add('on');
+  // The header sits outside the .page scope, so the Scenarios navy preview
+  // flags <body> and the header re-tones via body.scn-navy (see preview CSS).
+  document.body.classList.toggle('scn-navy', t.dataset.page==='scenarios');
   // Returning to Scenarios after a base-plan edit re-runs the engine so the
   // columns reflect the new source; otherwise just redraw.
   if(t.dataset.page==='scenarios'){ if(plansDirty){ plansDirty=false; runAll(); } }
@@ -4730,6 +4733,17 @@ runAll();   // first iteration runs immediately so the tool opens populated
 .page[data-page="scenarios"] .circle-val .big{font-weight:500;text-shadow:0 0 18px rgba(255,255,255,.12)}
 /* Keep the folded combo-solver field in the navy family (its base fill is warm). */
 .page[data-page="scenarios"] .combo-field{background:linear-gradient(180deg,rgba(30,52,74,.5),rgba(15,29,45,.5))}
+
+/* The header sits OUTSIDE the .page scope, so it can't inherit the page's
+   navy tokens. The tab handler flags <body> with .scn-navy while Scenarios is
+   active; this re-tones the shared header to match (gold accent untouched). */
+body.scn-navy{background:#0c1825}
+body.scn-navy .hdr{
+  --rule:rgba(156,190,224,.18); --rule-bright:rgba(176,206,236,.32); --rule-faint:rgba(156,190,224,.10);
+  --ink:#dce6f1; --ink-bright:#f3f8fd; --ink-mute:#9cb1c7; --ink-faint:rgba(214,227,240,.56);
+  background:rgba(12,24,37,.55);
+  border-bottom-color:var(--rule);
+}
 
 /* The header logo is now inline SVG (transparent), so the raster screen-blend
    trick is no longer needed — it would only wash out the gold gradient. */
