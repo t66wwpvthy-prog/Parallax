@@ -1411,6 +1411,8 @@ body::after{inset:var(--frame-inset);border-radius:var(--frame-radius);border-co
            Edited only on the Goals input page; columns reflect, never diverge. -->
       <div class="scn-goals" id="scn-goals"></div>
       <div class="scn-foot" id="scn-foot"></div>
+      <!-- Suggest: opens the same least-disruptive solver as the rail's Solve. -->
+      <button class="scn-suggest" id="scn-suggest" type="button">✦ Suggest</button>
     </div>
     <!-- Path Story: one coherent simulated path from the baseline run, told
          as a statement — headline sentence, open stat line, full-bleed balance
@@ -3424,9 +3426,10 @@ function renderBand(){
   // Label gutter: just buttons. The solver FORM renders in the full-width
   // #solve-panel below the band (it needs room — the gutter is only ~148px).
   const addBtn = scenarios.length < MAX_SCENARIOS
-    ? `<button class="add-scen" title="Add scenario">+ Add</button>` : '';
+    ? `<button class="add-scen" title="Add scenario"><span class="pill-ic">+</span>Add</button>` : '';
   const gut = `<span>Scenario</span>${addBtn}
-    <button class="solve-btn" title="Find the least-disruptive path to a goal">✦ Solve…</button>`;
+    <button class="solve-btn" title="Find the least-disruptive path to a goal"><span class="pill-ic">◈</span>Solve…</button>
+    <button class="reset-scen" title="Reset scenarios to the demo set"><span class="pill-ic">↻</span>Reset</button>`;
   h=h.replace('<span>Scenario</span>', gut);
   $('#scn-band').innerHTML=h;
 }
@@ -3636,6 +3639,12 @@ $('#scn-band').addEventListener('click', e=>{
   if(x){ removeScenario(+x.dataset.col); return; }
   if(e.target.closest('.add-scen')){ addScenario(); return; }
   if(e.target.closest('.solve-btn')){ solverFormOpen = true; renderSolvePanel(); return; }
+  if(e.target.closest('.reset-scen')){ resetScenarios(); renderBand(); renderSolvePanel(); return; }
+});
+// Suggest button (bottom-right of the framed panel) opens the solver form.
+$('#scn-suggest')?.addEventListener('click', ()=>{
+  solverFormOpen = true; renderSolvePanel();
+  $('#solve-panel')?.scrollIntoView({behavior:'smooth', block:'center'});
 });
 // Solver goal form lives in #solve-panel (full-width). Live commas on $ boxes;
 // changing the pin dropdown re-renders its value input (age box vs $ box).
@@ -4767,30 +4776,30 @@ runAll();   // first iteration runs immediately so the tool opens populated
    nothing here leaks to the other tabs. The backdrop is built from gradients
    (no image asset): cool sky, a sunset bloom on the right, a hazy city mass
    along the bottom, and a fading field of warm window-lights. */
-body.scn-navy{background:#27343f}
+body.scn-navy{background:#3a4a56}
 body.scn-navy .wrap{position:relative;z-index:1}
 body.scn-navy::before{
   content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
   background:
-    radial-gradient(74% 96% at 92% 80%, rgba(250,200,134,.58), rgba(250,200,134,0) 56%),
-    radial-gradient(60% 70% at 12% 6%, rgba(158,192,224,.24), transparent 60%),
-    linear-gradient(180deg, transparent 46%, rgba(16,27,39,.5) 78%, rgba(11,20,30,.78) 100%),
-    linear-gradient(180deg, #2a3743 0%, #37494f 42%, #44565f 64%, #30404a 100%);
-  filter:blur(2px) saturate(1.08);
+    radial-gradient(76% 98% at 92% 78%, rgba(252,208,146,.60), rgba(252,208,146,0) 58%),
+    radial-gradient(62% 72% at 12% 4%, rgba(176,206,234,.26), transparent 60%),
+    linear-gradient(180deg, transparent 52%, rgba(26,38,50,.36) 82%, rgba(18,28,38,.56) 100%),
+    linear-gradient(180deg, #43535f 0%, #51636b 42%, #61737b 64%, #485962 100%);
+  filter:blur(2px) saturate(1.1);
 }
 body.scn-navy::after{
   content:'';position:fixed;left:0;right:0;bottom:0;height:36vh;z-index:0;pointer-events:none;
-  background:radial-gradient(rgba(250,212,156,.62) .6px, transparent 1.4px) 0 0/11px 13px;
+  background:radial-gradient(rgba(252,216,162,.6) .6px, transparent 1.4px) 0 0/11px 13px;
   -webkit-mask-image:linear-gradient(180deg, transparent 0%, #000 65%);
           mask-image:linear-gradient(180deg, transparent 0%, #000 65%);
-  filter:blur(1.4px);opacity:.7;
+  filter:blur(1.4px);opacity:.6;
 }
 
 .page[data-page="scenarios"]{
   --bg-deep:#0a141d; --bg:#101d28;
-  --surface:rgba(200,220,242,.17); --surface-2:rgba(200,220,242,.12); --surface-3:rgba(200,220,242,.08);
-  --rule:rgba(196,218,240,.26); --rule-bright:rgba(212,230,246,.42); --rule-faint:rgba(196,218,240,.15);
-  --ink:#e9f0f7; --ink-bright:#fbfdff; --ink-mute:#bccddd; --ink-faint:rgba(228,237,246,.62); --ink-ghost:rgba(228,237,246,.26);
+  --surface:rgba(212,228,246,.21); --surface-2:rgba(212,228,246,.15); --surface-3:rgba(212,228,246,.10);
+  --rule:rgba(206,226,246,.30); --rule-bright:rgba(222,236,250,.46); --rule-faint:rgba(206,226,246,.17);
+  --ink:#eef4fa; --ink-bright:#ffffff; --ink-mute:#c7d6e4; --ink-faint:rgba(234,242,250,.66); --ink-ghost:rgba(234,242,250,.3);
   --value-highlight:#f1f6fb;
   background:transparent;
 }
@@ -4865,24 +4874,55 @@ body.scn-navy::after{
 .page[data-page="scenarios"] .scn-goals,
 .page[data-page="scenarios"] .scn-foot{column-gap:20px}
 
-/* Goals values inside each scenario card sit in a recessed sub-block — a darker
-   inset with a hairline top divider — so they read apart from the levers. */
+/* Goals values inside each scenario card sit in a rounded recessed sub-block —
+   a darker inset panel — so they read apart from the levers, like the mockup. */
 .page[data-page="scenarios"] .sg-cell,
 .page[data-page="scenarios"] .sg-tcell{
-  background:rgba(10,20,30,.26);
-  box-shadow:inset 0 0 0 1px rgba(255,255,255,.03);
+  background:rgba(8,16,26,.24);
 }
-.page[data-page="scenarios"] .sg-head.sg-col{box-shadow:inset 0 1px 0 var(--rule-faint)}
+.page[data-page="scenarios"] .sg-head.sg-col{
+  background:rgba(8,16,26,.24);border-radius:12px 12px 0 0;margin-top:6px;
+  box-shadow:inset 1px 0 0 rgba(255,255,255,.05), inset -1px 0 0 rgba(255,255,255,.05), inset 0 1px 0 rgba(255,255,255,.05)}
+.page[data-page="scenarios"] .sg-tcell{border-radius:0 0 12px 12px;
+  box-shadow:inset 1px 0 0 rgba(255,255,255,.05), inset -1px 0 0 rgba(255,255,255,.05), inset 0 -1px 0 rgba(255,255,255,.05)}
 
-/* Scenario controls (Add / Solve) as stacked full-width glass pills in the rail. */
+/* Scenario controls (Add / Solve / Reset) as stacked full-width glass pills. */
 .page[data-page="scenarios"] .add-scen,
-.page[data-page="scenarios"] .solve-btn{
-  width:calc(100% - 4px);margin:8px 0 0;padding:9px 12px;border-radius:9px;
-  border:1px solid var(--rule-bright);background:rgba(200,220,242,.06);
-  color:var(--ink-mute);letter-spacing:.16em;text-align:left;
-  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.page[data-page="scenarios"] .solve-btn,
+.page[data-page="scenarios"] .reset-scen{
+  display:flex;align-items:center;gap:10px;
+  width:calc(100% - 4px);margin:9px 0 0;padding:10px 13px;border-radius:9px;
+  border:1px solid var(--rule-bright);background:rgba(214,230,248,.08);
+  color:var(--ink);font-family:'Sora';font-size:11px;font-weight:600;
+  letter-spacing:.16em;text-transform:uppercase;text-align:left;cursor:pointer;
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);transition:background .15s,border-color .15s,color .15s}
 .page[data-page="scenarios"] .add-scen:hover,
-.page[data-page="scenarios"] .solve-btn:hover{border-color:var(--accent);color:var(--ink-bright);background:rgba(200,220,242,.1)}
+.page[data-page="scenarios"] .solve-btn:hover,
+.page[data-page="scenarios"] .reset-scen:hover{border-color:var(--accent);color:var(--ink-bright);background:rgba(214,230,248,.14)}
+.page[data-page="scenarios"] .pill-ic{display:inline-flex;width:16px;justify-content:center;opacity:.8;font-size:13px}
+/* A divider under the pill stack, before the lever rail. */
+.page[data-page="scenarios"] .band-cell.label{gap:2px}
+
+/* Card separation: faint side rims down each column so the slab reads as a
+   bounded floating card (pairs with the rounded top/bottom + 20px channels). */
+.page[data-page="scenarios"] .lev-cell,
+.page[data-page="scenarios"] .sg-cell,
+.page[data-page="scenarios"] .sg-head.sg-col,
+.page[data-page="scenarios"] .sg-tcell{
+  box-shadow:inset 1px 0 0 rgba(255,255,255,.05), inset -1px 0 0 rgba(255,255,255,.05);
+}
+
+/* Suggest button — pinned bottom-right inside the framed panel. */
+.page[data-page="scenarios"] .scn-scroll{position:relative}
+.page[data-page="scenarios"] .scn-suggest{
+  position:absolute;right:20px;bottom:16px;z-index:5;
+  display:inline-flex;align-items:center;gap:8px;padding:10px 18px;border-radius:22px;
+  border:1px solid var(--rule-bright);background:rgba(214,230,248,.10);
+  color:var(--ink-bright);font-family:'Sora';font-size:11px;font-weight:600;
+  letter-spacing:.18em;text-transform:uppercase;cursor:pointer;
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  box-shadow:0 14px 30px -16px rgba(0,0,0,.6);transition:background .15s,border-color .15s}
+.page[data-page="scenarios"] .scn-suggest:hover{border-color:var(--accent);background:rgba(214,230,248,.16)}
 /* Gauge polish. */
 .page[data-page="scenarios"] .circle-wrap{filter:drop-shadow(0 6px 16px rgba(0,0,0,.45))}
 .page[data-page="scenarios"] .circle-val .big{font-weight:500;text-shadow:0 0 18px rgba(255,255,255,.14)}
