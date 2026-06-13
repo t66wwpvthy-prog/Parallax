@@ -4310,7 +4310,7 @@ function runSeq(){
   // other lever via the same overrides mapping the Scenarios tab uses.
   const p=planForScenario(s.lev);
   const ov=leversToOverrides(s.lev);
-  const strat=p.portfolio.withdrawalStrategy||'taxable-first';
+  const strat=normalizePlaybackStrategy(p.portfolio.withdrawalStrategy);
   const curAge=plan.household.primary.currentAge;
   const retAge=(s.lev.retireAge!=null?s.lev.retireAge:p.household.primary.retirementAge);
   const accumYears=Math.max(0, retAge-curAge);
@@ -4438,11 +4438,15 @@ const ERA_LABELS=[
 ];
 const eraFor=y=>{ const e=ERA_LABELS.find(([a,b])=>y>=a&&y<=b); return e?e[2]:''; };
 const PB_STRATS=[['taxable-first','Taxable first'],['proportional','Proportional'],['traditional-first','Traditional first']];
+function normalizePlaybackStrategy(strategy){
+  return PB_STRATS.some(([k])=>k===strategy) ? strategy : 'taxable-first';
+}
 let playbackYear=1973, pbDetailOpen=false, seqContext=null;
 function renderPlayback(){
   const el=$('#playback-panel'); if(!el) return;
   if(!seqContext){ el.innerHTML=''; return; }
-  const {rp, strat, ov2}=seqContext;
+  const {rp, ov2}=seqContext;
+  const strat=normalizePlaybackStrategy(seqContext.strat);
   const years=SEQ_YEARS.map(m=>m.y);
   if(!years.includes(playbackYear)) playbackYear=years[0];
   const runs=PB_STRATS
