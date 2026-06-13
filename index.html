@@ -4870,8 +4870,7 @@ body .hdr{
   box-shadow:inset 0 1px 0 rgba(255,255,255,.23),inset 0 -1px 0 rgba(255,255,255,.045),0 24px 70px -58px rgba(0,0,0,.62)!important;
 }
 body svg.brand-logo{width:154px;height:74px;mix-blend-mode:normal;filter:drop-shadow(0 0 12px rgba(196,218,234,.22))}
-body .hdr-tabs{margin-left:2px;padding-left:36px;gap:54px;border-left:1px solid rgba(222,237,247,.14)}
-body .htab-secondary{display:none}
+body .hdr-tabs{margin-left:2px;padding-left:32px;gap:38px;border-left:1px solid rgba(222,237,247,.14)}
 body .htab{font-family:'Sora',sans-serif;font-size:14px;font-weight:400;letter-spacing:.15em;padding:12px 0 17px;color:var(--ng-ink-muted);text-shadow:none}
 body .htab.on{color:var(--ng-ink);border-bottom-color:var(--ng-accent);box-shadow:0 10px 26px -18px rgba(231,201,135,.78)}
 body .hdr-right{gap:30px}
@@ -5023,6 +5022,10 @@ body .seq-chart,
 body .seq-prints,
 body .story-wrap,
 body .hist-rows{
+  /* width:100% keeps these flex-column panels filling the page up to the cap;
+     without it the auto side-margins below collapse them to content width and
+     center them as narrow cards (e.g. the Sequencing Resilience chart). */
+  width:100%;
   max-width:1568px;
   margin-left:auto;
   margin-right:auto;
@@ -5093,11 +5096,11 @@ body .stmt th{
     padding:8px 0 0;
     border-left:0;
     border-top:1px solid rgba(222,237,247,.12);
-    gap:34px;
+    flex-wrap:wrap;
+    gap:12px 22px;
     justify-content:center;
     overflow:visible;
   }
-  body .htab-secondary{display:none!important}
   body .htab{
     padding:9px 0 13px;
     font-size:14px;
