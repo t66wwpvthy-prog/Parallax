@@ -3549,8 +3549,9 @@ function levIcon(cfg){
 function buildLevers(){
   syncGridCols();
   let h='';
-  LEVCFG.forEach(cfg=>{
-    h+=`<div class="lev-name">${levIcon(cfg)}<span>${escHtml(cfg.name)}</span></div>`;
+  LEVCFG.forEach((cfg,ri)=>{
+    const rowCls = ri % 2 ? ' row-alt' : '';
+    h+=`<div class="lev-name${rowCls}">${levIcon(cfg)}<span>${escHtml(cfg.name)}</span></div>`;
     const r=levRange(cfg);
     scenarios.forEach((s,ci)=>{
       const last=ci===scenarios.length-1?'col-last':'';
@@ -3559,7 +3560,7 @@ function buildLevers(){
         ? `<input class="lev-slider ${s.base?'base-lock':''}" type="range" min="${r.min}" max="${r.max}" step="${r.step}"
                  value="${Math.max(r.min,Math.min(r.max,s.lev[cfg.key]))}" data-col="${ci}" data-key="${cfg.key}" style="--fill:${pct}%">`
         : '';
-      h+=`<div class="lev-cell ${s.base?'base':''} ${last}">
+      h+=`<div class="lev-cell${rowCls} ${s.base?'base':''} ${last}">
         <span class="lev-val ${s.base?'base':''}" id="lv-${ci}-${cfg.key}">${renderLevValue(cfg,s.lev)}</span>
         ${bar}
       </div>`;
@@ -3587,14 +3588,15 @@ function renderScenGoals(){
   // One row per goal: name + age window in the gutter, the amount mirrored in
   // every scenario column (recurring → /yr, single-year window → one-time).
   let totRec=0, totOnce=0;
-  goals.forEach(g=>{
+  goals.forEach((g,gi)=>{
+    const rowCls = gi % 2 ? ' row-alt' : '';
     const once=(g.startAge===g.endAge);
     const win = once ? `at age ${g.startAge}` : `age ${g.startAge}–${g.endAge}`;
     const tag = once ? 'one-time' : '/yr';
     if(once) totOnce+=(g.amount||0); else totRec+=(g.amount||0);
-    h+=`<div class="sg-name">${escHtml(g.name||'Goal')}<span class="sg-win">${win}</span></div>`;
+    h+=`<div class="sg-name${rowCls}">${escHtml(g.name||'Goal')}<span class="sg-win">${win}</span></div>`;
     scenarios.forEach(s=>{
-      h+=`<div class="sg-cell ${s.base?'base':''}">$${(g.amount||0).toLocaleString('en-US')}<span class="sg-tag">${tag}</span></div>`;
+      h+=`<div class="sg-cell${rowCls} ${s.base?'base':''}">$${(g.amount||0).toLocaleString('en-US')}<span class="sg-tag">${tag}</span></div>`;
     });
   });
   // Total row: recurring annual goal spend (the steady draw), with any one-time
@@ -4793,11 +4795,11 @@ runAll();   // first iteration runs immediately so the tool opens populated
    across the other tabs without copy/pasting page-specific values. */
 :root{
   --ng-ink:#eadcc4;
-  --ng-ink-soft:#ddceb5;
-  --ng-ink-muted:rgba(221,207,183,.72);
-  --ng-ink-faint:rgba(221,207,183,.55);
-  --ng-ink-value:rgba(234,220,196,.88);
-  --ng-ink-total:rgba(234,220,196,.90);
+  --ng-ink-soft:#e3d4bb;
+  --ng-ink-muted:rgba(231,218,195,.82);
+  --ng-ink-faint:rgba(226,211,186,.62);
+  --ng-ink-value:rgba(241,228,204,.92);
+  --ng-ink-total:rgba(244,231,207,.94);
   --ng-accent:#e7c987;
   --ng-success:#8fdea1;
   --ng-success-glow:rgba(143,222,161,.45);
@@ -4807,9 +4809,14 @@ runAll();   // first iteration runs immediately so the tool opens populated
   --ng-glass-border:rgba(232,243,249,.105);
   --ng-glass-border-soft:rgba(232,243,249,.095);
   --ng-glass-border-strong:rgba(232,243,249,.20);
-  --ng-glass-fill:linear-gradient(145deg,rgba(248,252,255,.038),rgba(74,112,139,.030) 48%,rgba(7,22,35,.12));
-  --ng-glass-fill-label:linear-gradient(145deg,rgba(246,251,255,.034),rgba(65,101,128,.032) 52%,rgba(8,22,34,.11));
-  --ng-glass-fill-total:linear-gradient(145deg,rgba(248,252,255,.042),rgba(76,114,140,.032) 48%,rgba(8,23,35,.14));
+  --ng-glass-fill:linear-gradient(145deg,rgba(248,252,255,.044),rgba(81,120,146,.038) 48%,rgba(8,23,36,.105));
+  --ng-glass-fill-label:linear-gradient(145deg,rgba(246,251,255,.042),rgba(72,109,135,.040) 52%,rgba(8,22,34,.10));
+  --ng-glass-fill-total:linear-gradient(145deg,rgba(248,252,255,.052),rgba(84,123,149,.040) 48%,rgba(8,23,35,.13));
+  --ng-glass-fill-base:linear-gradient(145deg,rgba(255,246,229,.068),rgba(116,139,151,.045) 48%,rgba(9,26,40,.105));
+  --ng-base-rim:rgba(210,154,96,.34);
+  --ng-base-glint:rgba(239,194,128,.62);
+
+  --ng-row-wash:rgba(234,244,249,.030);
   --ng-glass-rim:inset 1px 0 0 rgba(255,255,255,.075),inset -1px 0 0 rgba(255,255,255,.045);
   --ng-bg-base:#2d485e;
   --ng-bg-image:
@@ -4883,6 +4890,8 @@ body.scn-active .page[data-page="scenarios"] .scn-band,
 body.scn-active .page[data-page="scenarios"] .scn-levers,
 body.scn-active .page[data-page="scenarios"] .scn-goals,
 body.scn-active .page[data-page="scenarios"] .scn-foot{column-gap:30px}
+body.scn-active .page[data-page="scenarios"] .scn-levers,
+body.scn-active .page[data-page="scenarios"] .scn-goals{row-gap:2px}
 body.scn-active .page[data-page="scenarios"] .scn-band{position:relative;top:auto!important;margin-top:0}
 body.scn-active .page[data-page="scenarios"] .scn-band::before{display:none}
 body.scn-active .page[data-page="scenarios"] .band-cell:not(.label),
@@ -4890,6 +4899,8 @@ body.scn-active .page[data-page="scenarios"] .lev-cell,
 body.scn-active .page[data-page="scenarios"] .sg-cell,
 body.scn-active .page[data-page="scenarios"] .sg-tcell{background:var(--ng-glass-fill)!important;border-color:var(--ng-glass-border)!important;border-left:1px solid var(--ng-glass-border-soft)!important;border-right:1px solid var(--ng-glass-border-soft)!important;backdrop-filter:blur(22px) saturate(1.34);-webkit-backdrop-filter:blur(22px) saturate(1.34);box-shadow:var(--ng-glass-rim)}
 body.scn-active .page[data-page="scenarios"] .band-cell:not(.label){position:relative;height:202px;min-height:0;padding:10px 14px 12px;gap:6px;border:1px solid var(--ng-glass-border-strong)!important;border-radius:9px 9px 0 0;box-shadow:inset 0 1px 0 rgba(255,255,255,.26),inset 0 0 0 1px rgba(255,255,255,.055),0 24px 44px -40px rgba(0,0,0,.48)}
+body.scn-active .page[data-page="scenarios"] .band-cell.base{background:var(--ng-glass-fill-base)!important;border-color:var(--ng-base-rim)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.32),inset 0 0 0 1px rgba(239,194,128,.13),0 26px 50px -40px rgba(0,0,0,.50),0 0 24px rgba(210,154,96,.075)}
+body.scn-active .page[data-page="scenarios"] .band-cell.base::after{content:"";position:absolute;left:13px;right:13px;top:0;height:1px;background:linear-gradient(90deg,transparent,var(--ng-base-glint),transparent);opacity:.70}
 body.scn-active .page[data-page="scenarios"] .band-cell:not(.label)::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:linear-gradient(132deg,rgba(255,255,255,.10),rgba(255,255,255,.024) 29%,transparent 57%)}
 body.scn-active .page[data-page="scenarios"] .band-cell.label,
 body.scn-active .page[data-page="scenarios"] .lev-name,
@@ -4910,14 +4921,25 @@ body.scn-active .page[data-page="scenarios"] .circle-wrap{width:112px;height:112
 body.scn-active .page[data-page="scenarios"] .circle-val .big{font-size:27px;font-weight:300!important;text-shadow:none}
 body.scn-active .page[data-page="scenarios"] .circle-val .lbl{font-size:11px;font-weight:400!important;letter-spacing:.08em;color:var(--ng-ink-soft)}
 body.scn-active .page[data-page="scenarios"] .col-name,
-body.scn-active .page[data-page="scenarios"] .col-rename{font-size:15px;font-weight:400;letter-spacing:.17em;color:var(--ng-ink)}
+body.scn-active .page[data-page="scenarios"] .col-rename{font-size:15.5px;font-weight:400;letter-spacing:.18em;color:var(--ng-ink);text-shadow:0 0 14px rgba(238,225,201,.12)}
+body.scn-active .page[data-page="scenarios"] .col-name.base-tag{color:rgba(244,232,209,.96)}
+body.scn-active .page[data-page="scenarios"] .col-rename{-webkit-text-fill-color:var(--ng-ink)!important}
 body.scn-active .page[data-page="scenarios"] .col-dot{width:9px;height:9px;background:var(--ng-success)!important;box-shadow:0 0 6px var(--ng-success-glow)}
 body.scn-active .page[data-page="scenarios"] .col-menu{position:absolute;top:14px;right:15px;width:auto;height:auto;border:0;background:transparent;color:var(--ng-ink);font-size:17px;line-height:1;letter-spacing:.08em;box-shadow:none;appearance:none;cursor:pointer}
 body.scn-active .page[data-page="scenarios"] .col-delta{font-size:13px;letter-spacing:.05em;color:var(--ng-ink-muted)}
 body.scn-active .page[data-page="scenarios"] .col-delta.up{color:var(--ng-success)}
 body.scn-active .page[data-page="scenarios"] .lev-name,
-body.scn-active .page[data-page="scenarios"] .lev-cell{min-height:39px}
-body.scn-active .page[data-page="scenarios"] .lev-name{padding:0 22px;font-size:14px;font-weight:400;letter-spacing:.11em;color:var(--ng-ink)}
+body.scn-active .page[data-page="scenarios"] .lev-cell{min-height:43px}
+body.scn-active .page[data-page="scenarios"] .lev-name{padding:0 22px;font-size:14px;font-weight:400;letter-spacing:.11em;color:var(--ng-ink-soft)}
+body.scn-active .page[data-page="scenarios"] .lev-name.row-alt,
+body.scn-active .page[data-page="scenarios"] .lev-cell.row-alt,
+body.scn-active .page[data-page="scenarios"] .sg-name.row-alt,
+body.scn-active .page[data-page="scenarios"] .sg-cell.row-alt{background:linear-gradient(145deg,var(--ng-row-wash),rgba(76,114,140,.026) 48%,rgba(8,23,35,.105))!important}
+body.scn-active .page[data-page="scenarios"] .lev-cell.base,
+body.scn-active .page[data-page="scenarios"] .sg-cell.base,
+body.scn-active .page[data-page="scenarios"] .sg-tcell.base{background:var(--ng-glass-fill-base)!important;border-left-color:rgba(210,154,96,.22)!important;border-right-color:rgba(210,154,96,.16)!important}
+
+body.scn-active .page[data-page="scenarios"] .lev-cell.base{box-shadow:var(--ng-glass-rim),inset 2px 0 0 rgba(210,154,96,.20)}
 body.scn-active .page[data-page="scenarios"] .lev-name .lev-ic{width:18px;margin-right:10px;color:var(--ng-ink);opacity:.84}
 body.scn-active .page[data-page="scenarios"] .lev-cell{padding:0 24px}
 body.scn-active .page[data-page="scenarios"] .lev-val,
@@ -4928,7 +4950,7 @@ body.scn-active .page[data-page="scenarios"] .step-btn{width:22px;height:22px;bo
 body.scn-active .page[data-page="scenarios"] .sg-head:not(.sg-col){min-height:28px;padding:9px 14px 5px 22px;color:var(--ng-accent);font-size:12px;letter-spacing:.12em}
 body.scn-active .page[data-page="scenarios"] .sg-head.sg-col{min-height:28px;padding:0;background:transparent!important;border-color:transparent!important;box-shadow:none!important}
 body.scn-active .page[data-page="scenarios"] .sg-name,
-body.scn-active .page[data-page="scenarios"] .sg-cell{min-height:28px}
+body.scn-active .page[data-page="scenarios"] .sg-cell{min-height:32px}
 body.scn-active .page[data-page="scenarios"] .sg-name{padding-left:22px;font-size:11.5px;line-height:1.15;color:var(--ng-ink)}
 body.scn-active .page[data-page="scenarios"] .sg-name .sg-win{font-size:10px;margin-top:1px;color:var(--ng-ink-muted)}
 body.scn-active .page[data-page="scenarios"] .lev-cell{border-bottom-color:rgba(226,239,246,.14)!important}
