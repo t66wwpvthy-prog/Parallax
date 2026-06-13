@@ -3,7 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test engine.test.js history.test.js"
+    "test": "node --test engine.test.js history.test.js",
+    "preview": "node scripts/preview.mjs"
   },
   "devDependencies": {
     "puppeteer": "^25.1.0"
