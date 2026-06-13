@@ -3407,7 +3407,7 @@ function renderBand(){
   let h=`<div class="band-cell label"><span>Scenario</span></div>`;
   scenarios.forEach((s,ci)=>{
     const sr=s.res?s.res.successRate:0;
-    const col= sr>=80?'#7AA76C':sr>=71?'#D8B371':'#5E1916';
+    const col=ringColor(sr);
     // Delta vs baseline, mirrored under the gauge: anchor reads BASELINE, the
     // others show signed points (engine successRate difference, no UI math).
     let deltaEl;
@@ -4875,9 +4875,9 @@ body.scn-active .page[data-page="scenarios"] .eyebrow{position:absolute!importan
 body.scn-active .page[data-page="scenarios"] .eyebrow::after{width:172px;flex:0 0 172px;background:linear-gradient(90deg,rgba(229,218,197,.30),transparent)}
 body.scn-active .page[data-page="scenarios"] .scn-scroll{
   position:relative;width:calc(100vw - 112px);max-width:none;min-height:min(780px,calc(100vh - 161px));margin:0 auto;padding:30px 74px 42px;
-  border:1px solid rgba(232,243,249,.25);border-radius:13px;background:linear-gradient(135deg,rgba(244,250,253,.026),rgba(88,126,149,.012) 55%,rgba(236,205,160,.014));
-  backdrop-filter:blur(24px) saturate(1.30);-webkit-backdrop-filter:blur(24px) saturate(1.30);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.22),inset 0 0 0 1px rgba(255,255,255,.025),0 30px 80px -58px rgba(0,0,0,.62);
+  border:0;border-radius:0;background:transparent;
+  backdrop-filter:none;-webkit-backdrop-filter:none;
+  box-shadow:none;
 }
 body.scn-active .page[data-page="scenarios"] .scn-band,
 body.scn-active .page[data-page="scenarios"] .scn-levers,
@@ -4907,7 +4907,7 @@ body.scn-active .page[data-page="scenarios"] .add-scen,
 body.scn-active .page[data-page="scenarios"] .solve-btn,
 body.scn-active .page[data-page="scenarios"] .reset-scen{display:flex;align-items:center;gap:10px;width:calc(100% - 4px);height:31px;margin:7px 0 0;padding:0 13px;border:1px solid rgba(226,239,246,.18);border-radius:6px;background:rgba(226,239,246,.065);color:var(--ng-ink-soft);font-size:12px;letter-spacing:.12em;text-align:left}
 body.scn-active .page[data-page="scenarios"] .circle-wrap{width:112px;height:112px;filter:drop-shadow(0 7px 18px rgba(0,0,0,.34))}
-body.scn-active .page[data-page="scenarios"] .circle-val .big{font-size:27px;font-weight:300!important;color:var(--ng-success)!important;text-shadow:none}
+body.scn-active .page[data-page="scenarios"] .circle-val .big{font-size:27px;font-weight:300!important;text-shadow:none}
 body.scn-active .page[data-page="scenarios"] .circle-val .lbl{font-size:11px;font-weight:400!important;letter-spacing:.08em;color:var(--ng-ink-soft)}
 body.scn-active .page[data-page="scenarios"] .col-name,
 body.scn-active .page[data-page="scenarios"] .col-rename{font-size:15px;font-weight:400;letter-spacing:.17em;color:var(--ng-ink)}
