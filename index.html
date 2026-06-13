@@ -1404,35 +1404,17 @@ body::after{inset:var(--frame-inset);border-radius:var(--frame-radius);border-co
 
   <section class="page" data-page="scenarios">
     <div class="eyebrow"><span>Scenarios</span></div>
-    <!-- band + levers + foot share one horizontally-scrollable wrapper so their
-         three columns stay registered on narrow (phone) viewports. -->
-    <div class="scn-scroll">
-      <div class="scn-band" id="scn-band"></div>
-      <div id="solve-panel"></div>
-      <div class="scn-levers" id="scn-levers"></div>
-      <!-- Goals section: a READ-ONLY mirror of the base-plan goals, shown in
-           every scenario column so the advisor sees what each scenario carries.
-           Edited only on the Goals input page; columns reflect, never diverge. -->
-      <div class="scn-goals" id="scn-goals"></div>
-      <div class="scn-foot" id="scn-foot"></div>
-      <!-- Suggest: opens the same least-disruptive solver as the rail's Solve. -->
-      <button class="scn-suggest" id="scn-suggest" type="button">✦ Suggest</button>
-    </div>
-    <!-- Path Story: one coherent simulated path from the baseline run, told
-         as a statement — headline sentence, open stat line, full-bleed balance
-         chart, three annotated readings. Shares the drawer's path-replay
-         mechanism (same selected sim, same seed), so the chart here IS the
-         table below. Every figure comes from engine pathDigest(). -->
-    <div class="story-wrap" id="story-panel"></div>
-    <!-- Plan Assessment: a two-column ledger of engine-observed facts
-         (assessPlan ids + figures mapped to fixed sentences). No advice. -->
-    <div class="story-wrap" id="assess-panel"></div>
-    <!-- Cash-flow drawer: expand to see the year-by-year breakdown for each
+    <!-- Scenarios is a focused cash-flow view: the year-by-year breakdown for
+         each scenario (income, withdrawals, ending balance) side-by-side, with
+         a path selector. The engine still runs every scenario in the background
+         (runAll) to feed this table — the summary band, levers, goals mirror,
+         Path Story and Plan Assessment panels were removed from this page. -->
+    <!-- Cash-flow drawer: the year-by-year breakdown for each
          scenario (income, withdrawals, ending balance), side-by-side. The
          engine already emits these rows from its typical simulated path —
          this is purely a view of existing truth, no new math. -->
     <div class="cf-toggle">
-      <button id="cf-btn">View cash flow ▾</button>
+      <button id="cf-btn">Hide cash flow ▴</button>
       <label class="path-control">Path
         <select id="path-mode">
           <option value="typical">Typical path</option>
@@ -1450,7 +1432,7 @@ body::after{inset:var(--frame-inset);border-radius:var(--frame-radius);border-co
         <input id="path-seed" type="number" min="1" value="20260609" inputmode="numeric">
       </label>
     </div>
-    <div class="cf-drawer" id="cf-drawer" style="display:none"></div>
+    <div class="cf-drawer" id="cf-drawer" style="display:block"></div>
   </section>
 
   <section class="page" data-page="sequencing">
@@ -3368,7 +3350,10 @@ function runAll(){
           s.res=runSimulation(p, ov, sharedPaths);
         }catch(err){ s.res=null; failed++; console.error('Scenario failed:', s.name, err); }
       });
-      renderBand(); renderSolvePanel(); renderFoot(); renderCashflow(); renderStory(); renderAssess(); buildSeqSelect(); runSeq();
+      // Scenarios page now shows only the cash-flow table; the summary panels
+      // (band/levers/solve/foot/story/assess) were removed, so we just render
+      // the table here. Sequencing still feeds off the same Run.
+      renderCashflow(); buildSeqSelect(); runSeq();
       $('#status').textContent = failed ? `Complete · ${failed} scenario${failed>1?'s':''} could not run` : 'Complete';
     }catch(e){ $('#status').textContent='Error'; console.error(e); }
     btn.disabled=false; running=false;
@@ -3402,6 +3387,7 @@ function syncGridCols(){
   });
 }
 function renderBand(){
+  if(!$('#scn-band')) return;   // band removed from the Scenarios page
   syncGridCols();
   const baseSr = scenarios.find(s=>s.base)?.res?.successRate;
   let h=`<div class="band-cell label"><span>Scenario</span></div>`;
@@ -3547,6 +3533,7 @@ function levIcon(cfg){
   return `<span class="lev-ic" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">${p}</svg></span>`;
 }
 function buildLevers(){
+  if(!$('#scn-levers')) return;   // levers removed from the Scenarios page
   syncGridCols();
   let h='';
   LEVCFG.forEach((cfg,ri)=>{
@@ -3608,7 +3595,7 @@ function renderScenGoals(){
   host.innerHTML=h;
 }
 // Stepper buttons for the discrete levers (delegated — survives rebuilds).
-$('#scn-levers').addEventListener('click', e=>{
+$('#scn-levers')?.addEventListener('click', e=>{
   const btn=e.target.closest('.step-btn'); if(!btn) return;
   const span=btn.closest('[id^="lv-"]'); if(!span) return;
   const ci=+span.id.split('-')[1], cfg=LEVCFG.find(c=>c.key===btn.dataset.key);
@@ -3627,13 +3614,13 @@ $('#scn-levers').addEventListener('click', e=>{
 // then every column refreshes (the amount is reference data shared across
 // scenarios — the DECISION is the age, not the amount).
 // ── Scenario header: rename / add / remove (delegated on #scn-band) ──
-$('#scn-band').addEventListener('input', e=>{
+$('#scn-band')?.addEventListener('input', e=>{
   if(e.target.classList && e.target.classList.contains('col-rename')){
     const ci=+e.target.dataset.col;
     if(scenarios[ci]) scenarios[ci].name=e.target.value;   // live; persisted on change
   }
 });
-$('#scn-band').addEventListener('change', e=>{
+$('#scn-band')?.addEventListener('change', e=>{
   if(e.target.classList && e.target.classList.contains('col-rename')){
     const ci=+e.target.dataset.col;
     let nm=e.target.value.trim();
@@ -3644,7 +3631,7 @@ $('#scn-band').addEventListener('change', e=>{
     renderCashflow(); buildSeqSelect();
   }
 });
-$('#scn-band').addEventListener('click', e=>{
+$('#scn-band')?.addEventListener('click', e=>{
   const x=e.target.closest('.col-x');
   if(x){ removeScenario(+x.dataset.col); return; }
   if(e.target.closest('.add-scen')){ addScenario(); return; }
@@ -3666,10 +3653,10 @@ $('#scn-suggest')?.addEventListener('click', ()=>{
 });
 // Solver goal form lives in #solve-panel (full-width). Live commas on $ boxes;
 // changing the pin dropdown re-renders its value input (age box vs $ box).
-$('#solve-panel').addEventListener('input', e=>{
+$('#solve-panel')?.addEventListener('input', e=>{
   if(e.target.classList?.contains('sf-money')) liveCommas(e.target);
 });
-$('#solve-panel').addEventListener('change', e=>{
+$('#solve-panel')?.addEventListener('change', e=>{
   if(e.target.id === 'sf-goal'){
     const baseLev = scenarios.find(s=>s.base)?.lev || defaultLevers();
     const baseSucc = scenarios.find(s=>s.base)?.res?.successRate || 85;
@@ -3678,7 +3665,7 @@ $('#solve-panel').addEventListener('change', e=>{
     if(wrap) wrap.innerHTML = goalParamsHtml(e.target.value, baseLev, defPct);
   }
 });
-$('#solve-panel').addEventListener('submit', e=>{
+$('#solve-panel')?.addEventListener('submit', e=>{
   const f = e.target.closest('#solver-form');
   if(!f) return;
   e.preventDefault();
@@ -3759,7 +3746,7 @@ document.addEventListener('click', e=>{
 });
 // Live commas while typing into any inline numeric input (pension + lever boxes).
 // Dollar-lever slider: live value update while dragging (delegated — survives buildLevers rebuilds).
-$('#scn-levers').addEventListener('input', e=>{
+$('#scn-levers')?.addEventListener('input', e=>{
   const t=e.target;
   if(!t.classList) return;
   if(t.classList.contains('pen-in')) liveCommas(t);
@@ -3777,7 +3764,7 @@ $('#scn-levers').addEventListener('input', e=>{
 // Writes the value the slider also drives, then refreshes that cell + status.
 // On change (blur/enter) we commit; the column re-runs on the next Run.
 // Slider drag-end: persist + rebuild baseline if needed.
-$('#scn-levers').addEventListener('change', e=>{
+$('#scn-levers')?.addEventListener('change', e=>{
   const t=e.target;
   if(t.classList && t.classList.contains('lev-slider')){
     if(scenarios[+t.dataset.col].base) buildLevers();
@@ -3808,7 +3795,7 @@ $('#scn-levers').addEventListener('change', e=>{
   const dispCfg=LEVCFG.find(c=>c.key===span.id.split('-').slice(2).join('-'));
   commitLever(ci, dispCfg);
 });
-$('#scn-levers').addEventListener('change', e=>{
+$('#scn-levers')?.addEventListener('change', e=>{
   if(!e.target.classList || !e.target.classList.contains('pen-in')) return;
   const age=+e.target.dataset.penAge;
   const amt=parseFloat(String(e.target.value).replace(/[^0-9.]/g,''));
@@ -3820,6 +3807,7 @@ $('#scn-levers').addEventListener('change', e=>{
   $('#status').textContent='Adjusted · Run to update';
 });
 function renderFoot(){
+  if(!$('#scn-foot')) return;   // foot removed from the Scenarios page
   syncGridCols();
   let h=`<div class="foot-cell" style="color:var(--ink-faint)">Median end</div>`;
   scenarios.forEach(s=>{
@@ -4607,7 +4595,7 @@ $$('.htab').forEach(t=>t.onclick=()=>{
   document.body.classList.toggle('scn-active', t.dataset.page==='scenarios');
   // Returning to Scenarios after a base-plan edit re-runs the engine so the
   // columns reflect the new source; otherwise just redraw.
-  if(t.dataset.page==='scenarios'){ if(plansDirty){ plansDirty=false; runAll(); } }
+  if(t.dataset.page==='scenarios'){ if(plansDirty){ plansDirty=false; runAll(); } else { renderCashflow(); } }
   if(t.dataset.page==='sequencing') runSeq();
   if(t.dataset.page==='net-worth') renderInputs();
   if(t.dataset.page==='history') renderHistory();
@@ -4659,8 +4647,6 @@ $('#cf-btn').onclick=()=>{
   if(!open) renderCashflow();
 };
 
-buildLevers();
-renderSolvePanel();
 syncPathControls();
 renderInputs();
 document.body.classList.toggle('scn-active', document.querySelector('.page.on')?.dataset.page==='scenarios');
@@ -4877,7 +4863,7 @@ body .hdr-right{gap:30px}
 body .status{font-size:12px;letter-spacing:.20em;color:var(--ng-ink-muted)}
 body .run-btn{min-width:123px;min-height:40px;border-radius:10px;background:linear-gradient(180deg,#f8e5c1,#efc982);color:#15130f;box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 13px 30px -20px rgba(233,190,120,.70)}
 body .page[data-page="scenarios"]{position:relative;padding:16px 56px 26px;overflow-y:auto;background:transparent}
-body .page[data-page="scenarios"] .eyebrow{position:absolute!important;top:24px;left:84px;z-index:4;padding:0!important;background:transparent!important;font-family:'Sora',sans-serif;font-size:18px;letter-spacing:.14em;color:var(--ng-ink)}
+body .page[data-page="scenarios"] .eyebrow{position:static;margin:6px auto 18px;max-width:1568px;z-index:4;padding:0!important;background:transparent!important;font-family:'Sora',sans-serif;font-size:18px;letter-spacing:.14em;color:var(--ng-ink)}
 body .page[data-page="scenarios"] .eyebrow::after{width:172px;flex:0 0 172px;background:linear-gradient(90deg,rgba(229,218,197,.30),transparent)}
 body .page[data-page="scenarios"] .scn-scroll{
   position:relative;width:calc(100vw - 112px);max-width:none;min-height:min(780px,calc(100vh - 161px));margin:0 auto;padding:30px 74px 42px;
