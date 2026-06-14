@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test engine.test.js history.test.js",
+    "test": "node --test engine.test.js history.test.js && node --test \"src/tax/**/*.test.js\"",
     "preview": "node scripts/preview.mjs"
   },
   "devDependencies": {
