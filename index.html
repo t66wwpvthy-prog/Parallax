@@ -4697,6 +4697,10 @@ runAll();   // first iteration runs immediately so the tool opens populated
   }
 
   function placeNote(x, y){
+    // keep the (now wider) note fully on screen wherever it's dropped
+    const W = 360;
+    x = Math.max(8, Math.min(x, window.innerWidth - W - 8));
+    y = Math.max(8, Math.min(y, window.innerHeight - 120));
     const num = notes.length ? Math.max(...notes.map(n=>n.num)) + 1 : 1;
     const note = { id: Date.now(), num, x, y, text: '' };
     notes.push(note);
@@ -4756,6 +4760,38 @@ runAll();   // first iteration runs immediately so the tool opens populated
   });
   document.body.appendChild(clearBtn);
 
+  // copy button — the "send to you" path: gathers every note into clean,
+  // numbered text and drops it on the clipboard so it can be pasted straight
+  // into chat. Static site, no backend — clipboard is the handoff.
+  const copyBtn = document.createElement('button');
+  copyBtn.className = 'sn-copy';
+  copyBtn.textContent = 'Copy notes';
+  copyBtn.title = 'Copy all notes to clipboard (paste them to send)';
+  copyBtn.addEventListener('click', async e => {
+    e.stopPropagation();
+    const filled = [...notes].sort((a,b)=>a.num-b.num).filter(n => n.text.trim());
+    if(!filled.length){
+      copyBtn.textContent = 'No notes yet';
+      setTimeout(() => { copyBtn.textContent = 'Copy notes'; }, 1400);
+      return;
+    }
+    const text = filled.map(n => `${n.num}. ${n.text.trim()}`).join('\n\n');
+    try{
+      await navigator.clipboard.writeText(text);
+    }catch{
+      // fallback for older / non-secure contexts
+      const ta = document.createElement('textarea');
+      ta.value = text; ta.style.position='fixed'; ta.style.opacity='0';
+      document.body.appendChild(ta); ta.select();
+      try{ document.execCommand('copy'); }catch{}
+      ta.remove();
+    }
+    copyBtn.textContent = `Copied ${filled.length} note${filled.length>1?'s':''}!`;
+    copyBtn.classList.add('sn-copied');
+    setTimeout(() => { copyBtn.textContent = 'Copy notes'; copyBtn.classList.remove('sn-copied'); }, 1600);
+  });
+  document.body.appendChild(copyBtn);
+
   // restore persisted notes
   load();
   notes.forEach(n => document.body.appendChild(makeNoteEl(n)));
@@ -4768,16 +4804,21 @@ runAll();   // first iteration runs immediately so the tool opens populated
 .sn-btn:hover{background:var(--accent-bright);transform:scale(1.08)}
 .sn-btn.sn-btn-on{background:#e0c060;box-shadow:0 0 0 3px rgba(224,192,96,.35),0 4px 18px -4px rgba(0,0,0,.6)}
 .sn-overlay{display:none;position:fixed;inset:0;z-index:9990;cursor:crosshair}
-.sn-note{position:fixed;z-index:10000;width:200px;display:flex;flex-direction:column;border-radius:4px;box-shadow:0 6px 24px -6px rgba(0,0,0,.7),0 0 0 1px rgba(255,255,255,.1);background:#f5e97a;overflow:hidden;font-family:'Sora',sans-serif}
-.sn-handle{display:flex;align-items:center;gap:6px;padding:5px 8px;background:#e6d848;cursor:grab;user-select:none}
+/* Roomy enough to actually draft in: wide, tall, with a comfortable type size
+   and a user-draggable resize grip so a long note can grow as needed. */
+.sn-note{position:fixed;z-index:10000;width:360px;max-width:calc(100vw - 32px);display:flex;flex-direction:column;border-radius:5px;box-shadow:0 8px 30px -6px rgba(0,0,0,.7),0 0 0 1px rgba(255,255,255,.1);background:#f5e97a;overflow:hidden;font-family:'Sora',sans-serif}
+.sn-handle{display:flex;align-items:center;gap:6px;padding:7px 10px;background:#e6d848;cursor:grab;user-select:none}
 .sn-handle:active{cursor:grabbing}
-.sn-num{font-size:11px;font-weight:700;color:#4a3e00;min-width:16px}
-.sn-del{margin-left:auto;background:none;border:none;font-size:15px;line-height:1;color:#7a6600;cursor:pointer;padding:0 2px;opacity:.6}
+.sn-num{font-size:12px;font-weight:700;color:#4a3e00;min-width:18px}
+.sn-del{margin-left:auto;background:none;border:none;font-size:17px;line-height:1;color:#7a6600;cursor:pointer;padding:0 3px;opacity:.6}
 .sn-del:hover{opacity:1;color:#c00}
-.sn-text{border:none;outline:none;resize:none;background:#f5e97a;color:#2a2000;font-family:'Sora',sans-serif;font-size:12px;line-height:1.45;padding:8px;min-height:72px;width:100%}
-.sn-clear{position:fixed;bottom:24px;right:78px;z-index:9998;display:none;padding:8px 14px;border:1px solid var(--rule);background:rgba(30,20,10,.85);color:var(--ink-mute);font-family:'Sora',sans-serif;font-size:11px;letter-spacing:.1em;border-radius:3px;cursor:pointer}
-.sn-clear:hover{color:var(--ink);border-color:var(--rule-bright)}
-.sn-mode .sn-clear{display:block}
+.sn-text{border:none;outline:none;resize:vertical;background:#f5e97a;color:#2a2000;font-family:'Sora',sans-serif;font-size:14px;line-height:1.55;padding:12px;min-height:180px;width:100%;box-sizing:border-box}
+.sn-clear,.sn-copy{position:fixed;bottom:24px;z-index:9998;display:none;padding:9px 15px;border:1px solid var(--rule);background:rgba(30,20,10,.85);color:var(--ink-mute);font-family:'Sora',sans-serif;font-size:11px;letter-spacing:.1em;border-radius:3px;cursor:pointer}
+.sn-clear{right:84px}
+.sn-copy{right:180px}
+.sn-clear:hover,.sn-copy:hover{color:var(--ink);border-color:var(--rule-bright)}
+.sn-copy.sn-copied{color:#16242f;background:var(--accent);border-color:var(--accent)}
+.sn-mode .sn-clear,.sn-mode .sn-copy{display:block}
 
 /* Native glass design system. These tokens are the portable layer for applying
    the same champagne text, blue-silver logo, glass panels, and success rings
