@@ -317,38 +317,6 @@ try {
     await page.screenshot({ path: join(OUT, '03-scenarios.png'), fullPage: true });
   });
 
-  await step('path story + plan assessment render from engine digests', async () => {
-    const s = await page.evaluate(() => ({
-      chips: [...document.querySelectorAll('#story-panel [data-story-mode]')].map(b => b.textContent.trim()),
-      headline: document.querySelector('#story-panel .story-head')?.textContent || '',
-      stats: document.querySelectorAll('#story-panel .story-stat').length,
-      chart: document.querySelectorAll('#story-panel .story-chart svg path').length,
-      reads: document.querySelectorAll('#story-panel .story-read').length,
-      ledgers: document.querySelectorAll('#assess-panel .ledger h5').length,
-      ledRows: document.querySelectorAll('#assess-panel .led-row').length,
-    }));
-    if(JSON.stringify(s.chips) !== JSON.stringify(['Stressed','Median','Favorable'])) throw new Error(`story path picker wrong: ${JSON.stringify(s.chips)}`);
-    if(!/real growth, year over year/.test(s.headline)) throw new Error(`story headline missing: "${s.headline}"`);
-    if(s.stats < 5) throw new Error(`story stat line incomplete (${s.stats})`);
-    if(s.chart < 2) throw new Error('story balance chart missing');
-    if(s.reads !== 3) throw new Error(`expected 3 annotated readings, got ${s.reads}`);
-    if(s.ledgers !== 2 || s.ledRows < 1) throw new Error(`assessment ledger incomplete (h5=${s.ledgers}, rows=${s.ledRows})`);
-    await page.evaluate(() => [...document.querySelectorAll('[data-story-mode]')].find(b => b.dataset.storyMode === 'stressed').click());
-    await new Promise(r => setTimeout(r, 300));
-    const stressed = await page.evaluate(() => ({
-      headline: document.querySelector('#story-panel .story-head')?.textContent || '',
-      mode: document.querySelector('#path-mode')?.value || '',
-      on: document.querySelector('#story-panel [data-story-mode="stressed"]')?.classList.contains('on') || false,
-    }));
-    if(stressed.headline === s.headline) throw new Error('stressed pick did not change the story headline');
-    if(stressed.mode !== 'stressed' || !stressed.on) throw new Error(`story picker and drawer path-mode out of sync (${JSON.stringify(stressed)})`);
-    await page.evaluate(() => document.querySelector('#story-panel').scrollIntoView({ block: 'start' }));
-    await new Promise(r => setTimeout(r, 250));
-    await page.screenshot({ path: join(OUT, '03b-story.png') });
-    await page.evaluate(() => [...document.querySelectorAll('[data-story-mode]')].find(b => b.dataset.storyMode === 'typical').click());
-    await new Promise(r => setTimeout(r, 300));
-  });
-
   await step('cash-flow drawer opens with path replay controls and rows', async () => {
     await ensureCashflowDrawer(page, true);
     const m = await page.evaluate(() => {

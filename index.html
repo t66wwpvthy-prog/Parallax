@@ -1418,15 +1418,6 @@ body::after{inset:var(--frame-inset);border-radius:var(--frame-radius);border-co
       <!-- Suggest: opens the same least-disruptive solver as the rail's Solve. -->
       <button class="scn-suggest" id="scn-suggest" type="button">✦ Suggest</button>
     </div>
-    <!-- Path Story: one coherent simulated path from the baseline run, told
-         as a statement — headline sentence, open stat line, full-bleed balance
-         chart, three annotated readings. Shares the drawer's path-replay
-         mechanism (same selected sim, same seed), so the chart here IS the
-         table below. Every figure comes from engine pathDigest(). -->
-    <div class="story-wrap" id="story-panel"></div>
-    <!-- Plan Assessment: a two-column ledger of engine-observed facts
-         (assessPlan ids + figures mapped to fixed sentences). No advice. -->
-    <div class="story-wrap" id="assess-panel"></div>
     <!-- Cash-flow drawer: expand to see the year-by-year breakdown for each
          scenario (income, withdrawals, ending balance), side-by-side. The
          engine already emits these rows from its typical simulated path —
@@ -3368,7 +3359,7 @@ function runAll(){
           s.res=runSimulation(p, ov, sharedPaths);
         }catch(err){ s.res=null; failed++; console.error('Scenario failed:', s.name, err); }
       });
-      renderBand(); renderSolvePanel(); renderFoot(); renderCashflow(); renderStory(); renderAssess(); buildSeqSelect(); runSeq();
+      renderBand(); renderSolvePanel(); renderFoot(); renderCashflow(); buildSeqSelect(); runSeq();
       $('#status').textContent = failed ? `Complete · ${failed} scenario${failed>1?'s':''} could not run` : 'Complete';
     }catch(e){ $('#status').textContent='Error'; console.error(e); }
     btn.disabled=false; running=false;
@@ -4634,14 +4625,12 @@ $('#path-mode').onchange=e=>{
   savePathReplay();
   syncPathControls();
   renderCashflow();
-  renderStory();
 };
 $('#path-index').onchange=e=>{
   pathReplay.index=Math.max(0, parseInt(e.target.value,10)||0);
   savePathReplay();
   syncPathControls();
   renderCashflow();
-  renderStory();
 };
 $('#path-seed').onchange=e=>{
   pathReplay.seed=Math.max(1, parseInt(e.target.value,10)||DEFAULT_PATH_SEED);
