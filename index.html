@@ -63,7 +63,7 @@ html,body{height:100%;background:var(--bg);font-family:'Sora',sans-serif;color:v
 .page[data-page="scenarios"]{overflow-y:auto;overflow-x:hidden}
 /* Cap the scenarios block so columns don't stretch across a wide monitor.
    ~210px per scenario + the 148px label gutter; centered. */
-.scn-scroll,.page[data-page="scenarios"] .cf-toggle,.page[data-page="scenarios"] .cf-drawer{max-width:1180px;width:100%;margin-left:auto;margin-right:auto}
+.scn-scroll,.page[data-page="scenarios"] .cf-toggle,.page[data-page="scenarios"] .cf-drawer,.page[data-page="scenarios"] .cf-wrapper{max-width:1180px;width:100%;margin-left:auto;margin-right:auto}
 .page[data-page="scenarios"] .eyebrow{position:sticky;top:0;z-index:25;background:var(--bg);padding:20px 0 16px}
 .scn-band{position:sticky;top:53px;z-index:20;display:grid;grid-template-columns:148px repeat(3,1fr);column-gap:14px}
 /* Opaque backdrop behind the WHOLE sticky band (not just a 10px lip) so scrolling
@@ -1226,7 +1226,8 @@ body::after{inset:var(--frame-inset);border-radius:var(--frame-radius);border-co
 
 .scn-scroll,
 .page[data-page="scenarios"] .cf-toggle,
-.page[data-page="scenarios"] .cf-drawer{
+.page[data-page="scenarios"] .cf-drawer,
+.page[data-page="scenarios"] .cf-wrapper{
   max-width:min(1090px,calc(100vw - (var(--page-x) * 2)));
 }
 /* Liquid glass: the sticky band/eyebrow carry no paint of their own — the
@@ -1315,7 +1316,7 @@ body::after{inset:var(--frame-inset);border-radius:var(--frame-radius);border-co
   .brand-logo{width:146px;height:60px}
   .np-page.np-bal{max-width:1760px}
   .np-page{max-width:1500px}
-  .scn-scroll,.page[data-page="scenarios"] .cf-toggle,.page[data-page="scenarios"] .cf-drawer{max-width:1220px}
+  .scn-scroll,.page[data-page="scenarios"] .cf-toggle,.page[data-page="scenarios"] .cf-drawer,.page[data-page="scenarios"] .cf-wrapper{max-width:1220px}
   .seq-chart{min-height:570px}
   .seq-chart .chart-body{min-height:455px}
 }
@@ -1403,7 +1404,7 @@ body::after{inset:var(--frame-inset);border-radius:var(--frame-radius);border-co
   </section>
 
   <section class="page" data-page="scenarios">
-    <div class="eyebrow"><span>Scenarios</span></div>
+    <div class="eyebrow"><span>Scenarios</span><button id="cf-mode-btn" class="cf-mode-btn">Cash Flow</button></div>
     <!-- band + levers + foot share one horizontally-scrollable wrapper so their
          three columns stay registered on narrow (phone) viewports. -->
     <div class="scn-scroll">
@@ -1418,30 +1419,33 @@ body::after{inset:var(--frame-inset);border-radius:var(--frame-radius);border-co
       <!-- Suggest: opens the same least-disruptive solver as the rail's Solve. -->
       <button class="scn-suggest" id="scn-suggest" type="button">✦ Suggest</button>
     </div>
-    <!-- Cash-flow drawer: expand to see the year-by-year breakdown for each
-         scenario (income, withdrawals, ending balance), side-by-side. The
-         engine already emits these rows from its typical simulated path —
-         this is purely a view of existing truth, no new math. -->
-    <div class="cf-toggle">
-      <button id="cf-btn">View cash flow ▾</button>
-      <label class="path-control">Path
-        <select id="path-mode">
-          <option value="typical">Typical path</option>
-          <option value="stressed">Stressed path</option>
-          <option value="favorable">Favorable path</option>
-          <option value="failed">Failed path</option>
-          <option value="lowest-survivor">Lowest survivor</option>
-          <option value="choose">Choose path...</option>
-        </select>
-      </label>
-      <label class="path-control advanced" id="path-choose">Path #
-        <input id="path-index" type="number" min="0" value="0" inputmode="numeric">
-      </label>
-      <label class="path-control advanced" id="path-seed-wrap">Seed
-        <input id="path-seed" type="number" min="1" value="20260609" inputmode="numeric">
-      </label>
+    <!-- Cash Flow mode: sidebar of scenario chips + focused cash-flow table.
+         Triggered by the "Cash Flow" button in the eyebrow. Hidden until
+         activated; shows one scenario at a time with optional 2-up compare. -->
+    <div class="cf-wrapper" id="cf-wrapper">
+      <aside class="cf-sidebar" id="cf-sidebar"></aside>
+      <div class="cf-main">
+        <div class="cf-toggle">
+          <label class="path-control">Path
+            <select id="path-mode">
+              <option value="typical">Typical path</option>
+              <option value="stressed">Stressed path</option>
+              <option value="favorable">Favorable path</option>
+              <option value="failed">Failed path</option>
+              <option value="lowest-survivor">Lowest survivor</option>
+              <option value="choose">Choose path...</option>
+            </select>
+          </label>
+          <label class="path-control advanced" id="path-choose">Path #
+            <input id="path-index" type="number" min="0" value="0" inputmode="numeric">
+          </label>
+          <label class="path-control advanced" id="path-seed-wrap">Seed
+            <input id="path-seed" type="number" min="1" value="20260609" inputmode="numeric">
+          </label>
+        </div>
+        <div class="cf-drawer" id="cf-drawer"></div>
+      </div>
     </div>
-    <div class="cf-drawer" id="cf-drawer" style="display:none"></div>
   </section>
 
   <section class="page" data-page="sequencing">
@@ -4187,27 +4191,36 @@ const SEQ_YEARS=[
 ];
 
 renderCashflow = function(){
+  if(cfMode) renderCfSidebar();   // keep sidebar in sync after every run
+  if(!cfMode) return;
   const drawer = $('#cf-drawer');
-  if(drawer.style.display !== 'block') return;
   const pathIdx = selectedPathIndex();
   pathReplay.index = pathIdx;
   savePathReplay();
-  const simsByScen = scenarios.map(s => simByIndex(s.res, pathIdx));
+
+  // Only render the active scenario(s): primary, and optionally compare.
+  const activeIdx = cfCompare !== null ? [cfPrimary, cfCompare] : [cfPrimary];
+  const activeScens = activeIdx.map(i => scenarios[i]);
+  const simsByScen = activeIdx.map(i => simByIndex(scenarios[i].res, pathIdx));
   const rowsByScen = simsByScen.map(sim => sim ? sim.rows : []);
+  const comparing = activeIdx.length === 2;
+
   if(!rowsByScen.some(r => r.length)){
     drawer.innerHTML =
       `<div class="cf-drawer-head"><span>Path Replay</span></div>` +
       `<div class="cf-empty">No cash-flow data yet. Press Run, or check the plan inputs if the status bar shows a warning.</div>`;
     return;
   }
-  const gcls = scenarios.map((_,i)=>`cf-g${i%2}`);
+
+  const gcls = activeIdx.map(i => `cf-g${i % 2}`);
   const cols = 6;
   let h = '<table class="cf-table"><thead><tr><th class="age" rowspan="2">Age</th><th class="source" rowspan="2">Source</th>';
-  scenarios.forEach((s,i)=>{
-    h += `<th class="scen ${gcls[i]} cf-start cf-end" colspan="${cols}" style="color:${colorFor(i)}">${escHtml(s.name)}</th>`;
+  activeScens.forEach((s, i) => {
+    if(comparing && i === 1) h += '<th class="cf-sep-head" rowspan="2"></th>';
+    h += `<th class="scen ${gcls[i]} cf-start cf-end" colspan="${cols}" style="color:${colorFor(activeIdx[i])}">${escHtml(s.name)}</th>`;
   });
   h += '</tr><tr>';
-  scenarios.forEach((s,i)=>{
+  activeScens.forEach((_, i) => {
     h += `<th class="${gcls[i]} cf-start">Starting value</th>`;
     h += `<th class="${gcls[i]}">Income</th>`;
     h += `<th class="${gcls[i]}">Outflows</th>`;
@@ -4216,22 +4229,21 @@ renderCashflow = function(){
     h += `<th class="${gcls[i]} cf-end">Ending value</th>`;
   });
   h += '</tr></thead><tbody>';
+
   const len = Math.max(0, ...rowsByScen.map(r => r.length));
   const curAge = plan.household.primary.currentAge;
   for(let y = 0; y < len; y++){
     const age = curAge + y;
     const source = rowsByScen.map(rows => rows[y]).find(Boolean)?.source;
     h += `<tr><td class="age">${age}</td><td class="source">${source || '-'}</td>`;
-    scenarios.forEach((s,i)=>{
+    activeScens.forEach((s, i) => {
+      if(comparing && i === 1) h += '<td class="cf-sep-cell"></td>';
       const r = rowsByScen[i][y];
       const prev = y > 0 ? rowsByScen[i][y-1] : null;
       const isRetire = r && r.phase !== 'accum' && (!prev || prev.phase === 'accum');
       const retireCls = isRetire ? ' retire' : '';
       const retireStartCls = isRetire ? ' retire retire-start' : '';
-      if(!r){
-        h += `<td colspan="${cols}" class="dim ${gcls[i]} cf-start cf-end">-</td>`;
-        return;
-      }
+      if(!r){ h += `<td colspan="${cols}" class="dim ${gcls[i]} cf-start cf-end">-</td>`; return; }
       const dash = '<span style="color:var(--ink-faint)">-</span>';
       const inc = (r.socialSecurity || 0) + (r.pension || 0) + (r.otherIncome || 0);
       const outflows = (r.expenses || 0) + (r.goals || 0) + (r.liabilities || 0) + (r.taxes || 0) + (r.lumpSum || 0);
@@ -4248,7 +4260,10 @@ renderCashflow = function(){
     h += '</tr>';
   }
   h += '</tbody></table>';
-  const baselineSim = simsByScen[scenarios.findIndex(s=>s.base)] || simsByScen[0];
+
+  const baselineGlobalIdx = scenarios.findIndex(s => s.base);
+  const baselineActivePos = activeIdx.indexOf(baselineGlobalIdx);
+  const baselineSim = baselineActivePos >= 0 ? simsByScen[baselineActivePos] : simsByScen[0];
   const replayMeta = `${pathModeLabel()} · Seed ${pathReplay.seed} · Path ${String(pathIdx).padStart(3,'0')} · ${pathOutcomeText(baselineSim)}`;
   drawer.innerHTML =
     `<div class="cf-drawer-head"><span>Path Replay</span><span class="sub">${replayMeta}</span></div>` +
@@ -4639,14 +4654,57 @@ $('#path-seed').onchange=e=>{
   syncPathControls();
   runAll();
 };
-// Cash-flow drawer toggle. We render on open (and every Run while open).
-$('#cf-btn').onclick=()=>{
-  const d=$('#cf-drawer');
-  const open = d.style.display === 'block';
-  d.style.display = open ? 'none' : 'block';
-  $('#cf-btn').textContent = open ? 'View cash flow ▾' : 'Hide cash flow ▴';
-  if(!open) renderCashflow();
-};
+// ── CF MODE state ───────────────────────────────────────────────────────────
+let cfMode = false;
+let cfPrimary = 0;
+let cfCompare = null;
+
+function renderCfSidebar(){
+  const sidebar = $('#cf-sidebar');
+  if(!sidebar) return;
+  sidebar.innerHTML = scenarios.map((s, i) => {
+    const isPrimary = i === cfPrimary;
+    const isCompare = i === cfCompare;
+    const rate = s.res?.successRate != null ? Math.round(s.res.successRate) + '%' : '—';
+    const spend = s.lev?.spend ? '$' + Math.round(s.lev.spend / 12).toLocaleString('en-US') + '/mo' : '';
+    const color = colorFor(i);
+    let action = '';
+    if(isCompare) action = `<button class="cfc-rm" data-i="${i}">× remove</button>`;
+    else if(!isPrimary) action = `<button class="cfc-add" data-i="${i}">+ compare</button>`;
+    return `<div class="cf-chip ${isPrimary?'cfc-primary':''} ${isCompare?'cfc-compare':''}" data-i="${i}" style="--cc:${color}">
+  <div class="cfc-stripe" style="background:${color}"></div>
+  <div class="cfc-body">
+    <div class="cfc-name">${escHtml(s.name)}</div>
+    <div class="cfc-rate">${rate}</div>
+    ${spend ? `<div class="cfc-spend">${spend}</div>` : ''}
+    ${action}
+  </div>
+</div>`;
+  }).join('');
+  sidebar.querySelectorAll('.cf-chip').forEach(el => {
+    el.addEventListener('click', e => {
+      const i = +el.dataset.i;
+      if(e.target.classList.contains('cfc-rm'))       { cfCompare = null; }
+      else if(e.target.classList.contains('cfc-add')) { cfCompare = cfCompare === i ? null : i; }
+      else if(i !== cfPrimary)                        { if(cfCompare === i) cfCompare = null; cfPrimary = i; }
+      renderCfSidebar();
+      renderCashflow();
+    });
+  });
+}
+
+function setCfMode(on){
+  cfMode = on;
+  if(cfPrimary >= scenarios.length) cfPrimary = 0;
+  if(cfCompare !== null && cfCompare >= scenarios.length) cfCompare = null;
+  document.querySelector('.page[data-page="scenarios"]').classList.toggle('cf-mode', on);
+  $('#cf-wrapper').style.display = on ? 'flex' : 'none';
+  const btn = $('#cf-mode-btn');
+  btn.classList.toggle('cfc-active', on);
+  btn.textContent = on ? '← Scenarios' : 'Cash Flow';
+  if(on){ renderCfSidebar(); renderCashflow(); }
+}
+$('#cf-mode-btn').addEventListener('click', () => setCfMode(!cfMode));
 
 buildLevers();
 renderSolvePanel();
@@ -4819,6 +4877,83 @@ runAll();   // first iteration runs immediately so the tool opens populated
 .sn-clear:hover,.sn-copy:hover{color:var(--ink);border-color:var(--rule-bright)}
 .sn-copy.sn-copied{color:#16242f;background:var(--accent);border-color:var(--accent)}
 .sn-mode .sn-clear,.sn-mode .sn-copy{display:block}
+
+/* ── CF MODE (Cash Flow triggered view on Scenarios page) ── */
+/* Prominent trigger button in the eyebrow */
+.cf-mode-btn{
+  margin-left:auto;padding:7px 16px;
+  background:var(--accent);color:#16242f;
+  border:none;border-radius:5px;cursor:pointer;
+  font-family:'Sora',sans-serif;font-size:11px;font-weight:700;
+  letter-spacing:.14em;text-transform:uppercase;
+  transition:background .15s,transform .1s;
+  flex-shrink:0;
+}
+.cf-mode-btn:hover{background:var(--accent-bright);transform:scale(1.04)}
+.cf-mode-btn.cfc-active{
+  background:transparent;color:var(--ink-mute);
+  border:1px solid var(--rule);padding:6px 15px;
+}
+.cf-mode-btn.cfc-active:hover{color:var(--ink);border-color:var(--rule-bright)}
+
+/* Hide the scenario column layout in CF mode */
+.page[data-page="scenarios"].cf-mode .scn-scroll{display:none}
+
+/* cf-wrapper: hidden by default; flex-row when CF mode is active */
+.cf-wrapper{display:none;gap:16px;padding-top:10px;align-items:flex-start}
+/* flex!important beats the max-width centering block's block display */
+.page[data-page="scenarios"].cf-mode #cf-wrapper{display:flex!important}
+
+/* Sidebar: sticky, fixed width, vertical scenario chip list */
+.cf-sidebar{
+  width:180px;flex-shrink:0;
+  display:flex;flex-direction:column;gap:8px;
+  position:sticky;top:72px;
+  max-height:calc(100vh - 96px);overflow-y:auto;
+}
+
+/* Main area: table + path controls */
+.cf-main{flex:1;min-width:0;display:flex;flex-direction:column}
+.cf-main .cf-toggle{margin:0 0 10px;justify-content:flex-start}
+
+/* Scenario chips */
+.cf-chip{
+  display:flex;border-radius:8px;overflow:hidden;
+  border:2px solid transparent;
+  background:var(--surface);cursor:pointer;
+  transition:border-color .15s,box-shadow .15s;
+}
+.cf-chip:hover{border-color:var(--cc,var(--accent))}
+.cfc-primary{border-color:var(--cc)!important;box-shadow:0 0 0 1px var(--cc)}
+.cfc-compare{border-color:var(--cc)!important;opacity:.85}
+.cfc-stripe{width:4px;flex-shrink:0}
+.cfc-body{padding:10px 12px;display:flex;flex-direction:column;gap:3px;flex:1;min-width:0}
+.cfc-name{
+  font-family:'Sora',sans-serif;font-size:12px;font-weight:700;color:var(--ink);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.cfc-rate{font-family:'Inter',sans-serif;font-size:16px;font-weight:700;color:var(--cc,var(--accent))}
+.cfc-spend{font-family:'Sora',sans-serif;font-size:10px;color:var(--ink-mute);margin-bottom:2px}
+.cfc-add,.cfc-rm{
+  margin-top:5px;background:none;border:1px solid var(--rule);
+  color:var(--ink-mute);font-family:'Sora',sans-serif;font-size:10px;
+  letter-spacing:.06em;border-radius:3px;padding:3px 7px;cursor:pointer;
+  transition:color .1s,border-color .1s;text-align:left;
+}
+.cfc-add:hover{color:var(--accent);border-color:var(--accent)}
+.cfc-rm:hover{color:#e05050;border-color:#e05050}
+
+/* 2-scenario compare separator: a distinct vertical rule between the two column groups */
+.cf-sep-head,.cf-sep-cell{
+  width:16px;padding:0 !important;border:none !important;
+  background:transparent !important;position:relative;
+}
+.cf-sep-head::after,.cf-sep-cell::after{
+  content:'';position:absolute;top:0;bottom:0;left:50%;
+  width:2px;background:var(--accent);opacity:.3;
+  transform:translateX(-50%);
+}
+.cf-sep-head{vertical-align:middle}
 
 /* Native glass design system. These tokens are the portable layer for applying
    the same champagne text, blue-silver logo, glass panels, and success rings
