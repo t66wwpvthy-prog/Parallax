@@ -21,7 +21,8 @@
 import { ORDINARY_BRACKETS, ORDINARY_BRACKETS_SOURCE, FILING_STATUSES } from '../../core/constants.js';
 import { CONTEXT_SCHEMA, ORDINARY_INCOME_INPUT_SCHEMA } from '../../core/schemas.js';
 import { validateAgainstSchema, assertNonNegativeNumber, assertOneOf } from '../../core/validators.js';
-import { TaxDataError } from '../../core/errors.js';
+import { getDataSource } from '../../core/dataSourceRegistry.js';
+import { TaxDataError, TaxInputError } from '../../core/errors.js';
 
 export const meta = {
   ruleId: 'FED_ORDINARY_INCOME_TAX',
@@ -74,7 +75,28 @@ export function calculate(input, context){
   if(!brackets){
     throw new TaxDataError(`No ordinary brackets for filingStatus: ${filingStatus}`, { lawVersion, filingStatus });
   }
+
+  // Resolve the data source THROUGH the registry so a wrong/missing mapping
+  // can never silently produce an undefined id in the audit.
   const dataSourceId = ORDINARY_BRACKETS_SOURCE[lawVersion];
+  if(!dataSourceId){
+    throw new TaxDataError(`No data source mapped for lawVersion: ${lawVersion}`, { lawVersion });
+  }
+  const dataSource = getDataSource(dataSourceId);   // throws TaxDataError on unknown id
+
+  // Reject a context that contradicts the resolved law data. e.g. asking for
+  // taxYear 2027 while pointing at 2026_FINAL is a silent contradiction — the
+  // caller must mean one consistent (taxYear, lawVersion) pair.
+  if(context.lawVersion !== dataSource.lawVersion){
+    throw new TaxInputError('context.lawVersion does not match the resolved data source', {
+      contextLawVersion: context.lawVersion, dataSourceLawVersion: dataSource.lawVersion,
+    });
+  }
+  if(context.taxYear !== dataSource.taxYear){
+    throw new TaxInputError('context.taxYear does not match the resolved data source tax year', {
+      contextTaxYear: context.taxYear, dataSourceTaxYear: dataSource.taxYear,
+    });
+  }
 
   // Progressive stacking: tax the slice of income that falls in each bracket
   // band at that band's rate. `bracketBreakdown` lists only bands that received

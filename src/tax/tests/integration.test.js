@@ -8,6 +8,7 @@ import assert from 'node:assert';
 import { composeAnnualFederalTax } from '../federal/composers/annualFederalTax.js';
 import { adaptEngineYearToTaxInput } from '../adapters/engineToTaxInput.js';
 import { rulesLedger, getRuleById, getRulesByTriggerTag } from '../core/rulesLedger.js';
+import { TRIGGER_TAGS } from '../core/constants.js';
 
 const ctx = () => ({
   calculatedAt: '2026-06-14T12:00:00.000Z',
@@ -53,6 +54,15 @@ test('every ledger rule satisfies the rule contract', () => {
     assert.strictEqual(typeof rule.validate, 'function');
     assert.ok(rule.meta && typeof rule.meta.ruleId === 'string');
     assert.ok(Array.isArray(rule.meta.triggerTags));
+  }
+});
+
+test('every ledger rule uses only controlled trigger tags', () => {
+  for(const rule of rulesLedger){
+    for(const tag of rule.meta.triggerTags){
+      assert.ok(TRIGGER_TAGS.includes(tag),
+        `rule ${rule.meta.ruleId} uses unknown trigger tag: ${tag}`);
+    }
   }
 });
 

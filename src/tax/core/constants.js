@@ -21,6 +21,18 @@ export const FILING_STATUSES = ['single', 'marriedFilingJointly', 'headOfHouseho
 // (ruleVersion) from "which legal regime applies."
 export const LAW_VERSIONS = ['2026_FINAL'];
 
+// Controlled vocabulary for rule meta.triggerTags. These let Parallax query the
+// ledger ("which rules move on a Roth conversion / trigger at age 73 / depend on
+// AGI?"). Keeping them in one enum prevents tag drift across rules; the ledger
+// test asserts every rule's tags are drawn from this set. Extend deliberately as
+// new rules need new tags.
+export const TRIGGER_TAGS = [
+  'agi_threshold',
+  'bracket_calculation',
+  'roth_conversion',
+  'charitable_planning',
+];
+
 // Ordinary-income brackets. Each entry: { rate, upTo } where `upTo` is the
 // INCLUSIVE upper bound of taxable ordinary income taxed at `rate`. The final
 // bracket uses Infinity. Brackets are ascending and contiguous from 0.

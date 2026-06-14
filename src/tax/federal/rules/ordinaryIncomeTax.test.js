@@ -156,3 +156,10 @@ test('unsupported lawVersion throws a data error', () => {
     ctx({ lawVersion: '2099_IMAGINARY' })
   ));
 });
+
+test('taxYear contradicting lawVersion throws (e.g. 2027 with 2026_FINAL)', () => {
+  assert.throws(() => ordinaryIncomeTax.calculate(
+    { filingStatus: 'single', taxableOrdinaryIncome: 100000 },
+    ctx({ taxYear: 2027 })   // lawVersion stays 2026_FINAL → contradiction
+  ), /taxYear does not match/);
+});
