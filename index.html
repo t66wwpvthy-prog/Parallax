@@ -4667,7 +4667,10 @@ function renderCfSidebar(){
     const isCompare = i === cfCompare;
     const rate = s.res?.successRate != null ? Math.round(s.res.successRate) + '%' : '—';
     const spend = s.lev?.spend ? '$' + Math.round(s.lev.spend / 12).toLocaleString('en-US') + '/mo' : '';
+    // Identity color = scenario palette (stripe), same as the expanded band's dot.
+    // Success % color = status ring color (green/amber/red), same as the gauge.
     const color = colorFor(i);
+    const rateColor = s.res?.successRate != null ? ringColor(s.res.successRate) : 'var(--ink-faint)';
     let action = '';
     if(isCompare) action = `<button class="cfc-rm" data-i="${i}">× remove</button>`;
     else if(!isPrimary) action = `<button class="cfc-add" data-i="${i}">+ compare</button>`;
@@ -4675,7 +4678,7 @@ function renderCfSidebar(){
   <div class="cfc-stripe" style="background:${color}"></div>
   <div class="cfc-body">
     <div class="cfc-name">${escHtml(s.name)}</div>
-    <div class="cfc-rate">${rate}</div>
+    <div class="cfc-rate" style="color:${rateColor}">${rate}</div>
     ${spend ? `<div class="cfc-spend">${spend}</div>` : ''}
     ${action}
   </div>
@@ -4915,6 +4918,13 @@ runAll();   // first iteration runs immediately so the tool opens populated
 /* Main area: table + path controls */
 .cf-main{flex:1;min-width:0;display:flex;flex-direction:column}
 .cf-main .cf-toggle{margin:0 0 10px;justify-content:flex-start}
+/* CF mode is full-bleed and left-aligned — fill the screen, sidebar tight to
+   the left edge, table extends to the right. The ID selector beats the
+   max-width centering rules that apply to .cf-wrapper elsewhere. */
+body .page[data-page="scenarios"].cf-mode{padding-left:24px;padding-right:24px}
+body .page[data-page="scenarios"].cf-mode #cf-wrapper{max-width:none;margin:0;width:100%}
+body .page[data-page="scenarios"].cf-mode #cf-wrapper .cf-drawer,
+body .page[data-page="scenarios"].cf-mode #cf-wrapper .cf-toggle{max-width:none;margin:0 0 10px}
 /* In CF mode the table fills the viewport instead of a fixed 460px box,
    so there's no large dead zone below it. Sidebar stays sticky alongside. */
 .page[data-page="scenarios"].cf-mode .cf-drawer{margin-bottom:0}
