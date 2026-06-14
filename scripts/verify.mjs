@@ -294,28 +294,59 @@ try {
     await page.evaluate(() => document.querySelector('.gt-hit').dispatchEvent(new MouseEvent('click', { bubbles: true })));
   });
 
-  await step('scenarios shows only the cash-flow table', async () => {
+  await step('scenarios renders after tab switch', async () => {
     await page.click('button[data-page="scenarios"]');
     await new Promise(r => setTimeout(r, 800));
     const m = await page.evaluate(() => ({
+      band: document.querySelectorAll('.scn-band svg circle').length,
       status: document.querySelector('#status')?.textContent || '',
-      cfVisible: document.querySelector('#cf-drawer')?.style.display === 'block',
-      cfRows: document.querySelectorAll('#cf-drawer .cf-table tbody tr').length,
-      // Everything other than the cash-flow table was removed from this page.
-      band: document.querySelectorAll('.scn-band').length,
-      levers: document.querySelectorAll('.scn-levers').length,
-      goalsMirror: document.querySelectorAll('#scn-goals').length,
-      foot: document.querySelectorAll('.scn-foot').length,
-      solve: document.querySelectorAll('.solve-btn, #solve-panel').length,
-      suggest: document.querySelectorAll('#scn-suggest').length,
-      story: document.querySelectorAll('#story-panel').length,
-      assess: document.querySelectorAll('#assess-panel').length,
+      goalRows: document.querySelectorAll('#scn-goals .sg-name').length,
+      goalCells: document.querySelectorAll('#scn-goals .sg-cell').length,
+      goalTotal: document.querySelector('#scn-goals .sg-tcell')?.textContent || '',
+      solve: !!document.querySelector('.solve-btn'),
+      saleLever: [...document.querySelectorAll('.lev-lbl')].some(e => /^Sell\b/.test(e.textContent.trim())),
+      scenarioNames: [...document.querySelectorAll('.col-name')].map(e => e.textContent.trim()),
     }));
-    if(!m.cfVisible) throw new Error('cash-flow table is not shown by default on Scenarios');
-    if(m.cfRows < 10) throw new Error(`cash-flow table did not render (rows=${m.cfRows}, status="${m.status}")`);
-    const leftover = ['band','levers','goalsMirror','foot','solve','suggest','story','assess'].filter(k => m[k] > 0);
-    if(leftover.length) throw new Error(`removed Scenarios panels still present: ${leftover.join(', ')}`);
+    if(m.band < 1) throw new Error(`scenarios did not render (band circles=${m.band}, status="${m.status}")`);
+    if(m.goalRows < 1) throw new Error(`scenarios goals section rendered no goal rows (goalRows=${m.goalRows})`);
+    if(m.goalCells < m.goalRows) throw new Error(`goals not mirrored into columns (cells=${m.goalCells}, rows=${m.goalRows})`);
+    if(!m.goalTotal.startsWith('$')) throw new Error(`goals total row missing a dollar figure (got "${m.goalTotal}")`);
+    if(!m.solve) throw new Error('Solve-For button missing from scenarios');
+    if(m.saleLever) throw new Error('parked property-sale lever is visible in scenarios');
+    if(m.scenarioNames.some(n => /sell\s*home/i.test(n))) throw new Error(`stale sale scenario visible: ${JSON.stringify(m.scenarioNames)}`);
     await page.screenshot({ path: join(OUT, '03-scenarios.png'), fullPage: true });
+  });
+
+  await step('path story + plan assessment render from engine digests', async () => {
+    const s = await page.evaluate(() => ({
+      chips: [...document.querySelectorAll('#story-panel [data-story-mode]')].map(b => b.textContent.trim()),
+      headline: document.querySelector('#story-panel .story-head')?.textContent || '',
+      stats: document.querySelectorAll('#story-panel .story-stat').length,
+      chart: document.querySelectorAll('#story-panel .story-chart svg path').length,
+      reads: document.querySelectorAll('#story-panel .story-read').length,
+      ledgers: document.querySelectorAll('#assess-panel .ledger h5').length,
+      ledRows: document.querySelectorAll('#assess-panel .led-row').length,
+    }));
+    if(JSON.stringify(s.chips) !== JSON.stringify(['Stressed','Median','Favorable'])) throw new Error(`story path picker wrong: ${JSON.stringify(s.chips)}`);
+    if(!/real growth, year over year/.test(s.headline)) throw new Error(`story headline missing: "${s.headline}"`);
+    if(s.stats < 5) throw new Error(`story stat line incomplete (${s.stats})`);
+    if(s.chart < 2) throw new Error('story balance chart missing');
+    if(s.reads !== 3) throw new Error(`expected 3 annotated readings, got ${s.reads}`);
+    if(s.ledgers !== 2 || s.ledRows < 1) throw new Error(`assessment ledger incomplete (h5=${s.ledgers}, rows=${s.ledRows})`);
+    await page.evaluate(() => [...document.querySelectorAll('[data-story-mode]')].find(b => b.dataset.storyMode === 'stressed').click());
+    await new Promise(r => setTimeout(r, 300));
+    const stressed = await page.evaluate(() => ({
+      headline: document.querySelector('#story-panel .story-head')?.textContent || '',
+      mode: document.querySelector('#path-mode')?.value || '',
+      on: document.querySelector('#story-panel [data-story-mode="stressed"]')?.classList.contains('on') || false,
+    }));
+    if(stressed.headline === s.headline) throw new Error('stressed pick did not change the story headline');
+    if(stressed.mode !== 'stressed' || !stressed.on) throw new Error(`story picker and drawer path-mode out of sync (${JSON.stringify(stressed)})`);
+    await page.evaluate(() => document.querySelector('#story-panel').scrollIntoView({ block: 'start' }));
+    await new Promise(r => setTimeout(r, 250));
+    await page.screenshot({ path: join(OUT, '03b-story.png') });
+    await page.evaluate(() => [...document.querySelectorAll('[data-story-mode]')].find(b => b.dataset.storyMode === 'typical').click());
+    await new Promise(r => setTimeout(r, 300));
   });
 
   await step('cash-flow drawer opens with path replay controls and rows', async () => {
