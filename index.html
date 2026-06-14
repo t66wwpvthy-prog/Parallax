@@ -4214,7 +4214,20 @@ renderCashflow = function(){
 
   const gcls = activeIdx.map(i => `cf-g${i % 2}`);
   const cols = 6;
-  let h = '<table class="cf-table"><thead><tr><th class="age" rowspan="2">Age</th><th class="source" rowspan="2">Source</th>';
+  // Explicit colgroup + an explicit table width pin uniform, content-sized
+  // columns. With table-layout:fixed (CF mode CSS) the columns take these
+  // widths even though the header row uses colspans, so data columns can't
+  // balloon to fill. The table width must equal the column sum — otherwise a
+  // fixed-layout auto-width table just divides the container evenly.
+  const AGE_W = 54, SRC_W = 74, DATA_W = 120, SEP_W = 18;
+  let cg = `<colgroup><col style="width:${AGE_W}px"><col style="width:${SRC_W}px">`;
+  activeScens.forEach((_, i) => {
+    if(comparing && i === 1) cg += `<col style="width:${SEP_W}px">`;
+    for(let k = 0; k < cols; k++) cg += `<col style="width:${DATA_W}px">`;
+  });
+  cg += '</colgroup>';
+  const tableW = AGE_W + SRC_W + activeScens.length * cols * DATA_W + (comparing ? SEP_W : 0);
+  let h = `<table class="cf-table" style="width:${tableW}px">` + cg + '<thead><tr><th class="age" rowspan="2">Age</th><th class="source" rowspan="2">Source</th>';
   activeScens.forEach((s, i) => {
     if(comparing && i === 1) h += '<th class="cf-sep-head" rowspan="2"></th>';
     h += `<th class="scen ${gcls[i]} cf-start cf-end" colspan="${cols}" style="color:${colorFor(activeIdx[i])}">${escHtml(s.name)}</th>`;
@@ -4665,23 +4678,23 @@ function renderCfSidebar(){
   sidebar.innerHTML = scenarios.map((s, i) => {
     const isPrimary = i === cfPrimary;
     const isCompare = i === cfCompare;
-    const rate = s.res?.successRate != null ? Math.round(s.res.successRate) + '%' : '—';
+    const sr = s.res?.successRate;
+    const pct = sr != null ? Math.round(sr) + '%' : '—';
     const spend = s.lev?.spend ? '$' + Math.round(s.lev.spend / 12).toLocaleString('en-US') + '/mo' : '';
-    // Identity color = scenario palette (stripe), same as the expanded band's dot.
-    // Success % color = status ring color (green/amber/red), same as the gauge.
+    // Identity color = scenario palette (dot). Success ring + % color = status
+    // ring color (green/amber/red) — the SAME ring()/ringColor() the expanded
+    // band uses, just collapsed to a small gauge.
     const color = colorFor(i);
-    const rateColor = s.res?.successRate != null ? ringColor(s.res.successRate) : 'var(--ink-faint)';
+    const rateColor = sr != null ? ringColor(sr) : 'var(--ink-faint)';
+    const ringHtml = sr != null ? ring(sr) : '';
     let action = '';
-    if(isCompare) action = `<button class="cfc-rm" data-i="${i}">× remove</button>`;
-    else if(!isPrimary) action = `<button class="cfc-add" data-i="${i}">+ compare</button>`;
+    if(isCompare) action = `<button class="cfc-rm" data-i="${i}">remove</button>`;
+    else if(!isPrimary) action = `<button class="cfc-add" data-i="${i}">compare</button>`;
     return `<div class="cf-chip ${isPrimary?'cfc-primary':''} ${isCompare?'cfc-compare':''}" data-i="${i}" style="--cc:${color}">
-  <div class="cfc-stripe" style="background:${color}"></div>
-  <div class="cfc-body">
-    <div class="cfc-name">${escHtml(s.name)}</div>
-    <div class="cfc-rate" style="color:${rateColor}">${rate}</div>
-    ${spend ? `<div class="cfc-spend">${spend}</div>` : ''}
-    ${action}
-  </div>
+  <div class="cfc-name"><span class="cfc-dot" style="background:${color}"></span>${escHtml(s.name)}</div>
+  <div class="cfc-ring">${ringHtml}<div class="cfc-ring-val" style="color:${rateColor}">${pct}</div></div>
+  ${spend ? `<div class="cfc-spend">${spend}</div>` : ''}
+  ${action}
 </div>`;
   }).join('');
   sidebar.querySelectorAll('.cf-chip').forEach(el => {
@@ -4922,44 +4935,60 @@ runAll();   // first iteration runs immediately so the tool opens populated
    the left edge, table extends to the right. The ID selector beats the
    max-width centering rules that apply to .cf-wrapper elsewhere. */
 body .page[data-page="scenarios"].cf-mode{padding-left:24px;padding-right:24px}
-body .page[data-page="scenarios"].cf-mode #cf-wrapper{max-width:none;margin:0;width:100%}
+/* Push the layout below the absolutely-positioned eyebrow + path controls so
+   the "SCENARIOS" title, the "← Scenarios" toggle, and the PATH selects don't
+   collide at the top. */
+body .page[data-page="scenarios"].cf-mode #cf-wrapper{max-width:none;margin:54px 0 0;width:100%}
 body .page[data-page="scenarios"].cf-mode #cf-wrapper .cf-drawer,
 body .page[data-page="scenarios"].cf-mode #cf-wrapper .cf-toggle{max-width:none;margin:0 0 10px}
 /* In CF mode the table fills the viewport instead of a fixed 460px box,
    so there's no large dead zone below it. Sidebar stays sticky alongside. */
 .page[data-page="scenarios"].cf-mode .cf-drawer{margin-bottom:0}
-.page[data-page="scenarios"].cf-mode .cf-scroll{max-height:calc(100vh - 200px)}
+.page[data-page="scenarios"].cf-mode .cf-scroll{max-height:calc(100vh - 230px)}
 /* Larger, friendlier table text in CF mode — more readable, still clean.
    Body 14px, headers 11.5px, roomier row padding. */
 .page[data-page="scenarios"].cf-mode .cf-table{font-size:14px}
 .page[data-page="scenarios"].cf-mode .cf-table th{font-size:11.5px}
 .page[data-page="scenarios"].cf-mode .cf-table td.source{font-size:12.5px}
 .page[data-page="scenarios"].cf-mode .cf-table th,
-.page[data-page="scenarios"].cf-mode .cf-table td{padding:9px 13px}
+.page[data-page="scenarios"].cf-mode .cf-table td{padding:9px 12px}
+/* Uniform, content-sized columns instead of stretching to fill (which made
+   each column gigantic). Fixed layout honors the <colgroup> widths; the table
+   sizes to their sum (no 100% stretch). Headers may wrap to two lines; data
+   cells stay on one line. */
+.page[data-page="scenarios"].cf-mode .cf-table{width:auto;table-layout:fixed}
+.page[data-page="scenarios"].cf-mode .cf-table th{white-space:normal;line-height:1.2;vertical-align:bottom}
+.page[data-page="scenarios"].cf-mode .cf-table td{white-space:nowrap}
 
-/* Scenario chips */
+/* Scenario chips — collapsed probability gauges (the expanded band's ring,
+   shrunk). Vertical card: name · ring with centered % · spend · action. */
 .cf-chip{
-  display:flex;border-radius:8px;overflow:hidden;
-  border:2px solid transparent;
+  display:flex;flex-direction:column;align-items:center;gap:5px;
+  padding:12px 10px 11px;border-radius:11px;
+  border:1.5px solid var(--rule);
   background:var(--surface);cursor:pointer;
-  transition:border-color .15s,box-shadow .15s;
+  transition:border-color .15s,box-shadow .15s,background .15s;
 }
 .cf-chip:hover{border-color:var(--cc,var(--accent))}
-.cfc-primary{border-color:var(--cc)!important;box-shadow:0 0 0 1px var(--cc)}
-.cfc-compare{border-color:var(--cc)!important;opacity:.85}
-.cfc-stripe{width:4px;flex-shrink:0}
-.cfc-body{padding:10px 12px;display:flex;flex-direction:column;gap:3px;flex:1;min-width:0}
+.cfc-primary{border-color:var(--cc)!important;box-shadow:0 0 0 1px var(--cc),0 8px 20px -12px rgba(0,0,0,.7)}
+.cfc-compare{border-color:var(--cc)!important;border-style:dashed}
 .cfc-name{
-  font-family:'Sora',sans-serif;font-size:12px;font-weight:700;color:var(--ink);
+  display:flex;align-items:center;gap:6px;max-width:100%;
+  font-family:'Sora',sans-serif;font-size:12px;font-weight:600;color:var(--ink);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
-.cfc-rate{font-family:'Inter',sans-serif;font-size:16px;font-weight:700;color:var(--cc,var(--accent))}
-.cfc-spend{font-family:'Sora',sans-serif;font-size:10px;color:var(--ink-mute);margin-bottom:2px}
+.cfc-dot{width:7px;height:7px;border-radius:50%;flex:0 0 auto}
+.cfc-ring{position:relative;width:78px;height:78px;margin:1px auto 0}
+.cfc-ring-val{
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-family:'Inter',sans-serif;font-size:20px;font-weight:400;letter-spacing:-.01em;
+}
+.cfc-spend{font-family:'Sora',sans-serif;font-size:10.5px;color:var(--ink-mute)}
 .cfc-add,.cfc-rm{
-  margin-top:5px;background:none;border:1px solid var(--rule);
+  margin-top:3px;background:none;border:1px solid var(--rule);
   color:var(--ink-mute);font-family:'Sora',sans-serif;font-size:10px;
-  letter-spacing:.06em;border-radius:3px;padding:3px 7px;cursor:pointer;
-  transition:color .1s,border-color .1s;text-align:left;
+  letter-spacing:.08em;text-transform:uppercase;border-radius:4px;padding:4px 11px;
+  cursor:pointer;transition:color .1s,border-color .1s;
 }
 .cfc-add:hover{color:var(--accent);border-color:var(--accent)}
 .cfc-rm:hover{color:#e05050;border-color:#e05050}
