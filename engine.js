@@ -328,25 +328,6 @@ const HISTORICAL_NOMINAL_RETURNS = {
   2024:{stock:.2488,bond:-.0164}, 2025:{stock:.1778,bond:.0780}
 };
 
-// ─── Per-asset stats (computed across each asset's available years) ─────
-function computeAssetStats(data){
-  const out = {};
-  ASSET_KEYS.forEach(k => {
-    const vals = data.map(r => r[k]).filter(v => v !== null && v !== undefined);
-    const n = vals.length;
-    if(n === 0){ out[k] = {mean:0, stdev:0, cagr:0, n:0, min:0, max:0}; return; }
-    const mean = vals.reduce((a,b)=>a+b,0) / n;
-    const variance = vals.reduce((a,b)=>a + Math.pow(b-mean,2),0) / Math.max(n-1,1);
-    const cagr = Math.pow(vals.reduce((p,v)=>p*(1+v),1), 1/n) - 1;
-    out[k] = {
-      mean, stdev: Math.sqrt(variance), cagr, n,
-      min: Math.min(...vals), max: Math.max(...vals)
-    };
-  });
-  return out;
-}
-const ASSET_STATS = computeAssetStats(RETURN_DATA);
-
 // ─── SECTION 3 — PLAN STATE ──────────────────────────────────────────────
 // Portfolio is now a structured account container rather than a single balance.
 // Three account types are modeled:
@@ -1510,8 +1491,8 @@ function assessPlan(analysis){
 /* ---- exports (so the UI and tests import instead of sharing globals) ---- */
 export {
   RETURN_DATA, ASSET_META, ASSET_KEYS, EQUITY_MIX, DEFENSIVE_MIX,
-  RISK_PROFILES, ASSET_STATS, LONGRUN_INFLATION,
-  buildAssetWeights, computeAssetStats, generateReturnPath, resetSeed, weightedAssetReturn,
+  RISK_PROFILES, LONGRUN_INFLATION,
+  buildAssetWeights, generateReturnPath, resetSeed, weightedAssetReturn,
   runSimulation, resolveInputs, runSinglePath, analyzeResults, runHistoricalPath,
   annualMortgagePayment,
   pathDigest, assessPlan, ASSESSMENT_RULES,
