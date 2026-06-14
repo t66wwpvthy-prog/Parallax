@@ -1557,6 +1557,11 @@ plan.simulation.iterations = 1000;
 // No status tone is used here (status is reserved for success language).
 const SCEN_PALETTE=['#D9A07E','#c59152','#7a93b8','#b45991','#BFA78F'];
 const colorFor=i=>SCEN_PALETTE[i % SCEN_PALETTE.length];
+// The base plan reads in a bronze-copper accent (not the palette orange) so it
+// is unmistakable as the anchor. scenAccent() gives the base that bronze and
+// every other scenario its palette tone.
+const BASE_ACCENT='#b8824c';
+const scenAccent=(s,i)=> (s && s.base) ? BASE_ACCENT : colorFor(i);
 const MAX_SCENARIOS=5;
 /* The three scenario columns. Each holds lever values + its last engine result.
    lever values are the ACTUAL planning values (age, $, etc.), not slider ticks. */
@@ -4230,7 +4235,7 @@ renderCashflow = function(){
   let h = `<table class="cf-table" style="width:${tableW}px">` + cg + '<thead><tr><th class="age" rowspan="2">Age</th><th class="source" rowspan="2">Source</th>';
   activeScens.forEach((s, i) => {
     if(comparing && i === 1) h += '<th class="cf-sep-head" rowspan="2"></th>';
-    h += `<th class="scen ${gcls[i]} cf-start cf-end" colspan="${cols}" style="color:${colorFor(activeIdx[i])}">${escHtml(s.name)}</th>`;
+    h += `<th class="scen ${gcls[i]} cf-start cf-end" colspan="${cols}" style="color:${scenAccent(s, activeIdx[i])}">${escHtml(s.name)}</th>`;
   });
   h += '</tr><tr>';
   activeScens.forEach((_, i) => {
@@ -4684,7 +4689,7 @@ function renderCfSidebar(){
     // Identity color = scenario palette (dot). Success ring + % color = status
     // ring color (green/amber/red) — the SAME ring()/ringColor() the expanded
     // band uses, just collapsed to a small gauge.
-    const color = colorFor(i);
+    const color = scenAccent(s, i);
     const rateColor = sr != null ? ringColor(sr) : 'var(--ink-faint)';
     const ringHtml = sr != null ? ring(sr) : '';
     let action = '';
@@ -4920,10 +4925,13 @@ runAll();   // first iteration runs immediately so the tool opens populated
 /* flex!important beats the max-width centering block's block display */
 .page[data-page="scenarios"].cf-mode #cf-wrapper{display:flex!important}
 
-/* Sidebar: sticky, fixed width, vertical scenario chip list */
+/* Sidebar: sticky, fixed width, vertical scenario chip list. The top margin
+   drops the first chip down so its top edge lines up with the cash-flow table
+   panel (which sits below the PATH controls in the main column). */
 .cf-sidebar{
   width:180px;flex-shrink:0;
   display:flex;flex-direction:column;gap:8px;
+  margin-top:48px;
   position:sticky;top:72px;
   max-height:calc(100vh - 96px);overflow-y:auto;
 }
@@ -4970,7 +4978,9 @@ body .page[data-page="scenarios"].cf-mode #cf-wrapper .cf-toggle{max-width:none;
   transition:border-color .15s,box-shadow .15s,background .15s;
 }
 .cf-chip:hover{border-color:var(--cc,var(--accent))}
-.cfc-primary{border-color:var(--cc)!important;box-shadow:0 0 0 1px var(--cc),0 8px 20px -12px rgba(0,0,0,.7)}
+/* Selected scenario: a thin accent border (bronze-copper for the base plan),
+   a soft drop shadow — no chunky double ring. */
+.cfc-primary{border-color:var(--cc)!important;box-shadow:0 6px 18px -12px rgba(0,0,0,.6)}
 .cfc-compare{border-color:var(--cc)!important;border-style:dashed}
 .cfc-name{
   display:flex;align-items:center;gap:6px;max-width:100%;
