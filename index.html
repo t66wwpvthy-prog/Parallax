@@ -4915,6 +4915,17 @@ runAll();   // first iteration runs immediately so the tool opens populated
 /* Main area: table + path controls */
 .cf-main{flex:1;min-width:0;display:flex;flex-direction:column}
 .cf-main .cf-toggle{margin:0 0 10px;justify-content:flex-start}
+/* In CF mode the table fills the viewport instead of a fixed 460px box,
+   so there's no large dead zone below it. Sidebar stays sticky alongside. */
+.page[data-page="scenarios"].cf-mode .cf-drawer{margin-bottom:0}
+.page[data-page="scenarios"].cf-mode .cf-scroll{max-height:calc(100vh - 200px)}
+/* Larger, friendlier table text in CF mode — more readable, still clean.
+   Body 14px, headers 11.5px, roomier row padding. */
+.page[data-page="scenarios"].cf-mode .cf-table{font-size:14px}
+.page[data-page="scenarios"].cf-mode .cf-table th{font-size:11.5px}
+.page[data-page="scenarios"].cf-mode .cf-table td.source{font-size:12.5px}
+.page[data-page="scenarios"].cf-mode .cf-table th,
+.page[data-page="scenarios"].cf-mode .cf-table td{padding:9px 13px}
 
 /* Scenario chips */
 .cf-chip{
@@ -5147,6 +5158,7 @@ body .page[data-page="scenarios"] .scn-foot{display:none!important}
 body .page[data-page="scenarios"] .cf-toggle,
 body .page[data-page="scenarios"] .story-wrap,
 body .page[data-page="scenarios"] .cf-drawer{max-width:1568px;margin-left:auto;margin-right:auto}
+body .page[data-page="scenarios"] .cf-wrapper{max-width:1568px;margin-left:auto;margin-right:auto}
 body .page[data-page="scenarios"] .scn-suggest{position:absolute;right:20px;bottom:-5px;z-index:5;min-width:154px;padding:12px 28px;border-radius:24px;border:1px solid rgba(226,239,246,.20);background:rgba(18,32,45,.72);color:var(--ng-accent);font-size:12px;letter-spacing:.17em;text-transform:uppercase;box-shadow:0 16px 34px -18px rgba(0,0,0,.65)}
 
 body .page[data-page="net-worth"],
