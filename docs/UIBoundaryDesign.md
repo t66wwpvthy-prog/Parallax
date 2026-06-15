@@ -136,16 +136,18 @@ export function setCfMode(newMode) {
 - `storyChart(rows)` → balance chart from simulation
 - `drawSeqChart(runs, retirementAge)` → resilience chart (forward vs reverse)
 - `goalsThreadSVG(goals, palette)` → goals visualization
-- `renderPrints(svgId, svgString)` → SVG DOM insertion
 - `ring(percent, radius, strokeWidth)` → donut gauge SVG
 
 **Constraints:**
 - No hardcoded PADL, PADR, PADT, PADB (reconcile first; pass as parameters or constants in charts.js with single source)
 - Colors passed in from controller (not read from DOM)
 - No querySelector or addEventListener
+- No DOM insertion (keep pure SVG generation; DOM mounting stays in controller)
 - No imports from index.html globals
 
 **Dependencies:** ui/formatters.js (for fmtM in axes)
+
+**Note:** renderPrints (DOM insertion) is NOT a chart utility — keep it in controller or ui module that owns SVG mounting.
 
 **Pre-extraction task:** Reconcile triple PADL (L2889=34, L3838=78, L3983=58) to single value.
 
@@ -156,9 +158,9 @@ export function setCfMode(newMode) {
 
 **Exports:**
 ```js
-// Scenarios
+// Scenarios (Array, not Map)
 export { scenarios };
-export function setScenarios(newMap) { ... }
+export function setScenarios(newArray) { ... }
 
 // pathReplay
 export { pathReplay };
@@ -178,8 +180,10 @@ export function setComboResults(results) { ... }
 ```
 
 **Constraints:**
-- Pure state ownership (no render logic)
+- Pure state ownership (NO render logic whatsoever)
 - Side effects only: localStorage persist, cache invalidation
+- NO DOM manipulation, NO rerender calls
+- Render orchestration stays in controller; state.js owns only mutation
 - No imports from index.html (accept plan as parameter to functions that need it)
 
 **Dependencies:** None (clean)
@@ -196,15 +200,22 @@ export function setComboResults(results) { ... }
 - `netWorthTotal(plan)` → investable + real − liabilities
 - `colSum(plan, page, side)` → sum one column of statement
 - `hybridTotal(plan, page)` → left + right total
-- `commitPlanEdit(field, newValue)` → edit handler (calls state.setScenarios to reseed, returns new plan)
 - `renderStatement(plan, page)` → HTML for statement page
 - `renderInputs(plan)` → HTML for input/edit forms
 - `renderSnapshot(plan)` → HTML for snapshot page
 
+**Special Handler (HIGH-RISK, NOT a pure render function):**
+- `commitPlanEdit(field, newValue)` → 🛑 **Do NOT move in Phase 4 or early phases**
+  - Mutation gateway: edits plan field
+  - Triggers reseed cascade: reseedScenarios → invalidate sharedPaths → runAll
+  - Side effects: localStorage persist (via state.js), trigger full UI re-orchestration
+  - **Status:** Keep in controller/index.html for now. Move only after state.js + all dependent modules stable. Requires full integration testing.
+
 **Constraints:**
-- `plan` is explicit parameter, not global read
-- Calls state.js setters for plan mutations (via commitPlanEdit)
-- No render logic beyond generating HTML strings
+- `plan` is explicit parameter to renderers, not global read
+- Pure render functions (render*) take plan + generate HTML only
+- No side effects in render functions; side effects belong in controller or state.js
+- No imports from index.html globals
 
 **Dependencies:** ui/formatters.js, state.js
 
@@ -305,11 +316,11 @@ After all phases complete:
 - **When safe:** Only after delegated listeners are centralized (one permanent setup, not per-render re-bind)
 - **Action:** Refactor event listeners to delegated form first (one-time setup), THEN extract scenarios.js
 
-### 🛑 `commitPlanEdit()` — MUTATION GATEWAY
-- **Why:** Tiny function (15 lines) but critical: triggers precise order (reseed → runAll)
-- **If extracted:** Belong with ui/household.js, but only when plan threading + state.js hooks are stable
-- **When safe:** Phase 4 (ui/household.js), with state.js already in place
-- **Action:** Extract as part of household.js, not alone
+### 🛑 `commitPlanEdit()` — MUTATION GATEWAY (HIGH-RISK)
+- **Why:** NOT a simple household render function; it is a mutation orchestrator. Triggers precise order: edit plan → reseedScenarios → invalidate sharedPaths → runAll. Any step skipped = silent cascade break
+- **If extracted early:** Belong with ui/household.js, but only when plan threading + state.js hooks are stable AND all side-effect wiring verified
+- **When safe:** ONLY after phases 1–3 complete, state.js is live, and household.js render functions are proven stable in integration tests
+- **Action:** Keep in controller/index.html for now. Do not move until full integration testing confirms side effects (reseed, path cache invalidation, UI re-orchestration) all fire correctly
 
 ### 🛑 `cssToken()` — DOM-Coupled Color Reader
 - **Why:** Reads live computed styles from `getComputedStyle(document.documentElement)`
