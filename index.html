@@ -1487,6 +1487,7 @@ body::after{inset:var(--frame-inset);border-radius:var(--frame-radius);border-co
 <script type="module">
 import { runSimulation, runHistoricalPath, generateReturnPath, resetSeed, annualMortgagePayment, LONGRUN_INFLATION, pathDigest, assessPlan, RISK_PROFILES, defaultPlan as plan } from './engine.js';
 import { MACRO_TAGS, HC_BLOCKS, HC_SHAPE_LABELS, HC_ASSET_LABELS, hcBlockGmr, profileThroughWeights, hcSymmetry, hcNextReturn, hcEnvironmentLabel, hcReferenceSet } from './history.js';
+import { fmtM, fmtMoney, fmtMDelta, fmtPts, cfMoney, cfRetPct, cfGain } from './ui/formatters.js';
 /* ╔══════════════════════════════════════════════════════════════╗
    ║  PARALLAX V2 — UI WIRING (calls the engine above)             ║
    ╚══════════════════════════════════════════════════════════════╝ */
@@ -2405,8 +2406,6 @@ function colSum(page, side){
 }
 function hybridTotal(page){ return colSum(page,'left') + colSum(page,'right'); }
 
-const fmtMoney = v => '$'+(v||0).toLocaleString('en-US');
-
 // Page-specific gutter HTML. Same shape on every page — title row + big
 // number + a breakdown of the parts. No descriptions; the structure IS the
 // description. Net Worth shows assets / liabilities / net; the three hybrid
@@ -3074,8 +3073,6 @@ function scheduleGoalCosts(){
     }catch(err){ console.error('goal cost runs failed', err); }
   }, 20);
 }
-function fmtPts(v){ return (v>=0?'+':'−')+Math.abs(v).toFixed(1)+' pts'; }
-function fmtMDelta(v){ return (v>=0?'+':'−')+fmtM(Math.abs(v)); }
 function paintGoalCosts(c){
   const dropped=new Set(c.dropped);
   $$('#np-content .gl-cost').forEach(el=>{
@@ -3833,7 +3830,6 @@ function renderFoot(){
 }
 
 /* ── chart helpers ── */
-function fmtM(v){ if(!isFinite(v)||v<=0) return '$0'; if(v>=1e6) return '$'+(v/1e6).toFixed(1)+'M'; if(v>=1e3) return '$'+Math.round(v/1e3)+'K'; return '$'+Math.round(v); }
 // Plot margins inside the viewBox (leaves room for axis labels).
 const PADL=78, PADR=14, PADT=12, PADB=30;
 // Chart axis colors, matched to the light-theme tokens (--rule-faint / --ink-faint).
@@ -3909,14 +3905,6 @@ function axes(W,H,ageStart,ageEnd,maxBal){
    per scenario side by side. The numbers here are reality-of-one-path
    (coherent), not blended percentiles — that's why this view exists.
    Plumbing only; no engine changes. */
-function cfMoney(v){
-  if(!isFinite(v)) return '—';
-  const n = Math.round(v);
-  if(n === 0) return '$0';
-  return '$' + Math.abs(n).toLocaleString('en-US');
-}
-function cfRetPct(r){ if(!isFinite(r)) return '—'; const p = r*100; return (p>=0?'+':'−') + Math.abs(p).toFixed(1) + '%'; }
-function cfGain(v){ if(!isFinite(v) || Math.round(v)===0) return '$0'; return (v<0?'−':'+') + '$' + Math.abs(Math.round(v)).toLocaleString('en-US'); }
 function simByIndex(res, idx){
   if(!res || !Array.isArray(res.sims)) return null;
   return res.sims.find(s => s.simIndex === idx) || res.sims[idx] || null;
