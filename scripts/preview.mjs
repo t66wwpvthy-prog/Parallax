@@ -52,7 +52,10 @@ const server = createServer((req, res) => {
     "Content-Type": types.get(extname(filePath).toLowerCase()) || "application/octet-stream",
     "Cache-Control": "no-store",
   });
-  createReadStream(filePath).pipe(res);
+  createReadStream(filePath).on('error', () => {
+    if (!res.headersSent) send(res, 500, 'Internal server error');
+    else res.destroy();
+  }).pipe(res);
 });
 
 server.listen(port, host, () => {
