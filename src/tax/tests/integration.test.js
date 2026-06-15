@@ -78,7 +78,8 @@ test('no tax module file imports engine.js', async () => {
   // Boundary guard: the tax engine must never depend on engine.js.
   const { readdirSync, readFileSync, statSync } = await import('node:fs');
   const { join } = await import('node:path');
-  const root = new URL('..', import.meta.url).pathname;   // src/tax/
+  const { fileURLToPath } = await import('node:url');
+  const root = fileURLToPath(new URL('..', import.meta.url));   // src/tax/
   const offenders = [];
   const walk = (dir) => {
     for(const name of readdirSync(dir)){
