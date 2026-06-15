@@ -7,7 +7,7 @@ import assert from 'node:assert';
 import {
   RETURN_DATA, RISK_PROFILES, generateReturnPath, runSimulation,
   runHistoricalPath, resolveInputs, defaultPlan, LONGRUN_INFLATION,
-  annualMortgagePayment
+  annualMortgagePayment, resetSeed
 } from './engine.js';
 
 test('return data spans the full history', () => {
@@ -43,6 +43,56 @@ test('higher-equity allocation has a higher expected return', () => {
 test('a known bad sequence (retire into 1973) is materially worse than average', () => {
   const hist = runHistoricalPath(defaultPlan, 1973, 'taxable-first');
   assert.ok(hist && (hist.rows || hist).length > 0, 'historical path should produce rows');
+});
+
+// Sequence Stress must be measured from RETIREMENT start, not plan start. For a
+// still-working client (currentAge < retirementAge), the first accumulation years
+// carry no sequence-of-returns risk (no withdrawals), so they must NOT drive which
+// path is labeled "stressed". The selector sorts by balanceAtRet10 (balance after
+// 10 retirement years), never balanceAt10 (plan-year 10). Regression for the
+// 58-retire-at-65 contamination case.
+test('Sequence Stress is retirement-relative, not contaminated by accumulation years', () => {
+  const p = JSON.parse(JSON.stringify(defaultPlan));
+  p.household.primary = { currentAge: 58, retirementAge: 65, planEndAge: 95 };
+  p.savings = { annual: 30000, split: { traditional: 1, roth: 0, taxable: 0 } };
+  const horizon = p.household.primary.planEndAge - p.household.primary.currentAge; // 37
+  // Fixed seed + fixed bundle → fully deterministic selection, so the assertions
+  // are reproducible across runs and machines.
+  resetSeed(20260615);
+  const bundle = Array.from({ length: 400 }, () => generateReturnPath(horizon));
+  const res = runSimulation(p, {}, bundle);
+
+  // (1) Every sim exposes the retirement-relative probe as a finite number.
+  assert.ok(res.sims.every(s => Number.isFinite(s.balanceAtRet10)),
+    'balanceAtRet10 must be present and finite on every sim');
+
+  // (2) The capture window is retirement year 10 (age retirementAge+9 = 74), NOT
+  //     plan-year 10 (age 67). Prove it against the actual row balance.
+  const sample = res.sims.find(s => !s.failed) || res.sims[0];
+  const ret10Row = sample.rows.find(r => r.age === 65 + 9);   // age 74
+  const plan10Row = sample.rows.find(r => r.age === 58 + 9);  // age 67
+  assert.ok(ret10Row, 'a surviving sim should reach retirement year 10 (age 74)');
+  assert.strictEqual(sample.balanceAtRet10, ret10Row.balance,
+    'balanceAtRet10 must equal the end balance at age 74 (10th retirement year)');
+  assert.strictEqual(sample.balanceAt10, plan10Row.balance,
+    'balanceAt10 (untouched) must still equal the end balance at plan-year 10 (age 67)');
+  assert.notStrictEqual(ret10Row.age, plan10Row.age,
+    'the two windows must be genuinely different when accumulation years exist');
+
+  // (3) The selector ranks by balanceAtRet10: re-derive the ordering and confirm
+  //     the engine's stressed (p10) and favorable (p90) picks match it. This proves
+  //     accumulation-year balances are not what chooses the stressed path.
+  const ns = res.sims.length;
+  const bySeq = res.sims.slice().sort((a, b) => {
+    if (a.balanceAtRet10 !== b.balanceAtRet10) return a.balanceAtRet10 - b.balanceAtRet10;
+    return a.terminalBalance - b.terminalBalance;
+  });
+  assert.strictEqual(res.paths.p10.balanceAtRet10, bySeq[Math.floor(ns * 0.10)].balanceAtRet10,
+    'stressed path (p10) must be the 10th-percentile by retirement-relative balance');
+  assert.strictEqual(res.paths.p90.balanceAtRet10, bySeq[Math.floor(ns * 0.90)].balanceAtRet10,
+    'favorable path (p90) must be the 90th-percentile by retirement-relative balance');
+  assert.ok(res.paths.p10.balanceAtRet10 <= res.paths.p90.balanceAtRet10,
+    'stressed early-retirement balance must not exceed the favorable one');
 });
 
 // Sequencing tab relies on this: reversing a real path must reuse the SAME
@@ -561,7 +611,7 @@ test('spouse retirement age extends accumulation on the same calendar timeline',
 
 /* ── pathDigest / assessPlan / returnDollars (story-mode aggregates) ────── */
 
-import { pathDigest, assessPlan, ASSESSMENT_RULES, resetSeed } from './engine.js';
+import { pathDigest, assessPlan, ASSESSMENT_RULES } from './engine.js';
 
 test('pathDigest invariants on a historical run (1973)', () => {
   const sim = runHistoricalPath(defaultPlan, 1973, 'taxable-first');
