@@ -877,6 +877,7 @@ function runSinglePath(p, returnPath){
   let depletionAge    = null;
   let first10Product  = 1;
   let balanceAt10     = 0;
+  let balanceAtRet10  = 0;
 
   for(let y = 0; y < p.horizonYears; y++){
     const age = p.currentAge + y;
@@ -1087,6 +1088,15 @@ function runSinglePath(p, returnPath){
 
     if(y === 9) balanceAt10 = endBalance;
 
+    // Retirement-relative sequence-stress probe: hold the end-of-year balance
+    // for each of the first 10 RETIREMENT years (age retirementAge … +9). Unlike
+    // balanceAt10 (plan-year indexed), this isolates early-retirement sequence
+    // risk and is unaffected by accumulation years when retirementAge > currentAge.
+    // A sim that depletes early lands at 0 here (failure zeroes the balance above),
+    // so early failures sort to the bottom; a short horizon leaves the last
+    // available retirement-year balance.
+    if(age >= p.retirementAge && age <= p.retirementAge + 9) balanceAtRet10 = endBalance;
+
     if(endBalance < minBalance) minBalance = endBalance;
     if(endBalance > peakBalance) peakBalance = endBalance;
     if(peakBalance > 0){
@@ -1141,7 +1151,7 @@ function runSinglePath(p, returnPath){
     : 0;
   return { rows, failed, cagr, terminalBalance: totalBalance(),
            minBalance, maxDrawdown, depletionAge, first10Cagr, balanceAt10,
-           lifetimeTax };
+           balanceAtRet10, lifetimeTax };
 }
 
 
@@ -1176,14 +1186,16 @@ function analyzeResults(sims, p){
     });
   }
 
-  // Path selection for Stressed/Favorable: sort by balance at year 10.
+  // Path selection for Stressed/Favorable: sort by balance after 10 RETIREMENT years.
   // Stressed = worst early sequence → surfaces the sequence-risk story clients need
   // to understand. Bad early returns during withdrawals are the primary retirement risk.
   // Favorable = best early sequence → shows what good early compounding looks like.
-  // Terminal balance is correct for Summary distribution but wrong here — Plan Drivers
-  // is specifically about sequence-of-returns risk, not final outcome ranking.
+  // Uses balanceAtRet10 (retirement-relative), so accumulation years do not drive the
+  // ranking when retirementAge > currentAge. Terminal balance is correct for the Summary
+  // distribution but wrong here — Plan Drivers is sequence-of-returns risk, not final
+  // outcome ranking. Terminal balance only breaks ties (e.g. two early-failed sims at 0).
   const bySequence = sims.slice().sort((a, b) => {
-    if(a.balanceAt10 !== b.balanceAt10) return a.balanceAt10 - b.balanceAt10;
+    if(a.balanceAtRet10 !== b.balanceAtRet10) return a.balanceAtRet10 - b.balanceAtRet10;
     return a.terminalBalance - b.terminalBalance;
   });
   const byCagr = sims.slice().sort((a, b) => a.cagr - b.cagr);
