@@ -1553,6 +1553,12 @@ function goalAreaChipsHTML(){
   return `<div class="ga-chips">${chips}</div>${intake}`;
 }
 
+const CHART_LAYOUT = Object.freeze({
+  goalThread: Object.freeze({ width:1000, padLeft:34, padRight:30, threadY:44 }),
+  scenarioPath: Object.freeze({ padLeft:78, padRight:14, padTop:12, padBottom:30 }),
+  storyPath: Object.freeze({ width:1120, height:300, padLeft:58, padRight:16, padTop:14, padBottom:30 }),
+});
+
 function goalsThreadSVG(view, dropped){
   const a0=plan.household.primary.currentAge;
   const a1=plan.household.primary.planEndAge;
@@ -1565,9 +1571,9 @@ function goalsThreadSVG(view, dropped){
     .map(g=>({...g, sa:clampAge(g.startAge), ea:Math.max(clampAge(g.startAge), clampAge(g.endAge))}))
     .sort((p,q)=>(p.sa-q.sa)||(p.i-q.i));
   const once=view.list.filter(g=>g.once).map(g=>({...g, sa:clampAge(g.startAge)}));
-  const W=1000, PADL=34, PADR=30, threadY=44;
+  const { width:W, padLeft:padL, padRight:padR, threadY } = CHART_LAYOUT.goalThread;
   const H=Math.max(190, threadY+44+rec.length*30+44);
-  const x=age=>PADL+(W-PADL-PADR)*(age-a0)/(a1-a0);
+  const x=age=>padL+(W-padL-padR)*(age-a0)/(a1-a0);
   // Ribbon widths: kept PRICED recurring goals share a ~12px bundle ∝ amount.
   // Unpriced goals have no width to claim — they ride outside the bundle as
   // dashed lanes, like dropped ghosts but visually distinct.
@@ -1598,13 +1604,13 @@ function goalsThreadSVG(view, dropped){
     // Kept ribbons travel inside the bundle from the left edge, then peel;
     // dropped ghosts and unpriced lanes have no place in the bundle — they
     // only mark the lane.
-    const d=(isDrop||isUn) ? `M ${peel(threadY)}` : `M ${PADL} ${yOf.get(g.i).toFixed(1)} L ${peel(yOf.get(g.i))}`;
+    const d=(isDrop||isUn) ? `M ${peel(threadY)}` : `M ${padL} ${yOf.get(g.i).toFixed(1)} L ${peel(yOf.get(g.i))}`;
     const cls=isUn?' unpriced':isDrop?' ghost':'';
     s+=`<path class="gt-flow${cls}${g.i===goalSelected?' on':''}" data-goal-i="${g.i}" d="${d}" stroke-width="${(isDrop||isUn)?1.5:wOf(g).toFixed(1)}"/>`;
     hits+=`<path class="gt-hit" data-goal-i="${g.i}" d="${d}" stroke-width="22"/>`;
     labels+=`<text class="gt-lbl${isUn?' unpriced':''}${g.i===goalSelected?' on':''}" data-goal-i="${g.i}" x="${(px+58).toFixed(1)}" y="${laneY-7}">${escHtml(g.name||'Goal')} · ${isUn?'unpriced':fmtMoney(g.amount)+'/yr'}</text>`;
   }
-  s+=`<line class="gt-spine" x1="${PADL}" y1="${threadY}" x2="${W-PADR}" y2="${threadY}"/>`;
+  s+=`<line class="gt-spine" x1="${padL}" y1="${threadY}" x2="${W-padR}" y2="${threadY}"/>`;
   for(const g of once){
     const isDrop=dropped.has(g.i), isUn=g.unpriced;
     const cx=x(g.sa), r=isUn?6:Math.max(5, Math.min(11, 4+Math.sqrt(g.amount||0)/40));
@@ -2510,8 +2516,6 @@ function renderFoot(){
 }
 
 /* ── chart helpers ── */
-// Plot margins inside the viewBox (leaves room for axis labels).
-const PADL=78, PADR=14, PADT=12, PADB=30;
 // Chart axis colors, matched to the light-theme tokens (--rule-faint / --ink-faint).
 const GRID='rgba(230,246,235,.18)', AXIS_INK='rgba(226,232,232,.78)';
 // Smooth a series of [x,y] points into a path using Catmull-Rom -> bezier.
@@ -2562,7 +2566,8 @@ function smoothPath(pts){
   return d;
 }
 function axes(W,H,ageStart,ageEnd,maxBal){
-  const x0=PADL, x1=W-PADR, y0=PADT, y1=H-PADB;
+  const { padLeft:padL, padRight:padR, padTop:padT, padBottom:padB } = CHART_LAYOUT.scenarioPath;
+  const x0=padL, x1=W-padR, y0=padT, y1=H-padB;
   let g='';
   // Horizontal gridlines — faint rule color so the grid is legible without
   // competing with the data lines. (Was a dark-theme near-black; fixed for the
@@ -2653,22 +2658,22 @@ const TAX_SOURCE_LABELS = {
   traditional:'Traditional withdrawals', taxable:'capital gains'
 };
 function storyChart(rows){
-  const W=1120, H=300, PADL=58, PADR=16, PADT=14, PADB=30;
+  const { width:W, height:H, padLeft:padL, padRight:padR, padTop:padT, padBottom:padB } = CHART_LAYOUT.storyPath;
   const real = rows.filter(r => r.source != null);
   if(real.length < 2) return '';
   const hi = Math.max(...real.map(r => Math.max(r.balance, r.startBalance))) * 1.05;
   if(!(hi > 0)) return '';
-  const x = i => PADL + (W-PADL-PADR) * i / (real.length-1);
-  const y = v => PADT + (H-PADT-PADB) * (1 - v/hi);
+  const x = i => padL + (W-padL-padR) * i / (real.length-1);
+  const y = v => padT + (H-padT-padB) * (1 - v/hi);
   const pts = real.map((r,i) => [x(i), y(r.balance)]);
   let g = '';
   for(const f of [0,.5,1]){
-    const gy = PADT + (H-PADT-PADB)*f;
-    g += `<line x1="${PADL}" y1="${gy}" x2="${W-PADR}" y2="${gy}" stroke="var(--rule-faint)"/>`;
-    g += `<text x="${PADL-8}" y="${gy+4}" fill="var(--ink-faint)" font-size="10.5" font-family="Inter" text-anchor="end">${fmtM(hi*(1-f))}</text>`;
+    const gy = padT + (H-padT-padB)*f;
+    g += `<line x1="${padL}" y1="${gy}" x2="${W-padR}" y2="${gy}" stroke="var(--rule-faint)"/>`;
+    g += `<text x="${padL-8}" y="${gy+4}" fill="var(--ink-faint)" font-size="10.5" font-family="Inter" text-anchor="end">${fmtM(hi*(1-f))}</text>`;
   }
   const y0 = y(real[0].startBalance);
-  g += `<line x1="${PADL}" y1="${y0}" x2="${W-PADR}" y2="${y0}" stroke="var(--ink-faint)" stroke-dasharray="3 6"/>`;
+  g += `<line x1="${padL}" y1="${y0}" x2="${W-padR}" y2="${y0}" stroke="var(--ink-faint)" stroke-dasharray="3 6"/>`;
   const a0 = real[0].age, a1 = real[real.length-1].age;
   for(let a = Math.ceil(a0/5)*5; a <= a1; a += 5){
     const ax = x(Math.round((a-a0)/(a1-a0)*(real.length-1)));
@@ -2677,7 +2682,7 @@ function storyChart(rows){
   const d = smoothPath(pts);
   return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Balance path">
     ${g}
-    <path d="${d} L ${pts[pts.length-1][0].toFixed(1)} ${H-PADB} L ${PADL} ${H-PADB} Z" fill="var(--ink-bright)" fill-opacity="0.05"/>
+    <path d="${d} L ${pts[pts.length-1][0].toFixed(1)} ${H-padB} L ${padL} ${H-padB} Z" fill="var(--ink-bright)" fill-opacity="0.05"/>
     <path d="${d}" fill="none" stroke="var(--accent-bright)" stroke-width="2.2"/>
     <circle cx="${pts[pts.length-1][0].toFixed(1)}" cy="${pts[pts.length-1][1].toFixed(1)}" r="4.5" fill="var(--accent-bright)"/>
   </svg>`;
@@ -3048,7 +3053,8 @@ function drawSeqChart(runs, retAge){
   const realMax=Math.max(...all.map(a=>Math.max(...a)));
   const ceiling=entry>0 ? entry*2.2 : realMax;
   const maxBal=niceCeil(Math.min(realMax, ceiling));
-  const x0=PADL, x1=W-PADR, y0=PADT, y1=H-PADB;
+  const { padLeft:padL, padRight:padR, padTop:padT, padBottom:padB } = CHART_LAYOUT.scenarioPath;
+  const x0=padL, x1=W-padR, y0=padT, y1=H-padB;
   const X=idx=> x0+(x1-x0)*(idx/(Math.max(1,n-1)));
   const Y=v => y1-(Math.min(Math.max(0,v),maxBal)/maxBal)*(y1-y0);
   let h=axes(W,H,ageStart,ageEnd,maxBal);
