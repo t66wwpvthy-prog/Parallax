@@ -1431,8 +1431,7 @@ body::after{inset:var(--frame-inset);border-radius:var(--frame-radius);border-co
               <option value="typical">Typical path</option>
               <option value="stressed">Stressed path</option>
               <option value="favorable">Favorable path</option>
-              <option value="failed">Failed path</option>
-              <option value="lowest-survivor">Lowest survivor</option>
+              <option value="sequence-stress">Sequence Stress</option>
               <option value="choose">Choose path...</option>
             </select>
           </label>
@@ -3924,6 +3923,21 @@ function simByIndex(res, idx){
 function baselineResult(){
   return (scenarios.find(s=>s.base) || scenarios[0] || {}).res || null;
 }
+function findSimByTerminalBalance(res, targetBalance){
+  if(!res || !Array.isArray(res.sims) || !res.sims.length) return 0;
+  if(!Number.isFinite(targetBalance)) return 0;
+  let closest = res.sims[0];
+  let minDiff = Infinity;
+  for(const sim of res.sims){
+    if(!Number.isFinite(sim.terminalBalance)) continue;
+    const diff = Math.abs(sim.terminalBalance - targetBalance);
+    if(diff < minDiff){
+      minDiff = diff;
+      closest = sim;
+    }
+  }
+  return closest?.simIndex ?? 0;
+}
 function selectedPathIndex(){
   const res = baselineResult();
   if(!res || !Array.isArray(res.sims) || !res.sims.length) return 0;
@@ -3934,22 +3948,13 @@ function selectedPathIndex(){
     return (res.paths && res.paths.p50 && res.paths.p50.simIndex != null) ? res.paths.p50.simIndex : 0;
   }
   if(pathReplay.mode === 'stressed'){
-    return (res.paths && res.paths.p10 && res.paths.p10.simIndex != null) ? res.paths.p10.simIndex : 0;
+    return res.terminal && Number.isFinite(res.terminal.p10) ? findSimByTerminalBalance(res, res.terminal.p10) : 0;
   }
   if(pathReplay.mode === 'favorable'){
-    return (res.paths && res.paths.p90 && res.paths.p90.simIndex != null) ? res.paths.p90.simIndex : 0;
+    return res.terminal && Number.isFinite(res.terminal.p90) ? findSimByTerminalBalance(res, res.terminal.p90) : 0;
   }
-  if(pathReplay.mode === 'failed'){
-    const failed = res.sims
-      .filter(s => s.failed)
-      .sort((a,b) => (a.depletionAge || 999) - (b.depletionAge || 999));
-    return failed.length ? failed[0].simIndex : ((res.paths && res.paths.p10 && res.paths.p10.simIndex != null) ? res.paths.p10.simIndex : 0);
-  }
-  if(pathReplay.mode === 'lowest-survivor'){
-    const survivors = res.sims
-      .filter(s => !s.failed)
-      .sort((a,b) => a.terminalBalance - b.terminalBalance);
-    return survivors.length ? survivors[0].simIndex : ((res.paths && res.paths.p10 && res.paths.p10.simIndex != null) ? res.paths.p10.simIndex : 0);
+  if(pathReplay.mode === 'sequence-stress'){
+    return (res.paths && res.paths.p10 && res.paths.p10.simIndex != null) ? res.paths.p10.simIndex : 0;
   }
   return 0;
 }
@@ -3958,8 +3963,7 @@ function pathModeLabel(){
     typical:'Typical path',
     stressed:'Stressed path',
     favorable:'Favorable path',
-    failed:'Failed path',
-    'lowest-survivor':'Lowest survivor',
+    'sequence-stress':'Sequence Stress',
     choose:'Chosen path'
   })[pathReplay.mode] || 'Typical path';
 }
