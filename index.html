@@ -9,6 +9,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@300;400;500;600;700&display=swap"/>
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3E%3Crect%20width='64'%20height='64'%20rx='12'%20fill='%231e3d2b'/%3E%3Cpath%20d='M16%2038c8-20%2024-20%2032%200'%20fill='none'%20stroke='%23d9a07e'%20stroke-width='6'%20stroke-linecap='round'/%3E%3Ccircle%20cx='32'%20cy='32'%20r='7'%20fill='%23e5d9c4'/%3E%3C/svg%3E"/>
 <link rel="stylesheet" href="styles/main.css"/>
+<link rel="stylesheet" href="styles/household.css"/>
 </head>
 <body>
 <div class="wrap">
@@ -169,6 +170,7 @@ import { runSimulation, runHistoricalPath, generateReturnPath, resetSeed, annual
 import { MACRO_TAGS, HC_BLOCKS, HC_SHAPE_LABELS, HC_ASSET_LABELS, hcBlockGmr, profileThroughWeights, hcSymmetry, hcNextReturn, hcEnvironmentLabel, hcReferenceSet } from './history.js';
 import { fmtM, fmtMoney, fmtMDelta, fmtPts, cfMoney, cfRetPct, cfGain } from './ui/formatters.js';
 import { storyChart, seqChartSvg } from './ui/charts.js';
+import { HH_VIEW_KEY, renderHouseholdStatement } from './ui/household.js';
 /* ╔══════════════════════════════════════════════════════════════╗
    ║  PARALLAX V2 — UI WIRING (calls the engine above)             ║
    ╚══════════════════════════════════════════════════════════════╝ */
@@ -954,6 +956,9 @@ const HYBRID = {
    they were. Falls back to balance-sheet if the saved key is unknown. */
 const SUB_KEY = 'parallax.netWorth.sub';
 let activeSub = 'balance-sheet';
+let householdView = 'map';
+try { householdView = localStorage.getItem(HH_VIEW_KEY) || 'map'; } catch {}
+if(!['map','networth'].includes(householdView)) householdView = 'map';
 const getPath=(o,p)=>p.split('.').reduce((a,k)=>a&&a[k],o);
 const setPath=(o,p,v)=>{const ks=p.split('.');const last=ks.pop();let t=o;for(const k of ks){if(t==null)return;t=t[k];}if(t!=null)t[last]=v;};
 
@@ -1023,49 +1028,15 @@ const ACCT_TYPES = [
   {label:'SIMPLE IRA', bucket:'traditional'}, {label:'Solo 401(k)', bucket:'traditional'},
   {label:'Roth IRA', bucket:'roth'}, {label:'Brokerage', bucket:'taxable'},
 ];
-const BUCKET_TAG = { traditional:'pre-tax', roth:'Roth', taxable:'taxable' };
 let acctSel = null;   // type currently armed in the add picker
-function renderExtraAccounts(){
-  return (plan.portfolio.extraAccounts||[]).map((a,i)=>
-    `<div class="bs-row"><label>${a.type}<span class="acct-tag ${a.bucket}">${BUCKET_TAG[a.bucket]}</span></label><span class="bs-dots"></span>`
-   +`<span class="field"><input class="acct-bal" data-type="money" data-acctidx="${i}" value="${(a.balance||0).toLocaleString('en-US')}"><button class="acct-x" data-acctidx="${i}" title="Remove">×</button></span></div>`
-  ).join('');
-}
-function renderAcctPicker(){
-  const rows = [['traditional','Pre-tax'],['roth','Roth'],['taxable','Taxable']].map(([b,lbl])=>{
-    const chips = ACCT_TYPES.filter(t=>t.bucket===b).map(t=>
-      `<span class="acct-chip ${acctSel&&acctSel.label===t.label?'sel':''}" data-label="${t.label}" data-bucket="${t.bucket}">${t.label}</span>`).join('');
-    return `<div class="acct-brow"><span class="acct-blabel ${b}">${lbl}</span><div class="acct-chips">${chips}</div></div>`;
-  }).join('');
-  return `<div class="acct-picker"><h5>Add an investment account</h5>${rows}`
-       + `<div class="acct-foot"><div><span class="lbl">Balance</span><input class="acct-amt" data-type="money" placeholder="$0"></div>`
-       + `<button class="acct-add" ${acctSel?'':'disabled'}>${acctSel?('Add '+acctSel.label):'Add'}</button></div></div>`;
-}
 // Post-edit refresh (mirrors the balance-sheet field commit, minus setPath).
 function commitPlanEdit(){
   reseedScenarios(); buildLevers(); sharedPaths=null; plansDirty=true; renderInputs();
   $('#status').textContent='Plan edited · open Scenarios';
 }
-// Net worth = assets - liabilities. Real-asset and recurring-liability UI
-// surfaces ship empty for now (stubs), so until those are filled the gutter
-// shows investable as net worth and zeroes for the empty buckets — never
-// invents numbers. When real assets and liabilities land, this fn picks
-// them up automatically from the plan.
+// Real assets are current balance-sheet values. The Household module keeps
+// recurring payment streams out of strict net-worth liability totals.
 function realAssetsTotal(){ return (plan.properties||[]).reduce((s,a)=>s+(a.value||0),0); }
-function liabilitiesPVTotal(){
-  // Side-panel estimate of what's owed: generic recurring liabilities as a simple
-  // PV (amount/yr × years remaining) + each property mortgage's outstanding
-  // balance. Honest crude estimate — the engine still does the proper
-  // time-erosion + amortization math during simulation.
-  const p=plan.household.primary;
-  const recurring = (plan.liabilities||[]).reduce((s,L)=>{
-    const yrs = Math.max(0, (L.endAge||p.planEndAge) - Math.max(L.startAge||p.currentAge, p.currentAge));
-    return s + (L.amount||0)*yrs;
-  },0);
-  const mortgages = (plan.properties||[]).reduce((s,pr)=>s+((pr.mortgage&&pr.mortgage.balance)||0),0);
-  return recurring + mortgages;
-}
-function netWorthTotal(){ return investableTotal() + realAssetsTotal() - liabilitiesPVTotal(); }
 
 // Column subtotals — sums every group in HYBRID[page].left / .right (a column may
 // be one or more groups). Dynamic-pension items are included automatically.
@@ -1249,30 +1220,18 @@ function flowSection(arr, nameKey, ph, kind, addLabel){
    Section heads = small caps + thin accent underline. Rows = label, dotted
    leader, boxless input. Subtotal closes a money section in slate. */
 function renderStatement(){
-  const renderSecs = secs => {
-    let h = '';
-    secs.forEach(sec => {
-      h += `<div class="bs-head">${sec.head}</div>`;
-      (sec.fields||[]).forEach(f => {
-        const rowCls = f.sub ? 'bs-row sub' : 'bs-row';
-        h += `<div class="${rowCls}"><label>${f.label}</label><span class="bs-dots"></span><span class="field">${renderField(f)}</span></div>`;
-      });
-      if(sec.subtotal==='invest'){
-        h += `<div class="bs-sub"><span class="bs-sub-l">Investable total</span><span class="bs-sub-d"></span><span class="bs-sub-v">${fmtMoney(investableTotal())}</span></div>`;
-      }
-    });
-    return h;
-  };
-  const leftSecs = BALANCE_SHEET.filter(s => s.col !== 'right');
-  const rightSecs = BALANCE_SHEET.filter(s => s.col === 'right');
-  return `<div class="np-page np-bal">
-    ${renderGutter('balance-sheet')}
-    <div class="bs-sheet">
-      <div class="bs-col"><div class="bs-title">Plan</div>${renderSecs(leftSecs)}</div>
-      <div class="bs-divider"></div>
-      <div class="bs-col"><div class="bs-title">Cash Flow</div>${renderSecs(rightSecs)}</div>
-    </div>
-  </div>`;
+  return renderHouseholdStatement({
+    plan,
+    householdView,
+    acctSel,
+    acctTypes: ACCT_TYPES,
+    balanceSheet: BALANCE_SHEET,
+    fmtMoney,
+    renderField,
+    escHtml,
+    investableTotal,
+    realAssetsTotal,
+  });
 }
 
 /* ── Hybrid layout (Inflows / Outflows / Goals) ───────────────────
@@ -1802,6 +1761,13 @@ function renderInputs(){
 
 // ── All Net Worth interactions — delegated on the stable #np-content ─────────
 $('#np-content').addEventListener('click', e => {
+  const hhMode = e.target.closest('.hh-toggle-btn');
+  if(hhMode){
+    householdView = hhMode.dataset.hhView || 'map';
+    try { localStorage.setItem(HH_VIEW_KEY, householdView); } catch {}
+    renderInputs();
+    return;
+  }
   // Row delete (×)
   const rx = e.target.closest('.row-x');
   if(rx){
