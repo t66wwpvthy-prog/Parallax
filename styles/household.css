@@ -663,95 +663,95 @@ body .hh-person-stats input[data-type="money"]{
 html:has(.page[data-page="net-worth"].on .hh-shell),
 body:has(.page[data-page="net-worth"].on .hh-shell),
 body:has(.page[data-page="net-worth"].on .hh-shell) .wrap{
-  --hh-taxable:#c79a5e;
-  --hh-pre-tax:#a97a48;
-  --hh-roth:#cfc17d;
+  --hh-taxable:#bd9259;
+  --hh-pre-tax:#9d7345;
+  --hh-roth:#c4b976;
   background:
-    radial-gradient(circle at 50% 7%,rgba(236,228,212,.035),transparent 34%),
-    radial-gradient(circle at 18% 0%,rgba(214,176,112,.030),transparent 28%),
-    linear-gradient(180deg,#11100d 0%,#090908 72%,#070706 100%)!important;
+    radial-gradient(circle at 50% 7%,rgba(236,228,212,.040),transparent 34%),
+    radial-gradient(circle at 18% 0%,rgba(214,176,112,.008),transparent 26%),
+    linear-gradient(180deg,#171512 0%,#12110f 58%,#0f0e0c 100%)!important;
 }
 body:has(.page[data-page="net-worth"].on .hh-shell) .hdr{
   background:
-    linear-gradient(135deg,rgba(18,17,14,.92),rgba(23,21,17,.76) 56%,rgba(17,16,13,.88)),
-    rgba(17,16,13,.84)!important;
+    linear-gradient(135deg,rgba(20,19,17,.94),rgba(24,22,19,.82) 56%,rgba(16,15,13,.90)),
+    rgba(18,17,15,.88)!important;
   border-color:rgba(236,228,212,.11)!important;
-  box-shadow:0 26px 84px -58px rgba(0,0,0,.92),inset 0 1px 0 rgba(255,248,226,.10)!important;
+  box-shadow:0 26px 84px -62px rgba(0,0,0,.90),inset 0 1px 0 rgba(255,248,226,.090)!important;
 }
 body:has(.page[data-page="net-worth"].on .hh-shell) svg.brand-logo{
-  filter:drop-shadow(0 0 10px rgba(236,228,212,.10))!important;
-  opacity:.78;
+  filter:grayscale(1) sepia(.18) saturate(.55) drop-shadow(0 0 9px rgba(236,228,212,.08))!important;
+  opacity:.66;
 }
 body:has(.page[data-page="net-worth"].on .hh-shell) .htab.on{
-  border-bottom-color:rgba(214,176,112,.86)!important;
-  box-shadow:0 8px 22px -18px rgba(214,176,112,.74)!important;
+  border-bottom-color:rgba(214,176,112,.70)!important;
+  box-shadow:0 8px 22px -20px rgba(214,176,112,.42)!important;
 }
 body:has(.page[data-page="net-worth"].on .hh-shell) .run-btn,
 body .hh-bankrail .acct-add{
-  background:rgba(214,176,112,.13)!important;
-  border:1px solid rgba(214,176,112,.42)!important;
+  background:rgba(214,176,112,.075)!important;
+  border:1px solid rgba(214,176,112,.30)!important;
   color:var(--hh-gold-bright)!important;
-  box-shadow:inset 0 1px 0 rgba(255,248,226,.13),0 14px 34px -28px rgba(214,176,112,.6)!important;
+  box-shadow:inset 0 1px 0 rgba(255,248,226,.10),0 14px 34px -30px rgba(214,176,112,.34)!important;
 }
 body .page[data-page="net-worth"]{
-  padding:30px 40px 46px;
+  padding:34px 40px 50px;
   background:
-    radial-gradient(circle at 50% 17%,rgba(236,228,212,.040),transparent 33%),
-    radial-gradient(circle at 80% 18%,rgba(154,102,56,.055),transparent 28%),
-    radial-gradient(circle at 18% 72%,rgba(214,176,112,.045),transparent 32%),
-    linear-gradient(180deg,#0d0c0a 0%,#090907 100%)!important;
+    radial-gradient(circle at 50% 17%,rgba(236,228,212,.046),transparent 33%),
+    radial-gradient(circle at 80% 18%,rgba(154,102,56,.012),transparent 28%),
+    radial-gradient(circle at 18% 72%,rgba(214,176,112,.010),transparent 32%),
+    linear-gradient(180deg,#151410 0%,#100f0d 100%)!important;
 }
 body .hh-view-toggle{
-  margin-bottom:28px;
-  background:rgba(8,8,7,.72);
+  margin-bottom:34px;
+  background:rgba(13,13,11,.66);
   border-color:rgba(236,228,212,.10);
-  box-shadow:0 20px 58px -42px rgba(0,0,0,.95),inset 0 1px 0 rgba(255,248,226,.08);
+  box-shadow:0 20px 58px -44px rgba(0,0,0,.92),inset 0 1px 0 rgba(255,248,226,.080);
 }
 body .hh-toggle-btn.on{
   color:var(--hh-gold-bright);
-  background:rgba(214,176,112,.10);
-  box-shadow:inset 0 0 0 1px rgba(214,176,112,.28),0 12px 30px -26px rgba(214,176,112,.75);
+  background:rgba(214,176,112,.060);
+  box-shadow:inset 0 0 0 1px rgba(214,176,112,.20),0 12px 30px -28px rgba(214,176,112,.42);
 }
 body .hh-map-grid{
-  height:clamp(720px,calc(100vh - 208px),840px);
-  grid-template-columns:minmax(0,1fr) 280px;
-  gap:46px;
+  height:clamp(740px,calc(100vh - 210px),860px);
+  grid-template-columns:minmax(0,1fr) 260px;
+  gap:56px;
 }
 body .hh-map-main{
-  padding:42px 48px 44px;
+  padding:48px 56px 52px;
   border-radius:30px;
   background:
-    radial-gradient(circle at 50% 40%,rgba(236,228,212,.035),transparent 33%),
-    radial-gradient(circle at 50% 47%,rgba(214,176,112,.045),transparent 38%),
-    linear-gradient(180deg,rgba(18,17,14,.50),rgba(8,8,7,.34))!important;
-  border-color:rgba(236,228,212,.055);
-  box-shadow:inset 0 1px 0 rgba(255,248,226,.045),0 42px 110px -84px rgba(0,0,0,.96);
+    radial-gradient(circle at 50% 39%,rgba(236,228,212,.042),transparent 34%),
+    radial-gradient(circle at 50% 47%,rgba(214,176,112,.010),transparent 38%),
+    linear-gradient(180deg,rgba(25,23,20,.52),rgba(12,12,10,.34))!important;
+  border-color:rgba(236,228,212,.085);
+  box-shadow:inset 0 1px 0 rgba(255,248,226,.080),0 58px 146px -92px rgba(0,0,0,.96);
 }
 body .hh-map-main::before{
   top:184px;
   left:12%;
   right:12%;
-  background:linear-gradient(90deg,transparent,rgba(214,176,112,.12),transparent);
+  background:linear-gradient(90deg,transparent,rgba(236,228,212,.055),transparent);
 }
 body .hh-map-kpis{
   max-width:1060px;
-  gap:18px;
-  margin-bottom:62px;
+  gap:20px;
+  margin-bottom:74px;
 }
 body .hh-map-kpis div,
 body .hh-statement-hero,
 body .hh-glass-card{
   background:
-    linear-gradient(145deg,rgba(255,248,226,.070),rgba(255,248,226,.018) 48%,rgba(15,14,12,.34)),
-    rgba(13,12,10,.38)!important;
-  border-color:rgba(236,228,212,.115)!important;
-  box-shadow:0 44px 128px -72px rgba(0,0,0,.98),inset 0 1px 0 rgba(255,248,226,.18),inset 0 0 0 1px rgba(255,248,226,.025)!important;
-  backdrop-filter:blur(26px) saturate(1.08);
-  -webkit-backdrop-filter:blur(26px) saturate(1.08);
+    linear-gradient(145deg,rgba(255,248,226,.105),rgba(255,248,226,.026) 46%,rgba(14,13,12,.30)),
+    rgba(19,18,15,.34)!important;
+  border-color:rgba(236,228,212,.13)!important;
+  box-shadow:0 56px 152px -78px rgba(0,0,0,.96),inset 0 1px 0 rgba(255,248,226,.22),inset 0 0 0 1px rgba(255,248,226,.035)!important;
+  backdrop-filter:blur(30px) saturate(1.05);
+  -webkit-backdrop-filter:blur(30px) saturate(1.05);
 }
 body .hh-map-kpis div{
-  min-height:98px;
-  padding:18px 19px;
+  min-height:102px;
+  padding:19px 20px;
   border-radius:18px;
 }
 body .hh-map-kpis b{
@@ -759,23 +759,23 @@ body .hh-map-kpis b{
 }
 body .hh-people{
   max-width:1060px;
-  gap:min(10vw,160px);
+  gap:min(11vw,178px);
 }
 body .hh-orb{
-  width:260px;
+  width:276px;
   background:
-    radial-gradient(circle at 50% 34%,rgba(255,248,226,.12),rgba(28,26,22,.34) 54%,rgba(7,7,6,.82)),
-    radial-gradient(circle at 50% 50%,rgba(214,176,112,.070),transparent 69%);
-  border-color:rgba(214,176,112,.30);
-  box-shadow:0 0 0 1px rgba(236,228,212,.070),0 0 126px -44px rgba(214,176,112,.50),0 42px 96px -58px rgba(0,0,0,.98),inset 0 0 86px -38px rgba(214,176,112,.34);
+    radial-gradient(circle at 50% 33%,rgba(255,248,226,.145),rgba(28,26,22,.36) 54%,rgba(7,7,6,.84)),
+    radial-gradient(circle at 50% 50%,rgba(214,176,112,.040),transparent 70%);
+  border-color:rgba(214,176,112,.22);
+  box-shadow:0 0 0 1px rgba(236,228,212,.080),0 0 116px -50px rgba(214,176,112,.34),0 50px 118px -64px rgba(0,0,0,.99),inset 0 0 92px -40px rgba(236,228,212,.13);
 }
 body .hh-orb::after{
   inset:16px;
-  border-color:rgba(236,228,212,.060);
+  border-color:rgba(236,228,212,.075);
 }
 body .hh-orb-name{
-  max-width:190px;
-  font-size:42px;
+  max-width:202px;
+  font-size:44px;
 }
 body .hh-orb-age{
   color:rgba(236,228,212,.86);
@@ -787,42 +787,42 @@ body .hh-orb-status{
 }
 body .hh-person-stats{
   max-width:430px;
-  margin-top:34px;
+  margin-top:38px;
 }
 body .hh-account-cloud{
-  margin-top:50px;
+  margin-top:58px;
 }
 body .hh-pill{
-  background:rgba(255,248,226,.040);
-  border-color:rgba(236,228,212,.12);
-  box-shadow:0 20px 56px -40px rgba(0,0,0,.92),inset 0 1px 0 rgba(255,248,226,.12);
+  background:rgba(255,248,226,.030);
+  border-color:rgba(236,228,212,.105);
+  box-shadow:0 22px 64px -44px rgba(0,0,0,.94),inset 0 1px 0 rgba(255,248,226,.10);
 }
 body .hh-bankrail{
-  background:rgba(13,12,10,.24)!important;
-  border-color:rgba(236,228,212,.065)!important;
-  box-shadow:0 32px 88px -74px rgba(0,0,0,.96),inset 0 1px 0 rgba(255,248,226,.075)!important;
-  backdrop-filter:blur(24px) saturate(1.04)!important;
-  -webkit-backdrop-filter:blur(24px) saturate(1.04)!important;
+  background:rgba(18,17,15,.20)!important;
+  border-color:rgba(236,228,212,.060)!important;
+  box-shadow:0 32px 96px -78px rgba(0,0,0,.94),inset 0 1px 0 rgba(255,248,226,.075)!important;
+  backdrop-filter:blur(26px) saturate(1.02)!important;
+  -webkit-backdrop-filter:blur(26px) saturate(1.02)!important;
 }
 body .hh-bank-head{
-  padding:23px 22px 15px;
-  border-bottom-color:rgba(236,228,212,.075);
+  padding:22px 20px 14px;
+  border-bottom-color:rgba(236,228,212,.055);
 }
 body .hh-bank-head h3{
-  font-size:24px;
+  font-size:22px;
 }
 body .hh-bank-body{
-  padding:14px 16px 6px;
+  padding:14px 15px 6px;
 }
 body .hh-bankrail .acct-brow{
-  margin-bottom:12px;
-  padding-bottom:14px;
-  border-bottom-color:rgba(236,228,212,.050);
+  margin-bottom:10px;
+  padding-bottom:13px;
+  border-bottom-color:rgba(236,228,212,.038);
 }
 body .hh-bankrail .acct-chip{
-  min-height:38px;
-  background:rgba(255,248,226,.012)!important;
-  border-color:rgba(236,228,212,.060)!important;
+  min-height:36px;
+  background:rgba(255,248,226,.006)!important;
+  border-color:rgba(236,228,212,.046)!important;
   color:rgba(236,228,212,.82)!important;
 }
 body .hh-bankrail .acct-chip::after{
@@ -830,11 +830,24 @@ body .hh-bankrail .acct-chip::after{
   color:rgba(236,228,212,.40);
 }
 body .hh-bankrail .acct-chip.sel{
-  background:rgba(214,176,112,.042)!important;
-  border-color:rgba(214,176,112,.24)!important;
+  background:rgba(214,176,112,.026)!important;
+  border-color:rgba(214,176,112,.18)!important;
 }
 body .hh-bankrail .acct-foot{
-  border-top-color:rgba(236,228,212,.075);
+  border-top-color:rgba(236,228,212,.050);
+}
+body .hh-bankrail .acct-amt{
+  background:rgba(236,228,212,.095)!important;
+  border-color:rgba(236,228,212,.22)!important;
+  color:rgba(255,248,226,.96)!important;
+  box-shadow:inset 0 1px 0 rgba(255,248,226,.12),0 14px 34px -28px rgba(0,0,0,.88)!important;
+}
+body .hh-bankrail .acct-amt::placeholder{
+  color:rgba(236,228,212,.54)!important;
+}
+body .hh-bankrail .acct-amt:focus{
+  background:rgba(236,228,212,.13)!important;
+  border-color:rgba(236,228,212,.42)!important;
 }
 body .hh-statement-shell{
   min-height:calc(100vh - 196px);
@@ -850,12 +863,13 @@ body .hh-comp{
   margin-bottom:24px;
 }
 body .hh-comp-bar{
-  height:11px;
-  background:rgba(236,228,212,.055);
+  height:9px;
+  background:rgba(236,228,212,.048);
   box-shadow:inset 0 1px 0 rgba(255,248,226,.16),0 18px 46px -34px rgba(0,0,0,.86);
 }
 body .hh-comp-bar i{
-  opacity:.72;
+  opacity:.48;
+  filter:saturate(.76) brightness(.90);
 }
 body .hh-comp-legend{
   gap:10px 22px;
@@ -867,20 +881,20 @@ body .hh-glass-card{
   padding:25px 24px 26px;
 }
 body .hh-card-head{
-  border-bottom-color:rgba(214,176,112,.22);
+  border-bottom-color:rgba(214,176,112,.14);
 }
 body .hh-net-foot{
-  border-top-color:rgba(214,176,112,.24);
+  border-top-color:rgba(214,176,112,.15);
 }
 
 @media (max-width:1180px){
   body .hh-map-grid{
     height:auto;
     min-height:0;
-    gap:28px;
+    gap:34px;
   }
   body .hh-orb{
-    width:236px;
+    width:246px;
   }
 }
 
@@ -911,10 +925,10 @@ body .hh-net-foot{
     min-height:36px;
   }
   body .page[data-page="net-worth"]{
-    padding:22px 16px 34px!important;
+    padding:24px 16px 36px!important;
   }
   body .hh-view-toggle{
-    margin-bottom:22px;
+    margin-bottom:24px;
   }
   body .hh-map-grid{
     grid-template-columns:1fr;
@@ -925,13 +939,13 @@ body .hh-net-foot{
   body .hh-map-main{
     order:1;
     width:100%;
-    padding:24px 18px 28px;
+    padding:26px 18px 30px;
     border-radius:24px;
   }
   body .hh-map-kpis{
     grid-template-columns:repeat(2,minmax(0,1fr));
     gap:12px;
-    margin-bottom:38px;
+    margin-bottom:42px;
   }
   body .hh-map-kpis div{
     min-height:78px;
@@ -944,13 +958,13 @@ body .hh-net-foot{
     font-size:26px;
   }
   body .hh-orb{
-    width:224px;
+    width:230px;
   }
   body .hh-people{
-    gap:42px;
+    gap:46px;
   }
   body .hh-account-cloud{
-    margin-top:42px;
+    margin-top:46px;
   }
   body .hh-bankrail{
     order:2;
