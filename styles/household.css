@@ -1,22 +1,22 @@
 /* Household packet translation. Scoped to the real Household tab only. */
 :root{
-  --hh-charcoal:#11100d;
-  --hh-graphite:#1d1b17;
-  --hh-graphite-2:#25211a;
-  --hh-bronze:#9a6638;
-  --hh-gold:#d6b070;
-  --hh-gold-bright:#f0d192;
-  --hh-ivory:#ece4d4;
-  --hh-muted:#8c8578;
-  --hh-line:rgba(236,228,212,.14);
-  --hh-line-strong:rgba(214,176,112,.34);
-  --hh-glass:linear-gradient(145deg,rgba(255,246,222,.075),rgba(255,246,222,.026) 46%,rgba(31,26,19,.54));
-  --hh-shadow:0 30px 90px -58px rgba(0,0,0,.92),0 0 40px -30px rgba(214,176,112,.72);
-  --hh-taxable:#d6b070;
-  --hh-pre-tax:#b58a52;
-  --hh-roth:#d7c27d;
-  --hh-real:#bfc0a6;
-  --hh-liability:#b36a56;
+  --hh-charcoal:#102638;
+  --hh-graphite:#183448;
+  --hh-graphite-2:#244558;
+  --hh-bronze:#c5965e;
+  --hh-gold:#e7c987;
+  --hh-gold-bright:#f4dfad;
+  --hh-ivory:#eadcc4;
+  --hh-muted:rgba(226,211,186,.70);
+  --hh-line:rgba(232,243,249,.12);
+  --hh-line-strong:rgba(232,243,249,.20);
+  --hh-glass:linear-gradient(145deg,rgba(248,252,255,.050),rgba(81,120,146,.044) 48%,rgba(8,23,36,.12));
+  --hh-shadow:0 30px 88px -58px rgba(0,0,0,.72),0 0 32px -24px rgba(159,184,205,.28);
+  --hh-taxable:#d7a76b;
+  --hh-pre-tax:#b88955;
+  --hh-roth:#cfc37b;
+  --hh-real:#b7c7bf;
+  --hh-liability:#b76f62;
 }
 body .page[data-page="net-worth"]{
   padding:22px 40px 34px;
@@ -638,9 +638,9 @@ body .hh-map-grid{
 body .hh-map-main{
   min-height:0;
   background:
-    radial-gradient(circle at 50% 21%,rgba(214,176,112,.13),transparent 30%),
-    radial-gradient(circle at 18% 62%,rgba(236,228,212,.035),transparent 27%),
-    linear-gradient(180deg,rgba(31,29,24,.88),rgba(10,10,9,.92));
+    radial-gradient(circle at 50% 21%,rgba(199,225,239,.075),transparent 30%),
+    radial-gradient(circle at 18% 62%,rgba(236,244,249,.045),transparent 27%),
+    linear-gradient(180deg,rgba(23,47,65,.58),rgba(8,22,34,.64));
 }
 body .hh-bankrail{
   min-height:0;
@@ -650,8 +650,8 @@ body .hh-glass-card,
 body .hh-bankrail,
 body .hh-map-kpis div{
   background:
-    linear-gradient(145deg,rgba(255,246,222,.070),rgba(255,246,222,.024) 46%,rgba(29,25,18,.80)),
-    rgba(17,16,13,.72)!important;
+    linear-gradient(145deg,rgba(248,252,255,.056),rgba(81,120,146,.044) 48%,rgba(8,23,36,.13)),
+    rgba(18,39,55,.42)!important;
 }
 body .hh-person-stats input[data-type="money"]{
   width:96px;
@@ -663,54 +663,48 @@ body .hh-person-stats input[data-type="money"]{
 html:has(.page[data-page="net-worth"].on .hh-shell),
 body:has(.page[data-page="net-worth"].on .hh-shell),
 body:has(.page[data-page="net-worth"].on .hh-shell) .wrap{
-  --hh-taxable:#bd9259;
-  --hh-pre-tax:#9d7345;
-  --hh-roth:#c4b976;
-  background:
-    radial-gradient(circle at 50% 7%,rgba(236,228,212,.040),transparent 34%),
-    radial-gradient(circle at 18% 0%,rgba(214,176,112,.008),transparent 26%),
-    linear-gradient(180deg,#171512 0%,#12110f 58%,#0f0e0c 100%)!important;
+  --hh-taxable:#d7a76b;
+  --hh-pre-tax:#b88955;
+  --hh-roth:#cfc37b;
+  background-color:var(--ng-bg-base)!important;
+  background-image:var(--ng-bg-image)!important;
 }
 body:has(.page[data-page="net-worth"].on .hh-shell) .hdr{
-  background:
-    linear-gradient(135deg,rgba(20,19,17,.94),rgba(24,22,19,.82) 56%,rgba(16,15,13,.90)),
-    rgba(18,17,15,.88)!important;
-  border-color:rgba(236,228,212,.11)!important;
-  box-shadow:0 26px 84px -62px rgba(0,0,0,.90),inset 0 1px 0 rgba(255,248,226,.090)!important;
+  background:linear-gradient(90deg,rgba(240,248,252,.042),rgba(85,120,143,.070) 43%,rgba(239,211,174,.098))!important;
+  border-color:rgba(232,243,249,.18)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.23),inset 0 -1px 0 rgba(255,255,255,.045),0 24px 70px -58px rgba(0,0,0,.62)!important;
 }
 body:has(.page[data-page="net-worth"].on .hh-shell) svg.brand-logo{
-  filter:grayscale(1) sepia(.18) saturate(.55) drop-shadow(0 0 9px rgba(236,228,212,.08))!important;
-  opacity:.66;
+  filter:drop-shadow(0 0 12px rgba(196,218,234,.22))!important;
+  opacity:.82;
 }
 body:has(.page[data-page="net-worth"].on .hh-shell) .htab.on{
-  border-bottom-color:rgba(214,176,112,.70)!important;
-  box-shadow:0 8px 22px -20px rgba(214,176,112,.42)!important;
+  border-bottom-color:var(--ng-accent)!important;
+  box-shadow:0 10px 26px -18px rgba(231,201,135,.62)!important;
 }
 body:has(.page[data-page="net-worth"].on .hh-shell) .run-btn,
 body .hh-bankrail .acct-add{
-  background:rgba(214,176,112,.075)!important;
-  border:1px solid rgba(214,176,112,.30)!important;
+  background:rgba(231,201,135,.13)!important;
+  border:1px solid rgba(231,201,135,.32)!important;
   color:var(--hh-gold-bright)!important;
-  box-shadow:inset 0 1px 0 rgba(255,248,226,.10),0 14px 34px -30px rgba(214,176,112,.34)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.16),0 14px 34px -30px rgba(231,201,135,.34)!important;
 }
-body .page[data-page="net-worth"]{
+body .page[data-page="net-worth"]:has(.hh-shell){
   padding:34px 40px 50px;
-  background:
-    radial-gradient(circle at 50% 17%,rgba(236,228,212,.046),transparent 33%),
-    radial-gradient(circle at 80% 18%,rgba(154,102,56,.012),transparent 28%),
-    radial-gradient(circle at 18% 72%,rgba(214,176,112,.010),transparent 32%),
-    linear-gradient(180deg,#151410 0%,#100f0d 100%)!important;
+  background:transparent!important;
 }
 body .hh-view-toggle{
   margin-bottom:34px;
-  background:rgba(13,13,11,.66);
-  border-color:rgba(236,228,212,.10);
-  box-shadow:0 20px 58px -44px rgba(0,0,0,.92),inset 0 1px 0 rgba(255,248,226,.080);
+  background:rgba(8,23,36,.52);
+  border-color:rgba(232,243,249,.16);
+  box-shadow:0 20px 58px -44px rgba(0,0,0,.72),inset 0 1px 0 rgba(255,255,255,.12);
+  backdrop-filter:blur(22px) saturate(1.25);
+  -webkit-backdrop-filter:blur(22px) saturate(1.25);
 }
 body .hh-toggle-btn.on{
   color:var(--hh-gold-bright);
-  background:rgba(214,176,112,.060);
-  box-shadow:inset 0 0 0 1px rgba(214,176,112,.20),0 12px 30px -28px rgba(214,176,112,.42);
+  background:rgba(231,201,135,.085);
+  box-shadow:inset 0 0 0 1px rgba(231,201,135,.24),0 12px 30px -28px rgba(231,201,135,.34);
 }
 body .hh-map-grid{
   height:clamp(740px,calc(100vh - 210px),860px);
@@ -721,11 +715,14 @@ body .hh-map-main{
   padding:48px 56px 52px;
   border-radius:30px;
   background:
-    radial-gradient(circle at 50% 39%,rgba(236,228,212,.042),transparent 34%),
-    radial-gradient(circle at 50% 47%,rgba(214,176,112,.010),transparent 38%),
-    linear-gradient(180deg,rgba(25,23,20,.52),rgba(12,12,10,.34))!important;
-  border-color:rgba(236,228,212,.085);
-  box-shadow:inset 0 1px 0 rgba(255,248,226,.080),0 58px 146px -92px rgba(0,0,0,.96);
+    radial-gradient(circle at 50% 35%,rgba(226,239,246,.070),transparent 35%),
+    radial-gradient(circle at 24% 70%,rgba(199,225,239,.040),transparent 30%),
+    linear-gradient(145deg,rgba(248,252,255,.038),rgba(70,111,140,.050) 48%,rgba(8,23,36,.16)),
+    rgba(13,34,50,.42)!important;
+  border-color:rgba(232,243,249,.14);
+  box-shadow:0 58px 146px -90px rgba(0,0,0,.72),inset 0 1px 0 rgba(255,255,255,.18),inset 0 0 0 1px rgba(255,255,255,.040);
+  backdrop-filter:blur(28px) saturate(1.24);
+  -webkit-backdrop-filter:blur(28px) saturate(1.24);
 }
 body .hh-map-main::before{
   top:184px;
@@ -742,12 +739,12 @@ body .hh-map-kpis div,
 body .hh-statement-hero,
 body .hh-glass-card{
   background:
-    linear-gradient(145deg,rgba(255,248,226,.105),rgba(255,248,226,.026) 46%,rgba(14,13,12,.30)),
-    rgba(19,18,15,.34)!important;
-  border-color:rgba(236,228,212,.13)!important;
-  box-shadow:0 56px 152px -78px rgba(0,0,0,.96),inset 0 1px 0 rgba(255,248,226,.22),inset 0 0 0 1px rgba(255,248,226,.035)!important;
-  backdrop-filter:blur(30px) saturate(1.05);
-  -webkit-backdrop-filter:blur(30px) saturate(1.05);
+    linear-gradient(145deg,rgba(248,252,255,.064),rgba(81,120,146,.050) 48%,rgba(8,23,36,.14)),
+    rgba(20,43,61,.36)!important;
+  border-color:rgba(232,243,249,.17)!important;
+  box-shadow:0 48px 126px -78px rgba(0,0,0,.78),inset 0 1px 0 rgba(255,255,255,.24),inset 0 0 0 1px rgba(255,255,255,.045)!important;
+  backdrop-filter:blur(30px) saturate(1.26);
+  -webkit-backdrop-filter:blur(30px) saturate(1.26);
 }
 body .hh-map-kpis div{
   min-height:102px;
@@ -764,10 +761,10 @@ body .hh-people{
 body .hh-orb{
   width:276px;
   background:
-    radial-gradient(circle at 50% 33%,rgba(255,248,226,.145),rgba(28,26,22,.36) 54%,rgba(7,7,6,.84)),
-    radial-gradient(circle at 50% 50%,rgba(214,176,112,.040),transparent 70%);
-  border-color:rgba(214,176,112,.22);
-  box-shadow:0 0 0 1px rgba(236,228,212,.080),0 0 116px -50px rgba(214,176,112,.34),0 50px 118px -64px rgba(0,0,0,.99),inset 0 0 92px -40px rgba(236,228,212,.13);
+    radial-gradient(circle at 50% 32%,rgba(248,252,255,.15),rgba(75,112,138,.16) 46%,rgba(8,23,36,.56)),
+    radial-gradient(circle at 50% 50%,rgba(231,201,135,.045),transparent 72%);
+  border-color:rgba(232,243,249,.19);
+  box-shadow:0 0 0 1px rgba(255,255,255,.060),0 0 122px -50px rgba(159,184,205,.34),0 50px 118px -64px rgba(0,0,0,.76),inset 0 0 92px -40px rgba(248,252,255,.22);
 }
 body .hh-orb::after{
   inset:16px;
@@ -798,11 +795,11 @@ body .hh-pill{
   box-shadow:0 22px 64px -44px rgba(0,0,0,.94),inset 0 1px 0 rgba(255,248,226,.10);
 }
 body .hh-bankrail{
-  background:rgba(18,17,15,.20)!important;
-  border-color:rgba(236,228,212,.060)!important;
-  box-shadow:0 32px 96px -78px rgba(0,0,0,.94),inset 0 1px 0 rgba(255,248,226,.075)!important;
-  backdrop-filter:blur(26px) saturate(1.02)!important;
-  -webkit-backdrop-filter:blur(26px) saturate(1.02)!important;
+  background:rgba(18,38,54,.28)!important;
+  border-color:rgba(232,243,249,.115)!important;
+  box-shadow:0 32px 96px -76px rgba(0,0,0,.70),inset 0 1px 0 rgba(255,255,255,.16)!important;
+  backdrop-filter:blur(26px) saturate(1.24)!important;
+  -webkit-backdrop-filter:blur(26px) saturate(1.24)!important;
 }
 body .hh-bank-head{
   padding:22px 20px 14px;
@@ -817,37 +814,38 @@ body .hh-bank-body{
 body .hh-bankrail .acct-brow{
   margin-bottom:10px;
   padding-bottom:13px;
-  border-bottom-color:rgba(236,228,212,.038);
+  border-bottom-color:rgba(232,243,249,.075);
 }
 body .hh-bankrail .acct-chip{
   min-height:36px;
-  background:rgba(255,248,226,.006)!important;
-  border-color:rgba(236,228,212,.046)!important;
-  color:rgba(236,228,212,.82)!important;
+  background:rgba(226,239,246,.050)!important;
+  border-color:rgba(232,243,249,.105)!important;
+  color:rgba(234,242,250,.86)!important;
 }
 body .hh-bankrail .acct-chip::after{
   border-color:rgba(236,228,212,.12);
   color:rgba(236,228,212,.40);
 }
 body .hh-bankrail .acct-chip.sel{
-  background:rgba(214,176,112,.026)!important;
-  border-color:rgba(214,176,112,.18)!important;
+  background:rgba(231,201,135,.080)!important;
+  border-color:rgba(231,201,135,.30)!important;
 }
 body .hh-bankrail .acct-foot{
-  border-top-color:rgba(236,228,212,.050);
+  border-top-color:rgba(232,243,249,.10);
 }
 body .hh-bankrail .acct-amt{
-  background:rgba(236,228,212,.095)!important;
-  border-color:rgba(236,228,212,.22)!important;
-  color:rgba(255,248,226,.96)!important;
-  box-shadow:inset 0 1px 0 rgba(255,248,226,.12),0 14px 34px -28px rgba(0,0,0,.88)!important;
+  background:rgba(226,239,246,.13)!important;
+  border-color:rgba(232,243,249,.32)!important;
+  color:rgba(244,248,250,.98)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 14px 34px -28px rgba(0,0,0,.74)!important;
 }
 body .hh-bankrail .acct-amt::placeholder{
-  color:rgba(236,228,212,.54)!important;
+  color:rgba(234,242,250,.58)!important;
 }
 body .hh-bankrail .acct-amt:focus{
-  background:rgba(236,228,212,.13)!important;
-  border-color:rgba(236,228,212,.42)!important;
+  background:rgba(226,239,246,.18)!important;
+  border-color:rgba(232,243,249,.58)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.22),0 0 0 3px rgba(159,184,205,.20)!important;
 }
 body .hh-statement-shell{
   min-height:calc(100vh - 196px);
@@ -864,8 +862,8 @@ body .hh-comp{
 }
 body .hh-comp-bar{
   height:9px;
-  background:rgba(236,228,212,.048);
-  box-shadow:inset 0 1px 0 rgba(255,248,226,.16),0 18px 46px -34px rgba(0,0,0,.86);
+  background:rgba(232,243,249,.070);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 18px 46px -34px rgba(0,0,0,.72);
 }
 body .hh-comp-bar i{
   opacity:.48;
@@ -924,7 +922,7 @@ body .hh-net-foot{
     min-width:116px;
     min-height:36px;
   }
-  body .page[data-page="net-worth"]{
+  body .page[data-page="net-worth"]:has(.hh-shell){
     padding:24px 16px 36px!important;
   }
   body .hh-view-toggle{
