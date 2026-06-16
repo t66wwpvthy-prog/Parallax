@@ -954,6 +954,10 @@ const HYBRID = {
    they were. Falls back to balance-sheet if the saved key is unknown. */
 const SUB_KEY = 'parallax.netWorth.sub';
 let activeSub = 'balance-sheet';
+const HH_VIEW_KEY = 'parallax.household.view';
+let householdView = 'map';
+try { householdView = localStorage.getItem(HH_VIEW_KEY) || 'map'; } catch {}
+if(!['map','networth'].includes(householdView)) householdView = 'map';
 const getPath=(o,p)=>p.split('.').reduce((a,k)=>a&&a[k],o);
 const setPath=(o,p,v)=>{const ks=p.split('.');const last=ks.pop();let t=o;for(const k of ks){if(t==null)return;t=t[k];}if(t!=null)t[last]=v;};
 
@@ -1025,6 +1029,20 @@ const ACCT_TYPES = [
 ];
 const BUCKET_TAG = { traditional:'pre-tax', roth:'Roth', taxable:'taxable' };
 let acctSel = null;   // type currently armed in the add picker
+const HH_BUCKET = {
+  taxable:     { label:'Taxable',     tone:'var(--hh-taxable)' },
+  traditional: { label:'Pre-tax',     tone:'var(--hh-pre-tax)' },
+  roth:        { label:'Roth',        tone:'var(--hh-roth)' },
+  real:        { label:'Real estate', tone:'var(--hh-real)' },
+  liability:   { label:'Liability',   tone:'var(--hh-liability)' },
+};
+function compactMoney(v){
+  const n = Math.round(Math.abs(v||0));
+  const sign = (v||0) < 0 ? '-' : '';
+  if(n >= 1000000) return `${sign}$${(n/1000000).toFixed(n>=10000000?0:1)}M`;
+  if(n >= 1000) return `${sign}$${Math.round(n/1000)}k`;
+  return `${sign}$${n.toLocaleString('en-US')}`;
+}
 function renderExtraAccounts(){
   return (plan.portfolio.extraAccounts||[]).map((a,i)=>
     `<div class="bs-row"><label>${a.type}<span class="acct-tag ${a.bucket}">${BUCKET_TAG[a.bucket]}</span></label><span class="bs-dots"></span>`
@@ -1032,14 +1050,200 @@ function renderExtraAccounts(){
   ).join('');
 }
 function renderAcctPicker(){
-  const rows = [['traditional','Pre-tax'],['roth','Roth'],['taxable','Taxable']].map(([b,lbl])=>{
+  const rows = [['traditional','Retirement'],['roth','Tax-free'],['taxable','Taxable']].map(([b,lbl])=>{
     const chips = ACCT_TYPES.filter(t=>t.bucket===b).map(t=>
       `<span class="acct-chip ${acctSel&&acctSel.label===t.label?'sel':''}" data-label="${t.label}" data-bucket="${t.bucket}">${t.label}</span>`).join('');
     return `<div class="acct-brow"><span class="acct-blabel ${b}">${lbl}</span><div class="acct-chips">${chips}</div></div>`;
   }).join('');
-  return `<div class="acct-picker"><h5>Add an investment account</h5>${rows}`
-       + `<div class="acct-foot"><div><span class="lbl">Balance</span><input class="acct-amt" data-type="money" placeholder="$0"></div>`
-       + `<button class="acct-add" ${acctSel?'':'disabled'}>${acctSel?('Add '+acctSel.label):'Add'}</button></div></div>`;
+  return `<aside class="acct-picker hh-bankrail">
+      <div class="hh-bank-head">
+        <div class="hh-kicker">Account Bank</div>
+        <h3>Add an account</h3>
+        <div class="hh-bank-total">${fmtMoney(investableTotal())} invested</div>
+      </div>
+      <div class="hh-bank-body">${rows}</div>
+      <div class="acct-foot">
+        <div><span class="lbl">Balance</span><input class="acct-amt" data-type="money" placeholder="$0"></div>
+        <button class="acct-add" ${acctSel?'':'disabled'}>${acctSel?('Add '+acctSel.label):'Add'}</button>
+      </div>
+    </aside>`;
+}
+function householdAccounts(){
+  const a = plan.portfolio.accounts || {};
+  const base = [
+    { label:'Taxable',     bucket:'taxable',     path:'portfolio.accounts.taxable.balance',     value:(a.taxable&&a.taxable.balance)||0, core:true },
+    { label:'Traditional', bucket:'traditional', path:'portfolio.accounts.traditional.balance', value:(a.traditional&&a.traditional.balance)||0, core:true },
+    { label:'Roth',        bucket:'roth',        path:'portfolio.accounts.roth.balance',        value:(a.roth&&a.roth.balance)||0, core:true },
+  ];
+  const extra = (plan.portfolio.extraAccounts||[]).map((x,i)=>({
+    label:x.type || 'Account',
+    bucket:x.bucket || 'taxable',
+    value:x.balance || 0,
+    extra:true,
+    idx:i,
+  }));
+  return base.concat(extra).filter(x => x.core || x.value > 0);
+}
+function householdRealAssets(){
+  return (plan.properties||[]).map((p,i)=>({
+    label:p.name || `Property ${i+1}`,
+    bucket:'real',
+    value:p.value || 0,
+    path:`properties.${i}.value`,
+  }));
+}
+function householdLiabilityRows(){
+  const rows = [];
+  (plan.properties||[]).forEach((p,i)=>{
+    const m = p.mortgage || {};
+    if((m.balance||0) > 0) rows.push({
+      label:`${p.name || `Property ${i+1}`} mortgage`,
+      bucket:'liability',
+      value:m.balance || 0,
+      path:`properties.${i}.mortgage.balance`,
+    });
+  });
+  (plan.liabilities||[]).forEach((l,i)=>rows.push({
+    label:l.label || `Liability ${i+1}`,
+    bucket:'liability',
+    value:(l.amount||0) * Math.max(1, ((l.endAge||plan.household.primary.planEndAge) - (l.startAge||plan.household.primary.currentAge))),
+    path:`liabilities.${i}.amount`,
+  }));
+  return rows;
+}
+function renderHouseholdToggle(){
+  return `<div class="hh-view-toggle" role="group" aria-label="Household view">
+    <button type="button" class="hh-toggle-btn ${householdView==='map'?'on':''}" data-hh-view="map">Map</button>
+    <button type="button" class="hh-toggle-btn ${householdView==='networth'?'on':''}" data-hh-view="networth">Net Worth</button>
+  </div>`;
+}
+function renderHouseholdPill(a){
+  const meta = HH_BUCKET[a.bucket] || HH_BUCKET.taxable;
+  return `<span class="hh-pill" style="--hh-pill:${meta.tone}">
+    <span class="hh-pill-dot"></span><span class="hh-pill-name">${a.label}</span><span class="hh-pill-value">${compactMoney(a.value)}</span>
+  </span>`;
+}
+function renderPersonOrb(cfg){
+  return `<section class="hh-person-card">
+    <div class="hh-orb">
+      <div class="hh-orb-icon" aria-hidden="true"></div>
+      <div class="hh-orb-name">${escHtml(cfg.name)}</div>
+      <div class="hh-orb-age">Age ${cfg.age}</div>
+      <div class="hh-orb-status">Working</div>
+    </div>
+    <div class="hh-person-stats">
+      <label><span>Retire age</span><span class="field">${renderField({ path:cfg.retirePath, type:'age' })}</span></label>
+      <label><span>Social Security</span><span class="field">${renderField({ path:cfg.ssPath, type:'money' })}</span></label>
+    </div>
+  </section>`;
+}
+function renderHouseholdMap(){
+  const accounts = householdAccounts();
+  const primary = {
+    name: plan.meta.primaryName || 'Client',
+    age: plan.household.primary.currentAge,
+    retirePath: 'household.primary.retirementAge',
+    ssPath: 'income.socialSecurity.primary.pia',
+  };
+  const spouse = {
+    name: plan.meta.spouseName || 'Spouse',
+    age: (plan.household.spouse&&plan.household.spouse.currentAge) || '',
+    retirePath: 'household.spouse.retirementAge',
+    ssPath: 'income.socialSecurity.spouse.pia',
+  };
+  return `<div class="hh-shell hh-map-shell">
+    ${renderHouseholdToggle()}
+    <div class="hh-map-grid">
+      <div class="hh-map-main">
+        <div class="hh-map-kpis">
+          <div><span>Net worth</span><b>${fmtMoney(netWorthTotal())}</b></div>
+          <div><span>Invested assets</span><b>${fmtMoney(investableTotal())}</b></div>
+          <div><span>Annual savings</span><b>${fmtMoney(plan.savings.annual||0)}</b></div>
+        </div>
+        <div class="hh-people">
+          ${renderPersonOrb(primary)}
+          ${renderPersonOrb(spouse)}
+        </div>
+        <div class="hh-account-cloud">
+          <div class="hh-cloud-label">Household-held accounts / ${accounts.length} accounts</div>
+          <div class="hh-pills">${accounts.map(renderHouseholdPill).join('')}</div>
+        </div>
+      </div>
+      ${renderAcctPicker()}
+    </div>
+  </div>`;
+}
+function renderStatementAccountRow(a){
+  const meta = HH_BUCKET[a.bucket] || HH_BUCKET.taxable;
+  const value = a.extra
+    ? `<span class="field"><span class="pre">$</span><input class="acct-bal" data-type="money" data-acctidx="${a.idx}" value="${(a.value||0).toLocaleString('en-US')}"><button class="acct-x" data-acctidx="${a.idx}" title="Remove">x</button></span>`
+    : `<span class="field">${renderField({ path:a.path, type:'money' })}</span>`;
+  return `<div class="hh-ledger-row" style="--hh-pill:${meta.tone}">
+    <span class="hh-ledger-name"><i></i>${a.label}<small>${meta.label}</small></span>
+    ${value}
+  </div>`;
+}
+function renderStatementFieldRow(f){
+  return `<div class="hh-ledger-row hh-field-row">
+    <span class="hh-ledger-name">${f.label}</span>
+    <span class="field">${renderField(f)}</span>
+  </div>`;
+}
+function renderCompositionBar(){
+  const a = plan.portfolio.accounts || {};
+  const parts = [
+    { key:'taxable', label:'Taxable', value:(a.taxable&&a.taxable.balance)||0 },
+    { key:'traditional', label:'Pre-tax', value:(a.traditional&&a.traditional.balance)||0 },
+    { key:'roth', label:'Roth', value:(a.roth&&a.roth.balance)||0 },
+    { key:'real', label:'Real estate', value:realAssetsTotal() },
+  ].filter(p => p.value > 0);
+  const total = parts.reduce((s,p)=>s+p.value,0);
+  if(!total) return '';
+  const segs = parts.map(p => `<i style="width:${(p.value/total*100).toFixed(2)}%;background:${(HH_BUCKET[p.key]||HH_BUCKET.taxable).tone}"></i>`).join('');
+  const legend = parts.map(p => `<span><i style="background:${(HH_BUCKET[p.key]||HH_BUCKET.taxable).tone}"></i>${p.label}<b>${compactMoney(p.value)}</b></span>`).join('');
+  return `<div class="hh-comp"><div class="hh-comp-bar">${segs}</div><div class="hh-comp-legend">${legend}</div></div>`;
+}
+function renderHouseholdNetWorth(){
+  const accounts = householdAccounts();
+  const realAssets = householdRealAssets();
+  const liabilities = householdLiabilityRows();
+  const fieldSecs = BALANCE_SHEET.filter(s => s.head !== 'Investment accounts');
+  const fieldHtml = fieldSecs.map(sec =>
+    `<div class="hh-field-sec"><h4>${sec.head}</h4>${(sec.fields||[]).map(renderStatementFieldRow).join('')}</div>`
+  ).join('');
+  return `<div class="hh-shell hh-statement-shell">
+    ${renderHouseholdToggle()}
+    <section class="hh-statement-hero">
+      <div>
+        <div class="hh-kicker">Net worth statement</div>
+        <h2>${escHtml(plan.meta.primaryName || 'Client')} / ${escHtml(plan.meta.spouseName || 'Spouse')}</h2>
+      </div>
+      <div class="hh-hero-figs">
+        <div><span>Assets</span><b>${fmtMoney(investableTotal()+realAssetsTotal())}</b></div>
+        <div><span>Liabilities</span><b>${fmtMoney(liabilitiesPVTotal())}</b></div>
+        <div class="lead"><span>Net worth</span><b>${fmtMoney(netWorthTotal())}</b></div>
+      </div>
+    </section>
+    ${renderCompositionBar()}
+    <div class="hh-statement-grid">
+      <section class="hh-glass-card hh-assets-card">
+        <div class="hh-card-head"><h3>Assets</h3><b>${fmtMoney(investableTotal()+realAssetsTotal())}</b></div>
+        <div class="hh-subhead">Investment accounts</div>
+        ${accounts.map(renderStatementAccountRow).join('')}
+        <div class="hh-subhead">Real assets</div>
+        ${realAssets.length ? realAssets.map(renderStatementAccountRow).join('') : '<div class="hh-empty-row">No real property entered</div>'}
+      </section>
+      <section class="hh-glass-card hh-fields-card">
+        <div class="hh-card-head"><h3>Household inputs</h3><b>${fmtMoney(plan.income.workingIncome||0)}</b></div>
+        ${fieldHtml}
+      </section>
+      <section class="hh-glass-card hh-liab-card">
+        <div class="hh-card-head"><h3>Liabilities</h3><b>${fmtMoney(liabilitiesPVTotal())}</b></div>
+        ${liabilities.length ? liabilities.map(renderStatementAccountRow).join('') : '<div class="hh-empty-row">No liabilities entered</div>'}
+        <div class="hh-net-foot"><span>Household net worth</span><b>${fmtMoney(netWorthTotal())}</b></div>
+      </section>
+    </div>
+  </div>`;
 }
 // Post-edit refresh (mirrors the balance-sheet field commit, minus setPath).
 function commitPlanEdit(){
@@ -1249,30 +1453,7 @@ function flowSection(arr, nameKey, ph, kind, addLabel){
    Section heads = small caps + thin accent underline. Rows = label, dotted
    leader, boxless input. Subtotal closes a money section in slate. */
 function renderStatement(){
-  const renderSecs = secs => {
-    let h = '';
-    secs.forEach(sec => {
-      h += `<div class="bs-head">${sec.head}</div>`;
-      (sec.fields||[]).forEach(f => {
-        const rowCls = f.sub ? 'bs-row sub' : 'bs-row';
-        h += `<div class="${rowCls}"><label>${f.label}</label><span class="bs-dots"></span><span class="field">${renderField(f)}</span></div>`;
-      });
-      if(sec.subtotal==='invest'){
-        h += `<div class="bs-sub"><span class="bs-sub-l">Investable total</span><span class="bs-sub-d"></span><span class="bs-sub-v">${fmtMoney(investableTotal())}</span></div>`;
-      }
-    });
-    return h;
-  };
-  const leftSecs = BALANCE_SHEET.filter(s => s.col !== 'right');
-  const rightSecs = BALANCE_SHEET.filter(s => s.col === 'right');
-  return `<div class="np-page np-bal">
-    ${renderGutter('balance-sheet')}
-    <div class="bs-sheet">
-      <div class="bs-col"><div class="bs-title">Plan</div>${renderSecs(leftSecs)}</div>
-      <div class="bs-divider"></div>
-      <div class="bs-col"><div class="bs-title">Cash Flow</div>${renderSecs(rightSecs)}</div>
-    </div>
-  </div>`;
+  return householdView === 'networth' ? renderHouseholdNetWorth() : renderHouseholdMap();
 }
 
 /* ── Hybrid layout (Inflows / Outflows / Goals) ───────────────────
@@ -1802,6 +1983,13 @@ function renderInputs(){
 
 // ── All Net Worth interactions — delegated on the stable #np-content ─────────
 $('#np-content').addEventListener('click', e => {
+  const hhMode = e.target.closest('.hh-toggle-btn');
+  if(hhMode){
+    householdView = hhMode.dataset.hhView || 'map';
+    try { localStorage.setItem(HH_VIEW_KEY, householdView); } catch {}
+    renderInputs();
+    return;
+  }
   // Row delete (×)
   const rx = e.target.closest('.row-x');
   if(rx){
