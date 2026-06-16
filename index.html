@@ -3281,8 +3281,10 @@ runAll();   // first iteration runs immediately so the tool opens populated
     const el = document.createElement('div');
     el.className = 'sn-note';
     el.dataset.id = note.id;
-    el.style.cssText = `left:${note.x}px;top:${note.y}px`;
-    el.innerHTML = `<div class="sn-handle"><span class="sn-num">${note.num}</span><button class="sn-del" title="Remove">×</button></div><textarea class="sn-text" placeholder="Type note…">${note.text}</textarea>`;
+    el.style.left = (parseFloat(note.x) || 0) + 'px';
+    el.style.top  = (parseFloat(note.y) || 0) + 'px';
+    el.innerHTML = `<div class="sn-handle"><span class="sn-num">${+note.num||''}</span><button class="sn-del" title="Remove">×</button></div><textarea class="sn-text" placeholder="Type note…"></textarea>`;
+    el.querySelector('.sn-text').value = note.text || '';
     // drag via handle
     const handle = el.querySelector('.sn-handle');
     handle.addEventListener('mousedown', e => {
