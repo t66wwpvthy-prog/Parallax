@@ -656,3 +656,304 @@ body .hh-map-kpis div{
 body .hh-person-stats input[data-type="money"]{
   width:96px;
 }
+
+/* Visual polish pass: Household should read as charcoal first, with bronze only
+   as rim-light and interaction accent. Scoped through .hh-shell so the broader
+   app chrome is untouched on non-Household pages. */
+html:has(.page[data-page="net-worth"].on .hh-shell),
+body:has(.page[data-page="net-worth"].on .hh-shell),
+body:has(.page[data-page="net-worth"].on .hh-shell) .wrap{
+  --hh-taxable:#c79a5e;
+  --hh-pre-tax:#a97a48;
+  --hh-roth:#cfc17d;
+  background:
+    radial-gradient(circle at 50% 7%,rgba(236,228,212,.035),transparent 34%),
+    radial-gradient(circle at 18% 0%,rgba(214,176,112,.030),transparent 28%),
+    linear-gradient(180deg,#11100d 0%,#090908 72%,#070706 100%)!important;
+}
+body:has(.page[data-page="net-worth"].on .hh-shell) .hdr{
+  background:
+    linear-gradient(135deg,rgba(18,17,14,.92),rgba(23,21,17,.76) 56%,rgba(17,16,13,.88)),
+    rgba(17,16,13,.84)!important;
+  border-color:rgba(236,228,212,.11)!important;
+  box-shadow:0 26px 84px -58px rgba(0,0,0,.92),inset 0 1px 0 rgba(255,248,226,.10)!important;
+}
+body:has(.page[data-page="net-worth"].on .hh-shell) svg.brand-logo{
+  filter:drop-shadow(0 0 10px rgba(236,228,212,.10))!important;
+  opacity:.78;
+}
+body:has(.page[data-page="net-worth"].on .hh-shell) .htab.on{
+  border-bottom-color:rgba(214,176,112,.86)!important;
+  box-shadow:0 8px 22px -18px rgba(214,176,112,.74)!important;
+}
+body:has(.page[data-page="net-worth"].on .hh-shell) .run-btn,
+body .hh-bankrail .acct-add{
+  background:rgba(214,176,112,.13)!important;
+  border:1px solid rgba(214,176,112,.42)!important;
+  color:var(--hh-gold-bright)!important;
+  box-shadow:inset 0 1px 0 rgba(255,248,226,.13),0 14px 34px -28px rgba(214,176,112,.6)!important;
+}
+body .page[data-page="net-worth"]{
+  padding:30px 40px 46px;
+  background:
+    radial-gradient(circle at 50% 17%,rgba(236,228,212,.040),transparent 33%),
+    radial-gradient(circle at 80% 18%,rgba(154,102,56,.055),transparent 28%),
+    radial-gradient(circle at 18% 72%,rgba(214,176,112,.045),transparent 32%),
+    linear-gradient(180deg,#0d0c0a 0%,#090907 100%)!important;
+}
+body .hh-view-toggle{
+  margin-bottom:28px;
+  background:rgba(8,8,7,.72);
+  border-color:rgba(236,228,212,.10);
+  box-shadow:0 20px 58px -42px rgba(0,0,0,.95),inset 0 1px 0 rgba(255,248,226,.08);
+}
+body .hh-toggle-btn.on{
+  color:var(--hh-gold-bright);
+  background:rgba(214,176,112,.10);
+  box-shadow:inset 0 0 0 1px rgba(214,176,112,.28),0 12px 30px -26px rgba(214,176,112,.75);
+}
+body .hh-map-grid{
+  height:clamp(720px,calc(100vh - 208px),840px);
+  grid-template-columns:minmax(0,1fr) 280px;
+  gap:46px;
+}
+body .hh-map-main{
+  padding:42px 48px 44px;
+  border-radius:30px;
+  background:
+    radial-gradient(circle at 50% 40%,rgba(236,228,212,.035),transparent 33%),
+    radial-gradient(circle at 50% 47%,rgba(214,176,112,.045),transparent 38%),
+    linear-gradient(180deg,rgba(18,17,14,.50),rgba(8,8,7,.34))!important;
+  border-color:rgba(236,228,212,.055);
+  box-shadow:inset 0 1px 0 rgba(255,248,226,.045),0 42px 110px -84px rgba(0,0,0,.96);
+}
+body .hh-map-main::before{
+  top:184px;
+  left:12%;
+  right:12%;
+  background:linear-gradient(90deg,transparent,rgba(214,176,112,.12),transparent);
+}
+body .hh-map-kpis{
+  max-width:1060px;
+  gap:18px;
+  margin-bottom:62px;
+}
+body .hh-map-kpis div,
+body .hh-statement-hero,
+body .hh-glass-card{
+  background:
+    linear-gradient(145deg,rgba(255,248,226,.070),rgba(255,248,226,.018) 48%,rgba(15,14,12,.34)),
+    rgba(13,12,10,.38)!important;
+  border-color:rgba(236,228,212,.115)!important;
+  box-shadow:0 44px 128px -72px rgba(0,0,0,.98),inset 0 1px 0 rgba(255,248,226,.18),inset 0 0 0 1px rgba(255,248,226,.025)!important;
+  backdrop-filter:blur(26px) saturate(1.08);
+  -webkit-backdrop-filter:blur(26px) saturate(1.08);
+}
+body .hh-map-kpis div{
+  min-height:98px;
+  padding:18px 19px;
+  border-radius:18px;
+}
+body .hh-map-kpis b{
+  font-size:30px;
+}
+body .hh-people{
+  max-width:1060px;
+  gap:min(10vw,160px);
+}
+body .hh-orb{
+  width:260px;
+  background:
+    radial-gradient(circle at 50% 34%,rgba(255,248,226,.12),rgba(28,26,22,.34) 54%,rgba(7,7,6,.82)),
+    radial-gradient(circle at 50% 50%,rgba(214,176,112,.070),transparent 69%);
+  border-color:rgba(214,176,112,.30);
+  box-shadow:0 0 0 1px rgba(236,228,212,.070),0 0 126px -44px rgba(214,176,112,.50),0 42px 96px -58px rgba(0,0,0,.98),inset 0 0 86px -38px rgba(214,176,112,.34);
+}
+body .hh-orb::after{
+  inset:16px;
+  border-color:rgba(236,228,212,.060);
+}
+body .hh-orb-name{
+  max-width:190px;
+  font-size:42px;
+}
+body .hh-orb-age{
+  color:rgba(236,228,212,.86);
+  font-size:14px;
+}
+body .hh-orb-status{
+  color:var(--hh-gold);
+  font-size:11.5px;
+}
+body .hh-person-stats{
+  max-width:430px;
+  margin-top:34px;
+}
+body .hh-account-cloud{
+  margin-top:50px;
+}
+body .hh-pill{
+  background:rgba(255,248,226,.040);
+  border-color:rgba(236,228,212,.12);
+  box-shadow:0 20px 56px -40px rgba(0,0,0,.92),inset 0 1px 0 rgba(255,248,226,.12);
+}
+body .hh-bankrail{
+  background:rgba(13,12,10,.24)!important;
+  border-color:rgba(236,228,212,.065)!important;
+  box-shadow:0 32px 88px -74px rgba(0,0,0,.96),inset 0 1px 0 rgba(255,248,226,.075)!important;
+  backdrop-filter:blur(24px) saturate(1.04)!important;
+  -webkit-backdrop-filter:blur(24px) saturate(1.04)!important;
+}
+body .hh-bank-head{
+  padding:23px 22px 15px;
+  border-bottom-color:rgba(236,228,212,.075);
+}
+body .hh-bank-head h3{
+  font-size:24px;
+}
+body .hh-bank-body{
+  padding:14px 16px 6px;
+}
+body .hh-bankrail .acct-brow{
+  margin-bottom:12px;
+  padding-bottom:14px;
+  border-bottom-color:rgba(236,228,212,.050);
+}
+body .hh-bankrail .acct-chip{
+  min-height:38px;
+  background:rgba(255,248,226,.012)!important;
+  border-color:rgba(236,228,212,.060)!important;
+  color:rgba(236,228,212,.82)!important;
+}
+body .hh-bankrail .acct-chip::after{
+  border-color:rgba(236,228,212,.12);
+  color:rgba(236,228,212,.40);
+}
+body .hh-bankrail .acct-chip.sel{
+  background:rgba(214,176,112,.042)!important;
+  border-color:rgba(214,176,112,.24)!important;
+}
+body .hh-bankrail .acct-foot{
+  border-top-color:rgba(236,228,212,.075);
+}
+body .hh-statement-shell{
+  min-height:calc(100vh - 196px);
+}
+body .hh-statement-hero{
+  padding:30px 30px;
+  margin-bottom:24px;
+}
+body .hh-statement-grid{
+  gap:24px;
+}
+body .hh-comp{
+  margin-bottom:24px;
+}
+body .hh-comp-bar{
+  height:11px;
+  background:rgba(236,228,212,.055);
+  box-shadow:inset 0 1px 0 rgba(255,248,226,.16),0 18px 46px -34px rgba(0,0,0,.86);
+}
+body .hh-comp-bar i{
+  opacity:.72;
+}
+body .hh-comp-legend{
+  gap:10px 22px;
+}
+body .hh-comp-legend i{
+  opacity:.78;
+}
+body .hh-glass-card{
+  padding:25px 24px 26px;
+}
+body .hh-card-head{
+  border-bottom-color:rgba(214,176,112,.22);
+}
+body .hh-net-foot{
+  border-top-color:rgba(214,176,112,.24);
+}
+
+@media (max-width:1180px){
+  body .hh-map-grid{
+    height:auto;
+    min-height:0;
+    gap:28px;
+  }
+  body .hh-orb{
+    width:236px;
+  }
+}
+
+@media (max-width:760px){
+  body:has(.page[data-page="net-worth"].on .hh-shell) .hdr{
+    margin:6px 10px 0;
+    padding:8px 10px;
+    gap:4px 10px;
+    border-radius:14px!important;
+  }
+  body:has(.page[data-page="net-worth"].on .hh-shell) svg.brand-logo{
+    width:106px;
+    height:46px;
+  }
+  body:has(.page[data-page="net-worth"].on .hh-shell) .hdr-tabs{
+    padding-top:4px;
+    gap:6px 14px;
+  }
+  body:has(.page[data-page="net-worth"].on .hh-shell) .htab{
+    font-size:11.5px;
+    padding:6px 0 8px;
+  }
+  body:has(.page[data-page="net-worth"].on .hh-shell) .hdr-right{
+    gap:12px;
+  }
+  body:has(.page[data-page="net-worth"].on .hh-shell) .run-btn{
+    min-width:116px;
+    min-height:36px;
+  }
+  body .page[data-page="net-worth"]{
+    padding:22px 16px 34px!important;
+  }
+  body .hh-view-toggle{
+    margin-bottom:22px;
+  }
+  body .hh-map-grid{
+    grid-template-columns:1fr;
+    height:auto;
+    min-height:0;
+    gap:24px;
+  }
+  body .hh-map-main{
+    order:1;
+    width:100%;
+    padding:24px 18px 28px;
+    border-radius:24px;
+  }
+  body .hh-map-kpis{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:12px;
+    margin-bottom:38px;
+  }
+  body .hh-map-kpis div{
+    min-height:78px;
+    padding:14px 15px;
+  }
+  body .hh-map-kpis span{
+    font-size:13px;
+  }
+  body .hh-map-kpis b{
+    font-size:26px;
+  }
+  body .hh-orb{
+    width:224px;
+  }
+  body .hh-people{
+    gap:42px;
+  }
+  body .hh-account-cloud{
+    margin-top:42px;
+  }
+  body .hh-bankrail{
+    order:2;
+    border-radius:22px!important;
+  }
+}
