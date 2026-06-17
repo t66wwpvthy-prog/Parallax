@@ -1362,8 +1362,6 @@ function runHistoricalPath(plan, startYear, strategy, transform, overrides){
       proxyBondNominal: proxy.bondNominal
     });
   }
-  if(path.length === 0) return null;
-
   // Optional ORDER transform (e.g. reverse): reorders the SAME real return
   // rows before the single-path runner walks them. The returns are unchanged —
   // only their sequence is. Used by the Sequencing tab to isolate order. When

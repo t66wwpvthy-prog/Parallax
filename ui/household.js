@@ -188,14 +188,16 @@ function renderHouseholdMap(ctx){
       retirePath: 'household.primary.retirementAge',
       ssPath: 'income.socialSecurity.primary.pia',
     },
-    {
+  ];
+  if(spouse && spouse.currentAge != null){
+    people.push({
       name: plan.meta.spouseName || 'Spouse',
       age: spouse.currentAge || '',
       retireAge: spouse.retirementAge,
       retirePath: 'household.spouse.retirementAge',
       ssPath: 'income.socialSecurity.spouse.pia',
-    },
-  ];
+    });
+  }
 
   return `<div class="hh-shell hh-map-shell">
     ${renderHouseholdToggle(ctx)}
