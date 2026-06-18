@@ -1107,8 +1107,6 @@ function runSinglePath(p, returnPath){
     rows.push({
       year: y+1, age, source: rp.y, returnRate: r,
       returnDollars: startBalance * r,
-      nominalReturn: (rp && rp.proxyNominalReturn != null) ? rp.proxyNominalReturn : null,
-      inflationRate: (rp && rp.proxyInflationRate != null) ? rp.proxyInflationRate : null,
       realReturnUsed: r,
       socialSecurity: ssInc, otherIncome: oiInc, pension: penInc, withdrawal,
       rmd: rmdForced, assetSale: saleProceeds,
@@ -1356,10 +1354,6 @@ function runHistoricalPath(plan, startYear, strategy, transform, overrides){
     path.push({
       ...row,
       proxyReturn: proxy.real,
-      proxyNominalReturn: proxy.nominal,
-      proxyInflationRate: proxy.inflation,
-      proxyStockNominal: proxy.stockNominal,
-      proxyBondNominal: proxy.bondNominal
     });
   }
   if(path.length === 0) return null;
