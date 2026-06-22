@@ -2,6 +2,7 @@ import { createReadStream, existsSync, statSync } from "node:fs";
 import { createServer } from "node:http";
 import { extname, join, normalize, resolve, sep } from "node:path";
 
+// Serves the canonical Parallax UI at /index.html.
 const root = process.cwd();
 const host = process.env.HOST || "127.0.0.1";
 const port = Number(process.env.PORT || 8825);

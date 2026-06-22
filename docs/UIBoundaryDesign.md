@@ -1,8 +1,14 @@
-# UI Boundary Design: index.html State & Module Extraction
+# UI Boundary Design: Legacy Monolith State & Module Extraction
+
+> Superseded for current product UI. This document describes the archived
+> legacy monolith now stored at `archive/legacy-monolith.html`. The canonical
+> Parallax front end is root `index.html`, the Phase A liquid-glass UI. Use this
+> document only for historical reference or future engine-wire extraction work.
 
 ## Overview
 
-The Parallax UI layer (`index.html`) is currently a 3,563-line monolithic module with 109 functions and 9 mutable state objects. This document defines:
+The archived Parallax monolith (`archive/legacy-monolith.html`) is a 3,563-line
+module with 109 functions and 9 mutable state objects. This document defines:
 
 1. **Shared state ownership** — what each global tracks, who reads/writes it
 2. **Communication pattern** — explicit params vs. centralized state
