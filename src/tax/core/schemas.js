@@ -1,19 +1,11 @@
 /* ============================================================================
    TAX ENGINE — schemas
-   Plain-data shape descriptors for rule inputs and the execution context. These
-   are intentionally lightweight (no external schema library): each describes the
-   required fields and their types so validators.js can enforce them and so the
-   shapes are documented in one place.
-
    Shapes only — no calculation logic.
    ============================================================================ */
 
-// The execution context every calculate(input, context) call receives. Supplied
-// by the CALLER (never generated inside a rule) so tests and replays are
-// deterministic. See docs/TaxEngineArchitecture.md → Calculation Contract.
 export const CONTEXT_SCHEMA = {
   fields: {
-    calculatedAt: 'string',   // ISO 8601, e.g. '2026-06-14T12:00:00.000Z'
+    calculatedAt: 'string',
     runId:        'string',
     scenarioId:   'string',
     taxYear:      'number',
@@ -22,13 +14,87 @@ export const CONTEXT_SCHEMA = {
   required: ['calculatedAt', 'runId', 'scenarioId', 'taxYear', 'lawVersion'],
 };
 
-// Phase-1 ordinary-income rule input. Brutally narrow on purpose: the caller
-// hands the rule taxableOrdinaryIncome already resolved (no AGI/MAGI/deduction
-// math lives here).
 export const ORDINARY_INCOME_INPUT_SCHEMA = {
   fields: {
     filingStatus:         'string',
     taxableOrdinaryIncome: 'number',
   },
   required: ['filingStatus', 'taxableOrdinaryIncome'],
+};
+
+export const CAPITAL_GAINS_STACKING_INPUT_SCHEMA = {
+  fields: {
+    filingStatus:             'string',
+    ordinaryTaxableIncome:    'number',
+    netLongTermCapitalGains:  'number',
+    qualifiedDividends:       'number',
+  },
+  required: ['filingStatus', 'ordinaryTaxableIncome', 'netLongTermCapitalGains', 'qualifiedDividends'],
+};
+
+export const TRADITIONAL_IRA_DEDUCTIBILITY_INPUT_SCHEMA = {
+  fields: {
+    filingStatus:                     'string',
+    modifiedAgi:                      'number',
+    contributionAmount:               'number',
+    age:                              'number',
+    taxableCompensation:              'number',
+    taxpayerCoveredByWorkplacePlan:   'boolean',
+    spouseCoveredByWorkplacePlan:     'boolean',
+    livedWithSpouse:                  'boolean',
+  },
+  required: [
+    'filingStatus',
+    'modifiedAgi',
+    'contributionAmount',
+    'age',
+    'taxableCompensation',
+    'taxpayerCoveredByWorkplacePlan',
+    'spouseCoveredByWorkplacePlan',
+    'livedWithSpouse',
+  ],
+};
+
+export const TAXABLE_SOCIAL_SECURITY_INPUT_SCHEMA = {
+  fields: {
+    filingStatus:             'string',
+    socialSecurityBenefits:   'number',
+    otherIncome:              'number',
+    taxExemptInterest:        'number',
+    excludedIncomeAddBacks:   'number',
+    adjustments:              'number',
+    livedWithSpouse:          'boolean',
+  },
+  required: [
+    'filingStatus',
+    'socialSecurityBenefits',
+    'otherIncome',
+    'taxExemptInterest',
+    'excludedIncomeAddBacks',
+    'adjustments',
+    'livedWithSpouse',
+  ],
+};
+
+export const STANDARD_DEDUCTION_INPUT_SCHEMA = {
+  fields: {
+    filingStatus: 'string',
+  },
+  required: ['filingStatus'],
+};
+
+export const FORM1040_LINE_STATUSES = ['CALCULATED', 'SUPPLIED', 'DEFERRED', 'NOT_APPLICABLE'];
+
+export const ANNUAL_FEDERAL_TAX_INPUT_SCHEMA = {
+  fields: {
+    filingStatus:           'string',
+    taxableOrdinaryIncome:  'number',
+    ordinaryTaxableIncome:  'number',
+    supplied:               'object',
+    deductions:             'object',
+    socialSecurity:         'object',
+    traditionalIra:         'object',
+    capitalGains:           'object',
+  },
+  required: ['filingStatus'],
 };
