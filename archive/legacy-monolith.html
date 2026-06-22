@@ -1,0 +1,3381 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Parallax V2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@300;400;500;600;700&display=swap"/>
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3E%3Crect%20width='64'%20height='64'%20rx='12'%20fill='%231e3d2b'/%3E%3Cpath%20d='M16%2038c8-20%2024-20%2032%200'%20fill='none'%20stroke='%23d9a07e'%20stroke-width='6'%20stroke-linecap='round'/%3E%3Ccircle%20cx='32'%20cy='32'%20r='7'%20fill='%23e5d9c4'/%3E%3C/svg%3E"/>
+<link rel="stylesheet" href="styles/main.css"/>
+<link rel="stylesheet" href="styles/household.css"/>
+</head>
+<body>
+<div class="wrap">
+  <header class="hdr">
+    <svg class="brand-logo" viewBox="0 0 140 96" role="img" aria-label="Parallax" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="pxRim" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#f6fbff"/>
+          <stop offset="0.52" stop-color="#bfd0df"/>
+          <stop offset="1" stop-color="#70879a"/>
+        </linearGradient>
+        <linearGradient id="pxWord" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#f7fbff"/>
+          <stop offset="0.46" stop-color="#c6d8e6"/>
+          <stop offset="1" stop-color="#7f98ab"/>
+        </linearGradient>
+        <radialGradient id="pxGlow" cx="0.36" cy="0.45" r="0.72">
+          <stop offset="0" stop-color="#f7fbff" stop-opacity="0.42"/>
+          <stop offset="0.36" stop-color="#bdd0df" stop-opacity="0.15"/>
+          <stop offset="1" stop-color="#07121d" stop-opacity="0.30"/>
+        </radialGradient>
+        <radialGradient id="pxFlare" cx="0.5" cy="0.5" r="0.5">
+          <stop offset="0" stop-color="#ffffff"/>
+          <stop offset="0.35" stop-color="#dbe9f4" stop-opacity="0.88"/>
+          <stop offset="1" stop-color="#8aa3b7" stop-opacity="0"/>
+        </radialGradient>
+        <linearGradient id="pxLine" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stop-color="#7890a3" stop-opacity="0"/>
+          <stop offset="0.38" stop-color="#f9fdff" stop-opacity="0.92"/>
+          <stop offset="0.62" stop-color="#c3d5e4" stop-opacity="0.74"/>
+          <stop offset="1" stop-color="#7890a3" stop-opacity="0"/>
+        </linearGradient>
+      </defs>
+      <!-- etched brand lockup: offset phase rings, sight-line glint, small rim markers -->
+      <circle cx="78" cy="25" r="19.5" fill="url(#pxGlow)" stroke="url(#pxRim)" stroke-width="0.72" opacity="0.72"/>
+      <circle cx="71" cy="25" r="20.7" fill="url(#pxGlow)" stroke="url(#pxRim)" stroke-width="0.82" opacity="0.84"/>
+      <circle cx="63" cy="25" r="21.8" fill="url(#pxGlow)" stroke="url(#pxRim)" stroke-width="0.92"/>
+      <path d="M63 3.2a21.8 21.8 0 0 1 21.3 17.2" fill="none" stroke="#f9fdff" stroke-width="0.7" opacity="0.78" stroke-linecap="round"/>
+      <path d="M71 4.3a20.7 20.7 0 0 1 19.7 14.2" fill="none" stroke="#d9e6ef" stroke-width="0.58" opacity="0.56" stroke-linecap="round"/>
+      <line x1="13" y1="25" x2="128" y2="25" stroke="url(#pxLine)" stroke-width="0.62" opacity="0.76"/>
+      <circle cx="55" cy="25" r="7.6" fill="url(#pxFlare)"/>
+      <circle cx="55" cy="25" r="1.45" fill="#ffffff"/>
+      <ellipse cx="55" cy="25" rx="16.5" ry="1" fill="url(#pxFlare)" opacity="0.92"/>
+      <circle cx="84.5" cy="25" r="0.95" fill="#edf6fc" opacity="0.95"/>
+      <circle cx="91" cy="25" r="0.84" fill="#c6d8e6" opacity="0.74"/>
+      <circle cx="97.5" cy="25" r="0.74" fill="#8da5b8" opacity="0.56"/>
+      <!-- wordmark: wide, etched geometric letterforms to match the reference lockup -->
+      <g fill="none" stroke="url(#pxWord)" stroke-width="0.84" stroke-linecap="square" stroke-linejoin="miter" opacity="0.96" transform="translate(6,57.2) scale(0.82)">
+        <path d="M0,16 V0 h8.2 c3.6,0 5.7,1.9 5.7,4.9 c0,3.1 -2.1,5 -5.7,5 H0"/>
+        <path d="M21.5,16 L27.4,0 L33.3,16"/>
+        <path d="M42,16 V0 h8.1 c3.6,0 5.7,1.9 5.7,4.9 c0,3.1 -2.1,5 -5.7,5 H42 M49.2,9.9 L56.1,16"/>
+        <path d="M64.1,16 L70,0 L75.9,16"/>
+        <path d="M84.4,0 V16 h12.4"/>
+        <path d="M105.1,0 V16 h12.4"/>
+        <path d="M125.6,16 L131.5,0 L137.4,16"/>
+        <path d="M145.8,0 L158,16 M158,0 L145.8,16"/>
+      </g>
+    </svg>
+    <div class="hdr-tabs">
+      <button class="htab on" data-page="net-worth" data-sub-target="balance-sheet">Household</button>
+      <button class="htab htab-secondary" data-page="net-worth" data-sub-target="goals">Goals</button>
+      <button class="htab" data-page="scenarios">Scenarios</button>
+      <button class="htab" data-page="sequencing">Sequencing</button>
+      <button class="htab htab-secondary" data-page="history">History</button>
+    </div>
+    <div class="hdr-right">
+      <span class="status" id="status">Ready</span>
+      <button class="run-btn" id="run-btn">Run</button>
+    </div>
+  </header>
+
+  <section class="page on" data-page="net-worth">
+    <div id="np-content"></div>
+  </section>
+
+  <section class="page" data-page="scenarios">
+    <div class="eyebrow"><span>Scenarios</span><button id="cf-mode-btn" class="cf-mode-btn">Cash Flow</button></div>
+    <!-- band + levers + foot share one horizontally-scrollable wrapper so their
+         three columns stay registered on narrow (phone) viewports. -->
+    <div class="scn-scroll">
+      <div class="scn-band" id="scn-band"></div>
+      <div id="solve-panel"></div>
+      <div class="scn-levers" id="scn-levers"></div>
+      <!-- Goals section: a READ-ONLY mirror of the base-plan goals, shown in
+           every scenario column so the advisor sees what each scenario carries.
+           Edited only on the Goals input page; columns reflect, never diverge. -->
+      <div class="scn-goals" id="scn-goals"></div>
+      <div class="scn-foot" id="scn-foot"></div>
+      <!-- Suggest: opens the same least-disruptive solver as the rail's Solve. -->
+      <button class="scn-suggest" id="scn-suggest" type="button">Γ£ª Suggest</button>
+    </div>
+    <!-- Cash Flow mode: sidebar of scenario chips + focused cash-flow table.
+         Triggered by the "Cash Flow" button in the eyebrow. Hidden until
+         activated; shows one scenario at a time with optional 2-up compare. -->
+    <div class="cf-wrapper" id="cf-wrapper">
+      <aside class="cf-sidebar" id="cf-sidebar"></aside>
+      <div class="cf-main">
+        <div class="cf-toggle">
+          <label class="path-control">Path
+            <select id="path-mode">
+              <option value="typical">Typical path</option>
+              <option value="stressed">Stressed path</option>
+              <option value="favorable">Favorable path</option>
+              <option value="sequence-stress">Sequence Stress</option>
+              <option value="choose">Choose path...</option>
+            </select>
+          </label>
+          <label class="path-control advanced" id="path-choose">Path #
+            <input id="path-index" type="number" min="0" value="0" inputmode="numeric">
+          </label>
+          <label class="path-control advanced" id="path-seed-wrap">Seed
+            <input id="path-seed" type="number" min="1" value="20260609" inputmode="numeric">
+          </label>
+        </div>
+        <div class="cf-drawer" id="cf-drawer"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="page" data-page="sequencing">
+    <div class="eyebrow"><span>Sequencing</span></div>
+    <div class="seq-bar">
+      <div class="seq-pick">
+        <span class="k">Plan</span>
+        <select id="seq-select"></select>
+      </div>
+      <div class="seq-chips" id="seq-chips"></div>
+    </div>
+    <div class="seq-chart">
+      <div class="chart-head">
+        <span class="chart-title">Resilience</span>
+        <span class="chart-sub" id="seq-sub">Same plan, real markets</span>
+      </div>
+      <div class="chart-body"><svg id="seq-svg" viewBox="0 0 1000 320" preserveAspectRatio="none"></svg></div>
+    </div>
+    <div class="seq-prints" id="seq-prints"></div>
+    <!-- Playback: one retirement start year replayed against the real record.
+         Verdict sentence + terminal balance, a statement table comparing the
+         three sourcing orders on the SAME return sequence, and the engine's
+         year-by-year rows behind an advisor-detail toggle. All figures are
+         runHistoricalPath / pathDigest output; era labels are static context. -->
+    <div class="story-wrap" id="playback-panel"></div>
+  </section>
+
+  <!-- History: cross-era reference. Informational context only ΓÇö reads the
+       1928ΓÇô2025 record through history.js; nothing here feeds planning. -->
+  <section class="page" data-page="history">
+    <div class="eyebrow"><span>History</span></div>
+    <div class="story-wrap" id="hist-body"></div>
+  </section>
+
+</div>
+
+
+
+<script type="module">
+import { runSimulation, runHistoricalPath, generateReturnPath, resetSeed, annualMortgagePayment, LONGRUN_INFLATION, pathDigest, assessPlan, RISK_PROFILES, defaultPlan as plan } from './engine.js';
+import { MACRO_TAGS, HC_BLOCKS, HC_SHAPE_LABELS, HC_ASSET_LABELS, hcBlockGmr, profileThroughWeights, hcSymmetry, hcNextReturn, hcEnvironmentLabel, hcReferenceSet } from './history.js';
+import { fmtM, fmtMoney, fmtMDelta, fmtPts, cfMoney, cfRetPct, cfGain } from './ui/formatters.js';
+import { storyChart, seqChartSvg } from './ui/charts.js';
+import { HH_VIEW_KEY, renderHouseholdStatement } from './ui/household.js';
+/* ΓòöΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòù
+   Γòæ  PARALLAX V2 ΓÇö UI WIRING (calls the engine above)             Γòæ
+   ΓòÜΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓò¥ */
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+// Escape user-entered text (scenario names) before it lands in innerHTML or an
+// attribute value. Names come from a free-text input and persist in
+// localStorage, so they're untrusted on reload ΓÇö without this a name like
+// <img src=x onerror=ΓÇª> would execute. Covers element content AND quoted attrs.
+const escHtml=s=>String(s).replace(/[&<>"']/g, c=>(
+  {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+/* Demo household ΓÇö HNW, 58yo, retiring at 65. $2.8M total portfolio.
+   $205k living + $12k healthcare; two-earner SS ($48k + $30k at 67); $30k/yr
+   savings until retire. Spend set against realistic SS to keep real tension:
+   Baseline (Moderate, ret 65) ~76% ΓÇö a plan that needs attention. Moving levers
+   shows it honestly: retiring 2yr later lifts success markedly; going aggressive
+   raises the wealth line but leaves success BELOW the retire-later case (vol
+   drag) ΓÇö the risk/return truth the tool exists to show. */
+plan.meta.primaryName = 'Client';
+plan.meta.spouseName = 'Spouse';
+plan.household.primary.currentAge    = 58;
+plan.household.spouse = { currentAge: 57, retirementAge: 64 };
+plan.household.primary.retirementAge = 65;
+plan.household.primary.planEndAge    = 95;
+plan.portfolio.accounts.taxable.balance      = 800000;
+plan.portfolio.accounts.traditional.balance  = 1600000;
+plan.portfolio.accounts.roth.balance         = 400000;
+plan.portfolio.accounts.taxable.basisPct     = 0.55;
+plan.expenses.living                = 205000;
+plan.expenses.healthcare            = 12000;
+plan.expenses.healthcareRealGrowth  = 0.02;   // 2% above CPI (historical avg)
+// Goals are now an ARRAY: recurring goals (lifelong window 0ΓÇô999) live in the
+// left column; a one-time goal is a single-year window (startAge===endAge).
+plan.goals = [
+  { name:'Travel',            amount:12000, startAge:65, endAge:95 },
+  { name:'Home improvements', amount:5000,  startAge:65, endAge:95 },
+  { name:'Gifts',             amount:5000,  startAge:65, endAge:95 },
+  // A ONE-TIME goal (single-year window): shows as a spike in the Goals
+  // cash-flow column the year it lands, then gone.
+  { name:'New car',           amount:40000, startAge:72, endAge:72 },
+];
+// Real assets and sale workflows stay parked in the engine for now. The visible
+// prototype keeps Household focused on the planning inputs advisors need first.
+plan.properties = [];
+// Two earners: one maxed (~$48k PIA at FRA), spouse a strong earner (~$30k).
+// pia = benefit at FRA (67) in today's dollars, straight off the SSA statement.
+plan.income.socialSecurity.primary = { pia: 48000, claimAge: 67 };
+plan.income.socialSecurity.spouse  = { pia: 30000, claimAge: 67 };
+// Demo pension: only the two ages the statement actually quoted. The engine
+// pays exactly what's entered for the chosen age and nothing in between ΓÇö
+// no interpolation, no invented numbers (see engine.test.js).
+plan.income.pension = { benefitByAge: { 62: 36000, 63: 38160, 64: 40320, 65: 42480 }, startAge: 65, colaPct: 0 };
+plan.savings.annual      = 30000;
+// Gross working income (pre-retirement, today's dollars). Used ONLY by the
+// Snapshot's replacement-ratio gauge ΓÇö a static diagnostic, not an engine
+// input. The engine drives accumulation off savings.annual, never this.
+plan.income.workingIncome = 300000;
+// A variable income stream showing the new per-stream controls: real growth
+// (here +1%/yr, indexed slightly above inflation) and a taxable share (70% ΓÇö
+// the rest sheltered by depreciation). startAgeΓÇôendAge bound when it's active.
+plan.income.other = [
+  { label:'Rental income', amount:18000, startAge:65, endAge:95, realGrowth:0.01, taxablePct:0.70 },
+];
+plan.simulation.iterations = 1000;
+
+// Scenario accent palette ΓÇö five distinct decorative tones used only to tell
+// scenarios apart. colorFor() cycles the palette so any count gets a tone.
+// No status tone is used here (status is reserved for success language).
+const SCEN_PALETTE=['#D9A07E','#c59152','#7a93b8','#b45991','#BFA78F'];
+const colorFor=i=>SCEN_PALETTE[i % SCEN_PALETTE.length];
+// The base plan reads in a bronze-copper accent (not the palette orange) so it
+// is unmistakable as the anchor. scenAccent() gives the base that bronze and
+// every other scenario its palette tone.
+const BASE_ACCENT='#b8824c';
+const scenAccent=(s,i)=> (s && s.base) ? BASE_ACCENT : colorFor(i);
+const MAX_SCENARIOS=5;
+/* The three scenario columns. Each holds lever values + its last engine result.
+   lever values are the ACTUAL planning values (age, $, etc.), not slider ticks. */
+const RISK_LABELS={1:'30 / 70',2:'45 / 55',3:'60 / 40',4:'75 / 25',5:'90 / 10'};
+function defaultLevers(){
+  const L={
+    retireAge:  plan.household.primary.retirementAge,
+    ssAge:      plan.income.socialSecurity.primary.claimAge,
+    spend:      plan.expenses.living,
+    eventAmt:   0, eventAge: 70,
+    risk:       plan.portfolio.riskProfile,
+    savings:    plan.savings.annual,
+    // pensionAge tracks retirement by DEFAULT (most people switch on a pension
+    // when they retire ΓÇö no reason to take taxable fixed income while still
+    // earning). pensionAuto stays true until the advisor grabs the pension
+    // slider, which frees it to hold any quoted age independently.
+    pensionAuto: true,
+    pensionAge: (plan.income.pension && plan.income.pension.startAge) || 65,
+    // Earmarked-asset sale. Off sentinel = currentAgeΓêÆ1 (renders "Keep"); any
+    // value ΓëÑ currentAge is a sale age. Targets the first property.
+    sellAge: plan.household.primary.currentAge - 1
+  };
+  syncPension(L);
+  return L;
+}
+// If pension is still auto-linked, snap its claim age to the retirement age,
+// clamped into the household's quoted pension range. No-op once the advisor has
+// taken manual control of the pension lever (pensionAuto=false).
+function syncPension(L){
+  if(!L.pensionAuto) return;
+  const a=pensionAges();
+  const lo = a.length ? a[0] : 62, hi = a.length ? a[a.length-1] : 65;
+  L.pensionAge = Math.max(lo, Math.min(hi, L.retireAge));
+}
+// ΓöÇΓöÇ Scenario persistence (browser localStorage) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+// We save only the durable parts (name/base/lev) ΓÇö never res (recomputed on
+// Run). Wrapped in try/catch so a corrupt/blocked store never breaks the app.
+const SCEN_KEY='parallax.scenarios.v2';
+function saveScenarios(){
+  try{
+    const slim=scenarios.map(s=>({name:s.name, base:!!s.base, lev:s.lev}));
+    localStorage.setItem(SCEN_KEY, JSON.stringify(slim));
+  }catch(e){/* storage full/blocked ΓÇö stay in-memory, no crash */}
+}
+function loadScenarios(){
+  try{
+    const raw=localStorage.getItem(SCEN_KEY);
+    if(!raw) return null;
+    const arr=JSON.parse(raw);
+    if(!Array.isArray(arr) || !arr.length || !arr[0].base) return null;  // sanity
+    // Backfill any lever keys added since the save (forward-compat) so old saves
+    // don't break when defaultLevers() grows new fields.
+    const proto=defaultLevers();
+    const hasProperty = !!(plan.properties && plan.properties.length);
+    return arr.map(s=>{
+      const lev={...proto, ...s.lev};
+      let name=String(s.name||'Scenario');
+      if(!hasProperty){
+        lev.sellAge = proto.sellAge;
+        if(/sell\s*home|allocation\s*tilt/i.test(name)) name = 'Risk tilt';
+      }
+      return { name, base:!!s.base, lev, res:null };
+    });
+  }catch(e){ return null; }
+}
+// Wipe saved state and return to the first-run demo (escape hatch).
+function resetScenarios(){
+  try{ localStorage.removeItem(SCEN_KEY); }catch(e){}
+  scenarios=demoScenarios(); baseSnapshot=defaultLevers();
+  buildLevers(); plansDirty=true; runAll();
+}
+// Add a new scenario (clones the current baseline's levers so it starts as a
+// neutral copy the advisor then adjusts). Capped at MAX_SCENARIOS.
+function addScenario(){
+  if(scenarios.length>=MAX_SCENARIOS) return;
+  const baseLev=scenarios.find(s=>s.base)?.lev || defaultLevers();
+  const n=scenarios.filter(s=>!s.base).length;
+  scenarios.push({ name:`Scenario ${String.fromCharCode(66+n)}`, base:false,
+                   lev:JSON.parse(JSON.stringify(baseLev)), res:null });
+  saveScenarios(); buildLevers(); plansDirty=true; runAll();
+}
+// Remove a non-baseline scenario by index.
+function removeScenario(ci){
+  if(ci<=0 || ci>=scenarios.length || scenarios[ci].base) return;
+  scenarios.splice(ci,1);
+  saveScenarios(); buildLevers(); plansDirty=true; runAll();
+}
+
+// ΓöÇΓöÇ Solver ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+// Run the engine for one trial set of levers and return the success %.
+// Reuses sharedPaths (the cached return-path bundle) so every trial sees the
+// same markets ΓÇö apples-to-apples, deterministic with our seeded RNG.
+function trySuccess(L){
+  const p = planForScenario(L);
+  const ov = leversToOverrides(L);
+  return runSimulation(p, ov, sharedPaths).successRate;
+}
+// Probability (0ΓÇô100) of ending with at least `goal` dollars ΓÇö the legacy score.
+function tryLegacyProb(L, goal){
+  const p = planForScenario(L);
+  const ov = leversToOverrides(L);
+  const res = runSimulation(p, ov, sharedPaths);
+  const n = res.sims.length || 1;
+  return 100 * res.sims.filter(s => s.terminalBalance >= goal).length / n;
+}
+// Solve ONE lever: holding all others at `baseLev`, find the value of `key`
+// closest to its baseline that achieves >= targetPct. Returns { value,
+// reachedPct, capped }. capped=true means even the lever's most-aggressive
+// extreme can't reach the target ΓÇö we return that extreme + the % it hit.
+//
+// Two strategies by range size:
+//  ΓÇó SMALL range (Γëñ12 steps, e.g. Allocation's 5 risk levels, SS age's 9): scan
+//    EVERY value. Allocation is NOT monotonic ΓÇö more equity lifts expected
+//    return but adds volatility drag, so success can rise then fall. Bisection
+//    (which assumes monotonicity) would silently return a wrong level. An
+//    exhaustive scan is correct for any shape and cheap at this count.
+//  ΓÇó LARGE range (spending, savings): bisect. These ARE monotonic in success
+//    and have hundreds of steps, so a full scan would be needlessly slow.
+// `score(L)` returns the metric to clear (0ΓÇô100); defaults to plan success %,
+// but legacy goals pass a "% chance of leaving ΓëÑ $X" scorer. Everything else
+// (closest-to-baseline, scan vs bisection, capped handling) is unchanged.
+function solveLeverFor(baseLev, key, targetPct, score = trySuccess, band = null){
+  const cfg = LEVCFG.find(c=>c.key===key);
+  if(!cfg) return null;
+  const r = band || levRange(cfg);
+  const lo = r.min, hi = r.max, step = r.step;
+  if(lo === hi) return { value: lo, reachedPct: score({...baseLev,[key]:lo}), capped:false };
+  const pctAt = v => score({...baseLev, [key]: v});
+  const nSteps = Math.round((hi - lo) / step);
+
+  if(nSteps <= 12){
+    // Exhaustive scan. Pick the value closest to the lever's current (baseline)
+    // setting that meets target; if none meet, return the best-achievable value
+    // (capped). Direction-agnostic ΓÇö works for non-monotonic levers.
+    const baseV = baseLev[key];
+    let passVal = null, passPct = -1, bestVal = lo, bestPct = -Infinity;
+    for(let i = 0; i <= nSteps; i++){
+      const v = lo + i * step;
+      const pct = pctAt(v);
+      if(pct > bestPct){ bestPct = pct; bestVal = v; }
+      if(pct >= targetPct &&
+         (passVal === null || Math.abs(v - baseV) < Math.abs(passVal - baseV))){
+        passVal = v; passPct = pct;
+      }
+    }
+    return passVal !== null
+      ? { value: passVal, reachedPct: passPct, capped: false }
+      : { value: bestVal, reachedPct: bestPct, capped: true };
+  }
+
+  // Large monotonic range ΓåÆ bisection (detect direction from the endpoints).
+  const pctLo = pctAt(lo), pctHi = pctAt(hi);
+  const increases = pctHi >= pctLo;                  // success rises with higher value?
+  const best      = Math.max(pctLo, pctHi);
+  const bestVal   = (pctHi >= pctLo) ? hi : lo;
+  if(best < targetPct){ return { value: bestVal, reachedPct: best, capped: true }; }
+  // Bisect for the value closest to baseline that meets target. We track the
+  // smallest "passing" value on the side of monotonicity.
+  let a = lo, b = hi;
+  for(let i = 0; i < 9; i++){
+    const mid = Math.max(lo, Math.min(hi, Math.round(((a+b)/2) / step) * step));
+    if(mid === a || mid === b) break;
+    const pct = pctAt(mid);
+    const meets = pct >= targetPct;
+    // For positive direction (success rises with value): we want SMALLEST value
+    // that meets. For inverse: we want LARGEST value that meets.
+    if(increases){ if(meets) b = mid; else a = mid; }
+    else         { if(meets) a = mid; else b = mid; }
+  }
+  const value = increases ? b : a;
+  return { value, reachedPct: pctAt(value), capped: false };
+}
+// ΓöÇΓöÇ Solver (selectable goal ┬╖ solo per-lever answers) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+// The advisor picks a GOAL the client actually wants (retire early, afford a big
+// purchase, gift to family, leave a legacy, or just hit a confidence bar), then
+// for every controllable lever we show what it ALONE would need to be to reach
+// that goal ΓÇö holding all else at today's plan. Neutral: no weighting, no
+// bundling. The advisor reads each contribution and surmises any blend.
+let solverResults = null;  // null=no run yet, else {goal, params, targetPct, soloBase, rows}
+let solverSearching = false;
+// Combo solver state. The fold-down is opened on demand (the search is heavy),
+// so comboResults stays null until the advisor opens it for a given solve; it's
+// cleared whenever the underlying solo solve changes.
+let comboResults = null, comboOpen = false, comboSearching = false;
+
+// Levers that get a solo answer. Some goals PIN one (excluded from the list).
+// Allocation/risk is intentionally OUT ΓÇö "take more risk to hit a goal" isn't a
+// clean planning recommendation (parked in the idea bank). SS stays, though it's
+// a weak % mover for high-spend households (its value is lifetime dollars).
+const SOLVE_KEYS = ['retireAge','spend','savings','ssAge','pensionAge'];
+
+// ΓöÇΓöÇ Combo solver tuning (all adjustable ΓÇö refine with use) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+// "Least disruptive" blends the three rules Nathan approved:
+//   1. minimize the BIGGEST single lever stretch (each move normalized to its
+//      own realistic band), so no one lever carries the whole load;
+//   2. weight spending CUTS heavier ΓÇö protect lifestyle, so combos lean to
+//      save-more / claim-SS-later before they cut spend;
+//   3. break ties by the smallest TOTAL move.
+const COMBO_SPEND_CUT_W = 1.6;                 // penalty multiplier on a spend cut
+const COMBO_A_FRACTIONS = [0.3, 0.55, 0.8];    // PARTIAL pushes of lever A (never the full solo move) so B genuinely shares the load
+const COMBO_MAX_CARDS   = 3;                    // cards shown
+const COMBO_MAX_LEVERS  = 3;                    // candidate levers searched (caps cost)
+// Short labels for the combo pills (the lever names are too long for a pill).
+const COMBO_SHORT = { retireAge:'Retire', ssAge:'SS at', spend:'Spend', savings:'Save', pensionAge:'Pension' };
+
+// Realistic search band per lever (relative to baseline) so a solo answer can't
+// suggest something absurd ($73k/yr savings off a $30k base). Not limiting: if a
+// lever can't reach the goal within its band it truthfully reports "best hits X%".
+function solveBand(key, baseLev){
+  const cfg = LEVCFG.find(c=>c.key===key);
+  const r   = levRange(cfg);
+  const cur = plan.household.primary.currentAge;
+  let min = r.min, max = r.max;
+  if(key==='spend'){        min = Math.round(baseLev.spend*0.70/100)*100; max = Math.round(baseLev.spend*1.30/100)*100; }
+  else if(key==='savings'){ min = 0; max = Math.max(baseLev.savings*2, baseLev.savings+25000); }
+  else if(key==='retireAge'){ min = Math.max(cur+1, baseLev.retireAge-5); max = baseLev.retireAge+5; }
+  // ssAge (62ΓÇô70) and pensionAge (quoted range) are already tight ΓÇö leave full.
+  return { min: Math.max(r.min, min), max: Math.min(r.max, max), step: r.step };
+}
+
+// Goal registry. Each goal: how it reads, the param fields it needs, which lever
+// (if any) it pins, and (legacy) a custom scorer. `bar` = label for the % box.
+const GOALS = {
+  confidence: { label:'Reach a confidence level',          bar:'confidence', params:[] },
+  retire:     { label:'Retire by an age',                  bar:'confidence', params:['age'],          pin:'retireAge' },
+  purchase:   { label:'Afford a big one-time goal',        bar:'confidence', params:['amount','age'] },
+  gift:       { label:'Gift / fund education yearly',      bar:'confidence', params:['amount','toAge'] },
+  legacy:     { label:'Leave a legacy',                    bar:'chance',     params:['amount'] },
+};
+
+// One solved lever ΓåÆ a clean "was ΓåÆ needs to be (delta)" descriptor.
+function soloRowText(key, baseV, newV){
+  const cfg = LEVCFG.find(c=>c.key===key);
+  const fmt = v => { const [a,u]=cfg.fmt(v, {...defaultLevers(), [key]:v, eventAge:70}); return u && u!=='growth / defensive' ? `${a} ${u}` : a; };
+  const from = fmt(baseV), to = fmt(newV);
+  let delta = '';
+  if(newV === baseV)                 delta = 'no change needed';
+  else if(key==='spend')             delta = `${newV<baseV?'ΓêÆ':'+'}${Math.abs(Math.round((newV-baseV)/baseV*100))}%`;
+  else if(key==='savings')           delta = `${newV>baseV?'+':'ΓêÆ'}$${Math.abs(Math.round((newV-baseV)/1000))}k/yr`;
+  else if(key==='risk')              delta = `${newV>baseV?'+':''}${newV-baseV} level${Math.abs(newV-baseV)>1?'s':''}`;
+  else /* ages */                    delta = `${newV>baseV?'+':''}${newV-baseV} yr${Math.abs(newV-baseV)>1?'s':''}`;
+  return { name: cfg.name, from, to, delta, unchanged: newV===baseV };
+}
+
+// The goal-dependent parameter fields + the % bar, rendered together so the
+// whole strip swaps when the goal dropdown changes.
+function goalParamsHtml(goalType, baseLev, defPct){
+  const g = GOALS[goalType];
+  const cur = plan.household.primary.currentAge;
+  const money = (id,lbl,val,suf='') => `<label class="sf-field"><span class="sf-lbl">${lbl}</span><span class="sf-box-wrap"><span class="sf-prefix">$</span><input class="sf-box sf-money" id="${id}" type="text" inputmode="numeric" value="${val.toLocaleString('en-US')}">${suf?`<span class="sf-suffix">${suf}</span>`:''}</span></label>`;
+  const age = (id,lbl,val,min=55,max=99) => `<label class="sf-field"><span class="sf-lbl">${lbl}</span><span class="sf-box-wrap"><input class="sf-box" id="${id}" type="number" min="${min}" max="${max}" value="${val}"></span></label>`;
+  let h = '';
+  if(goalType==='retire')    h += age('sf-p-age','By age', baseLev.retireAge, 55, 72);
+  if(goalType==='purchase'){ h += money('sf-p-amount','Amount', 300000); h += age('sf-p-age','At age', Math.min(72, baseLev.retireAge+2), cur, 95); }
+  if(goalType==='gift'){     h += money('sf-p-amount','Each year', 25000, '/yr'); h += age('sf-p-toage','Through age', 85, cur, 99); }
+  if(goalType==='legacy')    h += money('sf-p-amount','At least', 1000000);
+  const barLbl = g.bar==='chance' ? 'Chance' : 'Confidence';
+  const barDef = g.bar==='chance' ? 85 : defPct;
+  h += `<label class="sf-field"><span class="sf-lbl">${barLbl}</span><span class="sf-box-wrap"><input class="sf-box" id="sf-pct" type="number" min="50" max="99" value="${barDef}"><span class="sf-suffix">%</span></span></label>`;
+  return h;
+}
+
+function renderSolvePanel(){
+  const el = $('#solve-panel');
+  if(!el) return;
+  // The goal-entry FORM takes priority ΓÇö full-width card so it has room to breathe.
+  if(solverFormOpen){
+    const baseLev = scenarios.find(s=>s.base)?.lev || defaultLevers();
+    const baseSucc = scenarios.find(s=>s.base)?.res?.successRate || 85;
+    const defPct = Math.min(95, Math.ceil((baseSucc+1)/5)*5);
+    const goalOpts = Object.entries(GOALS).map(([k,g])=>`<option value="${k}"${k==='retire'?' selected':''}>${g.label}</option>`).join('');
+    el.innerHTML = `
+      <div class="solve-panel solve-form-panel">
+        <div class="solve-panel-head">
+          <span class="solve-panel-title">What would it take? ΓÇö solve each lever to a goal</span>
+          <button class="solve-clear" id="sf-cancel">Γ£ò Cancel</button>
+        </div>
+        <form class="sf-form" id="solver-form">
+          <label class="sf-field"><span class="sf-lbl">Goal</span>
+            <select class="sf-select" id="sf-goal">${goalOpts}</select></label>
+          <span id="sf-params" class="sf-params">${goalParamsHtml('retire', baseLev, defPct)}</span>
+          <button type="submit" class="sf-go">Solve ΓåÆ</button>
+        </form>
+      </div>`;
+    return;
+  }
+  if(!solverResults && !solverSearching){ el.innerHTML = ''; return; }
+  if(solverSearching){
+    el.innerHTML = `<div class="solve-panel"><div class="solve-searching">Solving each lever</div></div>`;
+    return;
+  }
+  const R = solverResults;
+  const P = R.params;
+  const money = v => '$' + Math.round(v).toLocaleString('en-US');
+  // Goal sentence reads the client's wish back, then the bar.
+  let goal;
+  if(R.goalType==='legacy'){
+    goal = `For a <b>${R.targetPct}%</b> chance of leaving at least <b>${money(P.amount)}</b>`;
+  } else if(R.goalType==='retire'){
+    goal = `To retire by <b>${P.age}</b> at <b>${R.targetPct}%</b> confidence`;
+  } else if(R.goalType==='purchase'){
+    goal = `To afford <b>${money(P.amount)}</b> at age <b>${P.age}</b> and stay at <b>${R.targetPct}%</b> confidence`;
+  } else if(R.goalType==='gift'){
+    goal = `To gift <b>${money(P.amount)}/yr</b> through age <b>${P.toAge}</b> and stay at <b>${R.targetPct}%</b> confidence`;
+  } else {
+    goal = `To reach <b>${R.targetPct}%</b> confidence`;
+  }
+  goal += `, here's what each lever would need to be on its own:`;
+  const allCapped = R.rows.length > 0 && R.rows.every(r => r.capped);
+  const rows = R.rows.map((row,i) => {
+    const t = soloRowText(row.key, R.soloBase[row.key], row.value);
+    const capped = row.capped;
+    // "Already meets it" only when NOT capped and no move needed. When capped,
+    // the lever can't get there at all ΓÇö show the best it can do, never "meets it".
+    const justMeets = t.unchanged && !capped;
+    const move = justMeets
+      ? `<span class="solo-to">${t.to}</span><span class="solo-delta">already meets it</span>`
+      : t.unchanged   // capped but no useful move exists
+        ? `<span class="solo-to">${t.to}</span><span class="solo-delta">no setting reaches it</span>`
+        : `<span class="solo-from">${t.from}</span><span class="solo-arrow">ΓåÆ</span><span class="solo-to">${t.to}</span><span class="solo-delta">${t.delta}</span>`;
+    return `<div class="solo-row ${capped?'capped':''} ${justMeets?'unchanged':''}">
+      <div class="solo-name">${escHtml(t.name)}</div>
+      <div class="solo-move">${move}</div>
+      <div class="solo-pct ${capped?'capped':''}">${capped ? `best hits ${row.reachedPct.toFixed(0)}%` : `${row.reachedPct.toFixed(0)}% Γ£ô`}</div>
+      <button class="solve-load" data-solo-idx="${i}" ${capped||justMeets||!R.canLoad?'disabled':''}>Load</button>
+    </div>`;
+  }).join('');
+  const allCappedNote = allCapped
+    ? `<div class="solo-allcapped">No single lever reaches ${R.targetPct}% ΓÇö combine moves, or ease the goal.</div>` : '';
+  // The small solo widget folds DOWN into the combo field. The tab is always
+  // offered once we have solo results; the heavy search only runs when opened.
+  let comboHtml = `<div class="fold-cta"><button class="fold-tab" id="combo-toggle">${comboOpen?'Γåæ Hide combinations':'Γåô Balanced combinations'}</button></div>`;
+  if(comboOpen){
+    comboHtml += comboSearching
+      ? `<div class="combo-field"><div class="combo-searching">Searching balanced combinations</div></div>`
+      : (comboResults ? renderComboField(comboResults) : '');
+  }
+  el.innerHTML = `
+    <div class="solve-panel">
+      <div class="solve-panel-head">
+        <span class="solve-panel-title">${goal}</span>
+        <button class="solve-clear" id="solve-clear-btn">Γ£ò Clear</button>
+      </div>
+      <div class="solo-list">${rows}</div>
+      ${allCappedNote}
+    </div>
+    ${comboHtml}`;
+}
+
+// Solve toward a chosen GOAL. Build soloBase = today's plan + the wish applied,
+// pick the scorer (success %, or legacy "% chance of ΓëÑ $X"), then for each
+// controllable lever find what it ALONE would need within a realistic band ΓÇö
+// holding all else at soloBase. Neutral: no weighting, no bundling. The advisor
+// reads each lever's required move and surmises any blend.
+async function runSolve(goalType, params){
+  if(solving) return;
+  solving = true; solverFormOpen = false; solverSearching = true; solverResults = null;
+  renderSolvePanel();
+
+  if(!sharedPaths){
+    resetSeed();
+    const horizon = plan.household.primary.planEndAge - plan.household.primary.currentAge;
+    sharedPaths = [];
+    for(let i=0; i<plan.simulation.iterations; i++) sharedPaths.push(generateReturnPath(horizon));
+  }
+
+  const baseLev  = JSON.parse(JSON.stringify(scenarios.find(s=>s.base)?.lev || defaultLevers()));
+  const soloBase = JSON.parse(JSON.stringify(baseLev));
+  let pinned = null, score = trySuccess;
+  if(goalType==='retire'){        soloBase.retireAge = params.age; pinned = 'retireAge'; }
+  else if(goalType==='purchase'){ soloBase.eventAmt = params.amount; soloBase.eventAge = params.age; }
+  else if(goalType==='gift'){     soloBase.giftAmt = params.amount; soloBase.giftEndAge = params.toAge; }
+  else if(goalType==='legacy'){   score = (L)=>tryLegacyProb(L, params.amount); }
+  syncPension(soloBase);
+
+  const keys = SOLVE_KEYS.filter(k => k !== pinned);
+  const rows = [];
+  for(const k of keys){
+    await new Promise(r => setTimeout(r, 0));      // yield so the spinner paints
+    const band = solveBand(k, soloBase);
+    const res  = solveLeverFor(soloBase, k, params.pct, score, band);
+    if(res) rows.push({ key:k, value:res.value, reachedPct:res.reachedPct, capped:res.capped });
+  }
+
+  // Gift injects a liability with no column/lever to display, so its solos
+  // can't be loaded as a scenario faithfully ΓÇö read-only. Everything else loads.
+  solverResults  = { goalType, params, targetPct: params.pct, soloBase, rows, canLoad: goalType!=='gift' };
+  solverSearching = false;
+  solving = false;
+  // A fresh solo solve invalidates any combos computed for the previous one.
+  comboResults = null; comboOpen = false; comboSearching = false;
+  renderSolvePanel();
+}
+
+// ΓöÇΓöÇ Combo solver ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+// When no SINGLE lever reaches the goal, the advisor opens the fold-down and we
+// search PAIRS of the remaining levers (the goal's pinned lever is held fixed).
+// For each pair we push lever A partway toward its helpful end, then solve B to
+// the gentlest value that still clears the target ΓÇö tracing the trade-off line.
+// Every % is the real engine on the shared market paths (apples-to-apples). We
+// then rank the passing combos by the blended "least-disruptive" score and show
+// the gentlest one per distinct lever-pair. No new math in the engine ΓÇö this is
+// pure search over engine outputs.
+
+// One combo pill's value text: deltas for the dollar levers (reads like "spend
+// $850/mo less"), absolute for the age levers ("SS at 70").
+function comboPillValue(key, baseV, val){
+  if(key==='spend'){   const d=Math.round((val-baseV)/12); return (d<0?'ΓêÆ$':'+$')+Math.abs(d).toLocaleString('en-US')+'/mo'; }
+  if(key==='savings'){ const d=Math.round((val-baseV)/1000); return (d<0?'ΓêÆ$':'+$')+Math.abs(d)+'k/yr'; }
+  return String(val);  // ages: the claim/retire age itself
+}
+// The anchor pill describing the (held-fixed) goal, shown first on every card.
+function comboGoalPill(goalType, params){
+  if(goalType==='retire')   return { k:'Retire', v:String(params.age) };
+  if(goalType==='purchase') return { k:'Buy',    v:'$'+Math.round(params.amount/1000)+'k @'+params.age };
+  if(goalType==='gift')     return { k:'Gift',   v:'$'+Math.round(params.amount/1000)+'k/yrΓåÆ'+params.toAge };
+  if(goalType==='legacy')   return { k:'Leave',  v:'ΓëÑ$'+Math.round(params.amount/1000)+'k' };
+  return null;  // plain confidence goal has no extra anchor
+}
+// Build a combo record from a set of [key,value] moves: pill text + the blended
+// disruption score (rule 1 = biggest weighted stretch; rule 3 = total move).
+function makeCombo(soloBase, moves, pct, basePct, meta){
+  const items = moves.map(([k,v])=>{
+    const span = (meta[k].band.max - meta[k].band.min) || 1;
+    const norm = Math.abs(v - soloBase[k]) / span;
+    const cut  = (k==='spend' && v < soloBase[k]);     // the one move that hurts lifestyle
+    return { key:k, val:v, pv:comboPillValue(k, soloBase[k], v), cut,
+             wnorm: norm*(cut?COMBO_SPEND_CUT_W:1), norm };
+  });
+  return {
+    items, pct, deltaPts: pct - basePct,
+    disruption: Math.max(...items.map(m=>m.wnorm)),    // minimize the biggest stretch
+    spread:     items.reduce((s,m)=>s+m.norm,0),       // tie-break: least total move
+    pairKey:    moves.map(m=>m[0]).sort().join('+'),
+  };
+}
+
+async function runComboSolve(){
+  if(!solverResults || comboSearching) return;
+  comboSearching = true; comboResults = null; renderSolvePanel();
+  await new Promise(r=>setTimeout(r,0));     // let the spinner paint
+
+  // sharedPaths is already built by the solo solve, but guard anyway.
+  if(!sharedPaths){
+    resetSeed();
+    const horizon = plan.household.primary.planEndAge - plan.household.primary.currentAge;
+    sharedPaths = [];
+    for(let i=0;i<plan.simulation.iterations;i++) sharedPaths.push(generateReturnPath(horizon));
+  }
+
+  const R = solverResults;
+  const target   = R.targetPct;
+  const soloBase = JSON.parse(JSON.stringify(R.soloBase));
+  const score    = R.goalType==='legacy' ? (L)=>tryLegacyProb(L, R.params.amount) : trySuccess;
+  const pinned   = R.goalType==='retire' ? 'retireAge' : null;
+  const basePct  = score(soloBase);
+
+  // Candidate levers = solvable set minus the pinned one, pruned to those whose
+  // solo move actually helped, then capped to the most-promising few (cost).
+  let cand = SOLVE_KEYS.filter(k => k!==pinned);
+  const helpful = cand.filter(k=>{
+    const row = R.rows.find(r=>r.key===k);
+    return row && row.reachedPct > basePct + 0.3;
+  });
+  if(helpful.length >= 2) cand = helpful;
+  if(cand.length > COMBO_MAX_LEVERS){
+    cand = cand.slice().sort((a,b)=>
+      (R.rows.find(r=>r.key===b)?.reachedPct ?? 0) - (R.rows.find(r=>r.key===a)?.reachedPct ?? 0)
+    ).slice(0, COMBO_MAX_LEVERS);
+  }
+
+  // Per-candidate band + helpful direction (one pair of evals each).
+  const meta = {};
+  for(const k of cand){
+    await new Promise(r=>setTimeout(r,0));
+    const band  = solveBand(k, soloBase);
+    const baseV = soloBase[k];
+    const pLo = score({...soloBase,[k]:band.min});
+    const pHi = score({...soloBase,[k]:band.max});
+    meta[k] = { band, baseV, end: (pHi>=pLo) ? band.max : band.min };
+  }
+
+  // Sweep A toward its helpful end; at each step solve B to the gentlest value
+  // that clears target. Keep combos where BOTH levers actually moved.
+  // Ordered pairs: sweeping AΓåÆsolve-B and BΓåÆsolve-A trace different points on the
+  // same trade-off line, so we try both and keep the gentlest per unordered pair.
+  const combos = [];
+  for(let i=0;i<cand.length;i++){
+    for(let j=0;j<cand.length;j++){
+      if(i===j) continue;
+      const A=cand[i], B=cand[j], ma=meta[A], mb=meta[B], step=ma.band.step;
+      // Restrict B to its HELPFUL half (baseline ΓåÆ helpful end) so a solve can
+      // never push B backward to "make room" for A ΓÇö both levers only ever help.
+      const bBand = mb.end >= mb.baseV
+        ? { min: mb.baseV, max: mb.band.max, step: mb.band.step }
+        : { min: mb.band.min, max: mb.baseV, step: mb.band.step };
+      for(const f of COMBO_A_FRACTIONS){
+        await new Promise(r=>setTimeout(r,0));
+        let aVal = Math.round((ma.baseV + f*(ma.end - ma.baseV))/step)*step;
+        aVal = Math.max(ma.band.min, Math.min(ma.band.max, aVal));
+        if(aVal === ma.baseV) continue;                         // A didn't move
+        if(score({...soloBase,[A]:aVal}) >= target) continue;   // A alone already clears it ΓåÆ not a real pairing
+        const res = solveLeverFor({...soloBase,[A]:aVal}, B, target, score, bBand);
+        if(!res || res.capped) continue;                        // pair can't reach target
+        if(res.value === mb.baseV) continue;                    // B didn't move ΓåÆ solo-A
+        combos.push(makeCombo(soloBase, [[A,aVal],[B,res.value]], res.reachedPct, basePct, meta));
+      }
+    }
+  }
+  // Gentlest first; keep one (the gentlest) per distinct lever-pair, top N.
+  combos.sort((x,y)=> x.disruption - y.disruption || x.spread - y.spread);
+  const seen = new Set(), top = [];
+  for(const c of combos){
+    if(seen.has(c.pairKey)) continue;
+    seen.add(c.pairKey); top.push(c);
+    if(top.length >= COMBO_MAX_CARDS) break;
+  }
+  comboResults = { goalType:R.goalType, params:R.params, target, basePct, soloBase,
+                   canLoad: R.canLoad, combos: top };
+  comboSearching = false;
+  renderSolvePanel();
+}
+
+function renderComboField(C){
+  if(!C.combos.length){
+    return `<div class="combo-field">
+      <div class="combo-head">No balanced pair reaches ${C.target}%.</div>
+      <div class="combo-empty">Even two moves together can't clear it within reasonable bands ΓÇö ease the goal, or this plan needs a bigger change.</div></div>`;
+  }
+  const gp = comboGoalPill(C.goalType, C.params);
+  const cards = C.combos.map((c,idx)=>{
+    let pills = '';
+    if(gp) pills += `<span class="cpill pin"><span class="pk">${gp.k}</span><span class="pv">${gp.v}</span></span>`;
+    c.items.forEach((m,i)=>{
+      if(gp || i>0) pills += `<span class="cc-plus">+</span>`;
+      pills += `<span class="cpill ${m.cut?'cut':'move'}"><span class="pk">${COMBO_SHORT[m.key]||m.key}</span><span class="pv">${m.pv}</span></span>`;
+    });
+    return `<div class="combo-card${idx===0?' lead':''}">
+      <div class="cc-moves">${pills}</div>
+      <div class="cc-conf"><div class="cv">${c.pct.toFixed(0)}%</div><div class="ck">confidence</div><div class="cd">+${c.deltaPts.toFixed(0)} pts Γ£ô</div></div>
+      <button class="cc-load" data-combo-idx="${idx}" ${C.canLoad?'':'disabled'}>Load</button>
+    </div>`;
+  }).join('');
+  return `<div class="combo-field">
+    <div class="combo-head">Balanced ways to reach ${C.goalType==='retire'?C.params.age:'the goal'} ΓÇö two gentler moves instead of one big one:</div>
+    <div class="combo-sub">Each pair shares the load across two levers and still clears <b>${C.target}%</b>. Ordered least-disruptive first.</div>
+    ${cards}
+    <div class="combo-foot">The goal is held fixed; the engine searched pairs of the remaining levers through the same markets and kept the combinations where neither lever does all the work. Load any one as a new scenario column.</div>
+  </div>`;
+}
+
+// Scenarios are NAMED, SAVEABLE objects (the household-centric data root). They
+// start identical; the advisor moves levers to show each decision's effect, and
+// can rename / add / remove them. Both tabs read this shared set.
+// The first-run demo set tells a story: B retires 2yr later (security improves),
+// C goes aggressive (wealth line jumps, success does NOT ΓÇö volatility drag).
+function demoScenarios(){
+  const s=[
+    {name:'Baseline',   base:true,  lev:defaultLevers(), res:null},
+    {name:'Scenario B', base:false, lev:defaultLevers(), res:null},
+    {name:'Aggressive', base:false, lev:defaultLevers(), res:null},
+  ];
+  s[1].lev.retireAge = 67;
+  s[2].lev.risk = 5;
+  return s;
+}
+let scenarios = loadScenarios() || demoScenarios();
+// Solver UI state. solverFormOpen toggles the inline "SolveΓÇª" form in the band
+// gutter; solving guards against re-entry while a solve is in flight.
+let solverFormOpen = false, solving = false;
+
+/* Map a scenario's levers -> engine override object. */
+function leversToOverrides(L){
+  const ov={};
+  const baseRetire = plan.household.primary.retirementAge;
+  const baseSs     = plan.income.socialSecurity.primary.claimAge;
+  if(L.retireAge !== baseRetire) ov.retireDelay = L.retireAge - baseRetire;
+  if(L.ssAge !== baseSs)         ov.ssDelayYears = L.ssAge - baseSs;
+  // spend vs plan.expenses.living. The engine takes INCREASES via spendBump and
+  // CUTS via spendCut ΓÇö a negative spendBump is ignored (engine clamps it to 0).
+  // So we MUST split by direction or lowering the spend lever silently no-ops.
+  const baseSpend = plan.expenses.living;
+  const spendFrac = (L.spend - baseSpend)/baseSpend;
+  if(spendFrac > 0)      ov.spendBump = spendFrac;
+  else if(spendFrac < 0) ov.spendCut  = -spendFrac;   // engine caps the cut at 50%
+  if(L.eventAmt>0){ ov.lumpSum = L.eventAmt; ov.lumpSumYear = Math.max(0, L.eventAge - plan.household.primary.currentAge); }
+  if(L.savings !== plan.savings.annual) ov.savingsBump = (L.savings - plan.savings.annual)/Math.max(1,plan.savings.annual);
+  // Pension: always pass the chosen age as an absolute override so the engine
+  // looks up the entered benefit for THAT exact age (or pays 0 if no entry).
+  ov.pensionStartAge = L.pensionAge;
+  // Earmarked-asset sale ΓÇö emitted ONLY when an age is chosen (ΓëÑ currentAge), so
+  // the Baseline (sellAge = off) carries no sale and stays clean.
+  if(plan.properties && plan.properties.length && L.sellAge != null && L.sellAge >= plan.household.primary.currentAge){
+    ov.assetSale = { asset: 0, age: L.sellAge };
+  }
+  return ov;
+}
+/* Risk lever changes the profile -> needs a plan clone, not an override.
+   A gift/education goal injects a time-limited recurring outflow (a liability
+   with start/end age). colaPct = inflation so it stays real-constant ΓÇö the
+   advisor enters today's dollars. No-op for normal scenarios (no giftAmt). */
+function planForScenario(L){
+  const p=JSON.parse(JSON.stringify(plan));
+  p.portfolio.riskProfile = L.risk;
+  if(L.giftAmt > 0 && L.giftEndAge){
+    p.liabilities = (p.liabilities || []).concat([{
+      amount: L.giftAmt,
+      startAge: plan.household.primary.currentAge,
+      endAge: L.giftEndAge,
+      colaPct: LONGRUN_INFLATION * 100
+    }]);
+  }
+  return p;
+}
+
+/* ΓöÇΓöÇ Inputs tab: edit the base plan (household data root) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+   `plan` is the single source. Scenarios draw their baseline from it; each
+   scenario then carries its own adjustment. Editing a base input re-seeds
+   every column from the NEW base while PRESERVING each scenario's delta (its
+   decision) ΓÇö so "draw from base, then adjust" holds automatically. */
+if(!plan.income.socialSecurity.spouse) plan.income.socialSecurity.spouse={pia:0,claimAge:67};
+
+const RISK_NAMES={1:'Conservative',2:'Mod-Cons',3:'Moderate',4:'Mod-Agg',5:'Aggressive'};
+
+/* ΓöÇΓöÇ Sub-page registry ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+   Four sub-pages live under the Net Worth tab. Balance Sheet uses the
+   STATEMENT layout (leader-dot rows under thin accent section heads).
+   Inflows / Outflows / Goals use the HYBRID layout (left-gutter identity
+   block + two facing columns split by a single vertical hairline).
+   Each hybrid page's gutter computes its own running total from the live
+   plan values ΓÇö same place on every page so the eye knows where to land. */
+const SUB_PAGES = {
+  'balance-sheet': { label:'Household', layout:'statement' },
+  'cashflow':      { label:'Cash Flow', layout:'hybrid', totLabel:'Annual income' },
+  'goals':         { label:'Goals',     layout:'goals',  totLabel:'Annual goal spend' },
+  'snapshot':      { label:'Snapshot',  layout:'snapshot' },
+};
+
+/* ΓöÇΓöÇ Household / Plan input sections ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+   One calm planning-input page. The engine still supports more detailed real
+   assets, liabilities, and tax data; those controls stay out of this prototype
+   surface until the core advisor flow is clean. */
+const BALANCE_SHEET = [
+  { head:'Household', col:'left', fields:[
+    {path:'meta.primaryName',               label:'Client name',    type:'text'},
+    {path:'meta.spouseName',                label:'Spouse name',    type:'text'},
+    {path:'household.primary.currentAge',    label:'Client age',     type:'age'},
+    {path:'household.spouse.currentAge',     label:'Spouse age',     type:'age'},
+    {path:'household.primary.retirementAge', label:'Client retirement age', type:'age'},
+    {path:'household.spouse.retirementAge',  label:'Spouse retirement age', type:'age'},
+    {path:'household.primary.planEndAge',    label:'Plan end age',   type:'age'},
+  ]},
+  { head:'Investment accounts', col:'left', subtotal:'invest', fields:[
+    {path:'portfolio.accounts.taxable.balance',     label:'Taxable',     type:'money'},
+    {path:'portfolio.accounts.traditional.balance', label:'Traditional', type:'money'},
+    {path:'portfolio.accounts.roth.balance',        label:'Roth',        type:'money'},
+  ]},
+  { head:'Cash flow', col:'right', fields:[
+    {path:'savings.annual',                         label:'Annual savings',    type:'money'},
+    {path:'expenses.living',                        label:'Monthly spending',  type:'monthlyMoney'},
+    {path:'income.workingIncome',                   label:'Working income',    type:'money'},
+    {path:'income.socialSecurity.primary.pia',      label:'Client Social Security', type:'money'},
+    {path:'income.socialSecurity.primary.claimAge', label:'Client SS age',     type:'age'},
+    {path:'income.socialSecurity.spouse.pia',       label:'Spouse Social Security', type:'money'},
+    {path:'income.socialSecurity.spouse.claimAge',  label:'Spouse SS age',     type:'age'},
+    {path:'income.pension.benefitByAge.65',         label:'Pension',           type:'money'},
+    {path:'income.pension.startAge',                label:'Pension age',       type:'age'},
+    {path:'expenses.healthcare',                    label:'Healthcare',        type:'money'},
+  ]},
+  { head:'Assumptions', col:'right', fields:[
+    {path:'portfolio.riskProfile',        label:'Risk profile',        type:'risk'},
+    {path:'portfolio.withdrawalStrategy', label:'Withdrawal strategy', type:'strategy'},
+    {path:'simulation.iterations',        label:'Simulation paths',    type:'num', min:100, step:100},
+  ]},
+];
+const STRATEGY_NAMES = {
+  'taxable-first':'Taxable first',
+  'traditional-first':'Traditional first',
+  proportional:'Proportional'
+};
+
+/* ΓöÇΓöÇ Hybrid columns: each sub-page has a LEFT and a RIGHT column.
+   Each item carries name + path + type, and an optional meta() that draws
+   from the live plan (e.g. "claim at 67" reads the actual claim age). */
+const HYBRID = {
+  // Income and expenses live on ONE page (Cash Flow). Income = Fixed (SS, pension)
+  // + Variable. Expenses = Essential only ΓÇö discretionary spending is modeled as
+  // Goals, so it isn't duplicated here.
+  'cashflow': {
+    left:  { head:'Income', groups:[
+      { head:'Fixed income', items:[
+        {path:'income.socialSecurity.primary.pia', name:'Social Security ┬╖ Primary', type:'money', meta:()=>`Claim at age ${plan.income.socialSecurity.primary.claimAge}`},
+        {path:'income.socialSecurity.spouse.pia',  name:'Social Security ┬╖ Spouse',  type:'money', meta:()=>plan.income.socialSecurity.spouse?`Claim at age ${plan.income.socialSecurity.spouse.claimAge}`:''},
+      ], dynamic:'pension' },
+      { head:'Variable', section:{ arr:'income.other', kind:'income', nameKey:'label', ph:'Source', add:'+ add a variable income source' } },
+    ]},
+    right: { head:'Expenses', groups:[
+      { head:'Essential', items:[
+        {path:'expenses.living',     name:'Lifestyle',  type:'money', meta:()=>'Housing, utilities, food, transport'},
+        {path:'expenses.healthcare', name:'Healthcare', type:'money', meta:()=>'Premiums + out-of-pocket'},
+        {path:'expenses.healthcareRealGrowth', name:'Healthcare inflation', type:'pct', meta:()=>'Annual growth above CPI (default 2%)'},
+      ] },
+    ]},
+  },
+};
+
+/* Active sub-page persisted across sessions so the advisor returns to where
+   they were. Falls back to balance-sheet if the saved key is unknown. */
+const SUB_KEY = 'parallax.netWorth.sub';
+let activeSub = 'balance-sheet';
+let householdView = 'map';
+try { householdView = localStorage.getItem(HH_VIEW_KEY) || 'map'; } catch {}
+if(!['map','networth'].includes(householdView)) householdView = 'map';
+const getPath=(o,p)=>p.split('.').reduce((a,k)=>a&&a[k],o);
+const setPath=(o,p,v)=>{const ks=p.split('.');const last=ks.pop();let t=o;for(const k of ks){if(t==null)return;t=t[k];}if(t!=null)t[last]=v;};
+
+// Live comma formatting for money inputs. Reformats on every keystroke and
+// preserves the caret's LOGICAL position (after the same number of digits)
+// so typing left-to-right feels natural ΓÇö no caret-jumping-to-end weirdness.
+function liveCommas(el){
+  const old = el.value;
+  const caret = el.selectionStart ?? old.length;
+  const digitsBefore = (old.slice(0, caret).match(/\d/g) || []).length;
+  const digits = old.replace(/[^0-9]/g, '');
+  if(!digits){ el.value = ''; return; }
+  const formatted = parseInt(digits, 10).toLocaleString('en-US');
+  el.value = formatted;
+  let pos = 0, seen = 0;
+  while(pos < formatted.length && seen < digitsBefore){
+    if(/\d/.test(formatted[pos])) seen++;
+    pos++;
+  }
+  el.setSelectionRange(pos, pos);
+}
+
+let baseSnapshot=defaultLevers();   // base lever values; used to preserve deltas
+let plansDirty=false;
+
+// Re-seed scenarios from the current base, keeping each scenario's adjustment.
+function reseedScenarios(){
+  const nb=defaultLevers();
+  const LINKED=['retireAge','ssAge','spend','savings','pensionAge'];   // base-linked levers
+  scenarios.forEach(s=>{
+    Object.keys(nb).forEach(k=>{
+      if(s.base){ s.lev[k]=nb[k]; return; }   // baseline always mirrors the base
+      if(!LINKED.includes(k)) return;         // allocation / one-time event stay as set
+      const cfg=LEVCFG.find(c=>c.key===k);
+      let v=nb[k]+(s.lev[k]-baseSnapshot[k]);  // new base + this scenario's delta
+      if(cfg){ const r=levRange(cfg); v=Math.max(r.min,Math.min(r.max,v)); }
+      s.lev[k]=v;
+    });
+    syncPension(s.lev);   // auto-linked pension follows the (possibly new) retire age
+  });
+  baseSnapshot=nb;
+}
+
+// Build the Pension group's fields fresh on every render so any new
+// age entered via the Scenarios inline input shows up here as its own row.
+function pensionFields(){
+  const m=(plan.income.pension && plan.income.pension.benefitByAge) || {};
+  return Object.keys(m).map(Number).sort((a,b)=>a-b).map(age=>(
+    {path:`income.pension.benefitByAge.${age}`, label:`Benefit if claimed @ ${age}`, type:'money'}
+  ));
+}
+/* ΓöÇΓöÇ Derived totals (pure aggregation of typed inputs, NOT engine output) ΓöÇΓöÇ
+   These read the live plan and feed the gutter on each sub-page. The gutter
+   is the same shape on every page ΓÇö a big number + breakdown rows ΓÇö so the
+   eye lands in the same place. Useful information, not descriptions. */
+function investableTotal(){
+  const a=plan.portfolio.accounts;
+  const extra=(plan.portfolio.extraAccounts||[]).reduce((s,x)=>s+Math.max(0,x.balance||0),0);
+  return (a.taxable.balance||0)+(a.traditional.balance||0)+(a.roth.balance||0)+extra;
+}
+// Typed investment accounts ΓåÆ tax sleeve. Workplace + IRA plans are pre-tax;
+// the bucket is what the engine consumes (extraAccounts fold into the totals).
+const ACCT_TYPES = [
+  {label:'Traditional IRA', bucket:'traditional'}, {label:'401(k)', bucket:'traditional'},
+  {label:'403(b)', bucket:'traditional'}, {label:'457', bucket:'traditional'},
+  {label:'401(a)', bucket:'traditional'}, {label:'SEP IRA', bucket:'traditional'},
+  {label:'SIMPLE IRA', bucket:'traditional'}, {label:'Solo 401(k)', bucket:'traditional'},
+  {label:'Roth IRA', bucket:'roth'}, {label:'Brokerage', bucket:'taxable'},
+];
+let acctSel = null;   // type currently armed in the add picker
+// Post-edit refresh (mirrors the balance-sheet field commit, minus setPath).
+function commitPlanEdit(){
+  reseedScenarios(); buildLevers(); sharedPaths=null; plansDirty=true; renderInputs();
+  $('#status').textContent='Plan edited ┬╖ open Scenarios';
+}
+// Real assets are current balance-sheet values. The Household module keeps
+// recurring payment streams out of strict net-worth liability totals.
+function realAssetsTotal(){ return (plan.properties||[]).reduce((s,a)=>s+(a.value||0),0); }
+
+// Column subtotals ΓÇö sums every group in HYBRID[page].left / .right (a column may
+// be one or more groups). Dynamic-pension items are included automatically.
+function groupSum(g){
+  let s = 0;
+  (g.items||[]).forEach(it => { s += (getPath(plan, it.path)||0); });
+  if(g.dynamic==='pension'){
+    const m=(plan.income.pension&&plan.income.pension.benefitByAge)||{};
+    const pStart=(plan.income.pension&&plan.income.pension.startAge);   // pays ONE amount
+    s += (pStart && m[pStart]) || 0;
+  }
+  if(g.section){ (getPath(plan, g.section.arr)||[]).forEach(r => { s += (r.amount||0); }); }
+  return s;
+}
+function colSum(page, side){
+  const col = HYBRID[page] && HYBRID[page][side];
+  if(!col) return 0;
+  return (col.groups || [col]).reduce((s,g)=>s+groupSum(g), 0);
+}
+function hybridTotal(page){ return colSum(page,'left') + colSum(page,'right'); }
+
+// Page-specific gutter HTML. Same shape on every page ΓÇö title row + big
+// number + a breakdown of the parts. No descriptions; the structure IS the
+// description. Net Worth shows assets / liabilities / net; the three hybrid
+// pages show the left-column total / right-column total / overall.
+function renderGutter(pageKey){
+  const sp = SUB_PAGES[pageKey];
+  if(pageKey === 'balance-sheet'){
+    const goalsAnnual = (plan.goals||[])
+      .filter(g => g.startAge !== g.endAge)
+      .reduce((s,g)=>s+(g.amount||0),0);
+    return `<div class="np-gutter">
+      <div class="lbl">Household</div>
+      <div class="big-num">${fmtMoney(investableTotal())}</div>
+      <hr class="gut-rule"/>
+      <div class="row"><span>Savings / yr</span><b>${fmtMoney(plan.savings.annual||0)}</b></div>
+      <div class="row"><span>Spending / mo</span><b>${fmtMoney(Math.round((plan.expenses.living||0)/12))}</b></div>
+      <div class="row"><span>Goals / yr</span><b>${fmtMoney(goalsAnnual)}</b></div>
+    </div>`;
+  }
+  const def = HYBRID[pageKey];
+  // Cash Flow: headline = annual income; breakdown = income composition + expenses.
+  if(pageKey === 'cashflow'){
+    const income   = colSum(pageKey,'left');
+    const expenses = colSum(pageKey,'right');
+    const groupRows = (def.left.groups||[]).map(g =>
+      `<div class="row"><span>${g.head}</span><b>${fmtMoney(groupSum(g))}</b></div>`).join('');
+    return `<div class="np-gutter">
+      <div class="lbl">${sp.totLabel}</div>
+      <div class="big-num">${fmtMoney(income)}</div>
+      <div class="big-sub">per year ┬╖ today's dollars</div>
+      <hr class="gut-rule"/>
+      ${groupRows}
+      <div class="row"><span>Expenses</span><b>${fmtMoney(expenses)}</b></div>
+    </div>`;
+  }
+  const total = hybridTotal(pageKey);
+  return `<div class="np-gutter">
+    <div class="lbl">${sp.totLabel}</div>
+    <div class="big-num">${fmtMoney(total)}</div>
+    <div class="big-sub">per year ┬╖ today's dollars</div>
+    <hr class="gut-rule"/>
+    <div class="row"><span>${def.left.head}</span><b>${fmtMoney(colSum(pageKey,'left'))}</b></div>
+    <div class="row"><span>${def.right.head}</span><b>${fmtMoney(colSum(pageKey,'right'))}</b></div>
+  </div>`;
+}
+
+/* ΓöÇΓöÇ Field renderer ΓÇö one input element, shared by both layouts ΓöÇΓöÇΓöÇΓöÇ */
+function renderField(f, klass){
+  const v = getPath(plan, f.path);
+  if(f.type==='risk'){
+    const opts = Object.keys(RISK_NAMES).map(k =>
+      `<option value="${k}" ${+k===+v?'selected':''}>${RISK_NAMES[k]} ┬╖ ${RISK_LABELS[k]}</option>`).join('');
+    return `<select data-path="${f.path}" data-type="risk">${opts}</select>`;
+  }
+  if(f.type==='strategy'){
+    const opts = Object.entries(STRATEGY_NAMES).map(([k,label]) =>
+      `<option value="${k}" ${k===v?'selected':''}>${label}</option>`).join('');
+    return `<select data-path="${f.path}" data-type="strategy">${opts}</select>`;
+  }
+  if(f.type==='text'){
+    return `<input type="text" data-path="${f.path}" data-type="text" value="${escHtml(v||'')}" placeholder="${f.ph||''}">`;
+  }
+  if(f.type==='money'){
+    const dv = (v||0).toLocaleString('en-US');
+    return `<span class="pre">$</span><input type="text" inputmode="numeric" data-path="${f.path}" data-type="money" value="${dv}">`;
+  }
+  if(f.type==='monthlyMoney'){
+    const dv = Math.round((v||0)/12).toLocaleString('en-US');
+    return `<span class="pre">$</span><input type="text" inputmode="numeric" data-path="${f.path}" data-type="monthlyMoney" value="${dv}">`;
+  }
+  if(f.type==='pct'){
+    const dv = Math.round((v||0)*100);
+    return `<input type="number" data-path="${f.path}" data-type="pct" value="${dv}" step="1"><span class="pre">%</span>`;
+  }
+  if(f.type==='num'){
+    return `<input type="number" data-path="${f.path}" data-type="num" value="${v}" min="${f.min||0}" step="${f.step||1}">`;
+  }
+  // age
+  return `<input type="number" data-path="${f.path}" data-type="${f.type}" value="${v}" step="1">`;
+}
+
+/* ΓöÇΓöÇ Add-row sections ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+   Schema-driven editable rows backed by a plan array. The SAME data-path
+   binding + change handler that drives every other input writes these, so
+   "add a row" is just pushing a default object and re-rendering, and "remove"
+   is an array splice. Each kind names its backing array + a factory for a new
+   row's defaults. (Goals share one array; recurring vs one-time is decided by
+   the window: a one-time goal is a single-year window, startAge===endAge.) */
+const ROW_KINDS = {
+  income:    { arr:'income.other',   mk:()=>({ label:'', amount:0, startAge:65, endAge:75, realGrowth:0, taxablePct:1 }) },
+  expense:   { arr:'expenses.extra', mk:()=>({ label:'', amount:0, startAge:65, endAge:80 }) },
+  liability: { arr:'liabilities',    mk:()=>({ label:'', amount:0, startAge:65, endAge:75, colaPct:0 }) },
+  goalRec:   { arr:'goals',          mk:()=>({ name:'',  amount:0, startAge:plan.household.primary.retirementAge, endAge:plan.household.primary.planEndAge }) },
+  goalOnce:  { arr:'goals',          mk:()=>({ name:'',  amount:0, startAge:70, endAge:70 }) },
+  property:  { arr:'properties',     mk:()=>({ name:'',  value:0, purchasePrice:0, mortgage:{ balance:0, rate:0, termYears:0 } }) },
+};
+const money = (p,base,k)=>`<span class="er-amt"><span class="pre">$</span><input type="text" inputmode="numeric" data-path="${base}.${k}" data-type="money" value="${(getPath(plan,base+'.'+k)||0).toLocaleString('en-US')}"></span>`;
+const num   = (p,base,k,step)=>`<input class="er-num" type="number" step="${step||1}" data-path="${base}.${k}" data-type="num" value="${getPath(plan,base+'.'+k)}">`;
+const name  = (p,base,k,ph)=>`<input class="er-name" type="text" data-path="${base}.${k}" data-type="text" value="${escHtml(getPath(plan,base+'.'+k)||'')}" placeholder="${ph}">`;
+const rmX   = base=>`<button class="row-x" data-rmpath="${base}" title="Remove this row">├ù</button>`;
+
+// A flow row (income / expense / liability): name ┬╖ amount ┬╖ fromΓÇôto ages.
+function flowRow(arr, i, nameKey, ph){
+  const base = `${arr}.${i}`;
+  return `<div class="erow">${name(plan,base,nameKey,ph)}${money(plan,base,'amount')}
+    <span class="er-ages">age ${num(plan,base,'startAge')}<span class="er-dash">ΓÇô</span>${num(plan,base,'endAge')}</span>${rmX(base)}</div>`;
+}
+// An income row = the flow row PLUS a compact second line for the two per-stream
+// controls: real growth/yr (signed ΓÇö negative phases the stream down) and the
+// share taxed at the ordinary rate. gpct stores a signed fraction; pct a 0ΓÇô1 one.
+function incomeRow(arr, i){
+  const base = `${arr}.${i}`;
+  const g = Math.round((getPath(plan, base+'.realGrowth')||0)*100);
+  const tRaw = getPath(plan, base+'.taxablePct');
+  const t = Math.round((tRaw==null?1:tRaw)*100);
+  const main = `<div class="erow">${name(plan,base,'label','Source')}${money(plan,base,'amount')}
+    <span class="er-ages">age ${num(plan,base,'startAge')}<span class="er-dash">ΓÇô</span>${num(plan,base,'endAge')}</span>${rmX(base)}</div>`;
+  const extra = `<div class="er-extra">
+      <span class="er-xk">grows</span><input class="er-num er-gw" type="number" step="1" data-path="${base}.realGrowth" data-type="gpct" value="${g}"><span class="er-xs">%/yr real</span>
+      <span class="er-xsep">┬╖</span>
+      <input class="er-num" type="number" step="1" data-path="${base}.taxablePct" data-type="pct" value="${t}"><span class="er-xs">% taxable</span>
+    </div>`;
+  return `<div class="erow-wrap">${main}${extra}</div>`;
+}
+// A property card: name ┬╖ value ┬╖ purchase price ┬╖ optional mortgage. The
+// payment + payoff shown is the ENGINE's amortization (truth), not UI math.
+function propRow(i){
+  const base = `properties.${i}`, m = `${base}.mortgage`;
+  const M = getPath(plan, m) || {};
+  const pay = annualMortgagePayment(M.balance, M.rate, M.termYears);
+  const start = plan.household.primary.currentAge;
+  const meta = pay > 0
+    ? `Engine: ${fmtMoney(Math.round(pay))}/yr ┬╖ paid off at age ${start + (M.termYears||0)}`
+    : `No mortgage ΓÇö value & purchase price are captured for a future sale`;
+  return `<div class="prop">
+    <div class="prop-top">${name(plan,base,'name','Property')}${rmX(base)}</div>
+    <div class="prop-grid">
+      <label class="prop-f"><span class="er-k">Value</span>${money(plan,base,'value')}</label>
+      <label class="prop-f"><span class="er-k">Purchase price</span>${money(plan,base,'purchasePrice')}</label>
+    </div>
+    <div class="prop-mort">
+      <span class="er-k">Mortgage</span>
+      <label class="prop-f"><span class="er-sub">Balance</span>${money(plan,m,'balance')}</label>
+      <label class="prop-f narrow"><span class="er-sub">Rate</span>${num(plan,m,'rate',0.1)}<span class="er-suf">%</span></label>
+      <label class="prop-f narrow"><span class="er-sub">Term</span>${num(plan,m,'termYears')}<span class="er-suf">yr</span></label>
+    </div>
+    <div class="prop-meta">${meta}</div>
+  </div>`;
+}
+// Render every row of a flow kind backed by `arr`, with the trailing "+ add".
+function flowSection(arr, nameKey, ph, kind, addLabel){
+  const list = getPath(plan, arr) || [];
+  const rowFn = (kind==='income') ? (i=>incomeRow(arr,i)) : (i=>flowRow(arr,i,nameKey,ph));
+  let h = list.map((_,i)=>rowFn(i)).join('');
+  h += `<div class="hp-add" data-add="${kind}">${addLabel}</div>`;
+  return h;
+}
+
+/* ΓöÇΓöÇ Statement layout (Balance Sheet) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+   Section heads = small caps + thin accent underline. Rows = label, dotted
+   leader, boxless input. Subtotal closes a money section in slate. */
+function renderStatement(){
+  return renderHouseholdStatement({
+    plan,
+    householdView,
+    acctSel,
+    acctTypes: ACCT_TYPES,
+    balanceSheet: BALANCE_SHEET,
+    fmtMoney,
+    renderField,
+    escHtml,
+    investableTotal,
+    realAssetsTotal,
+  });
+}
+
+/* ΓöÇΓöÇ Hybrid layout (Inflows / Outflows / Goals) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+   200px gutter (title + description + running total) + two facing columns
+   split by a single vertical hairline. Each item: name on the left, boxless
+   input on the right, meta line below the name in ink-mute. */
+function renderHybrid(pageKey){
+  const def = HYBRID[pageKey];
+  // A "group" = one labelled block (head + fixed items + optional pension +
+  // optional editable section/goals). A column is one or more groups stacked, so
+  // the combined Cash Flow page can show Fixed income + Variable under Income.
+  const renderGroup = g => {
+    let h = g.head ? `<h4>${g.head}</h4>` : '';
+    const items = (g.items||[]).slice();
+    if(g.dynamic==='pension'){
+      // ONE summary row ΓÇö the benefit at the chosen start age. The full
+      // benefit-by-age schedule and which age to claim is decided at the
+      // Scenario level (the pension slider), not here.
+      const pen = plan.income.pension || {};
+      const pstart = pen.startAge;
+      const ages = Object.keys(pen.benefitByAge||{}).map(Number).sort((a,b)=>a-b);
+      const age = (pstart!=null && (pen.benefitByAge||{})[pstart]!=null) ? pstart
+                : (ages.length ? ages[0] : null);
+      if(age!=null){
+        items.push({ path:`income.pension.benefitByAge.${age}`, name:'Pension', type:'money', meta:()=>`Begins at age ${age}` });
+      }
+    }
+    items.forEach(it => {
+      const xBtn = it.removable ? `<button class="row-x" title="Remove this row" data-rmpath="${it.path}">├ù</button>` : '';
+      h += `<div class="hp-item"><div class="ti"><span class="nm">${it.name}</span><span class="field">${renderField(it)}${xBtn}</span></div>`;
+      const m = it.meta ? it.meta() : '';
+      if(m) h += `<div class="meta">${m}</div>`;
+      h += `</div>`;
+    });
+    // Array-backed editable rows: a flow section (variable income) ΓÇª
+    if(g.section){
+      const s = g.section;
+      h += `<div class="erows">${flowSection(s.arr, s.nameKey, s.ph, s.kind, s.add)}</div>`;
+    }
+    // ΓÇª or the goals array, split by window into recurring vs one-time columns.
+    if(g.add && !g.section) h += `<div class="hp-add">${g.add}</div>`;
+    return h;
+  };
+  const colHtml = colDef => {
+    const groups = colDef.groups || [colDef];   // ungrouped pages: the column IS one group
+    return `<div class="hp-col">${groups.map(renderGroup).join('')}</div>`;
+  };
+  return `<div class="np-page">
+    ${renderGutter(pageKey)}
+    <div class="hp-body">
+      ${colHtml(def.left)}
+      <div class="hp-rule"></div>
+      ${colHtml(def.right)}
+    </div>
+  </div>`;
+}
+
+/* ΓöÇΓöÇ Snapshot (the diagnosis) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+   Three diagnostic gauges, each a RELATIONSHIP between numbers already
+   entered ΓÇö not engine projections. These are static rules-of-thumb (like a
+   balance-sheet ratio): the income floor, the year-one withdrawal rate, and
+   the tax-location mix. The engine still owns the real probability (Scenarios);
+   this page is the at-a-glance condition of the household TODAY. Neutrality:
+   the same gauges read green when the news is good and red when it isn't ΓÇö
+   the tool has no thesis, it just shows what's there. */
+function snapshotMetrics(){
+  const a = plan.portfolio.accounts;
+  const taxable = a.taxable.balance||0, trad = a.traditional.balance||0, roth = a.roth.balance||0;
+  const invest = taxable + trad + roth;
+  // Guaranteed-for-life income at retirement: both SS benefits + pension at its
+  // chosen start age (today's-dollar values straight off the inputs).
+  const ssP = plan.income.socialSecurity.primary.pia||0;
+  const ssS = (plan.income.socialSecurity.spouse && plan.income.socialSecurity.spouse.pia)||0;
+  const pen = plan.income.pension||{};
+  const penAmt = (pen.benefitByAge && pen.startAge!=null) ? (pen.benefitByAge[pen.startAge]||0) : 0;
+  const guaranteed = ssP + ssS + penAmt;
+  const essentials = (plan.expenses.living||0) + (plan.expenses.healthcare||0);
+  const goals = (Array.isArray(plan.goals) ? plan.goals : []).reduce((s,g)=>s+(g.amount||0),0);
+  const totalSpend = essentials + goals;
+  const floorPct = essentials>0 ? guaranteed/essentials : 0;
+  const fromPortfolioEssential = Math.max(0, essentials - guaranteed);
+  const gap = Math.max(0, totalSpend - guaranteed);
+  const wr = invest>0 ? gap/invest : 0;
+  // Replacement ratio: GUARANTEED retirement income (SS + pension) as a share of
+  // gross working income. Portfolio withdrawals are NOT income ΓÇö they're spending
+  // the portfolio funds ΓÇö so they're deliberately excluded here. (A "sustainable
+  // withdrawal amount" would need a solve, and would be framed as exactly that.)
+  const workingIncome = plan.income.workingIncome || 0;
+  const replacement = workingIncome>0 ? guaranteed/workingIncome : null;
+  return { taxable, trad, roth, invest, guaranteed, essentials, goals, totalSpend,
+           floorPct, fromPortfolioEssential, gap, wr, workingIncome, replacement };
+}
+function renderSnapshot(){
+  const m = snapshotMetrics();
+  const pct = v => (v*100);
+  const pct1 = v => (v*100).toFixed(1)+'%';
+  const pct0 = v => Math.round(v*100)+'%';
+
+  // 1 ┬╖ Income floor ΓÇö floating stats (no bar: bar implied a grade, this is a fact).
+  const incomeFloor = `
+    <div class="metric">
+      <div>
+        <div class="m-eye">Income Floor</div>
+        <div class="m-hero">${pct0(m.floorPct)}</div>
+        <div class="m-sub">of essential spending is covered for life by guaranteed income</div>
+      </div>
+      <div class="stat-row">
+        <div class="stat-item"><div class="stat-lbl">Guaranteed for life</div><div class="stat-val">${fmtMoney(m.guaranteed)}</div></div>
+        <div class="stat-item"><div class="stat-lbl">Drawn from portfolio</div><div class="stat-val">${fmtMoney(m.fromPortfolioEssential)}</div></div>
+        <div class="stat-item"><div class="stat-lbl">Essential spending</div><div class="stat-val">${fmtMoney(m.essentials)}</div></div>
+      </div>
+    </div>`;
+
+  // 2 ┬╖ Withdrawal rate ΓÇö neutral metric, no grading. Shown for reference and
+  // as a starting point for advisor conversation, not a verdict.
+  const withdrawal = `
+    <div class="metric">
+      <div>
+        <div class="m-eye">Withdrawal Rate ┬╖ Year One</div>
+        <div class="m-hero">${pct1(m.wr)}</div>
+        <div class="m-sub">of the portfolio drawn the first year of retirement</div>
+      </div>
+      <div class="stat-row">
+        <div class="stat-item"><div class="stat-lbl">Portfolio draws / yr</div><div class="stat-val">${fmtMoney(m.gap)}</div></div>
+        <div class="stat-item"><div class="stat-lbl">From invested</div><div class="stat-val">${fmtMoney(m.invest)}</div></div>
+        <div class="stat-item"><div class="stat-lbl">Total retirement spend</div><div class="stat-val">${fmtMoney(m.totalSpend)}</div></div>
+      </div>
+    </div>`;
+
+  // 3 ┬╖ Tax location ΓÇö segmented proportion bar. Hero = the tax-deferred share
+  // (the future-tax exposure). Labels hidden on slivers too thin to hold text.
+  const tP = m.invest>0 ? m.taxable/m.invest : 0;
+  const dP = m.invest>0 ? m.trad/m.invest : 0;
+  const rP = m.invest>0 ? m.roth/m.invest : 0;
+  const segLbl = (p) => pct(p)>=8 ? pct0(p) : '';
+  const taxLocation = `
+    <div class="metric">
+      <div>
+        <div class="m-eye">Tax Location</div>
+        <div class="m-hero">${pct0(dP)}</div>
+        <div class="m-sub">sits in tax-deferred accounts ΓÇö taxed as income when withdrawn</div>
+      </div>
+      <div>
+        <div class="seg">
+          <div class="s-tax" style="width:${(tP*100).toFixed(1)}%">${segLbl(tP)}</div>
+          <div class="s-def" style="width:${(dP*100).toFixed(1)}%">${segLbl(dP)}</div>
+          <div class="s-roth" style="width:${(rP*100).toFixed(1)}%">${segLbl(rP)}</div>
+        </div>
+        <div class="seg-legend">
+          <span class="k"><span class="sw" style="background:var(--accent)"></span>Taxable<b>${fmtMoney(m.taxable)}</b></span>
+          <span class="k"><span class="sw" style="background:var(--accent-deep)"></span>Tax-deferred<b>${fmtMoney(m.trad)}</b></span>
+          <span class="k"><span class="sw" style="background:var(--accent-secondary)"></span>Tax-free ┬╖ Roth<b>${fmtMoney(m.roth)}</b></span>
+        </div>
+      </div>
+    </div>`;
+
+  // 4 ┬╖ Replacement ratio ΓÇö retirement income as a share of working income.
+  // NEUTRAL by design: no safety zones, because a higher ratio isn't worse ΓÇö
+  // it's the upside (live as well or better than today). Reference ticks only:
+  // a faint "typical ~75%" heuristic and a solid "100% = working income" line.
+  // Scale runs 0ΓÇô120% so over-100% (spending up in retirement) still shows.
+  let replacement;
+  if(m.replacement == null){
+    replacement = `
+      <div class="metric">
+        <div>
+          <div class="m-eye">Replacement Ratio</div>
+          <div class="m-hero">ΓÇö</div>
+          <div class="m-sub">add working income on the Balance Sheet to compare retirement to life today</div>
+        </div>
+        <div></div>
+      </div>`;
+  } else {
+    // Coverage bar ΓÇö same language as the income floor. The full track = working
+    // income; the filled portion = the share retirement income replaces. No vertical
+    // ticks cutting through text. Caps at the track; over-100% (spending more in
+    // retirement) shows full + the true % in the hero.
+    const fillPct = Math.min(100, m.replacement*100);
+    replacement = `
+      <div class="metric">
+        <div>
+          <div class="m-eye">Replacement Ratio</div>
+          <div class="m-hero">${pct0(m.replacement)}</div>
+          <div class="m-sub">of working income, replaced by guaranteed retirement income</div>
+        </div>
+        <div>
+          <div class="cov"><div class="fill" style="width:${fillPct.toFixed(1)}%">Guaranteed&nbsp;┬╖&nbsp;${fmtMoney(m.guaranteed)}</div></div>
+          <div class="cov-legend">
+            <span class="k"><span class="sw" style="background:var(--accent)"></span>Guaranteed income<b>${fmtMoney(m.guaranteed)}</b></span>
+            <span class="k"><span class="sw" style="background:#e3d9c5"></span>Working income<b>${fmtMoney(m.workingIncome)}</b></span>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  return `<div class="snap">${incomeFloor}${withdrawal}${taxLocation}${replacement}</div>`;
+}
+
+/* ΓöÇΓöÇ Goals board (the approved prioritisation surface) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+   The Goals sub-tab is NOT the ledger ΓÇö it's a board. Each card is a VIEW of a
+   plan.goals entry: recurring goals (startAgeΓëáendAge) carry a /yr tag; one-time
+   goals (startAge===endAge) get a highlighted card + ONE-TIME tag. The hero sums the
+   recurring goals (annual goal spend) and notes any one-time total. Drag a card
+   onto a ghost slot to rank it (absorb + accent flash; swap, not bounce). The
+   ranking is a planning/conversation surface ΓÇö it adds NO engine math. */
+function goalsView(){
+  const list = (Array.isArray(plan.goals)?plan.goals:[]).map((g,i)=>({
+    i, name:g.name||'', amount:g.amount||0,
+    once:g.startAge===g.endAge, startAge:g.startAge, endAge:g.endAge,
+    area:g.area||null, unpriced:!(g.amount>0),
+  }));
+  return {
+    list,
+    recurring: list.filter(g=>!g.once).reduce((s,g)=>s+g.amount,0),
+    oneTime:   list.filter(g=> g.once).reduce((s,g)=>s+g.amount,0),
+  };
+}
+/* ΓöÇΓöÇ Goals ΓÇö tributaries ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+   A picture of the plan's goal spending: one gold thread across the plan's
+   ages, one ribbon per kept recurring goal (width Γê¥ its annual amount)
+   peeling off at its start age, one-time goals as diamonds on the spine.
+   Statement rows below edit plan.goals through the same delegated data-path
+   change handler every ledger page uses.
+   The keep/drop toggle is WHAT-IF ONLY: it never touches plan.goals
+   (Scenarios keep funding every goal ΓÇö that sameness is the truth); it only
+   changes which engine runs this page composes. Per-goal cost cells are
+   differences of runSimulation outputs ΓÇö no UI math. */
+const GOAL_DROP_KEY='parallax.goals.dropped';
+function droppedGoals(){
+  try{
+    const s=JSON.parse(localStorage.getItem(GOAL_DROP_KEY)||'null');
+    if(s && s.n===(plan.goals||[]).length && Array.isArray(s.dropped))
+      return new Set(s.dropped.filter(i=>i>=0 && i<plan.goals.length));
+  }catch{}
+  return new Set();
+}
+function saveDroppedGoals(set){
+  try{ localStorage.setItem(GOAL_DROP_KEY, JSON.stringify({n:(plan.goals||[]).length, dropped:[...set]})); }catch{}
+}
+let goalSelected=null;
+
+/* ΓöÇΓöÇ Goals ΓÇö life-area intake ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+   A row of dimmed life-area chips. Clicking one glows it open and shows an
+   intake strip: the client names the goal IN THEIR OWN WORDS (the tool never
+   suggests content ΓÇö areas are empty structure), picks rough timing, and the
+   goal lands in plan.goals with amount 0 ΓÇö "price later". Amount 0 is
+   engine-inert (goals add via goalsA += g.amount), so an unpriced goal can
+   sit in the picture without inventing a number. Timing presets are input
+   defaulting from household ages, not financial math; the row's age inputs
+   stay the source of truth. */
+const GOAL_AREAS=[['travel','Travel'],['home','Home'],['family','Family'],['health','Health'],['purpose','Purpose'],['other','Other']];
+const GOAL_AREA_LBL=Object.fromEntries(GOAL_AREAS);
+let goalAreaOpen=null, goalAreaTiming='ongoing';
+function goalAreaAges(timing){
+  const p=plan.household.primary, cur=p.currentAge, end=p.planEndAge;
+  const r0=Math.max(cur, Math.min(p.retirementAge||cur, end));
+  const clamp=v=>Math.min(end, Math.max(Math.min(cur+1,end), Math.round(v)));
+  if(timing==='ongoing') return { startAge:r0, endAge:end };
+  const at = timing==='soon' ? r0
+           : timing==='mid'  ? (r0+end)/2
+           :                    r0+0.8*(end-r0);
+  const a=clamp(at);
+  return { startAge:a, endAge:a };
+}
+function goalAreaChipsHTML(){
+  const have=new Set((plan.goals||[]).map(g=>g.area).filter(Boolean));
+  const chips=GOAL_AREAS.map(([key,lbl])=>
+    `<button class="ga-chip${have.has(key)?' lit':''}${goalAreaOpen===key?' open':''}" data-area="${key}">${lbl}</button>`).join('');
+  let intake='';
+  if(goalAreaOpen){
+    const presets=[['soon','soon'],['mid','mid-retirement'],['later','later'],['ongoing','ongoing']].map(([k,lbl])=>
+      `<button class="ga-preset${goalAreaTiming===k?' sel':''}" data-preset="${k}">${lbl}</button>`).join('');
+    intake=`<div class="ga-intake">
+      <input class="er-name" id="ga-name" type="text" placeholder="Describe it in your own words">
+      <span class="ga-presets">${presets}</span>
+      <button class="ga-go" id="ga-go">Add</button>
+    </div>`;
+  }
+  return `<div class="ga-chips">${chips}</div>${intake}`;
+}
+
+const CHART_LAYOUT = Object.freeze({
+  goalThread: Object.freeze({ width:1000, padLeft:34, padRight:30, threadY:44 }),
+  scenarioPath: Object.freeze({ padLeft:78, padRight:14, padTop:12, padBottom:30 }),
+  storyPath: Object.freeze({ width:1120, height:300, padLeft:58, padRight:16, padTop:14, padBottom:30 }),
+});
+
+function goalsThreadSVG(view, dropped){
+  const a0=plan.household.primary.currentAge;
+  const a1=plan.household.primary.planEndAge;
+  if(!(a1>a0) || !view.list.length) return '';
+  const retAge=plan.household.primary.retirementAge;
+  // Clamp legacy 0/999 windows for GEOMETRY only ΓÇö the row inputs keep
+  // showing the stored values; the engine clamps the same way by age loop.
+  const clampAge=v=>Math.max(a0, Math.min(a1, v||0));
+  const rec=view.list.filter(g=>!g.once)
+    .map(g=>({...g, sa:clampAge(g.startAge), ea:Math.max(clampAge(g.startAge), clampAge(g.endAge))}))
+    .sort((p,q)=>(p.sa-q.sa)||(p.i-q.i));
+  const once=view.list.filter(g=>g.once).map(g=>({...g, sa:clampAge(g.startAge)}));
+  const { width:W, padLeft:padL, padRight:padR, threadY } = CHART_LAYOUT.goalThread;
+  const H=Math.max(190, threadY+44+rec.length*30+44);
+  const x=age=>padL+(W-padL-padR)*(age-a0)/(a1-a0);
+  // Ribbon widths: kept PRICED recurring goals share a ~12px bundle Γê¥ amount.
+  // Unpriced goals have no width to claim ΓÇö they ride outside the bundle as
+  // dashed lanes, like dropped ghosts but visually distinct.
+  const keptRec=rec.filter(g=>!dropped.has(g.i) && !g.unpriced);
+  const keptSum=keptRec.reduce((s,g)=>s+g.amount,0)||1;
+  const wOf=g=>Math.max(2, Math.min(10, 12*g.amount/keptSum));
+  // Stack: the LAST goal to peel rides closest to the spine, so peels never
+  // cross. Offsets accumulate from the spine downward in reverse peel order.
+  let off=2.0; const yOf=new Map();
+  for(let j=keptRec.length-1;j>=0;j--){ const w=wOf(keptRec[j]); yOf.set(keptRec[j].i, threadY+off+w/2); off+=w; }
+  let s='', hits='', labels='';
+  const axisY=H-10;
+  for(let a=Math.ceil(a0/5)*5; a<=a1; a+=5){
+    s+=`<text class="gt-tick" x="${x(a).toFixed(1)}" y="${axisY}" text-anchor="middle">${a}</text>`;
+  }
+  if(retAge>a0 && retAge<a1){
+    s+=`<line class="gt-ret" x1="${x(retAge).toFixed(1)}" y1="16" x2="${x(retAge).toFixed(1)}" y2="${axisY-12}"/>`;
+    s+=`<text class="gt-tick" x="${x(retAge).toFixed(1)}" y="11" text-anchor="middle">${retAge}</text>`;
+  }
+  const laneIdx=new Map(rec.map((g,k)=>[g.i,k]));
+  let lastPeelX=-99;
+  for(const g of rec){
+    const isDrop=dropped.has(g.i), isUn=g.unpriced;
+    let px=x(g.sa); if(px-lastPeelX<6) px=lastPeelX+6; lastPeelX=px;
+    const laneY=threadY+34+laneIdx.get(g.i)*30;
+    const ex=Math.max(x(g.ea), px+70);
+    const peel=yr=>`${px.toFixed(1)} ${yr.toFixed(1)} C ${(px+26).toFixed(1)} ${yr.toFixed(1)}, ${(px+26).toFixed(1)} ${laneY}, ${(px+52).toFixed(1)} ${laneY} L ${ex.toFixed(1)} ${laneY}`;
+    // Kept ribbons travel inside the bundle from the left edge, then peel;
+    // dropped ghosts and unpriced lanes have no place in the bundle ΓÇö they
+    // only mark the lane.
+    const d=(isDrop||isUn) ? `M ${peel(threadY)}` : `M ${padL} ${yOf.get(g.i).toFixed(1)} L ${peel(yOf.get(g.i))}`;
+    const cls=isUn?' unpriced':isDrop?' ghost':'';
+    s+=`<path class="gt-flow${cls}${g.i===goalSelected?' on':''}" data-goal-i="${g.i}" d="${d}" stroke-width="${(isDrop||isUn)?1.5:wOf(g).toFixed(1)}"/>`;
+    hits+=`<path class="gt-hit" data-goal-i="${g.i}" d="${d}" stroke-width="22"/>`;
+    labels+=`<text class="gt-lbl${isUn?' unpriced':''}${g.i===goalSelected?' on':''}" data-goal-i="${g.i}" x="${(px+58).toFixed(1)}" y="${laneY-7}">${escHtml(g.name||'Goal')} ┬╖ ${isUn?'unpriced':fmtMoney(g.amount)+'/yr'}</text>`;
+  }
+  s+=`<line class="gt-spine" x1="${padL}" y1="${threadY}" x2="${W-padR}" y2="${threadY}"/>`;
+  for(const g of once){
+    const isDrop=dropped.has(g.i), isUn=g.unpriced;
+    const cx=x(g.sa), r=isUn?6:Math.max(5, Math.min(11, 4+Math.sqrt(g.amount||0)/40));
+    const cls=isUn?' unpriced':isDrop?' ghost':'';
+    s+=`<rect class="gt-once${cls}${g.i===goalSelected?' on':''}" data-goal-i="${g.i}" x="${(cx-r).toFixed(1)}" y="${(threadY-r).toFixed(1)}" width="${(2*r).toFixed(1)}" height="${(2*r).toFixed(1)}" transform="rotate(45 ${cx.toFixed(1)} ${threadY})"/>`;
+    hits+=`<circle class="gt-hit dot" data-goal-i="${g.i}" cx="${cx.toFixed(1)}" cy="${threadY}" r="16"/>`;
+    labels+=`<text class="gt-lbl${isUn?' unpriced':''}${g.i===goalSelected?' on':''}" data-goal-i="${g.i}" x="${cx.toFixed(1)}" y="${threadY-16}" text-anchor="middle">${escHtml(g.name||'One-time')} ┬╖ ${isUn?'unpriced':fmtMoney(g.amount)} ┬╖ ${g.startAge}</text>`;
+  }
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Goal spending, ages ${a0} to ${a1}">${s}${labels}${hits}</svg>`;
+}
+
+function goalRowHTML(g, isDropped){
+  const base=`goals.${g.i}`;
+  const win=g.once
+    ? `<span class="gl-win">once at <input class="er-num" type="number" step="1" data-path="${base}.startAge" data-sync="${base}.endAge" data-type="num" value="${g.startAge}"></span>`
+    : `<span class="gl-win">/yr ┬╖ age <input class="er-num" type="number" step="1" data-path="${base}.startAge" data-type="num" value="${g.startAge}">ΓÇô<input class="er-num" type="number" step="1" data-path="${base}.endAge" data-type="num" value="${g.endAge}"></span>`;
+  const tag=g.area?`<span class="ga-tag">${escHtml(GOAL_AREA_LBL[g.area]||g.area)}</span>`:'';
+  // Unpriced: same money binding, rendered empty ΓÇö typing a number prices it.
+  // No keep/drop toggle ($0 has nothing to drop); an empty slot keeps columns aligned.
+  const amt=g.unpriced
+    ? `<span class="er-amt unpriced"><span class="pre">$</span><input type="text" inputmode="numeric" data-path="${base}.amount" data-type="money" value="" placeholder="price later"></span>`
+    : money(plan,base,'amount');
+  const keep=g.unpriced
+    ? `<span class="gl-keep-slot"></span>`
+    : `<button class="gl-keep" data-drop="${g.i}" title="What-if only ΓÇö scenarios still fund every goal">${isDropped?'dropped':'kept'}</button>`;
+  return `<div class="erow gl-row${isDropped&&!g.unpriced?' dropped':''}${g.i===goalSelected?' sel':''}" data-gl-row="${g.i}">
+    ${name(plan,base,'name', g.once?'One-time goal':'Goal')}${tag}
+    <span class="gl-dots"></span>
+    ${amt}${win}
+    ${keep}
+    <span class="gl-cost${g.unpriced?' unpriced-cell':''}" data-cost-i="${g.i}">${g.unpriced?'unpriced':'ΓÇö'}</span>
+    ${rmX(base)}
+  </div>`;
+}
+
+function renderGoalsPage(){
+  const view=goalsView(), dropped=droppedGoals();
+  if(goalSelected!=null && !(plan.goals||[])[goalSelected]) goalSelected=null;
+  const facts=[`<b>${fmtMoney(view.recurring)}</b>/yr recurring`];
+  if(view.oneTime>0) facts.push(`<b>${fmtMoney(view.oneTime)}</b> one-time`);
+  facts.push('todayΓÇÖs dollars');
+  const rows=view.list.map(g=>goalRowHTML(g, dropped.has(g.i))).join('');
+  return `<div class="gl-wrap">
+    ${goalAreaChipsHTML()}
+    <div id="goal-thread" class="gt-scroll">${goalsThreadSVG(view, dropped)}</div>
+    <div class="gl-facts">${facts.join(' ┬╖ ')}</div>
+    <div class="gl-rows">${rows||'<div class="gl-none">No goals entered.</div>'}</div>
+    <div class="gl-adds"><span class="hp-add" data-add="goalRec">+ add a recurring goal</span><span class="hp-add" data-add="goalOnce">+ add a one-time goal</span></div>
+    <div class="gl-runs" id="gl-runs"></div>
+  </div>`;
+}
+
+function syncGoalSelection(){
+  const np=$('#np-content');
+  np.querySelectorAll('.gl-row').forEach(r=>r.classList.toggle('sel', +r.dataset.glRow===goalSelected));
+  np.querySelectorAll('.gt-flow,.gt-once,.gt-lbl').forEach(p=>{
+    if(p.dataset.goalI!=null) p.classList.toggle('on', +p.dataset.goalI===goalSelected);
+  });
+}
+function initGoalsPage(){
+  const np=$('#np-content');
+  // Life-area chips: toggle open (re-render shows/hides the intake strip).
+  np.querySelectorAll('.ga-chip').forEach(b=>b.onclick=()=>{
+    const k=b.dataset.area;
+    goalAreaOpen = goalAreaOpen===k ? null : k;
+    renderInputs();
+    const inp=$('#ga-name'); if(inp) inp.focus();
+  });
+  // Timing presets: class swap only ΓÇö no re-render, typed text survives.
+  np.querySelectorAll('.ga-preset').forEach(b=>b.onclick=()=>{
+    goalAreaTiming=b.dataset.preset;
+    np.querySelectorAll('.ga-preset').forEach(x=>x.classList.toggle('sel', x===b));
+  });
+  const addAreaGoal=()=>{
+    const inp=$('#ga-name'), nm=((inp&&inp.value)||'').trim();
+    if(!nm){ if(inp) inp.focus(); return; }
+    if(!Array.isArray(plan.goals)) plan.goals=[];
+    plan.goals.push({ name:nm, amount:0, area:goalAreaOpen, ...goalAreaAges(goalAreaTiming) });
+    commitPlanEdit();   // re-render keeps the chip open (and now lit) for the next one
+    const again=$('#ga-name'); if(again) again.focus();
+  };
+  const go=$('#ga-go');
+  if(go){
+    go.onclick=addAreaGoal;
+    const inp=$('#ga-name');
+    if(inp) inp.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); addAreaGoal(); } });
+  }
+  np.querySelectorAll('[data-drop]').forEach(b=>b.onclick=()=>{
+    const i=+b.dataset.drop, set=droppedGoals();
+    if(set.has(i)) set.delete(i); else set.add(i);
+    saveDroppedGoals(set);
+    renderInputs();             // redraw thread + rows; plan.goals untouched
+  });
+  np.querySelectorAll('.gt-hit').forEach(p=>p.onclick=()=>{
+    goalSelected = goalSelected===+p.dataset.goalI ? null : +p.dataset.goalI;
+    syncGoalSelection();
+  });
+  np.querySelectorAll('.gl-row').forEach(r=>r.addEventListener('click', e=>{
+    if(e.target.closest('input,button')) return;
+    goalSelected = goalSelected===+r.dataset.glRow ? null : +r.dataset.glRow;
+    syncGoalSelection();
+  }));
+  scheduleGoalCosts();
+}
+/* Engine-measured per-goal cost. Composes runSimulation over plan clones on
+   the SAME seeded path bundle the scenarios use: baseline (kept goals), one
+   run per goal (kept minus it ΓÇö or, for a dropped goal, kept plus it), and
+   all-goals-off. Every figure painted below is an engine output or a
+   difference of two engine outputs; the UI adds no math. Async with a token
+   so a stale run set never paints over a newer page state. */
+let goalCostCache=null, goalCostToken=0;
+function goalCostKey(dropped){
+  return JSON.stringify([plan.goals, [...dropped].sort((a,b)=>a-b), pathReplay.seed, plan.simulation.iterations]);
+}
+function scheduleGoalCosts(){
+  if(!$('#gl-runs')) return;                       // not on the goals page
+  const dropped=droppedGoals();
+  const key=goalCostKey(dropped);
+  if(goalCostCache && goalCostCache.key===key){ paintGoalCosts(goalCostCache); return; }
+  const token=++goalCostToken;
+  setTimeout(()=>{                                  // paint first, run after
+    if(token!==goalCostToken || !$('#gl-runs')) return;
+    const paths=ensureSharedPaths();
+    if(!paths) return;
+    const goals=plan.goals||[];
+    const keptIdx=goals.map((g,i)=>i).filter(i=>!dropped.has(i));
+    const runFor=idx=>{
+      const clone=structuredClone(plan);
+      clone.goals=idx.map(i=>goals[i]);
+      const r=runSimulation(clone, {}, paths);
+      return { success:r.successRate, median:r.terminal.p50 };
+    };
+    try{
+      const base=runFor(keptIdx);
+      const allOff=runFor([]);
+      const per={};
+      for(let i=0;i<goals.length;i++){
+        if(token!==goalCostToken) return;
+        if(!(goals[i].amount>0)) continue;          // unpriced: $0 is inert ΓÇö no runs to make
+        per[i]=dropped.has(i)
+          ? runFor([...keptIdx, i].sort((a,b)=>a-b))   // what keeping it back would do
+          : runFor(keptIdx.filter(j=>j!==i));          // what dropping it would free
+      }
+      goalCostCache={ key, base, allOff, per, dropped:[...dropped] };
+      if(token===goalCostToken) paintGoalCosts(goalCostCache);
+    }catch(err){ console.error('goal cost runs failed', err); }
+  }, 20);
+}
+function paintGoalCosts(c){
+  const dropped=new Set(c.dropped);
+  $$('#np-content .gl-cost').forEach(el=>{
+    const i=+el.dataset.costI, r=c.per[i];
+    if(!r){ el.textContent=el.classList.contains('unpriced-cell')?'unpriced':'ΓÇö'; return; }
+    if(dropped.has(i)){
+      el.innerHTML=`if kept: <b>${fmtPts(r.success-c.base.success)}</b> ┬╖ ${fmtMDelta(r.median-c.base.median)} median`;
+    }else{
+      el.innerHTML=`if dropped: <b>${fmtPts(r.success-c.base.success)}</b> ┬╖ ${fmtMDelta(r.median-c.base.median)} median`;
+    }
+  });
+  const runs=$('#gl-runs');
+  if(runs) runs.innerHTML=`
+    <span>kept goals: <b>${c.base.success.toFixed(1)}%</b> success ┬╖ <b>${fmtM(c.base.median)}</b> median end</span>
+    <span>all goals off: <b>${c.allOff.success.toFixed(1)}%</b> ┬╖ <b>${fmtM(c.allOff.median)}</b></span>`;
+}
+
+/* ΓöÇΓöÇ Sub-page render + wiring ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+   One renderInputs() drives whichever sub-page is active. Re-renders on
+   sub-nav click, on field change, and on row delete ΓÇö same wiring pattern
+   as before so live-commas / scenario re-seeding / plansDirty all still
+   work without per-layout duplication. */
+function renderInputs(){
+  // sub-nav active state
+  $$('#np-subnav .stab').forEach(b => b.classList.toggle('on', b.dataset.sub===activeSub));
+  const layout = SUB_PAGES[activeSub].layout;
+  const np = $('#np-content');
+  // Snapshot is its own diagnostic page again ΓÇö embedding it on the Net Worth
+  // page made that page too busy to read.
+  const html = layout==='statement' ? renderStatement()
+             : layout==='snapshot'  ? `<div class="np-snapshot-page">${renderSnapshot()}</div>`
+             : layout==='goals'     ? renderGoalsPage()
+             :                        renderHybrid(activeSub);
+  np.innerHTML = html;
+  if(layout==='goals') initGoalsPage();
+}
+// ΓöÇΓöÇ Net Worth input bindings ΓÇö delegated on the stable #np-content ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+// Input listeners are set once here so re-renders via renderInputs() (which
+// replaces #np-content children) never accumulate orphaned listeners.
+
+// ΓöÇΓöÇ All Net Worth interactions ΓÇö delegated on the stable #np-content ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+$('#np-content').addEventListener('click', e => {
+  const hhMode = e.target.closest('.hh-toggle-btn');
+  if(hhMode){
+    householdView = hhMode.dataset.hhView || 'map';
+    try { localStorage.setItem(HH_VIEW_KEY, householdView); } catch {}
+    renderInputs();
+    return;
+  }
+  // Row delete (├ù)
+  const rx = e.target.closest('.row-x');
+  if(rx){
+    const path = rx.dataset.rmpath;
+    const ks = path.split('.'); const last = ks.pop();
+    let t = plan; for(const k of ks){ if(t==null) return; t=t[k]; }
+    // Array rows splice (no holes); object keys delete.
+    if(Array.isArray(t)) t.splice(+last, 1);
+    else if(t!=null) delete t[last];
+    reseedScenarios(); buildLevers();
+    sharedPaths = null; plansDirty = true;
+    renderInputs();
+    $('#status').textContent='Plan edited ┬╖ open Scenarios';
+    return;
+  }
+  // "+ add ΓÇª" ΓÇö push a default row onto the backing array, then re-render.
+  const adder = e.target.closest('[data-add]');
+  if(adder){
+    const kind = adder.dataset.add;
+    const k = ROW_KINDS[kind];
+    if(k){
+      const arr = getPath(plan, k.arr);
+      if(Array.isArray(arr)) arr.push(k.mk());
+      else setPath(plan, k.arr, [k.mk()]);
+      commitPlanEdit();
+    }
+    return;
+  }
+  // Account type chip
+  const chip = e.target.closest('.acct-chip');
+  if(chip){
+    acctSel = { label: chip.dataset.label, bucket: chip.dataset.bucket };
+    $$('#np-content .acct-chip').forEach(c => c.classList.toggle('sel', c === chip));
+    const btn = $('#np-content .acct-add');
+    if(btn){ btn.disabled = false; btn.textContent = 'Add ' + acctSel.label; }
+    return;
+  }
+  if(e.target.closest('.acct-add')){
+    if(!acctSel) return;
+    const amtEl = $('#np-content .acct-amt');
+    const bal = parseFloat(String(amtEl ? amtEl.value : '').replace(/[^0-9.]/g, ''));
+    if(!isFinite(bal) || bal <= 0){
+      if(amtEl){ amtEl.focus(); amtEl.style.outline='2px solid var(--negative)'; setTimeout(()=>amtEl.style.outline='',1500); }
+      return;
+    }
+    if(!plan.portfolio.extraAccounts) plan.portfolio.extraAccounts = [];
+    plan.portfolio.extraAccounts.push({ type: acctSel.label, bucket: acctSel.bucket, balance: Math.round(bal) });
+    acctSel = null;
+    commitPlanEdit();
+    return;
+  }
+  const rm = e.target.closest('.acct-x');
+  if(rm){
+    const i = +rm.dataset.acctidx;
+    if(plan.portfolio.extraAccounts) plan.portfolio.extraAccounts.splice(i, 1);
+    commitPlanEdit();
+  }
+});
+// Live commas on money fields.
+$('#np-content').addEventListener('input', e => {
+  if(e.target.dataset.type === 'money' || e.target.dataset.type === 'monthlyMoney') liveCommas(e.target);
+});
+$('#np-content').addEventListener('change', e => {
+  // Field edits (data-path bindings)
+  const path = e.target.dataset.path, type = e.target.dataset.type;
+  if(path){
+    const raw = e.target.value;
+    if(type==='text' || type==='strategy'){            // free-text row labels or select values
+      setPath(plan, path, raw);
+      reseedScenarios(); buildLevers(); sharedPaths=null; plansDirty=true; renderInputs();
+      $('#status').textContent='Plan edited ┬╖ open Scenarios';
+      return;
+    }
+    let v;
+    if(type==='money' || type==='monthlyMoney') v = parseFloat(String(raw).replace(/[^0-9.]/g,''));
+    else if(type==='risk')  v = +raw;
+    else                    v = parseFloat(raw);
+    // Blanking a goal amount returns the goal to unpriced ($0 is engine-inert).
+    if(!isFinite(v)){
+      if(type==='money' && String(raw).trim()==='' && /^goals\.\d+\.amount$/.test(path)) v=0;
+      else return;
+    }
+    if(type==='pct')   v = Math.max(0, Math.min(100, v))/100;
+    if(type==='gpct')  v = Math.max(-20, Math.min(20, v))/100;   // signed growth %/yr
+    if(type==='money'){ v = Math.max(0, Math.round(v)); e.target.value = v.toLocaleString('en-US'); }
+    if(type==='monthlyMoney'){
+      const monthly = Math.max(0, Math.round(v));
+      v = monthly * 12;
+      e.target.value = monthly.toLocaleString('en-US');
+    }
+    if(type==='num') v = Math.max(1, Math.round(v));
+    setPath(plan, path, v);
+    // A one-time goal edits a single "at age": mirror it into endAge so the
+    // engine's window is exactly that year.
+    if(e.target.dataset.sync) setPath(plan, e.target.dataset.sync, v);
+    reseedScenarios();
+    buildLevers();
+    sharedPaths = null;
+    plansDirty = true;
+    renderInputs();
+    $('#status').textContent='Plan edited ┬╖ open Scenarios';
+    return;
+  }
+  // Extra-account balance edit
+  const bal = e.target.closest('.acct-bal');
+  if(!bal) return;
+  const i = +bal.dataset.acctidx;
+  const v = Math.max(0, Math.round(parseFloat(String(bal.value).replace(/[^0-9.]/g, '')) || 0));
+  if(plan.portfolio.extraAccounts && plan.portfolio.extraAccounts[i]){
+    plan.portfolio.extraAccounts[i].balance = v;
+    commitPlanEdit();
+  }
+});
+
+// Pension slider range is PER-HOUSEHOLD: it spans only the ages the advisor has
+// actually quoted a benefit for (the keys of benefitByAge). This means the
+// slider can never wander onto an age with no number ΓÇö so it can't silently pay
+// $0. Enter a new quote (e.g. age 67) and the slider grows to include it on the
+// next render. Falls back to a sane window if nothing is entered yet.
+function pensionAges(){
+  const m=(plan.income.pension && plan.income.pension.benefitByAge) || {};
+  return Object.keys(m).map(Number).filter(n=>!isNaN(n)).sort((a,b)=>a-b);
+}
+// Effective slider range for a lever. Pension is dynamic; everything else is
+// the static min/max declared in LEVCFG.
+function levRange(cfg){
+  if(cfg.key==='pensionAge'){
+    const a=pensionAges();
+    if(a.length) return { min:a[0], max:a[a.length-1], step:1 };
+    return { min:62, max:65, step:1 };
+  }
+  // Sale lever: min = currentAgeΓêÆ1 (the "Keep" / off state), max = plan end.
+  if(cfg.key==='sellAge'){
+    const c=plan.household.primary.currentAge, e=plan.household.primary.planEndAge;
+    return { min:c-1, max:e, step:1 };
+  }
+  return { min:cfg.min, max:cfg.max, step:cfg.step };
+}
+
+/* ΓöÇΓöÇ lever display config (label, formatter, slider rangeΓåÆvalue & back) ΓöÇΓöÇ */
+const LEVCFG=[
+  {key:'retireAge', name:'Retirement Age', min:55,max:72,step:1, fmt:v=>[v,'']},
+  {key:'ssAge',     name:'SS Start Age',   min:62,max:70,step:1, fmt:v=>[v,'']},
+  // All dollar levers render full digits with comma grouping ΓÇö no abbreviations.
+  // The advisor wants to see the exact number they're proposing, not a rounded
+  // shorthand. Step values stay round so the slider snaps cleanly.
+  // Spending is stored ANNUAL (the engine's unit) but shown/edited MONTHLY ΓÇö
+  // clients know their monthly number off-hand. edit:'monthly' wires the box.
+  {key:'spend',     name:'Lifestyle Spending',min:80000,max:360000,step:1200, edit:'monthly', fmt:v=>['$'+Math.round(v/12).toLocaleString('en-US'),'/mo']},
+  // One-time event carries BOTH an amount and an age; edit:'event' renders the
+  // two type-in boxes (amount + age) alongside the amount slider.
+  {key:'eventAmt',  name:'One-Time Event', min:0,max:500000,step:5000, edit:'event', fmt:(v,L)=>['$'+(v||0).toLocaleString('en-US'),'@ '+L.eventAge]},
+  {key:'risk',      name:'Allocation',     min:1,max:5,step:1, fmt:v=>[RISK_LABELS[v],'']},
+  {key:'savings',   name:'Savings / yr',   min:0,max:200000,step:1000, edit:'money', fmt:v=>['$'+v.toLocaleString('en-US'),'/yr']},
+  // Pension snaps between the ages that actually have entered amounts (62, 65).
+  // Label shows the dollar value the engine will pay for that age ΓÇö if no entry
+  // exists for that age, it shows "ΓÇö" (and the engine pays 0).
+  // Pension claim age. Range spans the realistic window; the displayed dollar
+  // amount comes from whatever the advisor has entered for that exact age.
+  // No entry yet ΓåÆ the value spot becomes an inline input (handled in
+  // renderLevValue, not here). This is the truth-source contract surfacing
+  // naturally as a UI affordance: "we don't have a number for this age, give
+  // us one." Not an error ΓÇö just the next input.
+  {key:'pensionAge', name:'Pension',       min:55,max:70,step:1, fmt:v=>{
+    const m=(plan.income.pension && plan.income.pension.benefitByAge) || {};
+    const amt=m[v]; return (amt && amt>0) ? ['$'+amt.toLocaleString('en-US'),'@ '+v] : ['__needs__', v];
+  }},
+];
+// Earmarked-asset sale lever ΓÇö only shown when there's a property to sell. A
+// discrete stepper: "Keep" (off) ΓåÆ a sale age. Net proceeds (value ΓêÆ mortgage ΓêÆ
+// commission ΓêÆ cap-gains) flow into the portfolio via the assetSale override, so
+// you can stand a "sell at 72" column next to a "keep" Baseline. (See engine.js.)
+if(plan.properties && plan.properties.length && plan.properties[0]){
+  LEVCFG.push({
+    key:'sellAge', name:'Sell '+(plan.properties[0].name||'asset'),
+    min:0, max:120, step:1,                              // real range is dynamic (levRange)
+    fmt:v => (v <= plan.household.primary.currentAge-1) ? ['Keep',''] : ['age '+v,'']
+  });
+}
+
+let running=false;
+const PATH_KEY='parallax.pathReplay.v1';
+const DEFAULT_PATH_SEED=20260609;
+let pathReplay = (()=> {
+  try{
+    const saved = JSON.parse(localStorage.getItem(PATH_KEY)||'{}');
+    return {
+      mode: ['typical','stressed','favorable','failed','lowest-survivor','choose'].includes(saved.mode) ? saved.mode : 'typical',
+      index: Math.max(0, parseInt(saved.index,10) || 0),
+      seed: Math.max(1, parseInt(saved.seed,10) || DEFAULT_PATH_SEED)
+    };
+  }catch{
+    return { mode:'typical', index:0, seed:DEFAULT_PATH_SEED };
+  }
+})();
+function savePathReplay(){
+  try{ localStorage.setItem(PATH_KEY, JSON.stringify(pathReplay)); }catch{}
+}
+// Cached market bundle. Generated once, reused across Runs so that hitting Run
+// twice with no changes yields the EXACT same numbers (sampling noise was
+// causing the % to drift between identical clicks). Invalidated to null
+// whenever the plan changes in the Inputs tab.
+let sharedPaths=null;
+
+/* ΓöÇΓöÇ run the engine for all three columns (shared nothing; each its own MC) ΓöÇΓöÇ */
+// ONE seeded bundle of return paths, shared by every surface that compares
+// runs (scenario columns, the goals page's per-goal cost runs). Identical
+// markets across runs make any difference a pure decision-effect, and the
+// fixed seed keeps an unchanged plan at an identical % between Runs.
+function ensureSharedPaths(){
+  const horizon = plan.household.primary.planEndAge - plan.household.primary.currentAge;
+  if(!(horizon > 0)) return null;
+  const iters = plan.simulation.iterations;
+  if(!sharedPaths || sharedPaths.length !== iters || sharedPaths[0].length !== horizon){
+    resetSeed(pathReplay.seed);
+    sharedPaths = [];
+    for(let i=0;i<iters;i++) sharedPaths.push(generateReturnPath(horizon));
+  }
+  return sharedPaths;
+}
+function runAll(){
+  if(running) return; running=true;
+  const btn=$('#run-btn'); btn.disabled=true; $('#status').textContent='RunningΓÇª';
+  setTimeout(()=>{
+    try{
+      // SHARED PATHS: one bundle of return paths, reused across scenarios AND
+      // across Runs. Within a Run, every column sees the SAME markets (any
+      // difference between columns is the DECISION). Across Runs, the bundle
+      // is cached so identical inputs give an identical % ΓÇö no noise drift.
+      const horizon = plan.household.primary.planEndAge - plan.household.primary.currentAge;
+      const iters = plan.simulation.iterations;
+      // Degenerate plan guard: a non-positive horizon (plan-end age at/below
+      // current age) can't be simulated. Surface a clear reason and bail
+      // WITHOUT nuking the last good results, so the views don't go blank.
+      if(!(horizon > 0)){
+        $('#status').textContent='Check plan: end age must be after current age';
+        btn.disabled=false; running=false; return;
+      }
+      ensureSharedPaths();
+      // Isolate each scenario: one bad column (e.g. an out-of-range saved lever)
+      // must not abort the whole Run and blank every other column + the cash
+      // flow drawer. Failed scenarios get res=null and are skipped downstream.
+      let failed=0;
+      scenarios.forEach(s=>{
+        try{
+          const p=planForScenario(s.lev);
+          const ov=leversToOverrides(s.lev);
+          s.res=runSimulation(p, ov, sharedPaths);
+        }catch(err){ s.res=null; failed++; console.error('Scenario failed:', s.name, err); }
+      });
+      renderBand(); renderSolvePanel(); renderFoot(); renderCashflow(); buildSeqSelect(); runSeq();
+      $('#status').textContent = failed ? `Complete ┬╖ ${failed} scenario${failed>1?'s':''} could not run` : 'Complete';
+    }catch(e){ $('#status').textContent='Error'; console.error(e); }
+    btn.disabled=false; running=false;
+  },20);
+}
+
+/* ΓöÇΓöÇ render: sticky band of circles ΓöÇΓöÇ */
+// Success-ring band, three status tiers keyed to the success rate:
+// strong (positive status) / caution / at-risk (stress).
+function cssToken(name, fallback){
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
+}
+function ringColor(pct){ return pct>=80?cssToken('--ng-success','#8fdea1'):pct>=71?cssToken('--ng-caution','#d7be83'):cssToken('--ng-risk','#8f5851'); }
+function ring(pct){
+  // SVG fills its .circle-wrap via viewBox, so the ring size is controlled by
+  // CSS (one place). Thin stroke near the edge leaves room for the % number.
+  const r=45,c=2*Math.PI*r,off=c*(1-pct/100);
+  const col=ringColor(pct);
+  return `<svg viewBox="0 0 100 100" width="100%" height="100%">
+    <circle cx="50" cy="50" r="${r}" fill="none" stroke="${cssToken('--ng-ring-track','rgba(238,226,205,.13)')}" stroke-width="2.55"/>
+    <circle cx="50" cy="50" r="${r}" fill="none" stroke="${col}" stroke-width="2.55" stroke-linecap="round"
+      stroke-dasharray="${c}" stroke-dashoffset="${off}" transform="rotate(-90 50 50)" style="transition:stroke-dashoffset .7s cubic-bezier(.4,0,.2,1)"/></svg>`;
+}
+// The band / levers / foot are CSS grids whose column count must match the
+// number of scenarios. One place sets it (label gutter + N equal columns) so
+// adding/removing a scenario reflows all three rows together.
+function syncGridCols(){
+  const tpl=`292px repeat(${scenarios.length},minmax(0,1fr))`;
+  ['#scn-band','#scn-levers','#scn-goals','#scn-foot'].forEach(sel=>{
+    const el=$(sel); if(el) el.style.gridTemplateColumns=tpl;
+  });
+}
+function renderBand(){
+  syncGridCols();
+  const baseSr = scenarios.find(s=>s.base)?.res?.successRate;
+  let h=`<div class="band-cell label"><span>Scenario</span></div>`;
+  scenarios.forEach((s,ci)=>{
+    const sr=s.res?s.res.successRate:0;
+    const col=ringColor(sr);
+    // Delta vs baseline, mirrored under the gauge: anchor reads BASELINE, the
+    // others show signed points (engine successRate difference, no UI math).
+    let deltaEl;
+    if(s.base){ deltaEl=`<div class="col-delta base">BASELINE</div>`; }
+    else if(baseSr==null || s.res==null){ deltaEl=`<div class="col-delta">ΓÇö</div>`; }
+    else { const d=sr-baseSr; const sign=d>0?'+':d<0?'ΓêÆ':'';
+      const tone=d>0?'up':d<0?'down':'flat';
+      deltaEl=`<div class="col-delta ${tone}">${sign}${Math.abs(d).toFixed(1)} pts</div>`; }
+    // Header: a small identity dot (column color) + the name. Baseline's name is
+    // locked (the anchor); other scenarios render an inline editable field so the
+    // advisor can label them ("Retire at 62"). A Γ£ò removes non-baseline columns.
+    const dot=`<span class="col-dot" style="background:${colorFor(ci)}"></span>`;
+    const nameEl = s.base
+      ? `<span class="col-name base-tag">${dot}${escHtml(s.name)}</span>`
+      : `<span class="col-name">${dot}<input class="col-rename" data-col="${ci}" value="${escHtml(s.name)}" maxlength="28" aria-label="Scenario name"><button class="col-x" data-col="${ci}" title="Remove scenario">Γ£ò</button></span>`;
+    h+=`<div class="band-cell ${s.base?'base':''}" data-col="${ci}">
+      <button class="col-menu" data-col="${ci}" title="${s.base?'Baseline options':'Rename or remove'}">┬╖┬╖┬╖</button>
+      ${nameEl}
+      <div class="circle-wrap">${ring(sr)}
+        <div class="circle-val"><span class="big" style="color:${col}">${sr.toFixed(1)}%</span><span class="lbl">Success</span></div></div>
+      ${deltaEl}
+    </div>`;
+  });
+  // Label gutter: just buttons. The solver FORM renders in the full-width
+  // #solve-panel below the band (it needs room ΓÇö the gutter is only ~148px).
+  const addBtn = scenarios.length < MAX_SCENARIOS
+    ? `<button class="add-scen" title="Add scenario"><span class="pill-ic">+</span>Add</button>` : '';
+  const gut = `<span>Scenario</span>${addBtn}
+    <button class="solve-btn" title="Find the least-disruptive path to a goal"><span class="pill-ic">Γùê</span>SolveΓÇª</button>
+    <button class="reset-scen" title="Reset scenarios to the demo set"><span class="pill-ic">Γå╗</span>Reset</button>`;
+  h=h.replace('<span>Scenario</span>', gut);
+  $('#scn-band').innerHTML=h;
+}
+
+/* ΓöÇΓöÇ render: lever grid (built once, values update in place) ΓöÇΓöÇ */
+// Format a single lever value into the inner HTML for its display span.
+// Special return ['__needs__', age] from a fmt() means "no entered amount for
+// this age yet" ΓÇö render an inline input so the advisor can type one in
+// without leaving the lever. Plain numbers/strings render as before.
+// Neutral delta-vs-baseline chip ΓÇö the COMPARISON cue (Scenarios = compare
+// choices). No good/bad coloring: later retirement isn't "better," it's a
+// trade-off, so the chip stays a muted, opinion-free tone. Empty on the
+// baseline column and wherever a lever matches baseline.
+function levDelta(cfg, lev){
+  const baseLev = scenarios.find(s=>s.base)?.lev;
+  if(!baseLev || lev===baseLev) return '';
+  // The sale lever's "delta" isn't a year count (KeepΓåÆage 72 isn't "+8 yr"); the
+  // value text ("Keep" vs "age 72") already reads the difference. Skip the pill.
+  if(cfg.key==='sellAge') return '';
+  const d = (lev[cfg.key]||0) - (baseLev[cfg.key]||0);
+  if(!d) return '';
+  const sign = d>0 ? '+' : 'ΓêÆ', a = Math.abs(d);
+  let txt;
+  if(cfg.key==='spend')                 txt = `${sign}$${Math.round(a/12).toLocaleString('en-US')}/mo`;
+  else if(cfg.key==='savings' || cfg.key==='eventAmt') txt = `${sign}$${a.toLocaleString('en-US')}`;
+  else if(cfg.key==='risk')             txt = `${sign}${a} lvl`;
+  else /* ages */                       txt = `${sign}${a} yr`;
+  return `<span class="lev-delta">${txt}</span>`;
+}
+// Stepper buttons for the discrete levers (ages / allocation / pension). The
+// click handler derives the column from the enclosing #lv-ΓÇª span, so the
+// buttons only carry key + direction. ml:auto pins them right when there's no
+// delta chip to do it.
+function stepper(cfg, pinRight){
+  return `<span class="lev-step"${pinRight?' style="margin-left:auto"':''}>`
+       + `<button class="step-btn" data-dir="-1" data-key="${cfg.key}" tabindex="-1">ΓêÆ</button>`
+       + `<button class="step-btn" data-dir="1" data-key="${cfg.key}" tabindex="-1">+</button></span>`;
+}
+function renderLevValue(cfg, lev){
+  const [val,unit]=cfg.fmt(lev[cfg.key], lev);
+  if(val==='__needs__'){
+    return `$<input class="pen-in" type="text" inputmode="numeric" data-pen-age="${unit}"> <span class="unit">@ ${unit}</span>${stepper(cfg,true)}`;
+  }
+  const d = levDelta(cfg, lev);
+  // Type-in boxes for the dollar/age levers. The box edits the same value the
+  // slider drives ΓÇö both stay in sync. data-edit tells the input handler how to
+  // interpret the typed number (monthlyΓåÆannual, plain money, or event age).
+  if(cfg.edit==='monthly'){
+    const mo=Math.round(lev[cfg.key]/12);
+    return `$<input class="lev-in" type="text" inputmode="numeric" data-edit="monthly" data-key="${cfg.key}" value="${mo.toLocaleString('en-US')}"> <span class="unit">/mo</span>${d}`;
+  }
+  if(cfg.edit==='money'){
+    return `$<input class="lev-in" type="text" inputmode="numeric" data-edit="money" data-key="${cfg.key}" value="${(lev[cfg.key]||0).toLocaleString('en-US')}"> <span class="unit">${unit}</span>${d}`;
+  }
+  if(cfg.edit==='event'){
+    return `$<input class="lev-in" type="text" inputmode="numeric" data-edit="eventAmt" data-key="eventAmt" value="${(lev.eventAmt||0).toLocaleString('en-US')}">`
+         + ` <span class="unit">@ age</span> `
+         + `<input class="lev-in age-in" type="text" inputmode="numeric" data-edit="eventAge" data-key="eventAge" value="${lev.eventAge}">${d}`;
+  }
+  // Discrete levers (ages / allocation): value + delta + stepper buttons.
+  return `${val}${unit?` <span class="unit">${unit}</span>`:''}${d}${stepper(cfg, !d)}`;
+}
+// A lever is "dollar" (keeps a draggable slider) when it has an edit type;
+// the discrete levers (ages / allocation / pension) use steppers + a static bar.
+const isDollarLever = cfg => !!cfg.edit;
+// Where the value sits inside its range, 0ΓÇô100% ΓÇö drives both the slider fill
+// and the static bar fill/dot so every bar reads the same way down a row.
+function barFillPct(cfg, L){
+  const r=levRange(cfg), v=Math.max(r.min,Math.min(r.max,L[cfg.key]||r.min));
+  return r.max>r.min ? ((v-r.min)/(r.max-r.min))*100 : 0;
+}
+// Refresh one cell in place after its value changed: value text + the bar
+// (slider position+fill for dollar levers, fill+dot for discrete ones).
+function updateCell(ci, cfg){
+  const L=scenarios[ci].lev, span=$(`#lv-${ci}-${cfg.key}`); if(!span) return;
+  span.innerHTML=renderLevValue(cfg, L);
+  const pct=barFillPct(cfg,L), cell=span.parentElement;
+  const sl=cell.querySelector('.lev-slider');
+  if(sl){ const r=levRange(cfg); sl.value=Math.max(r.min,Math.min(r.max,L[cfg.key])); sl.style.setProperty('--fill',pct+'%'); }
+}
+// Commit a lever change: editing the baseline shifts every other column's
+// delta, so rebuild the whole grid then; otherwise just refresh the one cell.
+function commitLever(ci, cfg){
+  if(scenarios[ci].base) buildLevers(); else updateCell(ci, cfg);
+  $('#status').textContent='Adjusted ┬╖ Run to update';
+  saveScenarios();
+}
+// Small line-icons for the lever rail, keyed by lever. Inline SVG (currentColor)
+// so they tint with the rail's muted ink. Purely decorative ΓÇö labels still carry
+// the meaning. Matched to lever key with a name-based fallback.
+function levIcon(cfg){
+  const k=cfg.key||'', n=(cfg.name||'').toLowerCase();
+  const I={
+    retireAge:'<circle cx="8" cy="4.6" r="2.6"/><path d="M2.5 14c0-3 2.5-5 5.5-5s5.5 2 5.5 5"/>',
+    ssAge:'<path d="M8 1.5l5 2v4c0 3.2-2.2 5.6-5 6.5C5.2 13.1 3 10.7 3 7.5v-4z"/>',
+    spend:'<rect x="2" y="3.5" width="12" height="9" rx="1.4"/><path d="M2 6.5h12"/>',
+    event:'<circle cx="8" cy="8" r="6"/><path d="M8 4.5V8l2.5 1.6"/>',
+    risk:'<circle cx="8" cy="8" r="6"/><path d="M8 8l3.2-2.2"/><circle cx="8" cy="8" r="1.1" fill="currentColor" stroke="none"/>',
+    savings:'<path d="M2.5 6.5L8 2.5l5.5 4"/><path d="M3.5 6.5v7h9v-7"/><path d="M6.5 13.5v-3h3v3"/>',
+    pension:'<path d="M2.5 6L8 2.5 13.5 6"/><path d="M3.5 13.5h9"/><path d="M5 6.5v6M8 6.5v6M11 6.5v6"/>',
+  };
+  let p=I[k];
+  if(!p){ if(/spend|lifestyle/.test(n))p=I.spend; else if(/sav/.test(n))p=I.savings;
+    else if(/pension/.test(n))p=I.pension; else if(/alloc/.test(n))p=I.risk;
+    else if(/event|once|one-?time/.test(n))p=I.event; else if(/ss|social/.test(n))p=I.ssAge;
+    else p=I.retireAge; }
+  return `<span class="lev-ic" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">${p}</svg></span>`;
+}
+function buildLevers(){
+  syncGridCols();
+  let h='';
+  LEVCFG.forEach((cfg,ri)=>{
+    const rowCls = ri % 2 ? ' row-alt' : '';
+    h+=`<div class="lev-name${rowCls}">${levIcon(cfg)}<span>${escHtml(cfg.name)}</span></div>`;
+    const r=levRange(cfg);
+    scenarios.forEach((s,ci)=>{
+      const last=ci===scenarios.length-1?'col-last':'';
+      const pct=barFillPct(cfg,s.lev);
+      const bar = isDollarLever(cfg)
+        ? `<input class="lev-slider ${s.base?'base-lock':''}" type="range" min="${r.min}" max="${r.max}" step="${r.step}"
+                 value="${Math.max(r.min,Math.min(r.max,s.lev[cfg.key]))}" data-col="${ci}" data-key="${cfg.key}" style="--fill:${pct}%">`
+        : '';
+      h+=`<div class="lev-cell${rowCls} ${s.base?'base':''} ${last}">
+        <span class="lev-val ${s.base?'base':''}" id="lv-${ci}-${cfg.key}">${renderLevValue(cfg,s.lev)}</span>
+        ${bar}
+      </div>`;
+    });
+  });
+  $('#scn-levers').innerHTML=h;
+  renderScenGoals();
+}
+// Goals section ΓÇö READ-ONLY mirror of the base-plan goals across every column.
+// Goals live in the base plan (single source of truth); each scenario carries
+// the same set, so the value is identical down each row. That sameness IS the
+// truth ΓÇö the goal is funded in every scenario. Edited only on the Goals page.
+function renderScenGoals(){
+  const host=$('#scn-goals'); if(!host) return;
+  syncGridCols();
+  const goals=(Array.isArray(plan.goals)?plan.goals:[]).filter(g=>(g.amount||0)>0);
+  // Section header row: an accent "Goals" label in the gutter + a tinted header
+  // cell per column so the section reads as a block under the levers.
+  let h=`<div class="sg-head">Goals</div>`;
+  scenarios.forEach(s=>{ h+=`<div class="sg-head sg-col ${s.base?'base':''}"></div>`; });
+  if(!goals.length){
+    h+=`<div class="sg-empty">No goals yet ΓÇö add them on the Goals page to see them here.</div>`;
+    host.innerHTML=h; return;
+  }
+  // One row per goal: name + age window in the gutter, the amount mirrored in
+  // every scenario column (recurring ΓåÆ /yr, single-year window ΓåÆ one-time).
+  let totRec=0, totOnce=0;
+  goals.forEach((g,gi)=>{
+    const rowCls = gi % 2 ? ' row-alt' : '';
+    const once=(g.startAge===g.endAge);
+    const win = once ? `at age ${g.startAge}` : `age ${g.startAge}ΓÇô${g.endAge}`;
+    const tag = once ? 'one-time' : '/yr';
+    if(once) totOnce+=(g.amount||0); else totRec+=(g.amount||0);
+    h+=`<div class="sg-name${rowCls}">${escHtml(g.name||'Goal')}<span class="sg-win">${win}</span></div>`;
+    scenarios.forEach(s=>{
+      h+=`<div class="sg-cell${rowCls} ${s.base?'base':''}">$${(g.amount||0).toLocaleString('en-US')}<span class="sg-tag">${tag}</span></div>`;
+    });
+  });
+  // Total row: recurring annual goal spend (the steady draw), with any one-time
+  // total noted alongside so a single spike isn't hidden inside the annual line.
+  const totTxt = `$${totRec.toLocaleString('en-US')}`
+    + (totOnce>0 ? ` <span class="sg-tag">+ $${totOnce.toLocaleString('en-US')} one-time</span>` : '');
+  h+=`<div class="sg-total">Annual goal spend</div>`;
+  scenarios.forEach(s=>{ h+=`<div class="sg-tcell ${s.base?'base':''}">${totTxt}</div>`; });
+  host.innerHTML=h;
+}
+// Stepper buttons for the discrete levers (delegated ΓÇö survives rebuilds).
+$('#scn-levers').addEventListener('click', e=>{
+  const btn=e.target.closest('.step-btn'); if(!btn) return;
+  const span=btn.closest('[id^="lv-"]'); if(!span) return;
+  const ci=+span.id.split('-')[1], cfg=LEVCFG.find(c=>c.key===btn.dataset.key);
+  const r=levRange(cfg), L=scenarios[ci].lev;
+  L[cfg.key]=Math.max(r.min, Math.min(r.max, (L[cfg.key]||r.min) + (+btn.dataset.dir)*r.step));
+  // Grabbing the pension age unlinks it; moving retirement age re-syncs an
+  // auto-linked pension and refreshes that cell too.
+  if(cfg.key==='pensionAge') L.pensionAuto=false;
+  if(cfg.key==='retireAge' && L.pensionAuto){ syncPension(L); if(!scenarios[ci].base) updateCell(ci, LEVCFG.find(c=>c.key==='pensionAge')); }
+  commitLever(ci, cfg);
+});
+// Inline pension-amount inputs are inserted dynamically when a slider lands on
+// an age with no entered benefit, so a direct per-element listener (re-bound
+// only at buildLevers time) would miss them. Delegate from #scn-levers once.
+// Typed value writes into the plan's benefit-by-age map for that exact age,
+// then every column refreshes (the amount is reference data shared across
+// scenarios ΓÇö the DECISION is the age, not the amount).
+// ΓöÇΓöÇ Scenario header: rename / add / remove (delegated on #scn-band) ΓöÇΓöÇ
+$('#scn-band').addEventListener('input', e=>{
+  if(e.target.classList && e.target.classList.contains('col-rename')){
+    const ci=+e.target.dataset.col;
+    if(scenarios[ci]) scenarios[ci].name=e.target.value;   // live; persisted on change
+  }
+});
+$('#scn-band').addEventListener('change', e=>{
+  if(e.target.classList && e.target.classList.contains('col-rename')){
+    const ci=+e.target.dataset.col;
+    let nm=e.target.value.trim();
+    if(!nm){ nm=`Scenario ${String.fromCharCode(65+ci)}`; e.target.value=nm; }  // never blank
+    if(scenarios[ci]) scenarios[ci].name=nm;
+    saveScenarios();
+    // Cash-flow header + Sequencing selector read names ΓÇö refresh those.
+    renderCashflow(); buildSeqSelect();
+  }
+});
+$('#scn-band').addEventListener('click', e=>{
+  const x=e.target.closest('.col-x');
+  if(x){ removeScenario(+x.dataset.col); return; }
+  if(e.target.closest('.add-scen')){ addScenario(); return; }
+  if(e.target.closest('.solve-btn')){ solverFormOpen = true; renderSolvePanel(); return; }
+  if(e.target.closest('.reset-scen')){ resetScenarios(); renderBand(); renderSolvePanel(); return; }
+  const m=e.target.closest('.col-menu');
+  if(m){
+    const cell=m.closest('.band-cell');
+    if(scenarios[+m.dataset.col]?.base){ $('#status').textContent='Baseline is the anchor ΓÇö add a scenario to compare'; return; }
+    cell.classList.toggle('mopen');
+    if(cell.classList.contains('mopen')) cell.querySelector('.col-rename')?.focus();
+    return;
+  }
+});
+// Suggest button (bottom-right of the framed panel) opens the solver form.
+$('#scn-suggest')?.addEventListener('click', ()=>{
+  solverFormOpen = true; renderSolvePanel();
+  $('#solve-panel')?.scrollIntoView({behavior:'smooth', block:'center'});
+});
+// Solver goal form lives in #solve-panel (full-width). Live commas on $ boxes;
+// changing the pin dropdown re-renders its value input (age box vs $ box).
+$('#solve-panel').addEventListener('input', e=>{
+  if(e.target.classList?.contains('sf-money')) liveCommas(e.target);
+});
+$('#solve-panel').addEventListener('change', e=>{
+  if(e.target.id === 'sf-goal'){
+    const baseLev = scenarios.find(s=>s.base)?.lev || defaultLevers();
+    const baseSucc = scenarios.find(s=>s.base)?.res?.successRate || 85;
+    const defPct = Math.min(95, Math.ceil((baseSucc+1)/5)*5);
+    const wrap = $('#sf-params');
+    if(wrap) wrap.innerHTML = goalParamsHtml(e.target.value, baseLev, defPct);
+  }
+});
+$('#solve-panel').addEventListener('submit', e=>{
+  const f = e.target.closest('#solver-form');
+  if(!f) return;
+  e.preventDefault();
+  const pct = parseFloat($('#sf-pct')?.value);
+  if(!isFinite(pct) || pct<50 || pct>99) return;
+  const goalType = $('#sf-goal')?.value || 'confidence';
+  const num = id => parseInt(($(id)?.value||'').replace(/[^0-9]/g,''), 10);
+  const params = { pct };
+  const {currentAge, planEndAge} = plan.household.primary;
+  const flashAge = id => { const el=$(id); if(el){ el.style.outline='2px solid var(--negative)'; el.focus(); setTimeout(()=>el.style.outline='',1500); } };
+  if(goalType==='retire'){
+    params.age = num('#sf-p-age');
+    if(!isFinite(params.age)) return;
+    if(params.age <= currentAge || params.age > planEndAge){ flashAge('#sf-p-age'); return; }
+  } else if(goalType==='purchase'){
+    params.amount = num('#sf-p-amount'); params.age = num('#sf-p-age');
+    if(!isFinite(params.amount)||!isFinite(params.age)) return;
+    if(params.age <= currentAge || params.age > planEndAge){ flashAge('#sf-p-age'); return; }
+  } else if(goalType==='gift'){
+    params.amount = num('#sf-p-amount'); params.toAge = num('#sf-p-toage');
+    if(!isFinite(params.amount)||!isFinite(params.toAge)) return;
+    if(params.toAge <= currentAge || params.toAge > planEndAge){ flashAge('#sf-p-toage'); return; }
+  } else if(goalType==='legacy'){
+    params.amount = num('#sf-p-amount'); if(!isFinite(params.amount)) return;
+  }
+  runSolve(goalType, params);
+});
+// Solver panel: Cancel (form), Clear (results), and per-lever "Load" actions.
+document.addEventListener('click', e=>{
+  if(e.target.closest('#sf-cancel')){
+    solverFormOpen = false; renderSolvePanel(); return;
+  }
+  if(e.target.closest('#solve-clear-btn')){
+    solverResults = null; solverSearching = false;
+    comboResults = null; comboOpen = false; comboSearching = false;
+    renderSolvePanel(); return;
+  }
+  // Fold-down: open runs the (heavy) combo search once and caches it; toggle off
+  // just collapses. The cache is reused on re-open until the solo solve changes.
+  if(e.target.closest('#combo-toggle')){
+    comboOpen = !comboOpen;
+    if(comboOpen && !comboResults && !comboSearching) runComboSolve();  // renders itself
+    else renderSolvePanel();
+    return;
+  }
+  const loadBtn = e.target.closest('.solve-load');
+  if(loadBtn && solverResults && solverResults.rows){
+    if(scenarios.length >= MAX_SCENARIOS) return;
+    const idx = +loadBtn.dataset.soloIdx;
+    const row = solverResults.rows[idx];
+    if(!row) return;
+    // Scenario = the pinned soloBase with this one lever set to its solo answer.
+    const lev = JSON.parse(JSON.stringify(solverResults.soloBase));
+    lev[row.key] = row.value;
+    syncPension(lev);
+    const cfg = LEVCFG.find(c=>c.key===row.key);
+    scenarios.push({ name: `${cfg.name} solve`, base:false, lev, res:null });
+    solverResults = null; solverSearching = false;
+    comboResults = null; comboOpen = false;
+    saveScenarios(); buildLevers(); renderBand(); renderSolvePanel(); plansDirty=true; runAll();
+  }
+  // Load a COMBO: the held-fixed soloBase with both lever moves applied.
+  const cLoadBtn = e.target.closest('.cc-load');
+  if(cLoadBtn && comboResults && comboResults.combos){
+    if(scenarios.length >= MAX_SCENARIOS) return;
+    const c = comboResults.combos[+cLoadBtn.dataset.comboIdx];
+    if(!c) return;
+    const lev = JSON.parse(JSON.stringify(comboResults.soloBase));
+    c.items.forEach(m => lev[m.key] = m.val);
+    syncPension(lev);
+    const nm = comboResults.goalType==='retire' ? `Retire ${comboResults.params.age}`
+             : c.items.map(m=>COMBO_SHORT[m.key]).join(' + ');
+    scenarios.push({ name: nm.slice(0,28), base:false, lev, res:null });
+    solverResults = null; solverSearching = false;
+    comboResults = null; comboOpen = false;
+    saveScenarios(); buildLevers(); renderBand(); renderSolvePanel(); plansDirty=true; runAll();
+  }
+});
+// Live commas while typing into any inline numeric input (pension + lever boxes).
+// Dollar-lever slider: live value update while dragging (delegated ΓÇö survives buildLevers rebuilds).
+$('#scn-levers').addEventListener('input', e=>{
+  const t=e.target;
+  if(!t.classList) return;
+  if(t.classList.contains('pen-in')) liveCommas(t);
+  // Age boxes are 2-digit, no commas; dollar boxes get comma grouping.
+  else if(t.classList.contains('lev-in') && !t.classList.contains('age-in')) liveCommas(t);
+  else if(t.classList.contains('lev-slider')){
+    const ci=+t.dataset.col, cfg=LEVCFG.find(c=>c.key===t.dataset.key);
+    scenarios[ci].lev[cfg.key]=+t.value;
+    t.style.setProperty('--fill', barFillPct(cfg,scenarios[ci].lev)+'%');
+    updateCell(ci, cfg);
+    $('#status').textContent='Adjusted ┬╖ Run to update';
+  }
+});
+// Type-in lever boxes (monthly spend / savings / one-time event amount+age).
+// Writes the value the slider also drives, then refreshes that cell + status.
+// On change (blur/enter) we commit; the column re-runs on the next Run.
+// Slider drag-end: persist + rebuild baseline if needed.
+$('#scn-levers').addEventListener('change', e=>{
+  const t=e.target;
+  if(t.classList && t.classList.contains('lev-slider')){
+    if(scenarios[+t.dataset.col].base) buildLevers();
+    saveScenarios();
+    return;
+  }
+  if(!t.classList || !t.classList.contains('lev-in')) return;
+  const span=t.closest('[id^="lv-"]'); if(!span) return;
+  const ci=+span.id.split('-')[1];
+  const L=scenarios[ci].lev;
+  const num=parseFloat(String(t.value).replace(/[^0-9.]/g,''));
+  const edit=t.dataset.edit;
+  const cfg=LEVCFG.find(c=>c.key===t.dataset.key) || LEVCFG.find(c=>c.edit==='event');
+  if(edit==='monthly'){
+    if(!isFinite(num)||num<0) return;
+    L.spend=Math.round(num*12);                 // store annual; engine's unit
+  } else if(edit==='money'){
+    if(!isFinite(num)||num<0) return;
+    L[t.dataset.key]=Math.round(num);
+  } else if(edit==='eventAmt'){
+    L.eventAmt=isFinite(num)&&num>0?Math.round(num):0;
+  } else if(edit==='eventAge'){
+    const a=Math.round(num);
+    const lo=plan.household.primary.currentAge, hi=plan.household.primary.planEndAge;
+    if(isFinite(a)) L.eventAge=Math.max(lo,Math.min(hi,a));
+  }
+  // Refresh the cell (value + bar) ΓÇö rebuilds the grid if the baseline moved.
+  const dispCfg=LEVCFG.find(c=>c.key===span.id.split('-').slice(2).join('-'));
+  commitLever(ci, dispCfg);
+});
+$('#scn-levers').addEventListener('change', e=>{
+  if(!e.target.classList || !e.target.classList.contains('pen-in')) return;
+  const age=+e.target.dataset.penAge;
+  const amt=parseFloat(String(e.target.value).replace(/[^0-9.]/g,''));
+  if(!isFinite(amt) || amt<0) return;
+  if(!plan.income.pension) plan.income.pension={ benefitByAge:{}, startAge:65, colaPct:0 };
+  if(!plan.income.pension.benefitByAge) plan.income.pension.benefitByAge={};
+  plan.income.pension.benefitByAge[age]=Math.round(amt);
+  buildLevers();
+  $('#status').textContent='Adjusted ┬╖ Run to update';
+});
+function renderFoot(){
+  syncGridCols();
+  let h=`<div class="foot-cell" style="color:var(--ink-faint)">Median end</div>`;
+  scenarios.forEach(s=>{
+    // Match the LINE: this is where the drawn median path actually ends.
+    // Full digits w/ commas ΓÇö no $1.5M shorthand. Whole dollars (no cents).
+    const v=s.res?s.res.envelope[s.res.envelope.length-1].p50:null;
+    const t=v!=null ? '$'+Math.max(0,Math.round(v)).toLocaleString('en-US') : 'ΓÇö';
+    h+=`<div class="foot-cell ${s.base?'base':''}">&nbsp;<b>${t}</b></div>`;
+  });
+  $('#scn-foot').innerHTML=h;
+}
+
+/* ΓöÇΓöÇ chart helpers ΓöÇΓöÇ */
+// Chart axis colors, matched to the light-theme tokens (--rule-faint / --ink-faint).
+const GRID='rgba(230,246,235,.18)', AXIS_INK='rgba(226,232,232,.78)';
+/* ΓöÇΓöÇ Cash-flow drawer ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+   Each scenario's res.paths.p50 is the "typical" coherent simulated path ΓÇö
+   the engine picks the sim that tracks the year-by-year median envelope
+   most closely. Its .rows array carries year, age, socialSecurity, pension,
+   otherIncome, withdrawal, expenses, goals, taxes, balance. We render those
+   per scenario side by side. The numbers here are reality-of-one-path
+   (coherent), not blended percentiles ΓÇö that's why this view exists.
+   Plumbing only; no engine changes. */
+function simByIndex(res, idx){
+  if(!res || !Array.isArray(res.sims)) return null;
+  return res.sims.find(s => s.simIndex === idx) || res.sims[idx] || null;
+}
+function baselineResult(){
+  return (scenarios.find(s=>s.base) || scenarios[0] || {}).res || null;
+}
+function findSimByTerminalBalance(res, targetBalance){
+  if(!res || !Array.isArray(res.sims) || !res.sims.length) return 0;
+  if(!Number.isFinite(targetBalance)) return 0;
+  let closest = res.sims[0];
+  let minDiff = Infinity;
+  for(const sim of res.sims){
+    if(!Number.isFinite(sim.terminalBalance)) continue;
+    const diff = Math.abs(sim.terminalBalance - targetBalance);
+    if(diff < minDiff){
+      minDiff = diff;
+      closest = sim;
+    }
+  }
+  return closest?.simIndex ?? 0;
+}
+function selectedPathIndex(){
+  const res = baselineResult();
+  if(!res || !Array.isArray(res.sims) || !res.sims.length) return 0;
+  if(pathReplay.mode === 'choose'){
+    return Math.max(0, Math.min(res.sims.length - 1, pathReplay.index || 0));
+  }
+  if(pathReplay.mode === 'typical'){
+    return (res.paths && res.paths.p50 && res.paths.p50.simIndex != null) ? res.paths.p50.simIndex : 0;
+  }
+  if(pathReplay.mode === 'stressed'){
+    return res.terminal && Number.isFinite(res.terminal.p10) ? findSimByTerminalBalance(res, res.terminal.p10) : 0;
+  }
+  if(pathReplay.mode === 'favorable'){
+    return res.terminal && Number.isFinite(res.terminal.p90) ? findSimByTerminalBalance(res, res.terminal.p90) : 0;
+  }
+  if(pathReplay.mode === 'sequence-stress'){
+    return (res.paths && res.paths.p10 && res.paths.p10.simIndex != null) ? res.paths.p10.simIndex : 0;
+  }
+  return 0;
+}
+function pathModeLabel(){
+  return ({
+    typical:'Typical path',
+    stressed:'Stressed path',
+    favorable:'Favorable path',
+    'sequence-stress':'Sequence Stress',
+    choose:'Chosen path'
+  })[pathReplay.mode] || 'Typical path';
+}
+function pathOutcomeText(sim){
+  if(!sim) return '';
+  return sim.failed
+    ? `Ran dry at age ${sim.depletionAge || 'n/a'}`
+    : `Survived with ${cfMoney(sim.terminalBalance || 0)}`;
+}
+
+/* ΓöÇΓöÇ Path Story ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+   The baseline run's selected coherent path, told as a statement. The same
+   selected sim the cash-flow drawer replays (selectedPathIndex), digested by
+   the engine (pathDigest) ΓÇö the prose here and the table below are two views
+   of one path. Pure formatting of engine fields; no UI math. */
+const TAX_SOURCE_LABELS = {
+  socialSecurity:'Social Security', otherIncome:'other income',
+  traditional:'Traditional withdrawals', taxable:'capital gains'
+};
+function renderStory(){
+  const el = $('#story-panel'); if(!el) return;
+  const res = baselineResult();
+  if(!res || !Array.isArray(res.sims) || !res.sims.length){ el.innerHTML=''; return; }
+  const sim = simByIndex(res, selectedPathIndex());
+  if(!sim){ el.innerHTML=''; return; }
+  const d = pathDigest(sim);
+  const pc = v => (v>=0?'+':'ΓêÆ') + Math.abs(v*100).toFixed(1) + '%';
+  const endAge = sim.rows.length ? sim.rows[sim.rows.length-1].age : '';
+  const endStat = d.failed
+    ? `<b>${fmtM(0)}</b><i>depleted at age ${d.depletionAge}</i>`
+    : `<b>${fmtM(d.endBalance)}</b><i>ends at age ${endAge}</i>`;
+  const picks = [['stressed','Stressed'],['typical','Median'],['favorable','Favorable']]
+    .map(([m,l]) => `<button class="${pathReplay.mode===m?'on':''}" data-story-mode="${m}">${l}</button>`).join('');
+  const verb = d.first10Supports ? 'cooperate' : 'push back';
+  const reads = [
+    [pc(d.first10Cagr), 'Market sequence',
+     `The first 10 years ${d.first10Supports?'support':'work against'} the plan. ${d.negEarlyYears} of the first ${d.earlyWindowYears} ${d.negEarlyYears===1?'year is':'years are'} negative.`],
+    [d.avgWdRate.toFixed(1)+'%', 'Spending pressure',
+     `Average withdrawal pressure is ${d.avgWdRate.toFixed(1)}% across ${d.withdrawalYears} withdrawal years${d.peakWdAge!=null?` ΓÇö the peak year touches ${d.peakWdRate.toFixed(1)}% at age ${d.peakWdAge}`:''}.`],
+    [fmtM(d.avgTax)+'/yr', 'Tax + sourcing',
+     `${TAX_SOURCE_LABELS[d.dominantTaxSource]||'Withdrawals'} drive ${Math.round(d.dominantTaxShare*100)}% of the ${fmtM(d.lifetimeTax)} lifetime tax bill.`]
+  ].map(([b,h,t]) => `<div class="story-read"><b>${b}</b><div><span class="rd-h">${h}</span><span class="rd-b">${t}</span></div></div>`).join('');
+  el.innerHTML = `
+    <div class="story-sec"><span>Path Story ┬╖ ${escHtml((scenarios.find(s=>s.base)||scenarios[0]||{}).name||'Base plan')}</span></div>
+    <div class="story-pick"><span class="pk-l">Path:</span>${picks}
+      <span class="pk-note">selected from ${res.sims.length.toLocaleString('en-US')} simulated paths ┬╖ not a forecast</span></div>
+    <div class="story-head">${(d.realCagr*100).toFixed(1)}% real growth, year over year, along this path.</div>
+    <div class="story-sub">Return timing matters most while withdrawals are active ΓÇö and these first ten years ${verb}.</div>
+    <div class="story-stats">
+      <div class="story-stat"><b>${fmtM(d.startBalance)}</b><i>starts the plan</i></div>
+      <div class="story-stat">${endStat}</div>
+      <div class="story-stat"><b>${pc(d.first10Cagr)}</b><i>first decade, real</i></div>
+      <div class="story-stat"><b>${d.avgWdRate.toFixed(1)}%</b><i>avg withdrawal ┬╖ peak ${d.peakWdRate.toFixed(1)}%</i></div>
+      <div class="story-stat"><b>${fmtM(d.avgTax)}</b><i>tax per year, avg</i></div>
+    </div>
+    <hr class="story-rule">
+    <div class="story-chart-l">Balance path ┬╖ ${pathModeLabel().toUpperCase()} ┬╖ ages ${sim.rows.length?sim.rows[0].age:''}ΓÇô${endAge}</div>
+    <div class="story-chart">${storyChart(sim.rows,{ layout: CHART_LAYOUT.storyPath, fmtM })}</div>
+    <div class="story-sec"><span>What shapes this outcome</span></div>
+    ${reads}`;
+  el.querySelectorAll('[data-story-mode]').forEach(b => b.onclick = () => {
+    pathReplay.mode = b.dataset.storyMode;
+    savePathReplay(); syncPathControls(); renderCashflow(); renderStory();
+  });
+}
+
+/* ΓöÇΓöÇ Plan Assessment ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+   assessPlan() ids + figures mapped to fixed, factual sentences in a
+   two-column ledger. The engine decides what applies; the UI only words it. */
+function renderAssess(){
+  const el = $('#assess-panel'); if(!el) return;
+  const res = baselineResult();
+  if(!res || !res.paths){ el.innerHTML=''; return; }
+  const a = assessPlan(res);
+  const pct1 = v => (v*100).toFixed(1)+'%';
+  const SENT = {
+    'low-fixed-spending':       v => ['Low fixed spending ΓÇö core spend vs starting assets', pct1(v)],
+    'tax-diversified':          v => ['Tax-diversified mix ΓÇö account types carrying weight', `${v} of 3`],
+    'high-success':             v => ['High success rate ΓÇö paths lasting the full horizon', Math.round(v)+'%'],
+    'withdrawal-load':          v => [`Withdrawal load ΓÇö average ${v.avg.toFixed(1)}%, peak at age ${v.age}`, v.peak.toFixed(1)+'%'],
+    'portfolio-funded-spending':v => ['Portfolio-funded spending ΓÇö guaranteed income covers', pct1(v)],
+    'return-timing':            v => [`Return timing ΓÇö stressed path depletes${v.stressedDepletionAge?` at age ${v.stressedDepletionAge}`:''}, median survives`, 'path-dependent']
+  };
+  const row = it => {
+    const [label, val] = (SENT[it.id] || (x=>[it.id, '']))(it.value);
+    return `<div class="led-row"><span>${label}</span><span class="dots"></span><b>${val}</b></div>`;
+  };
+  const left  = a.strengths.map(row).join('') || `<div class="led-none">Nothing clears the bar on this run.</div>`;
+  const right = [...a.pressures, ...a.tossups].map(row).join('') || `<div class="led-none">No pressure points on this run.</div>`;
+  el.innerHTML = `
+    <div class="story-sec"><span>Plan Assessment ┬╖ what the engine sees</span></div>
+    <div class="ledger">
+      <div><h5>Working for the plan</h5>${left}</div>
+      <div><h5>Working against it</h5>${right}</div>
+    </div>`;
+}
+
+function renderCashflow(){
+  const drawer = $('#cf-drawer');
+  if(drawer.style.display !== 'block') return;   // only render when open; runAll re-renders if so
+  const pathIdx = selectedPathIndex();
+  pathReplay.index = pathIdx;
+  savePathReplay();
+  const simsByScen = scenarios.map(s => simByIndex(s.res, pathIdx));
+  const rowsByScen = simsByScen.map(sim => sim ? sim.rows : []);
+  // No data anywhere (e.g. a failed/degenerate Run) ΓåÆ say so plainly instead of
+  // rendering an empty headers-only table that looks like it "didn't load".
+  if(!rowsByScen.some(r => r.length)){
+    drawer.innerHTML =
+      `<div class="cf-drawer-head"><span>Annual Cash Flow</span></div>` +
+      `<div class="cf-empty">No cash-flow data yet. Press Run ΓÇö or check the plan inputs if the status bar shows a warning.</div>`;
+    return;
+  }
+  const gcls = scenarios.map((_,i)=>`cf-g${i%2}`);
+  const cols = 6;
+  let h = '<table class="cf-table"><thead><tr><th class="age" rowspan="2">Age</th><th class="source" rowspan="2">Source</th>';
+  scenarios.forEach((s,i)=>{
+    h += `<th class="scen ${gcls[i]}" colspan="${cols}" style="color:${colorFor(i)}">${escHtml(s.name)}</th>`;
+  });
+  h += '</tr><tr>';
+  scenarios.forEach((s,i)=>{
+    h += `<th class="${gcls[i]} cf-start">Starting value</th>`;
+    h += `<th class="${gcls[i]}">Income</th>`;
+    h += `<th class="${gcls[i]}">Outflows</th>`;
+    h += `<th class="${gcls[i]}">Inflows</th>`;
+    h += `<th class="${gcls[i]}">Annual return</th>`;
+    h += `<th class="${gcls[i]} cf-end">Ending value</th>`;
+  });
+  h += '</tr></thead><tbody>';
+  const len = Math.max(0, ...rowsByScen.map(r => r.length));
+  const curAge = plan.household.primary.currentAge;
+  for(let y = 0; y < len; y++){
+    // Engine keys every event off age = currentAge + y (y=0 is the current age),
+    // so the table must too ΓÇö otherwise a goal/SS/retirement lands one row late.
+    const age = curAge + y;
+    const source = rowsByScen.map(rows => rows[y]).find(Boolean)?.source;
+    h += `<tr><td class="age">${age}</td><td class="source">${source || '-'}</td>`;
+    scenarios.forEach((s,i)=>{
+      const r = rowsByScen[i][y];
+      const prev = y > 0 ? rowsByScen[i][y-1] : null;
+      const isRetire = r && r.phase !== 'accum' && (!prev || prev.phase === 'accum');
+      const retireCls = isRetire ? ' retire' : '';
+      const retireStartCls = isRetire ? ' retire retire-start' : '';
+      if(!r){ h += `<td colspan="${cols}" class="dim ${gcls[i]}">ΓÇö</td>`; return; }
+      // Pre-retirement (still working) years: income/withdrawal aren't part of the
+      // post-retirement story, so show a neutral dash ΓÇö never a $0 that reads as a
+      // value. The balance still matters (it's accumulating), so it stays.
+      const acc = r.phase === 'accum';
+      const dash = '<span style="color:var(--ink-faint)">ΓÇö</span>';
+      const inc = (r.socialSecurity || 0) + (r.pension || 0) + (r.otherIncome || 0);
+      h += `<td class="${gcls[i]}${retireStartCls}">${acc ? dash : cfMoney(inc)}</td>`;
+      h += `<td class="${gcls[i]}${retireCls}">${acc ? dash : cfMoney(r.withdrawal || 0)}</td>`;
+      if(hasRmd)  h += `<td class="${gcls[i]}${retireCls}">${(!acc && r.rmd > 0) ? cfMoney(r.rmd) : dash}</td>`;
+      // Goals show in EVERY phase (even accumulation) so a pre-retirement
+      // one-time goal still appears in its year.
+      if(hasGoals) h += `<td class="${gcls[i]}${retireCls}">${(r.goals > 0) ? cfMoney(r.goals) : dash}</td>`;
+      // One-time event (Scenarios lever) ΓÇö shows in whichever phase it lands.
+      if(hasLump)  h += `<td class="${gcls[i]}${retireCls}">${(r.lumpSum > 0) ? cfMoney(r.lumpSum) : dash}</td>`;
+      // Portfolio return (% and $) ΓÇö shown in every phase; the market acts on the
+      // balance whether you're still saving or drawing down. Real return that year
+      // (realReturnUsed in retirement, returnRate while accumulating); $ gain is
+      // that return on the year's starting balance. Pure view of engine fields.
+      const rr = (r.realReturnUsed ?? r.returnRate);
+      const gain = (r.startBalance || 0) * rr;
+      const rc = rr >= 0 ? 'cf-pos' : 'cf-neg';
+      h += `<td class="${gcls[i]}${retireCls} ${isFinite(rr)?rc:''}">${isFinite(rr) ? cfRetPct(rr) : dash}</td>`;
+      h += `<td class="${gcls[i]}${retireCls} ${isFinite(rr)?rc:''}">${isFinite(rr) ? cfGain(gain) : dash}</td>`;
+      h += `<td class="${gcls[i]}${retireCls}">${cfMoney(r.balance || 0)}</td>`;
+    });
+    h += '</tr>';
+  }
+  h += '</tbody></table>';
+  const baselineSim = simsByScen[scenarios.findIndex(s=>s.base)] || simsByScen[0];
+  const replayMeta = `${pathModeLabel()} ┬╖ Seed ${pathReplay.seed} ┬╖ Path ${String(pathIdx).padStart(3,'0')} ┬╖ ${pathOutcomeText(baselineSim)}`;
+  drawer.innerHTML =
+    `<div class="cf-drawer-head"><span>Path Replay</span><span class="sub">${replayMeta}</span></div>` +
+    `<div class="cf-scroll">${h}</div>`;
+}
+
+/* ΓöÇΓöÇ SEQUENCING tab ΓÇö same returns, different ORDER ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+   The tab's single job: isolate the ORDER of returns. We take one REAL
+   historical return stream and run the SAME plan through it forward vs exactly
+   reversed (identical returns, opposite sequence). Any difference is pure
+   sequence-of-returns risk. Every number on this tab is a direct read of the
+   engine's single-path result; the UI computes no balances or metrics. */
+// The Sequencing tab holds ONE plan fixed and runs it through several REAL
+// retirement markets ΓÇö never a reversed/counterfactual timeline. The lesson is
+// the truth a client actually faces: retire into a brutal market vs a kind one,
+// same plan, and watch the spread. A LIBRARY of real markets the advisor can
+// toggle on/off as lines (`on` = shown by default). Euphoric bulls (1982/85) are
+// deliberately omitted ΓÇö a 10-20x winner crushes the scale and hides the
+// downside, which is the whole point of a sequence-risk view.
+// Distinct but DEEP, desaturated editorial tones ΓÇö each line identifiable, none
+// candy-bright. Picked to be maximally distinct from each other on the ground.
+const SEQ_YEARS=[
+  {y:1929, tag:'Great Depression',  c:'#b45991', on:false},
+  {y:1966, tag:'the lost decade',   c:'#7a93b8', on:true },
+  {y:1973, tag:'stagflation',       c:'#c59152', on:true },
+  {y:1987, tag:'Black Monday',      c:'#d8b371', on:false},
+  {y:1995, tag:'the 90s boom',      c:'#D9A07E', on:true },
+  {y:2000, tag:'dot-com crash',     c:'#e68169', on:true },
+  {y:2008, tag:'financial crisis',  c:'#9c6585', on:false},
+  {y:2009, tag:'the recovery bull', c:'#93a9c4', on:false},
+];
+
+renderCashflow = function(){
+  if(cfMode) renderCfSidebar();   // keep sidebar in sync after every run
+  if(!cfMode) return;
+  const drawer = $('#cf-drawer');
+  const pathIdx = selectedPathIndex();
+  pathReplay.index = pathIdx;
+  savePathReplay();
+
+  // Only render the active scenario(s): primary, and optionally compare.
+  const activeIdx = cfCompare !== null ? [cfPrimary, cfCompare] : [cfPrimary];
+  const activeScens = activeIdx.map(i => scenarios[i]);
+  const simsByScen = activeIdx.map(i => simByIndex(scenarios[i].res, pathIdx));
+  const rowsByScen = simsByScen.map(sim => sim ? sim.rows : []);
+  const comparing = activeIdx.length === 2;
+
+  if(!rowsByScen.some(r => r.length)){
+    drawer.innerHTML =
+      `<div class="cf-drawer-head"><span>Path Replay</span></div>` +
+      `<div class="cf-empty">No cash-flow data yet. Press Run, or check the plan inputs if the status bar shows a warning.</div>`;
+    return;
+  }
+
+  const gcls = activeIdx.map(i => `cf-g${i % 2}`);
+  const cols = 6;
+  // Explicit colgroup + an explicit table width pin uniform, content-sized
+  // columns. With table-layout:fixed (CF mode CSS) the columns take these
+  // widths even though the header row uses colspans, so data columns can't
+  // balloon to fill. The table width must equal the column sum ΓÇö otherwise a
+  // fixed-layout auto-width table just divides the container evenly.
+  const AGE_W = 54, SRC_W = 74, DATA_W = 120, SEP_W = 18;
+  let cg = `<colgroup><col style="width:${AGE_W}px"><col style="width:${SRC_W}px">`;
+  activeScens.forEach((_, i) => {
+    if(comparing && i === 1) cg += `<col style="width:${SEP_W}px">`;
+    for(let k = 0; k < cols; k++) cg += `<col style="width:${DATA_W}px">`;
+  });
+  cg += '</colgroup>';
+  const tableW = AGE_W + SRC_W + activeScens.length * cols * DATA_W + (comparing ? SEP_W : 0);
+  let h = `<table class="cf-table" style="width:${tableW}px">` + cg + '<thead><tr><th class="age" rowspan="2">Age</th><th class="source" rowspan="2">Source</th>';
+  activeScens.forEach((s, i) => {
+    if(comparing && i === 1) h += '<th class="cf-sep-head" rowspan="2"></th>';
+    h += `<th class="scen ${gcls[i]} cf-start cf-end" colspan="${cols}" style="color:${scenAccent(s, activeIdx[i])}">${escHtml(s.name)}</th>`;
+  });
+  h += '</tr><tr>';
+  activeScens.forEach((_, i) => {
+    h += `<th class="${gcls[i]} cf-start">Starting value</th>`;
+    h += `<th class="${gcls[i]}">Income</th>`;
+    h += `<th class="${gcls[i]}">Outflows</th>`;
+    h += `<th class="${gcls[i]}">Inflows</th>`;
+    h += `<th class="${gcls[i]}">Annual return</th>`;
+    h += `<th class="${gcls[i]} cf-end">Ending value</th>`;
+  });
+  h += '</tr></thead><tbody>';
+
+  const len = Math.max(0, ...rowsByScen.map(r => r.length));
+  const curAge = plan.household.primary.currentAge;
+  for(let y = 0; y < len; y++){
+    const age = curAge + y;
+    const source = rowsByScen.map(rows => rows[y]).find(Boolean)?.source;
+    h += `<tr><td class="age">${age}</td><td class="source">${source || '-'}</td>`;
+    activeScens.forEach((s, i) => {
+      if(comparing && i === 1) h += '<td class="cf-sep-cell"></td>';
+      const r = rowsByScen[i][y];
+      const prev = y > 0 ? rowsByScen[i][y-1] : null;
+      const isRetire = r && r.phase !== 'accum' && (!prev || prev.phase === 'accum');
+      const retireCls = isRetire ? ' retire' : '';
+      const retireStartCls = isRetire ? ' retire retire-start' : '';
+      if(!r){ h += `<td colspan="${cols}" class="dim ${gcls[i]} cf-start cf-end">-</td>`; return; }
+      const dash = '<span style="color:var(--ink-faint)">-</span>';
+      const inc = (r.socialSecurity || 0) + (r.pension || 0) + (r.otherIncome || 0);
+      const outflows = (r.expenses || 0) + (r.goals || 0) + (r.liabilities || 0) + (r.taxes || 0) + (r.lumpSum || 0);
+      const inflows = (r.savings || 0) + (r.assetSale || 0);
+      const rr = (r.realReturnUsed ?? r.returnRate);
+      const rc = rr >= 0 ? 'cf-pos' : 'cf-neg';
+      h += `<td class="${gcls[i]}${retireStartCls} cf-start">${cfMoney(r.startBalance || 0)}</td>`;
+      h += `<td class="${gcls[i]}${retireCls}">${inc > 0 ? cfMoney(inc) : dash}</td>`;
+      h += `<td class="${gcls[i]}${retireCls}">${outflows > 0 ? cfMoney(outflows) : dash}</td>`;
+      h += `<td class="${gcls[i]}${retireCls}">${inflows > 0 ? cfMoney(inflows) : dash}</td>`;
+      h += `<td class="${gcls[i]}${retireCls} ${isFinite(rr)?rc:''}">${isFinite(rr) ? cfRetPct(rr) : dash}</td>`;
+      h += `<td class="${gcls[i]}${retireCls} cf-end">${cfMoney(r.balance || 0)}</td>`;
+    });
+    h += '</tr>';
+  }
+  h += '</tbody></table>';
+
+  const baselineGlobalIdx = scenarios.findIndex(s => s.base);
+  const baselineActivePos = activeIdx.indexOf(baselineGlobalIdx);
+  const baselineSim = baselineActivePos >= 0 ? simsByScen[baselineActivePos] : simsByScen[0];
+  const replayMeta = `${pathModeLabel()} ┬╖ Seed ${pathReplay.seed} ┬╖ Path ${String(pathIdx).padStart(3,'0')} ┬╖ ${pathOutcomeText(baselineSim)}`;
+  drawer.innerHTML =
+    `<div class="cf-drawer-head"><span>Path Replay</span><span class="sub">${replayMeta}</span></div>` +
+    `<div class="cf-scroll">${h}</div>`;
+};
+
+function buildSeqSelect(){
+  const sel=$('#seq-select'), cur=sel.value;
+  sel.innerHTML=scenarios.map(s=>`<option>${escHtml(s.name)}</option>`).join('');
+  if(cur && scenarios.some(s=>s.name===cur)) sel.value=cur;
+  sel.onchange=runSeq;
+  buildSeqChips();
+}
+// Market chips double as the selector AND the legend: lit = shown as a line.
+function buildSeqChips(){
+  const box=$('#seq-chips'); if(!box) return;
+  box.innerHTML=SEQ_YEARS.map((m,i)=>
+    `<button class="seq-chip${m.on?' on':''}" data-i="${i}"><span class="cdot" style="background:${m.c}"></span>${m.y} ┬╖ ${m.tag}</button>`).join('');
+  box.querySelectorAll('.seq-chip').forEach(btn=>btn.onclick=()=>{
+    const m=SEQ_YEARS[+btn.dataset.i];
+    if(m.on && SEQ_YEARS.filter(x=>x.on).length<=1) return;   // keep at least one line
+    m.on=!m.on; buildSeqChips(); runSeq();
+  });
+}
+// Build a "retire-now" clone: the household standing at its retirement age with
+// the plan's MEDIAN projected balance (read from the engine envelope, not
+// invented). Every real market then runs from this ONE shared starting point, so
+// the only thing differing between lines is the market ΓÇö not the entry balance.
+function retireNowClone(p, ov, curAge, retAge, accumYears, envelope){
+  // `envelope` is the chosen scenario's already-computed envelope, passed in
+  // from runSeq. Reusing it (a) keeps the sequencing entry balance IDENTICAL to
+  // the Scenarios tab ΓÇö both read the same shared-path run ΓÇö and (b) avoids
+  // re-running a full Monte Carlo on every chip toggle. Fall back to a
+  // shared-path run only if the scenario hasn't been computed yet.
+  const env = envelope || (runSimulation(p, ov, sharedPaths) || {}).envelope;
+  const accs=p.portfolio.accounts;
+  const tot=accs.taxable.balance+accs.traditional.balance+accs.roth.balance;
+  const entry=(env && env[accumYears] && env[accumYears].p50!=null) ? env[accumYears].p50 : tot;
+  const rp=JSON.parse(JSON.stringify(p));
+  const ra=rp.portfolio.accounts;
+  if(tot>0){ const f=entry/tot; ra.taxable.balance*=f; ra.traditional.balance*=f; ra.roth.balance*=f; }
+  else { ra.taxable.balance=entry; }
+  rp.household.primary.currentAge=retAge;          // standing at retirement ΓåÆ no accumulation phase
+  rp.household.primary.retirementAge=retAge;
+  if(rp.household.spouse && rp.household.spouse.currentAge!=null)
+    rp.household.spouse.currentAge += (retAge-curAge);
+  return rp;
+}
+function runSeq(){
+  const sel=$('#seq-select'); const s=scenarios.find(x=>x.name===sel.value)||scenarios[0];
+  // Sequence the chosen scenario FAITHFULLY: allocation via the plan clone, every
+  // other lever via the same overrides mapping the Scenarios tab uses.
+  const p=planForScenario(s.lev);
+  const ov=leversToOverrides(s.lev);
+  const strat=normalizePlaybackStrategy(p.portfolio.withdrawalStrategy);
+  const curAge=plan.household.primary.currentAge;
+  const retAge=(s.lev.retireAge!=null?s.lev.retireAge:p.household.primary.retirementAge);
+  const accumYears=Math.max(0, retAge-curAge);
+  const rp=retireNowClone(p, ov, curAge, retAge, accumYears, s.res && s.res.envelope);
+  const ov2={...ov, retireDelay:0};                // retirement age is baked into the clone now
+  const runs=SEQ_YEARS.filter(m=>m.on)
+                      .map(m=>({m, res:runHistoricalPath(rp, m.y, strat, undefined, ov2)}))
+                      .filter(r=>r.res && r.res.rows.length);
+  if(!runs.length){ $('#seq-svg').innerHTML=''; $('#seq-prints').innerHTML=''; return; }
+  drawSeqChart(runs, retAge);
+  renderPrints(runs);
+  seqContext={rp, strat, ov2};
+  renderPlayback();
+  const n=runs.length;
+  $('#seq-sub').textContent='Same plan, real markets';
+}
+function drawSeqChart(runs, retAge){
+  const svg=$('#seq-svg'),W=1000,H=320;
+  svg.innerHTML=seqChartSvg(runs, retAge,{
+    width:W,
+    height:H,
+    layout:CHART_LAYOUT.scenarioPath,
+    fmtM,
+    grid:GRID,
+    axisInk:AXIS_INK
+  });
+}
+// Path fingerprint ΓÇö facts read straight off the engine result. One card per real
+// market: the first-decade return (the sequence-risk cause), the lowest the
+// portfolio fell, and the outcome. No invented composite "score".
+function renderPrints(runs){
+  // All three figures come straight from the engine's pathDigest: first-decade
+  // CAGR, lowest balance, and the damage window (longest run of years the
+  // cumulative return sat below its retirement-day level ΓÇö a long '66/'73
+  // grind hurts a withdrawing portfolio far more than a V-shaped '08 shock).
+  const pct=v=>(v>=0?'+':'')+(v*100).toFixed(1)+'%';
+  const outcome=r=> r.depletionAge!=null
+    ? {t:`Ran dry @ ${r.depletionAge}`, c:'var(--negative-bright)'}
+    : {t:`Survived ┬╖ ${fmtM(r.terminalBalance)}`, c:'var(--status-positive-bright)'};
+  const card=(m,res)=>{
+    const o=outcome(res);
+    const d=pathDigest(res);
+    // Only when there IS a drawdown ΓÇö a good market never goes underwater, so the
+    // row would just read "ΓÇö". Show it where it tells a story; omit it otherwise.
+    const dwBlock = d.underwaterSpellMax ? `
+      <div class="pr-row" style="border-bottom:none"><span class="pr-k">Duration</span><span class="pr-v">${d.underwaterSpellMax} yr${d.underwaterSpellMax>1?'s':''}</span></div>
+      <div class="dw-bar"><div class="dw-fill" style="width:${Math.min(100,d.underwaterSpellMax/12*100).toFixed(0)}%;background:#34465c"></div></div>` : '';
+    return `<div class="seq-print">
+      <h4><span class="dot" style="border-color:${m.c}"></span>${m.y} ┬╖ ${m.tag}</h4>
+      <div class="pr-row"><span class="pr-k">First decade</span><span class="pr-v">${pct(d.first10Cagr)}</span></div>
+      <div class="pr-row"><span class="pr-k">Lowest</span><span class="pr-v">${fmtM(d.minBalance)}</span></div>
+      ${dwBlock}
+      <div class="pr-row"><span class="pr-k">Outcome</span><span class="pr-v" style="color:${o.c}">${o.t}</span></div>
+    </div>`;
+  };
+  $('#seq-prints').innerHTML=runs.map(r=>card(r.m, r.res)).join('');
+}
+
+/* ΓöÇΓöÇ Playback ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+   One retirement start year, replayed against the real record. The verdict
+   is a sentence; the comparison runs the SAME return sequence through the
+   three sourcing orders (only the order varies ΓÇö an allowed comparison);
+   the year-by-year table is the engine's rows, behind an advisor toggle.
+   Era labels are a static lookup for context only ΓÇö no math. */
+const ERA_LABELS=[
+  [1928,1932,'crash & depression'],[1933,1945,'depression & war'],
+  [1946,1965,'postwar boom'],[1966,1972,'stagnation sets in'],
+  [1973,1974,'oil shock'],[1975,1981,'stagflation'],
+  [1982,1999,'the long bull'],[2000,2002,'dot-com bust'],
+  [2003,2007,'mid-cycle expansion'],[2008,2009,'financial crisis'],
+  [2010,2019,'recovery bull'],[2020,2020,'pandemic'],
+  [2021,2021,'reopening'],[2022,2022,'rate shock'],[2023,2025,'late-cycle bull']
+];
+const eraFor=y=>{ const e=ERA_LABELS.find(([a,b])=>y>=a&&y<=b); return e?e[2]:''; };
+const PB_STRATS=[['taxable-first','Taxable first'],['proportional','Proportional'],['traditional-first','Traditional first']];
+function normalizePlaybackStrategy(strategy){
+  return PB_STRATS.some(([k])=>k===strategy) ? strategy : 'taxable-first';
+}
+let playbackYear=1973, pbDetailOpen=false, seqContext=null;
+function renderPlayback(){
+  const el=$('#playback-panel'); if(!el) return;
+  if(!seqContext){ el.innerHTML=''; return; }
+  const {rp, ov2}=seqContext;
+  const strat=normalizePlaybackStrategy(seqContext.strat);
+  const years=SEQ_YEARS.map(m=>m.y);
+  if(!years.includes(playbackYear)) playbackYear=years[0];
+  const runs=PB_STRATS
+    .map(([k,label])=>({k,label,res:runHistoricalPath(rp,playbackYear,k,undefined,ov2)}))
+    .filter(r=>r.res && r.res.rows.length);
+  if(!runs.length){ el.innerHTML=''; return; }
+  const main=runs.find(r=>r.k===strat)||runs[0];
+  const d=pathDigest(main.res);
+  const verdict = d.failed
+    ? `${playbackYear} breaks the plan at age ${d.depletionAge}.`
+    : `The plan survives ${playbackYear}.`;
+  const sub = d.failed
+    ? `Retire ${playbackYear} and the portfolio is exhausted at age ${d.depletionAge} ΓÇö the sequence, not the average, does the damage.`
+    : `${main.res.actualYears} historical years ΓÇö retire ${playbackYear}, plan through ${main.res.endYear} ΓÇö end with <b>${fmtM(d.endBalance)}</b> in today's dollars.`;
+  const picks=years.map(y=>`<button class="${y===playbackYear?'on':''}" data-pb-year="${y}">${y}</button>`).join('');
+  const stratRows=runs.map(r=>{
+    const rd=pathDigest(r.res);
+    const isPlan=r.k===strat;
+    const delta=isPlan?'baseline':cfGain(r.res.lifetimeTax-main.res.lifetimeTax);
+    const out=rd.failed?`Depleted ┬╖ age ${rd.depletionAge}`:'Survived';
+    return `<tr class="${isPlan?'plan':''}">
+      <td class="l">${r.label}${isPlan?' ΓÇö the planΓÇÖs strategy':''}</td>
+      <td class="l">${out}</td>
+      <td class="end">${fmtM(rd.endBalance)}</td>
+      <td>${(rd.realCagr*100).toFixed(1)}%</td>
+      <td>${fmtM(r.res.lifetimeTax)}</td>
+      <td>${delta}</td></tr>`;
+  }).join('');
+  const real=main.res.rows.filter(r=>r.source!=null);
+  const yearRows=real.map(r=>{
+    const neg=r.returnRate<0;
+    return `<tr>
+      <td class="l" style="width:34px">${r.year}</td>
+      <td>${r.age}</td>
+      <td class="era l">${r.source} ┬╖ ${eraFor(r.source)}</td>
+      <td class="${neg?'neg':''}">${cfRetPct(r.returnRate)}</td>
+      <td>${fmtM(r.startBalance)}</td>
+      <td class="${r.returnDollars<0?'neg':''}">${cfGain(r.returnDollars)}</td>
+      <td>${cfMoney(r.withdrawal)}</td>
+      <td class="${(r.balance-r.startBalance)<0?'neg':''}">${cfGain(r.balance-r.startBalance)}</td>
+      <td class="end">${fmtM(r.balance)}</td></tr>`;
+  }).join('');
+  const detail = pbDetailOpen ? `
+    <div class="story-chart-l" style="margin-top:26px">Year by year ┬╖ retire ${playbackYear} ┬╖ engine rows, era labels for context only</div>
+    <table class="stmt" id="pb-table">
+      <tr><th class="l">Yr</th><th>Age</th><th class="l">Era</th><th>Return</th><th>Start</th><th>Return $</th><th>Drawn</th><th>Net</th><th>End</th></tr>
+      ${yearRows}
+    </table>` : '';
+  el.innerHTML=`
+    <div class="story-sec"><span>Playback ┬╖ same plan, real markets</span></div>
+    <div class="story-pick"><span class="pk-l">Retire in:</span>${picks}</div>
+    <div class="pb-verdict" id="pb-verdict">${verdict}</div>
+    <div class="pb-sub">${sub}</div>
+    <hr class="story-rule">
+    <div class="story-chart-l">Same ${playbackYear} sequence, three sourcing orders</div>
+    <table class="stmt" id="pb-strats">
+      <tr><th class="l"></th><th class="l">Outcome</th><th>Terminal</th><th>Real CAGR</th><th>Lifetime taxes</th><th>vs plan</th></tr>
+      ${stratRows}
+    </table>
+    <button class="pb-detail-btn" id="pb-detail-btn">${pbDetailOpen?'hide advisor detail Γû┤':'advisor detail ┬╖ year by year Γû╛'}</button>
+    ${detail}`;
+  el.querySelectorAll('[data-pb-year]').forEach(b=>b.onclick=()=>{
+    playbackYear=parseInt(b.dataset.pbYear,10); renderPlayback();
+  });
+  $('#pb-detail-btn').onclick=()=>{ pbDetailOpen=!pbDetailOpen; renderPlayback(); };
+}
+
+/* ΓöÇΓöÇ History ΓÇö cross-era reference ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+   Informational context only: the present three years against the closest
+   historical blocks (same broad environment first), and what the record
+   says happened next. Reads history.js, which composes engine exports;
+   nothing here feeds simulations or scenarios. Facts only ΓÇö periods,
+   figures, the macro tags, and the record's own aftermath. */
+let histSel=null;
+const hPct=v=>(v>=0?'+':'ΓêÆ')+Math.abs(v*100).toFixed(1)+'%';
+function renderHistory(){
+  const el=$('#hist-body'); if(!el) return;
+  const now=HC_BLOCKS[HC_BLOCKS.length-1];
+  const refs=hcReferenceSet(now, 5);
+  if(histSel==null || !refs.some(r=>r.block.start===histSel)) histSel=refs[0]?.block.start ?? null;
+  const sel=refs.find(r=>r.block.start===histSel)?.block || null;
+  const mixW=(RISK_PROFILES[plan.portfolio.riskProfile]||RISK_PROFILES[3]).weights;
+  const mixLabel=(RISK_PROFILES[plan.portfolio.riskProfile]||RISK_PROFILES[3]).label;
+  const mNow=MACRO_TAGS[now.start]||{};
+
+  const nowMix=profileThroughWeights(now.start, mixW);
+  let h=`
+    <div class="story-sec"><span>The last three years ┬╖ ${now.label}</span></div>
+    <div class="story-stats">
+      <div class="story-stat"><b>${hPct(now.gmr)}</b><i>real return/yr ┬╖ equity lens</i></div>
+      <div class="story-stat"><b>${nowMix!=null?hPct(nowMix):'ΓÇö'}</b><i>through the ${escHtml(mixLabel)} mix</i></div>
+      <div class="story-stat"><b>${(now.vol*100).toFixed(1)}%</b><i>volatility</i></div>
+      <div class="story-stat"><b>${HC_ASSET_LABELS[now.winnerAsset]||now.winnerAsset}</b><i>top asset</i></div>
+      <div class="story-stat"><b>${escHtml(hcEnvironmentLabel(now))}</b><i>${escHtml(mNow.phase||'')} ┬╖ ${escHtml(mNow.inflation||'')} inflation ┬╖ Fed ${escHtml(mNow.fed||'')}</i></div>
+    </div>
+    <div class="story-sec"><span>Closest reference periods ┬╖ same broad environment first</span></div>
+    <div class="hist-rows">`;
+  for(const r of refs){
+    const b=r.block, on=b.start===histSel;
+    const next=hcNextReturn(b);
+    h+=`<div class="led-row hist-row${on?' on':''}" data-hist="${b.start}">
+      <span class="hist-period">${b.label}</span>
+      <span class="hist-env">${escHtml(hcEnvironmentLabel(b))} ┬╖ ${escHtml(HC_SHAPE_LABELS[b.shape]||b.shape)}</span>
+      <span class="dots"></span>
+      <b>during ${hPct(b.gmr)} ┬╖ next 3 yrs ${next!=null?hPct(next):'ΓÇö'}</b>
+    </div>`;
+  }
+  h+=`</div>`;
+
+  if(sel){
+    const before=hcBlockGmr(sel.start-3), after=hcBlockGmr(sel.end+1);
+    const mSel=MACRO_TAGS[sel.start]||{};
+    const {checks}=hcSymmetry(now, sel);
+    const dims=[
+      ['Cycle phase',      checks.phase,     escHtml(mNow.phase||'ΓÇö'),                          escHtml(mSel.phase||'ΓÇö')],
+      ['Inflation regime', checks.inflation, escHtml(mNow.inflation||'ΓÇö'),                      escHtml(mSel.inflation||'ΓÇö')],
+      ['Fed posture',      checks.fed,       escHtml(mNow.fed||'ΓÇö'),                            escHtml(mSel.fed||'ΓÇö')],
+      ['Path shape',       checks.shape,     escHtml(HC_SHAPE_LABELS[now.shape]),               escHtml(HC_SHAPE_LABELS[sel.shape])],
+      ['Real return/yr',   checks.gmr,       hPct(now.gmr),                                     hPct(sel.gmr)],
+      ['Volatility',       checks.vol,       (now.vol*100).toFixed(1)+'%',                      (sel.vol*100).toFixed(1)+'%'],
+      ['Top asset',        checks.winner,    HC_ASSET_LABELS[now.winnerAsset]||now.winnerAsset, HC_ASSET_LABELS[sel.winnerAsset]||sel.winnerAsset]
+    ];
+    const row=d=>`<div class="led-row"><span>${d[0]} ΓÇö ${d[2]} vs ${d[3]}</span><span class="dots"></span><b>${d[1]>=1?'shared':d[1]>=0.5?'close':'different'}</b></div>`;
+    const selMixDuring=profileThroughWeights(sel.start, mixW);
+    const selMixNext=profileThroughWeights(sel.end+1, mixW);
+    const notes=[sel.start, sel.start+1, sel.start+2]
+      .map(y=>MACRO_TAGS[y]?`<div class="hist-note"><b>${y}</b> ${escHtml(MACRO_TAGS[y].notes||'')}</div>`:'').join('');
+    h+=`
+    <div class="story-sec"><span>${sel.label} in sequence</span></div>
+    <div class="story-stats">
+      <div class="story-stat"><b>${before?hPct(before.gmr):'ΓÇö'}</b><i>before ┬╖ ${before?before.label:'no record'}</i></div>
+      <div class="story-stat"><b>${hPct(sel.gmr)}</b><i>during ┬╖ ${sel.label}</i></div>
+      <div class="story-stat"><b>${after?hPct(after.gmr):'ΓÇö'}</b><i>after ┬╖ ${after?after.label:'no record'}</i></div>
+      <div class="story-stat"><b>${selMixDuring!=null?hPct(selMixDuring):'ΓÇö'} / ${selMixNext!=null?hPct(selMixNext):'ΓÇö'}</b><i>during / after ┬╖ ${escHtml(mixLabel)} mix</i></div>
+    </div>
+    <div class="ledger">
+      <div><h5>${now.label} vs ${sel.label}</h5>${dims.map(row).join('')}</div>
+      <div><h5>The record, year by year</h5>${notes}
+        <div class="hist-note"><b>${sel.end+1}ΓÇô${sel.end+3}</b> real return ${after?hPct(after.gmr):'ΓÇö'}/yr</div></div>
+    </div>`;
+  }
+  h+=`<div class="hist-foot">Three-year windows of the 1928ΓÇô2025 real-return record ┬╖ context, not a forecast ┬╖ not used in planning</div>`;
+  el.innerHTML=h;
+  el.querySelectorAll('[data-hist]').forEach(r=>r.onclick=()=>{ histSel=+r.dataset.hist; renderHistory(); });
+}
+
+/* ΓöÇΓöÇ tab switch + boot ΓöÇΓöÇ */
+$$('.htab').forEach(t=>t.onclick=()=>{
+  $$('.htab').forEach(x=>x.classList.remove('on'));
+  $$('.page').forEach(x=>x.classList.remove('on'));
+  if(t.dataset.subTarget){
+    activeSub = t.dataset.subTarget;
+    try { localStorage.setItem(SUB_KEY, activeSub); } catch {}
+  }
+  t.classList.add('on'); $(`.page[data-page="${t.dataset.page}"]`).classList.add('on');
+  document.body.classList.toggle('scn-active', t.dataset.page==='scenarios');
+  // Returning to Scenarios after a base-plan edit re-runs the engine so the
+  // columns reflect the new source; otherwise just redraw.
+  if(t.dataset.page==='scenarios'){ if(plansDirty){ plansDirty=false; runAll(); } }
+  if(t.dataset.page==='sequencing') runSeq();
+  if(t.dataset.page==='net-worth') renderInputs();
+  if(t.dataset.page==='history') renderHistory();
+});
+// Net Worth sub-nav: switch the active sub-page, persist, re-render.
+$$('#np-subnav .stab').forEach(b => b.onclick = () => {
+  activeSub = b.dataset.sub;
+  try { localStorage.setItem(SUB_KEY, activeSub); } catch {}
+  renderInputs();
+});
+$('#run-btn').onclick=runAll;
+function syncPathControls(){
+  const mode=$('#path-mode'), idx=$('#path-index'), seed=$('#path-seed');
+  const choose=$('#path-choose'), seedWrap=$('#path-seed-wrap');
+  if(mode) mode.value = pathReplay.mode;
+  if(idx) idx.value = pathReplay.index;
+  if(seed) seed.value = pathReplay.seed;
+  const advanced = pathReplay.mode === 'choose';
+  if(choose) choose.classList.toggle('on', advanced);
+  if(seedWrap) seedWrap.classList.toggle('on', advanced);
+}
+$('#path-mode').onchange=e=>{
+  pathReplay.mode=e.target.value;
+  savePathReplay();
+  syncPathControls();
+  renderCashflow();
+};
+$('#path-index').onchange=e=>{
+  pathReplay.index=Math.max(0, parseInt(e.target.value,10)||0);
+  savePathReplay();
+  syncPathControls();
+  renderCashflow();
+};
+$('#path-seed').onchange=e=>{
+  pathReplay.seed=Math.max(1, parseInt(e.target.value,10)||DEFAULT_PATH_SEED);
+  savePathReplay();
+  sharedPaths=null;
+  syncPathControls();
+  runAll();
+};
+// ΓöÇΓöÇ CF MODE state ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+let cfMode = false;
+let cfPrimary = 0;
+let cfCompare = null;
+
+function renderCfSidebar(){
+  const sidebar = $('#cf-sidebar');
+  if(!sidebar) return;
+  sidebar.innerHTML = scenarios.map((s, i) => {
+    const isPrimary = i === cfPrimary;
+    const isCompare = i === cfCompare;
+    const sr = s.res?.successRate;
+    const pct = sr != null ? Math.round(sr) + '%' : 'ΓÇö';
+    const spend = s.lev?.spend ? '$' + Math.round(s.lev.spend / 12).toLocaleString('en-US') + '/mo' : '';
+    // Identity color = scenario palette (dot). Success ring + % color = status
+    // ring color (green/amber/red) ΓÇö the SAME ring()/ringColor() the expanded
+    // band uses, just collapsed to a small gauge.
+    const color = scenAccent(s, i);
+    const rateColor = sr != null ? ringColor(sr) : 'var(--ink-faint)';
+    const ringHtml = sr != null ? ring(sr) : '';
+    let action = '';
+    if(isCompare) action = `<button class="cfc-rm" data-i="${i}">remove</button>`;
+    else if(!isPrimary) action = `<button class="cfc-add" data-i="${i}">compare</button>`;
+    return `<div class="cf-chip ${isPrimary?'cfc-primary':''} ${isCompare?'cfc-compare':''}" data-i="${i}" style="--cc:${color}">
+  <div class="cfc-name"><span class="cfc-dot" style="background:${color}"></span>${escHtml(s.name)}</div>
+  <div class="cfc-ring">${ringHtml}<div class="cfc-ring-val" style="color:${rateColor}">${pct}</div></div>
+  ${spend ? `<div class="cfc-spend">${spend}</div>` : ''}
+  ${action}
+</div>`;
+  }).join('');
+  sidebar.querySelectorAll('.cf-chip').forEach(el => {
+    el.addEventListener('click', e => {
+      const i = +el.dataset.i;
+      if(e.target.classList.contains('cfc-rm'))       { cfCompare = null; }
+      else if(e.target.classList.contains('cfc-add')) { cfCompare = cfCompare === i ? null : i; }
+      else if(i !== cfPrimary)                        { if(cfCompare === i) cfCompare = null; cfPrimary = i; }
+      renderCfSidebar();
+      renderCashflow();
+    });
+  });
+}
+
+function setCfMode(on){
+  cfMode = on;
+  if(cfPrimary >= scenarios.length) cfPrimary = 0;
+  if(cfCompare !== null && cfCompare >= scenarios.length) cfCompare = null;
+  document.querySelector('.page[data-page="scenarios"]').classList.toggle('cf-mode', on);
+  $('#cf-wrapper').style.display = on ? 'flex' : 'none';
+  const btn = $('#cf-mode-btn');
+  btn.classList.toggle('cfc-active', on);
+  btn.textContent = on ? 'ΓåÉ Scenarios' : 'Cash Flow';
+  if(on){ renderCfSidebar(); renderCashflow(); }
+}
+$('#cf-mode-btn').addEventListener('click', () => setCfMode(!cfMode));
+
+buildLevers();
+renderSolvePanel();
+syncPathControls();
+renderInputs();
+document.body.classList.toggle('scn-active', document.querySelector('.page.on')?.dataset.page==='scenarios');
+runAll();   // first iteration runs immediately so the tool opens populated
+
+// ΓöÇΓöÇ STICKY NOTES OVERLAY ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+(function(){
+  const STORE_KEY = 'px_sticky_notes_v1';
+  let active = false;
+  let notes = [];
+  let dragging = null, dragOX = 0, dragOY = 0;
+
+  function save(){ try{ localStorage.setItem(STORE_KEY, JSON.stringify(notes)); }catch{} }
+  function load(){ try{ const d=localStorage.getItem(STORE_KEY); if(d) notes=JSON.parse(d); }catch{} }
+
+  function makeNoteEl(note){
+    const el = document.createElement('div');
+    el.className = 'sn-note';
+    el.dataset.id = note.id;
+    el.style.cssText = `left:${note.x}px;top:${note.y}px`;
+    el.innerHTML = `<div class="sn-handle"><span class="sn-num">${note.num}</span><button class="sn-del" title="Remove">├ù</button></div><textarea class="sn-text" placeholder="Type noteΓÇª">${note.text}</textarea>`;
+    // drag via handle
+    const handle = el.querySelector('.sn-handle');
+    handle.addEventListener('mousedown', e => {
+      if(e.target.classList.contains('sn-del')) return;
+      dragging = el;
+      const r = el.getBoundingClientRect();
+      dragOX = e.clientX - r.left;
+      dragOY = e.clientY - r.top;
+      el.style.zIndex = 10001;
+      e.preventDefault();
+    });
+    // delete
+    el.querySelector('.sn-del').addEventListener('click', () => {
+      notes = notes.filter(n => n.id !== note.id);
+      save();
+      el.remove();
+    });
+    // text update
+    el.querySelector('.sn-text').addEventListener('input', e => {
+      const n = notes.find(n => n.id === note.id);
+      if(n){ n.text = e.target.value; save(); }
+    });
+    return el;
+  }
+
+  function placeNote(x, y){
+    // keep the (now wider) note fully on screen wherever it's dropped
+    const W = 360;
+    x = Math.max(8, Math.min(x, window.innerWidth - W - 8));
+    y = Math.max(8, Math.min(y, window.innerHeight - 120));
+    const num = notes.length ? Math.max(...notes.map(n=>n.num)) + 1 : 1;
+    const note = { id: Date.now(), num, x, y, text: '' };
+    notes.push(note);
+    save();
+    const el = makeNoteEl(note);
+    document.body.appendChild(el);
+    el.querySelector('.sn-text').focus();
+  }
+
+  function setActive(on){
+    active = on;
+    document.body.classList.toggle('sn-mode', on);
+    btn.classList.toggle('sn-btn-on', on);
+    btn.title = on ? 'Exit notes mode (click anywhere to add a note)' : 'Add sticky notes';
+    overlay.style.display = on ? 'block' : 'none';
+  }
+
+  // overlay intercepts clicks for note placement
+  const overlay = document.createElement('div');
+  overlay.className = 'sn-overlay';
+  overlay.addEventListener('click', e => {
+    placeNote(e.clientX - 12, e.clientY - 12);
+  });
+  document.body.appendChild(overlay);
+
+  // drag on document
+  document.addEventListener('mousemove', e => {
+    if(!dragging) return;
+    const n = notes.find(n => n.id === +dragging.dataset.id);
+    const x = e.clientX - dragOX, y = e.clientY - dragOY;
+    dragging.style.left = x + 'px';
+    dragging.style.top  = y + 'px';
+    if(n){ n.x = x; n.y = y; }
+  });
+  document.addEventListener('mouseup', () => {
+    if(dragging){ save(); dragging.style.zIndex=''; dragging=null; }
+  });
+
+  // toggle button
+  const btn = document.createElement('button');
+  btn.className = 'sn-btn';
+  btn.textContent = 'Γ£Ä';
+  btn.title = 'Add sticky notes';
+  btn.addEventListener('click', () => setActive(!active));
+  document.body.appendChild(btn);
+
+  // clear button (only visible in active mode)
+  const clearBtn = document.createElement('button');
+  clearBtn.className = 'sn-clear';
+  clearBtn.textContent = 'Clear all';
+  clearBtn.title = 'Remove all sticky notes';
+  clearBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    notes = [];
+    save();
+    document.querySelectorAll('.sn-note').forEach(el => el.remove());
+  });
+  document.body.appendChild(clearBtn);
+
+  // copy button ΓÇö the "send to you" path: gathers every note into clean,
+  // numbered text and drops it on the clipboard so it can be pasted straight
+  // into chat. Static site, no backend ΓÇö clipboard is the handoff.
+  const copyBtn = document.createElement('button');
+  copyBtn.className = 'sn-copy';
+  copyBtn.textContent = 'Copy notes';
+  copyBtn.title = 'Copy all notes to clipboard (paste them to send)';
+  copyBtn.addEventListener('click', async e => {
+    e.stopPropagation();
+    const filled = [...notes].sort((a,b)=>a.num-b.num).filter(n => n.text.trim());
+    if(!filled.length){
+      copyBtn.textContent = 'No notes yet';
+      setTimeout(() => { copyBtn.textContent = 'Copy notes'; }, 1400);
+      return;
+    }
+    const text = filled.map(n => `${n.num}. ${n.text.trim()}`).join('\n\n');
+    try{
+      await navigator.clipboard.writeText(text);
+    }catch{
+      // fallback for older / non-secure contexts
+      const ta = document.createElement('textarea');
+      ta.value = text; ta.style.position='fixed'; ta.style.opacity='0';
+      document.body.appendChild(ta); ta.select();
+      try{ document.execCommand('copy'); }catch{}
+      ta.remove();
+    }
+    copyBtn.textContent = `Copied ${filled.length} note${filled.length>1?'s':''}!`;
+    copyBtn.classList.add('sn-copied');
+    setTimeout(() => { copyBtn.textContent = 'Copy notes'; copyBtn.classList.remove('sn-copied'); }, 1600);
+  });
+  document.body.appendChild(copyBtn);
+
+  // restore persisted notes
+  load();
+  notes.forEach(n => document.body.appendChild(makeNoteEl(n)));
+})();
+</script>
+
+
+</body>
+</html>

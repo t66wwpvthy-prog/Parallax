@@ -4,8 +4,22 @@ Parallax is an advisor-led retirement decision simulator. One protected engine
 shows how client choices behave across simulated and real historical market
 paths.
 
-`PRINCIPLES.md` is the active doctrine. If anything in this repo — including
-this file — conflicts with it, `PRINCIPLES.md` wins.
+`PRINCIPLES.md` is the active doctrine. If anything in this repo conflicts with
+it, `PRINCIPLES.md` wins.
+
+## Canonical App
+
+- `index.html` is the live Parallax front end. In Phase A it is the
+  liquid-glass UI port from `DESIGN REF UPDATED/parallax-liquid-glass-merged.html`.
+- `archive/legacy-monolith.html` is the frozen legacy monolith. It is reference
+  only and is not the product surface.
+- `engine.js` remains the financial truth. The Phase A liquid-glass UI is not
+  wired to `engine.js` yet.
+- `src/tax/` remains isolated tax-engine work. It is not part of this UI PR.
+
+Phase A keeps the mock cash-flow and scenario numbers visible so the UI can be
+reviewed. Do not treat those numbers as financial outputs until the Phase B
+engine wire lands.
 
 ## Product Spine
 
@@ -23,34 +37,30 @@ explain a client decision:
 
 ## Repository Layout
 
-- `engine.js` — the financial engine. The only source of financial truth.
-  Do not change engine math without explicit agreement and tests.
-- `engine.test.js` — Node test suite guarding the engine. Runs in CI on every
-  push (`.github/workflows/test.yml`).
-- `history.js` — cross-era reference analytics for the History tab: 3-year
-  block profiles over the engine's return record, macro-environment tags,
-  and closest-period matching. Informational only — nothing here feeds
-  simulations or scenarios. Guarded by `history.test.js`.
-- `index.html` — the current app prototype. UI only: it imports the engine
-  from `engine.js` as an ES module, so the page must be served over HTTP
-  (as `scripts/verify.mjs` and GitHub Pages both do) rather than opened
-  via `file://`.
-- `scripts/verify.mjs` — visual verification: runs the engine tests, serves
-  the repo, drives headless Chromium through `index.html`, and writes
-  screenshots to `verify-out/`.
-- `assets/` — the logo.
-- `PRINCIPLES.md` — doctrine.
+- `index.html` - canonical liquid-glass Phase A UI served by GitHub Pages.
+- `archive/legacy-monolith.html` - frozen old engine-wired monolith, reference
+  only.
+- `engine.js` - the financial engine. Do not change engine math without
+  explicit agreement and tests.
+- `engine.test.js` - Node test suite guarding the engine.
+- `history.js` - cross-era reference analytics for the History tab.
+- `scripts/preview.mjs` - local static preview for root `index.html`.
+- `scripts/verify.mjs` - visual smoke verification for the canonical UI.
+- `assets/` - the logo.
+- `src/tax/` - isolated tax engine work, not wired into the UI yet.
+- `PRINCIPLES.md` - doctrine.
 
 ## Commands
 
 ```bash
-npm ci                    # install dev dependencies (puppeteer)
-npm test                  # engine tests
-node scripts/verify.mjs   # visual verification + screenshots
+npm ci
+npm test
+npm run preview
+node scripts/verify.mjs
 ```
 
 ## Shipping
 
-GitHub Pages serves `main` from the repository root; `index.html` is the live
-entry file. Run `npm test` before trusting model changes and
+GitHub Pages serves `main` from the repository root. The live page is
+`index.html`. Run `npm test` before trusting model changes and
 `node scripts/verify.mjs` before claiming UI work is complete.
