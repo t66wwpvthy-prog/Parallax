@@ -31,6 +31,13 @@ export const TRIGGER_TAGS = [
   'bracket_calculation',
   'roth_conversion',
   'charitable_planning',
+  'ira_deductibility',
+  'retirement_contribution',
+  'capital_gains',
+  'qualified_dividends',
+  'social_security_taxation',
+  'provisional_income',
+  'standard_deduction',
 ];
 
 // Ordinary-income brackets. Each entry: { rate, upTo } where `upTo` is the
@@ -84,4 +91,68 @@ export const ORDINARY_BRACKETS = {
 // lawVersion + same data id reproduce the same result.
 export const ORDINARY_BRACKETS_SOURCE = {
   '2026_FINAL': 'IRS_2026_TAX_TABLES_v1.0',
+};
+
+export const CAPITAL_GAINS_THRESHOLDS = {
+  '2026_FINAL': {
+    single: { zeroRateMax: 49450, fifteenRateMax: 545500 },
+    marriedFilingJointly: { zeroRateMax: 98900, fifteenRateMax: 613700 },
+    headOfHousehold: { zeroRateMax: 66200, fifteenRateMax: 579600 },
+    marriedFilingSeparately: { zeroRateMax: 49450, fifteenRateMax: 306850 },
+  },
+};
+
+export const CAPITAL_GAINS_THRESHOLDS_SOURCE = {
+  '2026_FINAL': 'IRS_2026_CAPITAL_GAINS_RATES_v1.0',
+};
+
+export const TRADITIONAL_IRA_LIMITS = {
+  '2026_FINAL': {
+    baseContributionLimit: 7500,
+    catchUpAge: 50,
+    catchUpContribution: 1100,
+    phaseouts: {
+      activeParticipant: {
+        single: { fullDeductionUpTo: 81000, noDeductionAtOrAbove: 91000 },
+        headOfHousehold: { fullDeductionUpTo: 81000, noDeductionAtOrAbove: 91000 },
+        marriedFilingJointly: { fullDeductionUpTo: 129000, noDeductionAtOrAbove: 149000 },
+        marriedFilingSeparately: { fullDeductionUpTo: 0, noDeductionAtOrAbove: 10000 },
+      },
+      spouseActiveParticipant: {
+        marriedFilingJointly: { fullDeductionUpTo: 242000, noDeductionAtOrAbove: 252000 },
+        marriedFilingSeparately: { fullDeductionUpTo: 0, noDeductionAtOrAbove: 10000 },
+      },
+    },
+  },
+};
+
+export const TRADITIONAL_IRA_LIMITS_SOURCE = {
+  '2026_FINAL': 'IRS_2026_IRA_LIMITS_v1.0',
+};
+
+export const SOCIAL_SECURITY_TAXATION_THRESHOLDS = {
+  '2026_FINAL': {
+    single: { baseAmount: 25000, additionalAmount: 9000 },
+    headOfHousehold: { baseAmount: 25000, additionalAmount: 9000 },
+    marriedFilingJointly: { baseAmount: 32000, additionalAmount: 12000 },
+    marriedFilingSeparatelyLivedApart: { baseAmount: 25000, additionalAmount: 9000 },
+    marriedFilingSeparatelyLivedTogether: { baseAmount: 0, additionalAmount: 0 },
+  },
+};
+
+export const SOCIAL_SECURITY_TAXATION_SOURCE = {
+  '2026_FINAL': 'IRC_86_SOCIAL_SECURITY_TAXATION_v1.0',
+};
+
+export const STANDARD_DEDUCTION = {
+  '2026_FINAL': {
+    single: 15750,
+    marriedFilingJointly: 31500,
+    headOfHousehold: 23625,
+    marriedFilingSeparately: 15750,
+  },
+};
+
+export const STANDARD_DEDUCTION_SOURCE = {
+  '2026_FINAL': 'IRS_2026_STANDARD_DEDUCTION_v1.0',
 };

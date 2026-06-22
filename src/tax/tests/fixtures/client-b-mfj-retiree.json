@@ -1,0 +1,37 @@
+{
+  "id": "client-b-mfj-retiree",
+  "label": "MFJ, wages + taxable Social Security + partial IRA deduction, standard deduction",
+  "filingStatus": "marriedFilingJointly",
+  "income": {
+    "wages": 38000,
+    "socialSecurity": {
+      "socialSecurityBenefits": 10000,
+      "otherIncome": 38000,
+      "taxExemptInterest": 2500,
+      "excludedIncomeAddBacks": 0,
+      "adjustments": 0,
+      "livedWithSpouse": true
+    }
+  },
+  "adjustments": {
+    "ira": {
+      "modifiedAgi": 130000,
+      "contributionAmount": 7500,
+      "age": 40,
+      "taxableCompensation": 100000,
+      "taxpayerCoveredByWorkplacePlan": true,
+      "spouseCoveredByWorkplacePlan": false,
+      "livedWithSpouse": true
+    }
+  },
+  "deductions": {
+    "useStandard": true
+  },
+  "expected": {
+    "line6b": 6275,
+    "line10": 7130,
+    "line12e": 31500,
+    "line15": 5645,
+    "line24": 564.5
+  }
+}

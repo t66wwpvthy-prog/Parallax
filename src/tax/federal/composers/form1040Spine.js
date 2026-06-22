@@ -1,0 +1,261 @@
+/* ============================================================================
+   Form 1040 spine — income and deduction lines (1z → 15).
+   ============================================================================ */
+
+import {
+  LINE_STATUS,
+  SPINE_LINE_IDS,
+  assertAllSpineLines,
+  calculatedLine,
+  deferredLine,
+  lineAmount,
+  suppliedLine,
+} from '../../core/form1040Lines.js';
+import { taxableSocialSecurity } from '../rules/taxableSocialSecurity.js';
+import { traditionalIraDeductibility } from '../rules/traditionalIraDeductibility.js';
+import { standardDeduction } from '../rules/standardDeduction.js';
+
+const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
+
+const INCOME_COMPONENT_IDS = ['line1z', 'line2b', 'line3b', 'line4b', 'line5b', 'line6b', 'line7a', 'line8'];
+
+function readSupplied(input, lineId){
+  const fromMap = input.supplied?.[lineId];
+  if(fromMap !== undefined && fromMap !== null) return fromMap;
+  return undefined;
+}
+
+function isFullIncomePath(input){
+  if(input.supplied){
+    for(const id of INCOME_COMPONENT_IDS){
+      if(readSupplied(input, id) !== undefined) return true;
+    }
+  }
+  return Boolean(input.socialSecurity || input.traditionalIra);
+}
+
+function isLine15Shortcut(input){
+  return input.taxableOrdinaryIncome !== undefined && !isFullIncomePath(input);
+}
+
+function resolveIncomeComponent(lineId, value, { ruleId = null, auditIndex = null } = {}){
+  if(value === undefined) return deferredLine(lineId);
+  if(ruleId) return calculatedLine(lineId, value, { ruleId, auditIndex });
+  return suppliedLine(lineId, value);
+}
+
+function buildLine6b(input, context, audits){
+  const supplied = readSupplied(input, 'line6b');
+  if(supplied !== undefined) return suppliedLine('line6b', supplied);
+
+  if(input.socialSecurity){
+    const ss = taxableSocialSecurity.calculate({
+      filingStatus: input.filingStatus,
+      ...input.socialSecurity,
+    }, context);
+    audits.push(ss.audit);
+    return calculatedLine('line6b', ss.result.taxableBenefits, {
+      ruleId: 'FED_TAXABLE_SOCIAL_SECURITY',
+      auditIndex: audits.length - 1,
+    });
+  }
+
+  return deferredLine('line6b');
+}
+
+function buildLine7a(input){
+  const supplied = readSupplied(input, 'line7a');
+  if(supplied !== undefined) return suppliedLine('line7a', supplied);
+  if(input.capitalGains?.netLongTermCapitalGains !== undefined){
+    return calculatedLine('line7a', input.capitalGains.netLongTermCapitalGains, {
+      ruleId: 'COMPOSER_CAPITAL_GAINS',
+    });
+  }
+  return deferredLine('line7a');
+}
+
+function buildLine3b(input){
+  const supplied = readSupplied(input, 'line3b');
+  if(supplied !== undefined) return suppliedLine('line3b', supplied);
+  if(input.capitalGains?.qualifiedDividends !== undefined && input.capitalGains.qualifiedDividends > 0){
+    return calculatedLine('line3b', input.capitalGains.qualifiedDividends, {
+      ruleId: 'COMPOSER_QUALIFIED_DIVIDENDS',
+    });
+  }
+  return deferredLine('line3b');
+}
+
+function buildLine10(input, context, audits){
+  const supplied = readSupplied(input, 'line10');
+  let total = supplied ?? 0;
+
+  if(input.traditionalIra){
+    const ira = traditionalIraDeductibility.calculate({
+      filingStatus: input.filingStatus,
+      ...input.traditionalIra,
+    }, context);
+    audits.push(ira.audit);
+    total = round2(total + ira.result.deductibleContribution);
+    return calculatedLine('line10', total, {
+      ruleId: 'FED_TRADITIONAL_IRA_DEDUCTIBILITY',
+      auditIndex: audits.length - 1,
+    });
+  }
+
+  if(supplied !== undefined) return suppliedLine('line10', supplied);
+  return deferredLine('line10');
+}
+
+function wantsStandardDeduction(input){
+  if(input.deductions?.useStandard === false) return false;
+  if(input.deductions?.useStandard === true) return true;
+  if(input.deductions?.itemizedAmount !== undefined) return false;
+  if(readSupplied(input, 'line12e') !== undefined) return false;
+  return isFullIncomePath(input);
+}
+
+function buildLine12e(input, context, audits){
+  const supplied = readSupplied(input, 'line12e');
+  if(supplied !== undefined) return suppliedLine('line12e', supplied);
+
+  if(input.deductions?.itemizedAmount !== undefined){
+    return suppliedLine('line12e', input.deductions.itemizedAmount);
+  }
+
+  if(wantsStandardDeduction(input)){
+    const std = standardDeduction.calculate({ filingStatus: input.filingStatus }, context);
+    audits.push(std.audit);
+    return calculatedLine('line12e', std.result.standardDeduction, {
+      ruleId: 'FED_STANDARD_DEDUCTION',
+      auditIndex: audits.length - 1,
+    });
+  }
+
+  return deferredLine('line12e');
+}
+
+function preferentialIncome(input){
+  const cg = input.capitalGains;
+  if(!cg) return 0;
+  return round2((cg.netLongTermCapitalGains ?? 0) + (cg.qualifiedDividends ?? 0));
+}
+
+function buildIncomeAndDeductionLines(input, context, audits){
+  if(isLine15Shortcut(input)){
+    const pref = preferentialIncome(input);
+    const line15Value = pref > 0
+      ? round2(input.taxableOrdinaryIncome + pref)
+      : input.taxableOrdinaryIncome;
+    const ordinaryTaxableIncome = pref > 0
+      ? input.taxableOrdinaryIncome
+      : input.taxableOrdinaryIncome;
+
+    const form1040 = {};
+    for(const lineId of SPINE_LINE_IDS){
+      if(lineId === 'line15'){
+        form1040.line15 = suppliedLine('line15', line15Value);
+      } else if(['line12e', 'line13a', 'line13b'].includes(lineId)){
+        const v = readSupplied(input, lineId);
+        form1040[lineId] = v !== undefined ? suppliedLine(lineId, v) : deferredLine(lineId);
+      } else if(['line16', 'line17', 'line18', 'line19', 'line20', 'line21', 'line22', 'line23', 'line24'].includes(lineId)){
+        form1040[lineId] = deferredLine(lineId);
+      } else {
+        form1040[lineId] = deferredLine(lineId);
+      }
+    }
+
+    if(input.capitalGains?.netLongTermCapitalGains !== undefined){
+      form1040.line7a = calculatedLine('line7a', input.capitalGains.netLongTermCapitalGains, {
+        ruleId: 'COMPOSER_CAPITAL_GAINS',
+      });
+    }
+    if(input.capitalGains?.qualifiedDividends > 0){
+      form1040.line3b = calculatedLine('line3b', input.capitalGains.qualifiedDividends, {
+        ruleId: 'COMPOSER_QUALIFIED_DIVIDENDS',
+      });
+    }
+
+    return {
+      form1040: assertAllSpineLines(form1040),
+      ordinaryTaxableIncome: Math.max(0, ordinaryTaxableIncome),
+      preferentialIncome: pref,
+      shortcut: true,
+    };
+  }
+
+  const incomeLines = {
+    line1z: resolveIncomeComponent('line1z', readSupplied(input, 'line1z')),
+    line2b: resolveIncomeComponent('line2b', readSupplied(input, 'line2b')),
+    line3b: buildLine3b(input),
+    line4b: resolveIncomeComponent('line4b', readSupplied(input, 'line4b')),
+    line5b: resolveIncomeComponent('line5b', readSupplied(input, 'line5b')),
+    line6b: buildLine6b(input, context, audits),
+    line7a: buildLine7a(input),
+    line8: resolveIncomeComponent('line8', readSupplied(input, 'line8')),
+  };
+
+  const line9Value = round2(
+    INCOME_COMPONENT_IDS.reduce((sum, id) => sum + lineAmount(incomeLines[id]), 0)
+  );
+  const line9 = calculatedLine('line9', line9Value);
+
+  const line10 = buildLine10(input, context, audits);
+  const line11aValue = round2(lineAmount(line9) - lineAmount(line10));
+  const line11a = calculatedLine('line11a', line11aValue);
+  const line11b = calculatedLine('line11b', line11aValue);
+
+  const line12e = buildLine12e(input, context, audits);
+  const line13a = readSupplied(input, 'line13a') !== undefined
+    ? suppliedLine('line13a', readSupplied(input, 'line13a'))
+    : deferredLine('line13a');
+  const line13b = readSupplied(input, 'line13b') !== undefined
+    ? suppliedLine('line13b', readSupplied(input, 'line13b'))
+    : deferredLine('line13b');
+
+  const line14Value = round2(lineAmount(line12e) + lineAmount(line13a) + lineAmount(line13b));
+  const line14 = calculatedLine('line14', line14Value);
+
+  const line15Value = Math.max(0, round2(lineAmount(line11b) - lineAmount(line14)));
+  const line15 = calculatedLine('line15', line15Value);
+
+  const pref = preferentialIncome(input);
+  const ordinaryTaxableIncome = input.ordinaryTaxableIncome !== undefined
+    ? input.ordinaryTaxableIncome
+    : Math.max(0, round2(line15Value - pref));
+
+  const form1040 = assertAllSpineLines({
+    ...incomeLines,
+    line9,
+    line10,
+    line11a,
+    line11b,
+    line12e,
+    line13a,
+    line13b,
+    line14,
+    line15,
+    line16: deferredLine('line16'),
+    line17: deferredLine('line17'),
+    line18: deferredLine('line18'),
+    line19: deferredLine('line19'),
+    line20: deferredLine('line20'),
+    line21: deferredLine('line21'),
+    line22: deferredLine('line22'),
+    line23: deferredLine('line23'),
+    line24: deferredLine('line24'),
+  });
+
+  return {
+    form1040,
+    ordinaryTaxableIncome,
+    preferentialIncome: pref,
+    shortcut: false,
+  };
+}
+
+export function buildForm1040IncomeSpine(input, context){
+  const audits = [];
+  return { ...buildIncomeAndDeductionLines(input, context, audits), audits };
+}
+
+export { isLine15Shortcut, isFullIncomePath, preferentialIncome };

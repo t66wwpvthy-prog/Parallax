@@ -1,0 +1,14 @@
+{
+  "id": "client-c-ltcg-shortcut",
+  "label": "Single filer, resolved ordinary income + LTCG stacking (Phase 1 shortcut path)",
+  "filingStatus": "single",
+  "taxableOrdinaryIncome": 49000,
+  "capitalGains": {
+    "netLongTermCapitalGains": 1000,
+    "qualifiedDividends": 0
+  },
+  "expected": {
+    "line15": 50000,
+    "line24": 5714.5
+  }
+}

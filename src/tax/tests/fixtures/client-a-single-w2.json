@@ -1,0 +1,16 @@
+{
+  "id": "client-a-single-w2",
+  "label": "Single filer, W-2 wages only, standard deduction",
+  "filingStatus": "single",
+  "income": {
+    "wages": 75000
+  },
+  "deductions": {
+    "useStandard": true
+  },
+  "expected": {
+    "line12e": 15750,
+    "line15": 59250,
+    "line24": 7747
+  }
+}
