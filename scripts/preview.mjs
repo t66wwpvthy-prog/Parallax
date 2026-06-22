@@ -2,7 +2,7 @@ import { createReadStream, existsSync, statSync } from "node:fs";
 import { createServer } from "node:http";
 import { extname, join, normalize, resolve, sep } from "node:path";
 
-// Serves the canonical Parallax UI at /index.html.
+// Serves the canonical Parallax UI at /parallax.html (root / redirects via index.html).
 const root = process.cwd();
 const host = process.env.HOST || "127.0.0.1";
 const port = Number(process.env.PORT || 8825);
@@ -30,7 +30,7 @@ function send(res, status, body, type = "text/plain; charset=utf-8") {
 
 function fileForUrl(url) {
   const pathname = decodeURIComponent(new URL(url, `http://${host}:${port}`).pathname);
-  const requested = pathname === "/" ? "/index.html" : pathname;
+  const requested = pathname === "/" ? "/parallax.html" : pathname;
   const fullPath = normalize(resolve(join(root, requested)));
   const rootPrefix = root.endsWith(sep) ? root : `${root}${sep}`;
   if (fullPath !== root && !fullPath.startsWith(rootPrefix)) return null;
@@ -57,6 +57,6 @@ const server = createServer((req, res) => {
 });
 
 server.listen(port, host, () => {
-  console.log(`Parallax preview running at http://${host}:${port}/`);
+  console.log(`Parallax preview: http://${host}:${port}/parallax.html`);
   console.log(`Serving ${root}`);
 });
