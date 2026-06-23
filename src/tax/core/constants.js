@@ -6,8 +6,9 @@
    Each table is addressed by a (lawVersion → filingStatus) key and tagged with
    a dataSourceId so a result's audit can name exactly which data produced it.
 
-   ⚠ VERIFICATION: The 2026 bracket thresholds below are transcribed from the
-   IRS 2026 inflation-adjusted schedules (Rev. Proc. 2025-32). They are flagged
+   ⚠ VERIFICATION: 2025 tables transcribed from Schwab Center for Financial Research
+   2025 Tax and Retirement Reference Guide (OBBBA update, July 2025, SCFR 0725-J02L).
+   2026 bracket thresholds transcribed from IRS Rev. Proc. 2025-32.
    for CFP / primary-source verification before this rule is trusted for client
    work — mirroring engine.js's treatment of the RMD Uniform Lifetime table.
    The bracket-stacking MATH is independently unit-tested regardless of these
@@ -19,7 +20,7 @@ export const FILING_STATUSES = ['single', 'marriedFilingJointly', 'headOfHouseho
 
 // Recognized law regimes/scenarios. lawVersion separates "what code ran"
 // (ruleVersion) from "which legal regime applies."
-export const LAW_VERSIONS = ['2026_FINAL'];
+export const LAW_VERSIONS = ['2025_FINAL', '2026_FINAL'];
 
 // Controlled vocabulary for rule meta.triggerTags. These let Parallax query the
 // ledger ("which rules move on a Roth conversion / trigger at age 73 / depend on
@@ -46,6 +47,44 @@ export const TRIGGER_TAGS = [
 //
 // Keyed: ORDINARY_BRACKETS[lawVersion][filingStatus]
 export const ORDINARY_BRACKETS = {
+  '2025_FINAL': {
+    single: [
+      { rate: 0.10, upTo: 11925 },
+      { rate: 0.12, upTo: 48475 },
+      { rate: 0.22, upTo: 103350 },
+      { rate: 0.24, upTo: 197300 },
+      { rate: 0.32, upTo: 250525 },
+      { rate: 0.35, upTo: 626350 },
+      { rate: 0.37, upTo: Infinity },
+    ],
+    marriedFilingJointly: [
+      { rate: 0.10, upTo: 23850 },
+      { rate: 0.12, upTo: 96950 },
+      { rate: 0.22, upTo: 206700 },
+      { rate: 0.24, upTo: 394600 },
+      { rate: 0.32, upTo: 501050 },
+      { rate: 0.35, upTo: 751600 },
+      { rate: 0.37, upTo: Infinity },
+    ],
+    headOfHousehold: [
+      { rate: 0.10, upTo: 17000 },
+      { rate: 0.12, upTo: 64850 },
+      { rate: 0.22, upTo: 103350 },
+      { rate: 0.24, upTo: 197300 },
+      { rate: 0.32, upTo: 250500 },
+      { rate: 0.35, upTo: 626350 },
+      { rate: 0.37, upTo: Infinity },
+    ],
+    marriedFilingSeparately: [
+      { rate: 0.10, upTo: 11925 },
+      { rate: 0.12, upTo: 48475 },
+      { rate: 0.22, upTo: 103350 },
+      { rate: 0.24, upTo: 197300 },
+      { rate: 0.32, upTo: 250525 },
+      { rate: 0.35, upTo: 375800 },
+      { rate: 0.37, upTo: Infinity },
+    ],
+  },
   '2026_FINAL': {
     single: [
       { rate: 0.10, upTo: 12400 },
@@ -90,10 +129,17 @@ export const ORDINARY_BRACKETS = {
 // rule records this in its audit (dataSourcesUsed) so the same inputs + same
 // lawVersion + same data id reproduce the same result.
 export const ORDINARY_BRACKETS_SOURCE = {
+  '2025_FINAL': 'IRS_2025_TAX_TABLES_v1.0',
   '2026_FINAL': 'IRS_2026_TAX_TABLES_v1.0',
 };
 
 export const CAPITAL_GAINS_THRESHOLDS = {
+  '2025_FINAL': {
+    single: { zeroRateMax: 48350, fifteenRateMax: 533400 },
+    marriedFilingJointly: { zeroRateMax: 96700, fifteenRateMax: 600050 },
+    headOfHousehold: { zeroRateMax: 64750, fifteenRateMax: 566700 },
+    marriedFilingSeparately: { zeroRateMax: 48350, fifteenRateMax: 300000 },
+  },
   '2026_FINAL': {
     single: { zeroRateMax: 49450, fifteenRateMax: 545500 },
     marriedFilingJointly: { zeroRateMax: 98900, fifteenRateMax: 613700 },
@@ -103,10 +149,28 @@ export const CAPITAL_GAINS_THRESHOLDS = {
 };
 
 export const CAPITAL_GAINS_THRESHOLDS_SOURCE = {
+  '2025_FINAL': 'IRS_2025_CAPITAL_GAINS_RATES_v1.0',
   '2026_FINAL': 'IRS_2026_CAPITAL_GAINS_RATES_v1.0',
 };
 
 export const TRADITIONAL_IRA_LIMITS = {
+  '2025_FINAL': {
+    baseContributionLimit: 7000,
+    catchUpAge: 50,
+    catchUpContribution: 1000,
+    phaseouts: {
+      activeParticipant: {
+        single: { fullDeductionUpTo: 79000, noDeductionAtOrAbove: 89000 },
+        headOfHousehold: { fullDeductionUpTo: 79000, noDeductionAtOrAbove: 89000 },
+        marriedFilingJointly: { fullDeductionUpTo: 126000, noDeductionAtOrAbove: 146000 },
+        marriedFilingSeparately: { fullDeductionUpTo: 0, noDeductionAtOrAbove: 10000 },
+      },
+      spouseActiveParticipant: {
+        marriedFilingJointly: { fullDeductionUpTo: 236000, noDeductionAtOrAbove: 246000 },
+        marriedFilingSeparately: { fullDeductionUpTo: 0, noDeductionAtOrAbove: 10000 },
+      },
+    },
+  },
   '2026_FINAL': {
     baseContributionLimit: 7500,
     catchUpAge: 50,
@@ -127,10 +191,18 @@ export const TRADITIONAL_IRA_LIMITS = {
 };
 
 export const TRADITIONAL_IRA_LIMITS_SOURCE = {
+  '2025_FINAL': 'IRS_2025_IRA_LIMITS_v1.0',
   '2026_FINAL': 'IRS_2026_IRA_LIMITS_v1.0',
 };
 
 export const SOCIAL_SECURITY_TAXATION_THRESHOLDS = {
+  '2025_FINAL': {
+    single: { baseAmount: 25000, additionalAmount: 9000 },
+    headOfHousehold: { baseAmount: 25000, additionalAmount: 9000 },
+    marriedFilingJointly: { baseAmount: 32000, additionalAmount: 12000 },
+    marriedFilingSeparatelyLivedApart: { baseAmount: 25000, additionalAmount: 9000 },
+    marriedFilingSeparatelyLivedTogether: { baseAmount: 0, additionalAmount: 0 },
+  },
   '2026_FINAL': {
     single: { baseAmount: 25000, additionalAmount: 9000 },
     headOfHousehold: { baseAmount: 25000, additionalAmount: 9000 },
@@ -141,10 +213,17 @@ export const SOCIAL_SECURITY_TAXATION_THRESHOLDS = {
 };
 
 export const SOCIAL_SECURITY_TAXATION_SOURCE = {
+  '2025_FINAL': 'IRC_86_SOCIAL_SECURITY_TAXATION_v1.0',
   '2026_FINAL': 'IRC_86_SOCIAL_SECURITY_TAXATION_v1.0',
 };
 
 export const STANDARD_DEDUCTION = {
+  '2025_FINAL': {
+    single: 15750,
+    marriedFilingJointly: 31500,
+    headOfHousehold: 23625,
+    marriedFilingSeparately: 15750,
+  },
   '2026_FINAL': {
     single: 15750,
     marriedFilingJointly: 31500,
@@ -154,5 +233,6 @@ export const STANDARD_DEDUCTION = {
 };
 
 export const STANDARD_DEDUCTION_SOURCE = {
+  '2025_FINAL': 'IRS_2025_STANDARD_DEDUCTION_v1.0',
   '2026_FINAL': 'IRS_2026_STANDARD_DEDUCTION_v1.0',
 };

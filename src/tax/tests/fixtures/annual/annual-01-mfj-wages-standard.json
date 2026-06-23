@@ -1,0 +1,18 @@
+{
+  "id": "annual-01-mfj-wages-standard",
+  "label": "MFJ wages only, standard deduction",
+  "taxYear": 2026,
+  "filingStatus": "marriedFilingJointly",
+  "income": {
+    "wages": 120000
+  },
+  "deductions": {
+    "useStandard": true
+  },
+  "expected": {
+    "line11a": 120000,
+    "line15": 88500,
+    "line16": 10124,
+    "line24": 10124
+  }
+}

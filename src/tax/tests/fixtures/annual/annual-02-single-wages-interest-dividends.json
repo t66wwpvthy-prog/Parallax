@@ -1,0 +1,20 @@
+{
+  "id": "annual-02-single-wages-interest-dividends",
+  "label": "Single wages, interest, and ordinary dividends",
+  "taxYear": 2026,
+  "filingStatus": "single",
+  "income": {
+    "wages": 65000,
+    "taxableInterest": 800,
+    "ordinaryDividends": 1200
+  },
+  "deductions": {
+    "useStandard": true
+  },
+  "expected": {
+    "line11a": 67000,
+    "line15": 51250,
+    "line16": 5987,
+    "line24": 5987
+  }
+}

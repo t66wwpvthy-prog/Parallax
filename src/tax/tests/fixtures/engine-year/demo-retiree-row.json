@@ -1,0 +1,38 @@
+{
+  "id": "demo-retiree-row",
+  "label": "Partially retired — simulation row + planMeta",
+  "inputMode": "row",
+  "taxYear": 2026,
+  "row": {
+    "age": 68,
+    "year": 12,
+    "socialSecurity": 36000,
+    "pension": 24000,
+    "otherIncome": 0,
+    "accountBreakdown": {
+      "taxable": 20000,
+      "traditional": 30000,
+      "roth": 0
+    },
+    "rmd": 10000
+  },
+  "planMeta": {
+    "filingStatus": "marriedFilingJointly",
+    "wages": 12000,
+    "taxableGainFraction": 0.35,
+    "resolved": {
+      "taxableIra": 32000,
+      "taxablePensions": 18000,
+      "taxableSocialSecurity": 9000
+    },
+    "deductions": {
+      "useStandard": true
+    }
+  },
+  "expected": {
+    "line11a": 78000,
+    "line15": 46500,
+    "line16": 4244,
+    "line24": 4244
+  }
+}

@@ -1,0 +1,158 @@
+import { test } from 'node:test';
+import assert from 'node:assert';
+import {
+  engineYearTo1040Input,
+  mapSimulationRowToYearFacts,
+} from '../adapters/engineYearTo1040Input.js';
+import {
+  buildDefaultTaxContext,
+  runClient1040Intake,
+  runEngineYearTax,
+} from '../annual1040.js';
+
+test('engineYearTo1040Input maps Phase-1 shortcut taxableOrdinaryIncome', () => {
+  const intake = engineYearTo1040Input({
+    filingStatus: 'marriedFilingJointly',
+    taxYear: 2026,
+    taxableOrdinaryIncome: 180000,
+  });
+  assert.deepStrictEqual(intake, {
+    filingStatus: 'marriedFilingJointly',
+    taxYear: 2026,
+    taxableOrdinaryIncome: 180000,
+  });
+});
+
+test('engineYearTo1040Input maps detailed income to client1040 intake', () => {
+  const intake = engineYearTo1040Input({
+    id: 'engine-wages',
+    filingStatus: 'marriedFilingJointly',
+    taxYear: 2026,
+    income: { wages: 120000 },
+    deductions: { useStandard: true },
+  });
+  assert.deepStrictEqual(intake, {
+    id: 'engine-wages',
+    filingStatus: 'marriedFilingJointly',
+    taxYear: 2026,
+    income: { wages: 120000 },
+    deductions: { useStandard: true },
+  });
+});
+
+test('engineYearTo1040Input passes resolved taxable portions through', () => {
+  const intake = engineYearTo1040Input({
+    filingStatus: 'marriedFilingJointly',
+    income: {
+      iraDistributions: 40000,
+      pensionAmount: 24000,
+      socialSecurityBenefits: 36000,
+    },
+    resolved: {
+      taxableIra: 32000,
+      taxablePensions: 18000,
+      taxableSocialSecurity: 9000,
+    },
+    deductions: { useStandard: true },
+  });
+  assert.strictEqual(intake.income.taxableIra, 32000);
+  assert.strictEqual(intake.income.taxablePensions, 18000);
+  assert.strictEqual(intake.income.taxableSocialSecurity, 9000);
+  assert.strictEqual(intake.income.socialSecurityBenefits, 36000);
+});
+
+test('engineYearTo1040Input throws when filingStatus or income detail is missing', () => {
+  assert.throws(
+    () => engineYearTo1040Input({ income: { wages: 1 } }),
+    /filingStatus/
+  );
+  assert.throws(
+    () => engineYearTo1040Input({ filingStatus: 'single' }),
+    /taxableOrdinaryIncome or at least one income/
+  );
+});
+
+test('mapSimulationRowToYearFacts reshapes row cash flows without importing engine.js', () => {
+  const facts = mapSimulationRowToYearFacts({
+    age: 68,
+    socialSecurity: 36000,
+    pension: 24000,
+    otherIncome: 5000,
+    accountBreakdown: { taxable: 20000, traditional: 30000, roth: 0 },
+    rmd: 10000,
+  }, {
+    filingStatus: 'marriedFilingJointly',
+    taxYear: 2026,
+    wages: 12000,
+    taxableGainFraction: 0.35,
+  });
+
+  assert.strictEqual(facts.filingStatus, 'marriedFilingJointly');
+  assert.strictEqual(facts.income.wages, 12000);
+  assert.strictEqual(facts.income.socialSecurityBenefits, 36000);
+  assert.strictEqual(facts.income.pensionAmount, 24000);
+  assert.strictEqual(facts.income.otherIncome, 5000);
+  assert.strictEqual(facts.income.iraDistributions, 40000);
+  assert.strictEqual(facts.income.capitalGain, 7000);
+  assert.strictEqual(facts.resolved.taxableIra, 40000);
+  assert.strictEqual(facts.resolved.taxablePensions, 24000);
+  assert.deepStrictEqual(facts.deductions, { useStandard: true });
+});
+
+test('mapSimulationRowToYearFacts requires gain split when taxable withdrawals exist', () => {
+  assert.throws(
+    () => mapSimulationRowToYearFacts(
+      { accountBreakdown: { taxable: 10000, traditional: 0, roth: 0 } },
+      { filingStatus: 'single' }
+    ),
+    /taxableGainFraction/
+  );
+});
+
+test('runEngineYearTax matches direct intake for wages-only MFJ standard deduction', () => {
+  const context = buildDefaultTaxContext({ taxYear: 2026, scenarioId: 'engine-adapter' });
+  const facts = {
+    filingStatus: 'marriedFilingJointly',
+    taxYear: 2026,
+    income: { wages: 120000 },
+    deductions: { useStandard: true },
+  };
+
+  const direct = runClient1040Intake(facts, context);
+  const viaAdapter = runEngineYearTax(facts, context);
+
+  assert.strictEqual(
+    viaAdapter.annual1040Result.lines.line15.value,
+    direct.annual1040Result.lines.line15.value
+  );
+  assert.strictEqual(
+    viaAdapter.annual1040Result.lines.line24.value,
+    direct.annual1040Result.lines.line24.value
+  );
+  assert.strictEqual(viaAdapter.annual1040Result.lines.line24.value, 10124);
+});
+
+test('runEngineYearTax pipeline matches annual-04 retiree fixture via row mapping', () => {
+  const context = buildDefaultTaxContext({ taxYear: 2026, scenarioId: 'engine-retiree' });
+  const facts = mapSimulationRowToYearFacts({
+    socialSecurity: 36000,
+    pension: 24000,
+    accountBreakdown: { taxable: 0, traditional: 40000, roth: 0 },
+    rmd: 0,
+  }, {
+    filingStatus: 'marriedFilingJointly',
+    taxYear: 2026,
+    wages: 12000,
+    resolved: {
+      taxableIra: 32000,
+      taxablePensions: 18000,
+      taxableSocialSecurity: 9000,
+    },
+    deductions: { useStandard: true },
+  });
+
+  const { annual1040Result } = runEngineYearTax(facts, context);
+  assert.strictEqual(annual1040Result.lines.line11.value, 71000);
+  assert.strictEqual(annual1040Result.lines.line15.value, 39500);
+  assert.strictEqual(annual1040Result.lines.line24.value, 4244);
+});

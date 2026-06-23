@@ -36,6 +36,8 @@ export const SPINE_LINE_LABELS = {
   line24: 'Total tax',
 };
 
+export const INCOME_DETAIL_LINE_IDS = ['line3a', 'line3b', 'line4a', 'line5a', 'line6a', 'line6b', 'line7a'];
+
 const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
 
 export function makeLine(lineId, { value = null, status, ruleId = null, auditIndex = null }){
@@ -51,6 +53,10 @@ export function makeLine(lineId, { value = null, status, ruleId = null, auditInd
 
 export function suppliedLine(lineId, value){
   return makeLine(lineId, { value, status: LINE_STATUS.SUPPLIED });
+}
+
+export function passThroughLine(lineId, value){
+  return makeLine(lineId, { value, status: LINE_STATUS.SUPPLIED, ruleId: 'INTAKE_PASS_THROUGH' });
 }
 
 export function calculatedLine(lineId, value, { ruleId = null, auditIndex = null } = {}){

@@ -1,0 +1,24 @@
+{
+  "id": "annual-04-retiree-supplied-taxable",
+  "label": "Retiree return with supplied taxable IRA, pension, and Social Security",
+  "taxYear": 2026,
+  "filingStatus": "marriedFilingJointly",
+  "income": {
+    "wages": 12000,
+    "iraDistributions": 40000,
+    "taxableIra": 32000,
+    "pensionAmount": 24000,
+    "taxablePensions": 18000,
+    "socialSecurityBenefits": 36000,
+    "taxableSS": 9000
+  },
+  "deductions": {
+    "useStandard": true
+  },
+  "expected": {
+    "line11a": 71000,
+    "line15": 39500,
+    "line16": 4244,
+    "line24": 4244
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "id": "demo-wages",
+  "label": "My return",
+  "inputMode": "facts",
+  "filingStatus": "marriedFilingJointly",
+  "taxYear": 2025,
+  "income": {
+    "wages": 348867,
+    "ordinaryDividends": 111,
+    "capitalGain": 983
+  },
+  "deductions": {
+    "itemizedAmount": 58763
+  }
+}

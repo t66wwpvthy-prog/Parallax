@@ -1,0 +1,21 @@
+{
+  "id": "annual-03-mfj-qd-ltcg",
+  "label": "MFJ qualified dividends and long-term capital gain",
+  "taxYear": 2026,
+  "filingStatus": "marriedFilingJointly",
+  "income": {
+    "wages": 90000,
+    "ordinaryDividends": 3000,
+    "qualifiedDividends": 3000,
+    "capitalGain": 2000
+  },
+  "deductions": {
+    "useStandard": true
+  },
+  "expected": {
+    "line11a": 95000,
+    "line15": 63500,
+    "line16": 6524,
+    "line24": 6524
+  }
+}

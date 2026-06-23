@@ -7,6 +7,7 @@ import { test } from 'node:test';
 import assert from 'node:assert';
 import { composeAnnualFederalTax } from '../federal/composers/annualFederalTax.js';
 import { adaptEngineYearToTaxInput } from '../adapters/engineToTaxInput.js';
+import { client1040IntakeToComposerInput } from '../adapters/client1040Intake.js';
 import { rulesLedger, getRuleById, getRulesByTriggerTag } from '../core/rulesLedger.js';
 import { TRIGGER_TAGS } from '../core/constants.js';
 import { SPINE_LINE_IDS, LINE_STATUS } from '../core/form1040Lines.js';
@@ -40,6 +41,45 @@ test('composer emits 1040 spine; line24 equals totalFederalTax (Phase 1 shortcut
   assert.strictEqual(result.totalFederalTax, result.form1040.line24.value);
   assert.strictEqual(audits.length, 1);
   assert.strictEqual(audits[0].ruleId, 'FED_ORDINARY_INCOME_TAX');
+});
+
+test('supplied line3a on full spine runs capital gains stacking (1040 line-for-line)', () => {
+  const input = client1040IntakeToComposerInput({
+    filingStatus: 'single',
+    income: { wages: 50000, ordinaryDividends: 500, qualifiedDividends: 500 },
+    deductions: { useStandard: true },
+  });
+  const { result, audits } = composeAnnualFederalTax(input, ctx());
+
+  assert.strictEqual(result.form1040.line3a.value, 500);
+  assert.strictEqual(result.form1040.line3b.value, 500);
+  assert.strictEqual(result.form1040.line15.value, 34750);
+  assert.strictEqual(result.form1040.line16.value, 3862);
+  assert.strictEqual(result.totalFederalTax, 3862);
+  assert.deepStrictEqual(audits.map(a => a.ruleId), [
+    'FED_STANDARD_DEDUCTION',
+    'FED_ORDINARY_INCOME_TAX',
+    'FED_CAPITAL_GAINS_STACKING',
+  ]);
+});
+
+test('supplied line7a on full spine runs capital gains stacking (1040 line-for-line)', () => {
+  const input = client1040IntakeToComposerInput({
+    filingStatus: 'single',
+    income: { wages: 50000, capitalGain: 1000 },
+    deductions: { useStandard: true },
+  });
+  const { result, audits } = composeAnnualFederalTax(input, ctx());
+
+  assert.strictEqual(result.form1040.line7a.value, 1000);
+  assert.strictEqual(result.form1040.line15.value, 35250);
+  assert.strictEqual(result.form1040.line16.value, 3862);
+  assert.strictEqual(result.totalFederalTax, 3862);
+  assert.deepStrictEqual(audits.map(a => a.ruleId), [
+    'FED_STANDARD_DEDUCTION',
+    'FED_ORDINARY_INCOME_TAX',
+    'FED_CAPITAL_GAINS_STACKING',
+  ]);
 });
 
 test('capital gains stacks through line16 and line24', () => {
