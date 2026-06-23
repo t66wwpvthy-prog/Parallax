@@ -3,6 +3,42 @@
 import { TaxDataError } from './errors.js';
 
 export const DATA_SOURCES = {
+  IRS_2025_TAX_TABLES_v1_0: {
+    id: 'IRS_2025_TAX_TABLES_v1.0',
+    description: 'Federal ordinary income tax rate schedules, tax year 2025 (OBBBA)',
+    authority: 'Schwab SCFR 2025 Tax Guide (July 2025); Rev. Proc. 2024-40; OBBBA',
+    taxYear: 2025,
+    lawVersion: '2025_FINAL',
+    status: 'unverified',
+    retrievedAt: '2026-06-22',
+  },
+  IRS_2025_CAPITAL_GAINS_RATES_v1_0: {
+    id: 'IRS_2025_CAPITAL_GAINS_RATES_v1.0',
+    description: 'Federal long-term capital gains and qualified dividend thresholds, tax year 2025',
+    authority: 'Schwab SCFR 2025 Tax Guide (July 2025); Rev. Proc. 2024-40',
+    taxYear: 2025,
+    lawVersion: '2025_FINAL',
+    status: 'unverified',
+    retrievedAt: '2026-06-22',
+  },
+  IRS_2025_IRA_LIMITS_v1_0: {
+    id: 'IRS_2025_IRA_LIMITS_v1.0',
+    description: 'Traditional IRA contribution limits and deductibility phaseouts, tax year 2025',
+    authority: 'Schwab SCFR 2025 Tax Guide (July 2025)',
+    taxYear: 2025,
+    lawVersion: '2025_FINAL',
+    status: 'unverified',
+    retrievedAt: '2026-06-22',
+  },
+  IRS_2025_STANDARD_DEDUCTION_v1_0: {
+    id: 'IRS_2025_STANDARD_DEDUCTION_v1.0',
+    description: 'Federal standard deduction amounts by filing status, tax year 2025 (OBBBA)',
+    authority: 'Schwab SCFR 2025 Tax Guide (July 2025); IRS Form 1040 (2025)',
+    taxYear: 2025,
+    lawVersion: '2025_FINAL',
+    status: 'unverified',
+    retrievedAt: '2026-06-22',
+  },
   IRS_2026_TAX_TABLES_v1_0: {
     id: 'IRS_2026_TAX_TABLES_v1.0',
     description: 'Federal ordinary income tax rate schedules, tax year 2026',

@@ -9,6 +9,7 @@ import {
   calculatedLine,
   deferredLine,
   lineAmount,
+  passThroughLine,
   suppliedLine,
 } from '../../core/form1040Lines.js';
 import { taxableSocialSecurity } from '../rules/taxableSocialSecurity.js';
@@ -74,14 +75,20 @@ function buildLine7a(input){
   return deferredLine('line7a');
 }
 
-function buildLine3b(input){
-  const supplied = readSupplied(input, 'line3b');
-  if(supplied !== undefined) return suppliedLine('line3b', supplied);
-  if(input.capitalGains?.qualifiedDividends !== undefined && input.capitalGains.qualifiedDividends > 0){
-    return calculatedLine('line3b', input.capitalGains.qualifiedDividends, {
+function buildLine3a(input){
+  const supplied = readSupplied(input, 'line3a');
+  if(supplied !== undefined) return suppliedLine('line3a', supplied);
+  if(input.capitalGains?.qualifiedDividends !== undefined){
+    return calculatedLine('line3a', input.capitalGains.qualifiedDividends, {
       ruleId: 'COMPOSER_QUALIFIED_DIVIDENDS',
     });
   }
+  return deferredLine('line3a');
+}
+
+function buildLine3b(input){
+  const supplied = readSupplied(input, 'line3b');
+  if(supplied !== undefined) return suppliedLine('line3b', supplied);
   return deferredLine('line3b');
 }
 
@@ -134,10 +141,35 @@ function buildLine12e(input, context, audits){
   return deferredLine('line12e');
 }
 
-function preferentialIncome(input){
+/** Resolve preferential amounts for line 16 from explicit rule input or 1040 spine lines. */
+export function resolvePreferentialComponents(input){
   const cg = input.capitalGains;
-  if(!cg) return 0;
-  return round2((cg.netLongTermCapitalGains ?? 0) + (cg.qualifiedDividends ?? 0));
+
+  let netLongTermCapitalGains = 0;
+  if(cg?.netLongTermCapitalGains !== undefined){
+    netLongTermCapitalGains = cg.netLongTermCapitalGains;
+  } else {
+    const line7 = readSupplied(input, 'line7a');
+    if(line7 !== undefined) netLongTermCapitalGains = line7;
+  }
+
+  let qualifiedDividends = 0;
+  if(cg?.qualifiedDividends !== undefined){
+    qualifiedDividends = cg.qualifiedDividends;
+  } else {
+    const line3a = readSupplied(input, 'line3a');
+    if(line3a !== undefined) qualifiedDividends = line3a;
+  }
+
+  return {
+    netLongTermCapitalGains,
+    qualifiedDividends,
+    total: round2(netLongTermCapitalGains + qualifiedDividends),
+  };
+}
+
+function preferentialIncome(input){
+  return resolvePreferentialComponents(input).total;
 }
 
 function buildIncomeAndDeductionLines(input, context, audits){
@@ -164,13 +196,19 @@ function buildIncomeAndDeductionLines(input, context, audits){
       }
     }
 
-    if(input.capitalGains?.netLongTermCapitalGains !== undefined){
+    const suppliedLine7 = readSupplied(input, 'line7a');
+    if(suppliedLine7 !== undefined){
+      form1040.line7a = suppliedLine('line7a', suppliedLine7);
+    } else if(input.capitalGains?.netLongTermCapitalGains !== undefined){
       form1040.line7a = calculatedLine('line7a', input.capitalGains.netLongTermCapitalGains, {
         ruleId: 'COMPOSER_CAPITAL_GAINS',
       });
     }
-    if(input.capitalGains?.qualifiedDividends > 0){
-      form1040.line3b = calculatedLine('line3b', input.capitalGains.qualifiedDividends, {
+    const suppliedLine3a = readSupplied(input, 'line3a');
+    if(suppliedLine3a !== undefined){
+      form1040.line3a = suppliedLine('line3a', suppliedLine3a);
+    } else if(input.capitalGains?.qualifiedDividends !== undefined){
+      form1040.line3a = calculatedLine('line3a', input.capitalGains.qualifiedDividends, {
         ruleId: 'COMPOSER_QUALIFIED_DIVIDENDS',
       });
     }
@@ -183,6 +221,7 @@ function buildIncomeAndDeductionLines(input, context, audits){
     };
   }
 
+  const line3a = buildLine3a(input);
   const incomeLines = {
     line1z: resolveIncomeComponent('line1z', readSupplied(input, 'line1z')),
     line2b: resolveIncomeComponent('line2b', readSupplied(input, 'line2b')),
@@ -206,10 +245,10 @@ function buildIncomeAndDeductionLines(input, context, audits){
 
   const line12e = buildLine12e(input, context, audits);
   const line13a = readSupplied(input, 'line13a') !== undefined
-    ? suppliedLine('line13a', readSupplied(input, 'line13a'))
+    ? passThroughLine('line13a', readSupplied(input, 'line13a'))
     : deferredLine('line13a');
   const line13b = readSupplied(input, 'line13b') !== undefined
-    ? suppliedLine('line13b', readSupplied(input, 'line13b'))
+    ? passThroughLine('line13b', readSupplied(input, 'line13b'))
     : deferredLine('line13b');
 
   const line14Value = round2(lineAmount(line12e) + lineAmount(line13a) + lineAmount(line13b));
@@ -225,6 +264,7 @@ function buildIncomeAndDeductionLines(input, context, audits){
 
   const form1040 = assertAllSpineLines({
     ...incomeLines,
+    line3a,
     line9,
     line10,
     line11a,
@@ -244,6 +284,13 @@ function buildIncomeAndDeductionLines(input, context, audits){
     line23: deferredLine('line23'),
     line24: deferredLine('line24'),
   });
+
+  for(const detailId of ['line4a', 'line5a', 'line6a']){
+    const detailValue = readSupplied(input, detailId);
+    if(detailValue !== undefined){
+      form1040[detailId] = suppliedLine(detailId, detailValue);
+    }
+  }
 
   return {
     form1040,

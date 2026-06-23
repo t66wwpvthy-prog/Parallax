@@ -106,3 +106,24 @@ test('SS and IRA together wire through the full income spine', () => {
   assert.strictEqual(form1040.line11a.value, 37145);
   assert.strictEqual(form1040.line15.value, 5645);
 });
+
+test('supplied line7a reduces ordinaryTaxableIncome for line 16', () => {
+  const { ordinaryTaxableIncome, preferentialIncome } = buildForm1040IncomeSpine({
+    filingStatus: 'marriedFilingJointly',
+    supplied: { line1z: 100000, line7a: 983, line12e: 58763 },
+  }, ctx());
+
+  assert.strictEqual(preferentialIncome, 983);
+  assert.strictEqual(ordinaryTaxableIncome, 41237);
+});
+
+test('supplied line3a reduces ordinaryTaxableIncome for line 16', () => {
+  const { ordinaryTaxableIncome, preferentialIncome, form1040 } = buildForm1040IncomeSpine({
+    filingStatus: 'single',
+    supplied: { line1z: 50000, line3b: 500, line3a: 500, line12e: 15750 },
+  }, ctx());
+
+  assert.strictEqual(form1040.line3a.value, 500);
+  assert.strictEqual(preferentialIncome, 500);
+  assert.strictEqual(ordinaryTaxableIncome, 34250);
+});

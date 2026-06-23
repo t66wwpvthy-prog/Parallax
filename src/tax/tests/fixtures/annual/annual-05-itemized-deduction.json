@@ -1,0 +1,19 @@
+{
+  "id": "annual-05-itemized-deduction",
+  "label": "Single filer with itemized deductions",
+  "taxYear": 2026,
+  "filingStatus": "single",
+  "income": {
+    "wages": 110000,
+    "taxableInterest": 500
+  },
+  "deductions": {
+    "itemizedAmount": 28000
+  },
+  "expected": {
+    "line11a": 110500,
+    "line15": 82500,
+    "line16": 12862,
+    "line24": 12862
+  }
+}

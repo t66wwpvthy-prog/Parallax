@@ -1,0 +1,31 @@
+{
+  "id": "annual-06-pass-through-taxes-credits",
+  "label": "Single filer with pass-through other taxes and credits on line 24 roll-up",
+  "taxYear": 2026,
+  "filingStatus": "single",
+  "income": {
+    "wages": 85000
+  },
+  "deductions": {
+    "useStandard": true
+  },
+  "passThrough": {
+    "line17": 400,
+    "line19": 1500,
+    "line20": 250,
+    "line23": 750,
+    "payments": 14000
+  },
+  "expected": {
+    "line11a": 85000,
+    "line15": 69250,
+    "line16": 9947,
+    "line18": 10347,
+    "line21": 1750,
+    "line22": 8597,
+    "line24": 9347,
+    "taxTotalScope": "FULL_1040"
+  },
+  "expectPassThrough": ["line17", "line19", "line20", "line23", "payments"],
+  "expectWarnings": []
+}

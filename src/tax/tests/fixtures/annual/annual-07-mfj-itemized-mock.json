@@ -1,0 +1,20 @@
+{
+  "id": "annual-07-mfj-itemized-mock",
+  "label": "Synthetic MFJ itemized return (fixture-only numbers)",
+  "taxYear": 2025,
+  "filingStatus": "marriedFilingJointly",
+  "income": {
+    "wages": 185000,
+    "ordinaryDividends": 2400,
+    "capitalGain": 3200
+  },
+  "deductions": {
+    "itemizedAmount": 42000
+  },
+  "expected": {
+    "line11a": 190600,
+    "line15": 148600,
+    "line16": 22296,
+    "line24": 22296
+  }
+}
