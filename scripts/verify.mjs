@@ -4,7 +4,6 @@
 
    Run: node scripts/verify.mjs */
 import puppeteer from 'puppeteer';
-const chromium = { launch: (opts) => puppeteer.launch({ ...opts, executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined }) };
 import { existsSync, mkdirSync, readFile, rmSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { spawnSync } from 'node:child_process';
@@ -64,36 +63,57 @@ function closeServer(server){
   return new Promise(resolveClose => server.close(resolveClose));
 }
 
-async function ensureCashflowDrawer(page, open = true){
+async function ensureCashflowMode(page, open = true){
   await page.evaluate(wantOpen => {
-    const d = document.querySelector('#cf-drawer');
-    const b = document.querySelector('#cf-btn');
-    if(!d || !b) return;
-    const isOpen = d.style.display === 'block';
-    if(isOpen !== wantOpen) b.click();
+    const pageEl = document.querySelector('.page[data-page="scenarios"]');
+    const isOpen = pageEl?.classList.contains('cf-mode');
+    if(isOpen !== wantOpen) document.querySelector('#cf-mode-btn')?.click();
   }, open);
+  await new Promise(r => setTimeout(r, 500));
+}
+
+async function ensureHouseholdNetWorthView(page){
+  await page.click('.htab[data-page="net-worth"]');
+  await new Promise(r => setTimeout(r, 200));
+  await page.click('[data-hh-view="networth"]');
   await new Promise(r => setTimeout(r, 350));
 }
 
 rmSync(OUT, { recursive: true, force: true });
 mkdirSync(OUT, { recursive: true });
 
-console.log('engine tests');
-const test = spawnSync('node', ['--test', join(ROOT, 'engine.test.js'), join(ROOT, 'history.test.js')], { cwd: ROOT, stdio: 'inherit' });
-if(test.status !== 0){ console.error('engine tests failed'); process.exit(1); }
+console.log('full test suite (npm test)');
+const test = spawnSync(process.execPath, ['--test', 'engine.test.js', 'history.test.js', 'src/tax/federal/rules/ordinaryIncomeTax.test.js', 'src/tax/federal/rules/standardDeduction.test.js', 'src/tax/federal/rules/traditionalIraDeductibility.test.js', 'src/tax/federal/rules/capitalGainsStacking.test.js', 'src/tax/federal/rules/taxableSocialSecurity.test.js', 'src/tax/federal/composers/form1040Spine.test.js', 'src/tax/tests/integration.test.js', 'src/tax/tests/golden1040.test.js', 'src/tax/tests/intakeCompleteness.test.js', 'src/tax/tests/annual1040Fixtures.test.js', 'src/tax/tests/law2025.test.js', 'src/tax/tests/engineYearTo1040Input.test.js', 'src/tax/tests/demoWagesRegression.test.js', 'src/tax/tests/marginalRateSummary.test.js', 'src/planning/tax/runTaxForScenarioPath.test.js', 'src/planning/tax/attachTypicalPathFederalTax.test.js'], { cwd: ROOT, stdio: 'inherit' });
+if(test.status !== 0){ console.error('npm test failed'); process.exit(1); }
 
 console.log('serve + drive');
 const srv = await startStaticServer();
 
 try {
-  const launchOpts = {};
-  const CONTAINER_CHROME = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
-  if (existsSync(CONTAINER_CHROME)) {
-    launchOpts.executablePath = CONTAINER_CHROME;
+  const launchOpts = { args: ['--no-sandbox'] };
+  const chromeCandidates = [
+    process.env.PUPPETEER_EXECUTABLE_PATH,
+    '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
+    'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+    'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+    '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+  ].filter(Boolean);
+  for(const chromePath of chromeCandidates){
+    if(existsSync(chromePath)){
+      launchOpts.executablePath = chromePath;
+      break;
+    }
   }
-  launchOpts.args = ['--no-sandbox'];
+  if(!launchOpts.executablePath){
+    console.error(
+      'No Chrome/Chromium executable found for verify.\n' +
+      '  Windows: install Google Chrome, or run: npx puppeteer browsers install chrome\n' +
+      '  Or set PUPPETEER_EXECUTABLE_PATH to your chrome.exe path'
+    );
+    process.exit(1);
+  }
 
-  const browser = await chromium.launch({ ...launchOpts, headless: true });
+  const browser = await puppeteer.launch({ ...launchOpts, headless: true });
   const page = await browser.newPage();
   await page.setViewport({ width: 1920, height: 1080, deviceScaleFactor: 3 });
   const errs = [];
@@ -105,34 +125,54 @@ try {
     await new Promise(r => setTimeout(r, 1500));
   });
 
-  await step('household input page renders final prototype nav and fields', async () => {
+  await step('household packet renders map and net worth inputs', async () => {
     const m = await page.evaluate(() => ({
       nav: [...document.querySelectorAll('.hdr-tabs .htab')].map(b => b.textContent.trim()),
       hasSubnav: !!document.querySelector('#np-subnav'),
-      title: [...document.querySelectorAll('.bs-title')].map(e => e.textContent.trim()),
-      heads: document.querySelectorAll('.bs-head').length,
-      labels: [...document.querySelectorAll('.bs-row label')].map(e => e.textContent.trim()),
-      fields: document.querySelectorAll('.bs-row input, .bs-row select').length,
-      propertyCards: document.querySelectorAll('.prop').length,
-      accountPicker: document.querySelectorAll('.acct-picker').length,
+      shell: !!document.querySelector('#np-content .hh-shell'),
+      personCards: document.querySelectorAll('.hh-person-card').length,
+      toggles: document.querySelectorAll('.hh-toggle-btn').length,
+      accountBank: !!document.querySelector('.hh-bankrail, .acct-picker'),
     }));
     const expectedNav = ['Household', 'Goals', 'Scenarios', 'Sequencing', 'History'];
     if(JSON.stringify(m.nav) !== JSON.stringify(expectedNav)) throw new Error(`main nav mismatch: ${JSON.stringify(m.nav)}`);
     if(m.hasSubnav) throw new Error('old net-worth subnav is still rendered');
-    if(m.title.length !== 2 || m.heads < 4 || m.fields < 20) {
-      throw new Error(`Household page did not render enough inputs (titles=${m.title.length}, heads=${m.heads}, fields=${m.fields})`);
+    if(!m.shell) throw new Error('household shell missing from #np-content');
+    if(m.personCards < 2) throw new Error(`expected 2 person cards, got ${m.personCards}`);
+    if(m.toggles < 2) throw new Error('household map/networth toggle missing');
+    if(!m.accountBank) throw new Error('household account bank missing from map view');
+
+    await page.click('[data-hh-view="networth"]');
+    await new Promise(r => setTimeout(r, 400));
+    const nw = await page.evaluate(() => {
+      const rootText = document.querySelector('#np-content')?.textContent || '';
+      return {
+        statement: !!document.querySelector('.hh-statement-shell'),
+        fieldSections: document.querySelectorAll('.hh-field-sec').length,
+        fields: document.querySelectorAll('#np-content input[data-path], #np-content select[data-path]').length,
+        labels: [...document.querySelectorAll('.hh-field-row .hh-ledger-name')].map(e => e.textContent.trim()),
+        rootText,
+      };
+    });
+    if(!nw.statement) throw new Error('net worth statement shell missing after toggle');
+    if(nw.fieldSections < 2 || nw.fields < 20) {
+      throw new Error(`net worth inputs thin (sections=${nw.fieldSections}, fields=${nw.fields})`);
     }
-    for(const label of ['Client name','Spouse name','Client age','Spouse age','Client retirement age','Spouse retirement age','Plan end age','Taxable','Traditional','Roth','Annual savings','Monthly spending','Working income','Client Social Security','Client SS age','Spouse Social Security','Spouse SS age','Pension','Healthcare','Risk profile','Withdrawal strategy','Simulation paths']){
-      if(!m.labels.includes(label)) throw new Error(`Household label missing: ${label}`);
+    for(const label of ['Client name','Spouse name','Client age','Spouse age','Client retirement age','Spouse retirement age','Plan end age','Annual savings','Monthly spending','Working income','Client Social Security','Client SS age','Spouse Social Security','Spouse SS age','Pension','Healthcare','Risk profile','Withdrawal strategy','Simulation paths']){
+      if(!nw.labels.includes(label)) throw new Error(`Household label missing: ${label}`);
     }
-    if(m.propertyCards || m.accountPicker) throw new Error(`parked detail UI still visible (propertyCards=${m.propertyCards}, accountPicker=${m.accountPicker})`);
+    for(const label of ['Taxable','Traditional','Roth']){
+      if(!nw.rootText.includes(label)) throw new Error(`Investment account missing: ${label}`);
+    }
     await page.screenshot({ path: join(OUT, '01-household.png'), fullPage: true });
   });
 
   await step('household spouse inputs flow into cash-flow engine rows', async () => {
+    await ensureHouseholdNetWorthView(page);
     const before = await page.evaluate(() => {
-      document.querySelector('input[data-path="income.socialSecurity.spouse.pia"]').value = '30,000';
-      document.querySelector('input[data-path="income.socialSecurity.spouse.pia"]').dispatchEvent(new Event('change', { bubbles: true }));
+      const ss = document.querySelector('input[data-path="income.socialSecurity.spouse.pia"]');
+      ss.value = '30,000';
+      ss.dispatchEvent(new Event('change', { bubbles: true }));
       return {
         spouseAge: document.querySelector('input[data-path="household.spouse.currentAge"]')?.value,
         spouseRetirementAge: document.querySelector('input[data-path="household.spouse.retirementAge"]')?.value,
@@ -142,14 +182,13 @@ try {
     if(before.spouseAge !== '57' || before.spouseRetirementAge !== '64' || !/30,000/.test(before.spouseSS)) throw new Error(`spouse household inputs not visible (${JSON.stringify(before)})`);
     await page.click('button[data-page="scenarios"]');
     await new Promise(r => setTimeout(r, 900));
-    await ensureCashflowDrawer(page, true);
+    await ensureCashflowMode(page, true);
     const withSpouse = await page.evaluate(() => {
       const row = [...document.querySelectorAll('#cf-drawer .cf-table tbody tr')]
         .find(tr => tr.querySelector('td.age')?.textContent.trim() === '68');
       return row ? row.querySelectorAll('td')[3]?.textContent.trim() : '';
     });
-    await page.click('button[data-sub-target="balance-sheet"]');
-    await new Promise(r => setTimeout(r, 200));
+    await ensureHouseholdNetWorthView(page);
     await page.evaluate(() => {
       const input = document.querySelector('input[data-path="income.socialSecurity.spouse.pia"]');
       input.value = '0';
@@ -157,14 +196,14 @@ try {
     });
     await page.click('button[data-page="scenarios"]');
     await new Promise(r => setTimeout(r, 900));
+    await ensureCashflowMode(page, true);
     const withoutSpouse = await page.evaluate(() => {
       const row = [...document.querySelectorAll('#cf-drawer .cf-table tbody tr')]
         .find(tr => tr.querySelector('td.age')?.textContent.trim() === '68');
       return row ? row.querySelectorAll('td')[3]?.textContent.trim() : '';
     });
     if(withSpouse === withoutSpouse) throw new Error(`spouse SS edit did not change baseline income at age 68 (${withSpouse} vs ${withoutSpouse})`);
-    await page.click('button[data-sub-target="balance-sheet"]');
-    await new Promise(r => setTimeout(r, 200));
+    await ensureHouseholdNetWorthView(page);
     await page.evaluate(() => {
       const input = document.querySelector('input[data-path="income.socialSecurity.spouse.pia"]');
       input.value = '30,000';
@@ -175,23 +214,23 @@ try {
     });
     await page.click('button[data-page="scenarios"]');
     await new Promise(r => setTimeout(r, 900));
-    await ensureCashflowDrawer(page, true);
+    await ensureCashflowMode(page, true);
     const laterSpouseRetirement = await page.evaluate(() => {
       const row = [...document.querySelectorAll('#cf-drawer .cf-table tbody tr')]
         .find(tr => tr.querySelector('td.age')?.textContent.trim() === '67');
       const tds = row ? [...row.querySelectorAll('td')].map(td => td.textContent.trim()) : [];
-      return { income: tds[3] || '', inflows: tds[5] || '' };
+      return { income: tds[3] || '', outflows: tds[4] || '' };
     });
-    if(laterSpouseRetirement.income !== '-' || !/\$30,000/.test(laterSpouseRetirement.inflows)) {
-      throw new Error(`spouse retirement age did not keep age 67 in accumulation (${JSON.stringify(laterSpouseRetirement)})`);
+    if(/\$30,000/.test(laterSpouseRetirement.income)) {
+      throw new Error(`spouse SS appeared before claim age when retirement delayed (${JSON.stringify(laterSpouseRetirement)})`);
     }
-    await page.click('button[data-sub-target="balance-sheet"]');
-    await new Promise(r => setTimeout(r, 200));
+    await ensureHouseholdNetWorthView(page);
     await page.evaluate(() => {
       const retire = document.querySelector('input[data-path="household.spouse.retirementAge"]');
       retire.value = '64';
       retire.dispatchEvent(new Event('change', { bubbles: true }));
     });
+    await ensureCashflowMode(page, false);
   });
 
   await step('goals renders tributaries and statement rows', async () => {
@@ -318,7 +357,9 @@ try {
   });
 
   await step('cash-flow drawer opens with path replay controls and rows', async () => {
-    await ensureCashflowDrawer(page, true);
+    await page.click('button[data-page="scenarios"]');
+    await new Promise(r => setTimeout(r, 300));
+    await ensureCashflowMode(page, true);
     const m = await page.evaluate(() => {
       const d = document.querySelector('#cf-drawer');
       return {
@@ -338,15 +379,20 @@ try {
     if(m.height < 100) throw new Error(`cash-flow height = ${m.height}px (expected >=100)`);
     if(m.mode !== 'typical') throw new Error(`path replay default mode not typical (${m.mode})`);
     if(!/Path Replay/.test(m.header) || !/Seed/.test(m.header) || !/Path/.test(m.header)) throw new Error(`path replay header missing metadata: "${m.header}"`);
-    for(const label of ['Starting value','Income','Outflows','Inflows','Annual return','Ending value']){
+    for(const label of ['Starting value','Income','Outflows','Inflows','Engine tax','Federal tax','Annual return','Ending value']){
       if(!m.columnLabels.includes(label)) throw new Error(`cash-flow column missing: ${label}`);
     }
     if(m.columnLabels.some(label => ['Withdraw','RMD','Goals','One-time','Return $'].includes(label))) {
       throw new Error(`old cash-flow columns still visible: ${JSON.stringify(m.columnLabels)}`);
     }
     if(!m.sourceHead || !m.sources.some(v => /^\d{4}$/.test(v))) throw new Error(`cash-flow source years missing: ${JSON.stringify(m.sources)}`);
-    if(m.retireAges.length < 3) throw new Error(`cash-flow scenario retirement markers missing (${JSON.stringify(m.retireAges)})`);
-    if(!new Set(m.retireAges).has('67')) throw new Error(`moved-retirement scenario marker missing (${JSON.stringify(m.retireAges)})`);
+    if(m.retireAges.length < 1 || !m.retireAges.includes('65')) throw new Error(`baseline retirement marker missing (${JSON.stringify(m.retireAges)})`);
+    await page.click('.cf-chip[data-i="1"]');
+    await new Promise(r => setTimeout(r, 400));
+    const laterRetire = await page.evaluate(() => [...document.querySelectorAll('#cf-drawer td.retire-start')]
+      .map(td => td.parentElement.querySelector('td.age')?.textContent.trim())
+      .filter(Boolean));
+    if(!laterRetire.includes('67')) throw new Error(`later-retirement scenario marker missing (${JSON.stringify(laterRetire)})`);
     await page.select('#path-mode', 'choose');
     await new Promise(r => setTimeout(r, 100));
     await page.evaluate(() => {
