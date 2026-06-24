@@ -35,9 +35,9 @@ explain a client decision:
   from `engine.js` as an ES module, so the page must be served over HTTP
   (as `scripts/verify.mjs` and GitHub Pages both do) rather than opened
   via `file://`.
-- `scripts/verify.mjs` — visual verification: runs the engine tests, serves
+- `scripts/verify.mjs` — visual verification: runs the full `npm test` suite, serves
   the repo, drives headless Chromium through `index.html`, and writes
-  screenshots to `verify-out/`.
+  screenshots to `verify-out/`. Requires Chrome (or `npx puppeteer browsers install chrome`).
 - `assets/` — the logo.
 - `PRINCIPLES.md` — doctrine.
 

@@ -2503,6 +2503,14 @@ function renderTaxCell(summary){
   return `<span class="tax-pair">${fmtM(enginePathTax)} engine · ${fmtM(federalTaxLiability)} tax</span>`
        + `<span class="tax-delta">${fmtMDelta(deltaVsEnginePath)}</span>`;
 }
+function federalTaxByAge(summary){
+  const map = new Map();
+  if(!summary?.years) return map;
+  for(const y of summary.years){
+    if(y.age != null) map.set(y.age, y.federalTaxLiability);
+  }
+  return map;
+}
 function renderTaxCompare(){
   syncGridCols();
   let h=`<div class="tax-head">Retirement tax<span class="tax-sub">Typical path · 1040</span></div>`;
@@ -2799,7 +2807,11 @@ renderCashflow = function(){
   }
 
   const gcls = activeIdx.map(i => `cf-g${i % 2}`);
-  const cols = 6;
+  const cols = 8;
+  const showFederalCols = pathReplay.mode === 'typical';
+  const federalMaps = activeScens.map((_, i) =>
+    showFederalCols ? federalTaxByAge(scenarios[activeIdx[i]].res?.typicalPathFederalTax) : null
+  );
   // Explicit colgroup + an explicit table width pin uniform, content-sized
   // columns. With table-layout:fixed (CF mode CSS) the columns take these
   // widths even though the header row uses colspans, so data columns can't
@@ -2824,6 +2836,8 @@ renderCashflow = function(){
     h += `<th class="${gcls[i]}">Income</th>`;
     h += `<th class="${gcls[i]}">Outflows</th>`;
     h += `<th class="${gcls[i]}">Inflows</th>`;
+    h += `<th class="${gcls[i]}">Engine tax</th>`;
+    h += `<th class="${gcls[i]} cf-fed-tax">Federal tax</th>`;
     h += `<th class="${gcls[i]}">Annual return</th>`;
     h += `<th class="${gcls[i]} cf-end">Ending value</th>`;
   });
@@ -2845,14 +2859,18 @@ renderCashflow = function(){
       if(!r){ h += `<td colspan="${cols}" class="dim ${gcls[i]} cf-start cf-end">-</td>`; return; }
       const dash = '<span style="color:var(--ink-faint)">-</span>';
       const inc = (r.socialSecurity || 0) + (r.pension || 0) + (r.otherIncome || 0);
-      const outflows = (r.expenses || 0) + (r.goals || 0) + (r.liabilities || 0) + (r.taxes || 0) + (r.lumpSum || 0);
+      const outflows = (r.expenses || 0) + (r.goals || 0) + (r.liabilities || 0) + (r.lumpSum || 0);
       const inflows = (r.savings || 0) + (r.assetSale || 0);
+      const engineTax = r.taxes || 0;
+      const federalTax = showFederalCols && r.phase !== 'accum' ? federalMaps[i]?.get(age) : null;
       const rr = (r.realReturnUsed ?? r.returnRate);
       const rc = rr >= 0 ? 'cf-pos' : 'cf-neg';
       h += `<td class="${gcls[i]}${retireStartCls} cf-start">${cfMoney(r.startBalance || 0)}</td>`;
       h += `<td class="${gcls[i]}${retireCls}">${inc > 0 ? cfMoney(inc) : dash}</td>`;
       h += `<td class="${gcls[i]}${retireCls}">${outflows > 0 ? cfMoney(outflows) : dash}</td>`;
       h += `<td class="${gcls[i]}${retireCls}">${inflows > 0 ? cfMoney(inflows) : dash}</td>`;
+      h += `<td class="${gcls[i]}${retireCls}">${engineTax > 0 ? cfMoney(engineTax) : dash}</td>`;
+      h += `<td class="${gcls[i]}${retireCls} cf-fed-tax">${federalTax != null && federalTax > 0 ? cfMoney(federalTax) : dash}</td>`;
       h += `<td class="${gcls[i]}${retireCls} ${isFinite(rr)?rc:''}">${isFinite(rr) ? cfRetPct(rr) : dash}</td>`;
       h += `<td class="${gcls[i]}${retireCls} cf-end">${cfMoney(r.balance || 0)}</td>`;
     });
@@ -2863,7 +2881,7 @@ renderCashflow = function(){
   const baselineGlobalIdx = scenarios.findIndex(s => s.base);
   const baselineActivePos = activeIdx.indexOf(baselineGlobalIdx);
   const baselineSim = baselineActivePos >= 0 ? simsByScen[baselineActivePos] : simsByScen[0];
-  const replayMeta = `${pathModeLabel()} · Seed ${pathReplay.seed} · Path ${String(pathIdx).padStart(3,'0')} · ${pathOutcomeText(baselineSim)}`;
+  const replayMeta = `${pathModeLabel()} · Seed ${pathReplay.seed} · Path ${String(pathIdx).padStart(3,'0')} · ${pathOutcomeText(baselineSim)}${showFederalCols ? ' · Federal tax = 1040 typical path' : ''}`;
   drawer.innerHTML =
     `<div class="cf-drawer-head"><span>Path Replay</span><span class="sub">${replayMeta}</span></div>` +
     `<div class="cf-scroll">${h}</div>`;
