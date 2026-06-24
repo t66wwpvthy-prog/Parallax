@@ -216,6 +216,14 @@ html,body{height:100%;background:var(--bg);font-family:'Sora',sans-serif;color:v
 .foot-cell:not(:first-child){background:var(--surface);border-radius:0 0 14px 14px}
 .foot-cell b{color:var(--ink);font-weight:500}
 
+/* Typical-path federal tax compare — same grid as goals/foot; visible on Scenarios. */
+.scn-tax{display:grid;grid-template-columns:148px repeat(3,1fr);column-gap:14px;margin-top:2px}
+.tax-head{display:flex;flex-direction:column;justify-content:center;padding:10px 14px 12px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-mute);font-weight:500;line-height:1.35}
+.tax-head .tax-sub{display:block;margin-top:3px;font-size:10px;letter-spacing:.06em;text-transform:none;color:var(--ink-faint);font-weight:400}
+.tax-cell{display:flex;flex-direction:column;justify-content:center;gap:4px;padding:10px 16px 12px;background:var(--surface);border-radius:0 0 14px 14px;font-family:'Inter',sans-serif;font-size:12.5px;color:var(--ink-mute);line-height:1.35}
+.tax-pair{color:var(--ink);font-weight:500;font-size:13px}
+.tax-delta{font-size:12px;letter-spacing:.02em;color:var(--ink-faint)}
+
 /* Goals section on the Scenarios tab — a read-only mirror of the base-plan
    goals. Same 148px + N-column grid as the levers so rows stay registered.
    Quiet (no inputs, no sliders): it's a reflection of the plan, not a lever. */
@@ -642,7 +650,7 @@ html,body{height:100%;background:var(--bg);font-family:'Sora',sans-serif;color:v
 
   /* Scenario comparison: scroll the band+levers+foot together horizontally so
      the % circles, sliders, and totals stay in the same three columns. */
-  .scn-band,.scn-levers,.scn-goals,.scn-foot{min-width:620px}
+  .scn-band,.scn-levers,.scn-goals,.scn-tax,.scn-foot{min-width:620px}
   .scn-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:4px}
   .scn-band{position:static;box-shadow:none}
   .scn-band::before{display:none}
@@ -1552,6 +1560,7 @@ body .page[data-page="scenarios"] .scn-scroll{
 body .page[data-page="scenarios"] .scn-band,
 body .page[data-page="scenarios"] .scn-levers,
 body .page[data-page="scenarios"] .scn-goals,
+body .page[data-page="scenarios"] .scn-tax,
 body .page[data-page="scenarios"] .scn-foot{column-gap:30px}
 body .page[data-page="scenarios"] .scn-levers,
 body .page[data-page="scenarios"] .scn-goals{row-gap:2px}
@@ -1560,7 +1569,8 @@ body .page[data-page="scenarios"] .scn-band::before{display:none}
 body .page[data-page="scenarios"] .band-cell:not(.label),
 body .page[data-page="scenarios"] .lev-cell,
 body .page[data-page="scenarios"] .sg-cell,
-body .page[data-page="scenarios"] .sg-tcell{background:var(--ng-glass-fill)!important;border-color:var(--ng-glass-border)!important;border-left:1px solid var(--ng-glass-border-soft)!important;border-right:1px solid var(--ng-glass-border-soft)!important;backdrop-filter:blur(22px) saturate(1.34);-webkit-backdrop-filter:blur(22px) saturate(1.34);box-shadow:var(--ng-glass-rim)}
+body .page[data-page="scenarios"] .sg-tcell,
+body .page[data-page="scenarios"] .tax-cell{background:var(--ng-glass-fill)!important;border-color:var(--ng-glass-border)!important;border-left:1px solid var(--ng-glass-border-soft)!important;border-right:1px solid var(--ng-glass-border-soft)!important;backdrop-filter:blur(22px) saturate(1.34);-webkit-backdrop-filter:blur(22px) saturate(1.34);box-shadow:var(--ng-glass-rim)}
 body .page[data-page="scenarios"] .band-cell:not(.label){position:relative;height:202px;min-height:0;padding:10px 14px 12px;gap:6px;border:1px solid var(--ng-glass-border-strong)!important;border-radius:9px 9px 0 0;box-shadow:inset 0 1px 0 rgba(255,255,255,.26),inset 0 0 0 1px rgba(255,255,255,.055),0 24px 44px -40px rgba(0,0,0,.48)}
 body .page[data-page="scenarios"] .band-cell.base{background:var(--ng-glass-fill-base)!important;border-color:var(--ng-base-rim)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.32),inset 0 0 0 1px rgba(239,194,128,.13),0 26px 50px -40px rgba(0,0,0,.50),0 0 24px rgba(210,154,96,.075)}
 body .page[data-page="scenarios"] .band-cell.base::after{content:"";position:absolute;left:13px;right:13px;top:0;height:1px;background:linear-gradient(90deg,transparent,var(--ng-base-glint),transparent);opacity:.70}
@@ -1569,12 +1579,14 @@ body .page[data-page="scenarios"] .band-cell.label,
 body .page[data-page="scenarios"] .lev-name,
 body .page[data-page="scenarios"] .sg-name,
 body .page[data-page="scenarios"] .sg-head:not(.sg-col),
-body .page[data-page="scenarios"] .sg-total{background:var(--ng-glass-fill-label);border-left:1px solid var(--ng-glass-border-soft);border-right:1px solid var(--ng-glass-border-soft);backdrop-filter:blur(22px) saturate(1.30);-webkit-backdrop-filter:blur(22px) saturate(1.30)}
+body .page[data-page="scenarios"] .sg-total,
+body .page[data-page="scenarios"] .tax-head{background:var(--ng-glass-fill-label);border-left:1px solid var(--ng-glass-border-soft);border-right:1px solid var(--ng-glass-border-soft);backdrop-filter:blur(22px) saturate(1.30);-webkit-backdrop-filter:blur(22px) saturate(1.30)}
 body .page[data-page="scenarios"] .band-cell.label,
 body .page[data-page="scenarios"] .lev-name,
 body .page[data-page="scenarios"] .sg-name,
 body .page[data-page="scenarios"] .sg-head:not(.sg-col),
-body .page[data-page="scenarios"] .sg-total{width:270px;justify-self:start}
+body .page[data-page="scenarios"] .sg-total,
+body .page[data-page="scenarios"] .tax-head{width:270px;justify-self:start}
 body .page[data-page="scenarios"] .band-cell.label{height:172px;min-height:0;margin-top:30px;border-radius:9px 9px 0 0;padding:16px 22px;box-shadow:inset 0 1px 0 rgba(255,255,255,.20),inset 0 0 0 1px rgba(255,255,255,.045)}
 body .page[data-page="scenarios"] .band-cell.label span{font-size:13px;letter-spacing:.14em;color:var(--ng-ink)}
 body .page[data-page="scenarios"] .add-scen,
@@ -1589,7 +1601,12 @@ body .page[data-page="scenarios"] .col-name.base-tag{color:rgba(244,232,209,.96)
 body .page[data-page="scenarios"] .col-rename{-webkit-text-fill-color:var(--ng-ink)!important}
 body .page[data-page="scenarios"] .col-dot{width:9px;height:9px;background:var(--ng-success)!important;box-shadow:0 0 6px var(--ng-success-glow)}
 body .page[data-page="scenarios"] .col-menu{position:absolute;top:14px;right:15px;width:auto;height:auto;border:0;background:transparent;color:var(--ng-ink);font-size:17px;line-height:1;letter-spacing:.08em;box-shadow:none;appearance:none;cursor:pointer}
-body .page[data-page="scenarios"] .col-delta{font-size:13px;letter-spacing:.05em;color:var(--ng-ink-muted)}
+body .page[data-page="scenarios"] .tax-head{font-size:13px;letter-spacing:.12em;color:var(--ng-ink-soft);font-weight:400}
+body .page[data-page="scenarios"] .tax-head .tax-sub{color:var(--ng-ink-muted)}
+body .page[data-page="scenarios"] .tax-cell{min-height:52px;border:1px solid var(--ng-glass-border)!important;border-radius:0 0 9px 9px;padding:11px 16px 13px}
+body .page[data-page="scenarios"] .tax-cell.base{background:var(--ng-glass-fill-base)!important;border-color:var(--ng-base-rim)!important}
+body .page[data-page="scenarios"] .tax-pair{color:var(--ng-ink);font-weight:400;font-size:13.5px}
+body .page[data-page="scenarios"] .tax-delta{color:var(--ng-ink-muted);font-size:12px}
 body .page[data-page="scenarios"] .col-delta.up{color:var(--ng-success)}
 body .page[data-page="scenarios"] .lev-name,
 body .page[data-page="scenarios"] .lev-cell{min-height:43px}
@@ -1807,6 +1824,7 @@ body .stmt th{
   body .page[data-page="scenarios"] .scn-band,
   body .page[data-page="scenarios"] .scn-levers,
   body .page[data-page="scenarios"] .scn-goals,
+  body .page[data-page="scenarios"] .scn-tax,
   body .page[data-page="scenarios"] .scn-foot{
     min-width:860px;
     column-gap:18px;

@@ -97,6 +97,7 @@
            every scenario column so the advisor sees what each scenario carries.
            Edited only on the Goals input page; columns reflect, never diverge. -->
       <div class="scn-goals" id="scn-goals"></div>
+      <div class="scn-tax" id="scn-tax"></div>
       <div class="scn-foot" id="scn-foot"></div>
       <!-- Suggest: opens the same least-disruptive solver as the rail's Solve. -->
       <button class="scn-suggest" id="scn-suggest" type="button">✦ Suggest</button>
@@ -167,6 +168,7 @@
 
 <script type="module">
 import { runSimulation, runHistoricalPath, generateReturnPath, resetSeed, annualMortgagePayment, LONGRUN_INFLATION, pathDigest, assessPlan, RISK_PROFILES, defaultPlan as plan } from './engine.js';
+import { attachTypicalPathFederalTax } from './src/planning/tax/attachTypicalPathFederalTax.js';
 import { MACRO_TAGS, HC_BLOCKS, HC_SHAPE_LABELS, HC_ASSET_LABELS, hcBlockGmr, profileThroughWeights, hcSymmetry, hcNextReturn, hcEnvironmentLabel, hcReferenceSet } from './history.js';
 import { fmtM, fmtMoney, fmtMDelta, fmtPts, cfMoney, cfRetPct, cfGain } from './ui/formatters.js';
 import { storyChart, seqChartSvg } from './ui/charts.js';
@@ -2011,14 +2013,25 @@ function runAll(){
       // must not abort the whole Run and blank every other column + the cash
       // flow drawer. Failed scenarios get res=null and are skipped downstream.
       let failed=0;
+      const baseTaxYear = new Date().getFullYear();
       scenarios.forEach(s=>{
         try{
           const p=planForScenario(s.lev);
           const ov=leversToOverrides(s.lev);
           s.res=runSimulation(p, ov, sharedPaths);
+          // Sidecar: real 1040 on median path only — compare vs engine shortcut; no UI yet.
+          try{
+            s.res.typicalPathFederalTax = attachTypicalPathFederalTax(s.res, {
+              baseTaxYear,
+              scenarioId: s.name,
+            });
+          }catch(taxErr){
+            s.res.typicalPathFederalTax = null;
+            console.warn('Federal tax attach failed:', s.name, taxErr);
+          }
         }catch(err){ s.res=null; failed++; console.error('Scenario failed:', s.name, err); }
       });
-      renderBand(); renderSolvePanel(); renderFoot(); renderCashflow(); buildSeqSelect(); runSeq();
+      renderBand(); renderSolvePanel(); renderFoot(); renderTaxCompare(); renderCashflow(); buildSeqSelect(); runSeq();
       $('#status').textContent = failed ? `Complete · ${failed} scenario${failed>1?'s':''} could not run` : 'Complete';
     }catch(e){ $('#status').textContent='Error'; console.error(e); }
     btn.disabled=false; running=false;
@@ -2047,7 +2060,7 @@ function ring(pct){
 // adding/removing a scenario reflows all three rows together.
 function syncGridCols(){
   const tpl=`292px repeat(${scenarios.length},minmax(0,1fr))`;
-  ['#scn-band','#scn-levers','#scn-goals','#scn-foot'].forEach(sel=>{
+  ['#scn-band','#scn-levers','#scn-goals','#scn-tax','#scn-foot'].forEach(sel=>{
     const el=$(sel); if(el) el.style.gridTemplateColumns=tpl;
   });
 }
@@ -2480,6 +2493,23 @@ function renderFoot(){
     h+=`<div class="foot-cell ${s.base?'base':''}">&nbsp;<b>${t}</b></div>`;
   });
   $('#scn-foot').innerHTML=h;
+}
+
+/* Retirement-year federal tax on the median path: engine shortcut vs 1040.
+   Reads typicalPathFederalTax only — no UI-side tax math. */
+function renderTaxCell(summary){
+  if(!summary?.totals) return '—';
+  const { enginePathTax, federalTaxLiability, deltaVsEnginePath } = summary.totals;
+  return `<span class="tax-pair">${fmtM(enginePathTax)} engine · ${fmtM(federalTaxLiability)} tax</span>`
+       + `<span class="tax-delta">${fmtMDelta(deltaVsEnginePath)}</span>`;
+}
+function renderTaxCompare(){
+  syncGridCols();
+  let h=`<div class="tax-head">Retirement tax<span class="tax-sub">Typical path · 1040</span></div>`;
+  scenarios.forEach(s=>{
+    h+=`<div class="tax-cell ${s.base?'base':''}">${renderTaxCell(s.res?.typicalPathFederalTax)}</div>`;
+  });
+  $('#scn-tax').innerHTML=h;
 }
 
 /* ── chart helpers ── */
