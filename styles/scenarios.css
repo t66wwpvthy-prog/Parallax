@@ -137,8 +137,11 @@
 .page[data-page="scenarios"] *::before,
 .page[data-page="scenarios"] *::after { box-sizing: border-box; }
 
-/* Inner stage: centers + pads the content (replaces prototype .page/.body). */
-.page[data-page="scenarios"] .scn-stage { max-width: var(--max-w); margin: 0 auto; padding: 28px 34px 48px; }
+/* Inner stage: centers + pads the content (replaces prototype .page/.body).
+   width:100% so the stage fills to its max-width and centers even when the
+   production .page shell is a flex container (a flex item otherwise shrinks to
+   content width). */
+.page[data-page="scenarios"] .scn-stage { width: 100%; max-width: var(--max-w); margin: 0 auto; padding: 28px 34px 48px; }
 
 /* Accessible focus ring for every interactive control in the page. */
 .page[data-page="scenarios"] :focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; border-radius: var(--r-sm); }
