@@ -1,0 +1,390 @@
+/* =============================================================================
+   scenarios.css — THE single authoritative Scenarios style layer (production)
+   -----------------------------------------------------------------------------
+   Lifted from the canonical handoff (css/tokens.css + css/scenarios.css) and
+   adapted for production:
+
+   • Tokens live on .page[data-page="scenarios"] (NOT :root) so nothing leaks.
+   • EVERY selector is scoped beneath .page[data-page="scenarios"].
+   • No global html/body resets, no !important, no specificity escalation.
+   • The outer prototype ".shell" glass + the prototype top bar / logo are
+     intentionally NOT reproduced here — production already owns the global
+     header, logo and orb. This also removes the "glass box inside a glass box"
+     nesting the prototype had: each view now floats one primary glass surface
+     directly on the page background.
+
+   Risk-band tone colors that depend on a scenario are passed inline by the view
+   layer (style="--tone:…") and consumed here via var(--tone).
+   ============================================================================= */
+
+/* ---- Tokens + page base (scenarios route only) ---------------------------- */
+.page[data-page="scenarios"] {
+  /* Type */
+  --font-sans: 'Hanken Grotesk', system-ui, -apple-system, sans-serif;
+  --font-serif: 'Spectral', Georgia, serif;
+
+  /* Page background (fixed, behind the floating glass) */
+  --bg-deep:   #0A111E;
+  --bg-top:    #111E31;
+  --bg-bottom: #15232F;
+  --page-bg:
+    radial-gradient(56% 52% at 85% -10%, rgba(238,192,116,0.42), rgba(238,192,116,0) 58%),
+    radial-gradient(58% 60% at 2% 106%, rgba(84,144,172,0.32), rgba(0,0,0,0) 62%),
+    radial-gradient(50% 48% at 50% 48%, rgba(126,148,196,0.17), rgba(0,0,0,0) 72%),
+    linear-gradient(160deg, var(--bg-top) 0%, var(--bg-deep) 50%, var(--bg-bottom) 100%);
+
+  /* Risk-band tones */
+  --tone-green: #7FB08C;
+  --tone-amber: #C9A36A;
+  --tone-rust:  #BD7E61;
+  --tone-green-glow: rgba(127,176,140,0.55);
+  --tone-amber-glow: rgba(201,163,106,0.50);
+  --tone-rust-glow:  rgba(189,126,97,0.50);
+
+  /* Gold accent */
+  --gold:        #E6B86A;
+  --gold-bright: #F4D9A6;
+  --gold-soft:   #C9A47A;
+  --gold-eyebrow: #E6B86A;
+
+  /* Text ramp */
+  --text-hi:   #F0EADE;
+  --text-1:    #ECE5D8;
+  --text-2:    #C9CDD4;
+  --text-2b:   #C2C7CE;
+  --text-3:    #AEB4BC;
+  --text-4:    #9AA0A8;
+  --text-5:    #838A93;
+  --text-6:    #727983;
+  --text-mute: #5E6772;
+  --text-dim:  #7A828C;
+  --text-nav:  #828995;
+
+  /* Status text */
+  --pass:      #8FB99A;
+  --marginal:  #D6A86A;
+  --down:      #D49A7E;
+  --down-deep: #C98A6E;
+
+  /* Hairlines + fills */
+  --line-06: rgba(255,255,255,0.06);
+  --line-07: rgba(255,255,255,0.07);
+  --line-08: rgba(255,255,255,0.08);
+  --line-09: rgba(255,255,255,0.09);
+  --line-10: rgba(255,255,255,0.10);
+  --line-11: rgba(255,255,255,0.11);
+  --fill-02: rgba(255,255,255,0.02);
+  --fill-03: rgba(255,255,255,0.03);
+  --fill-04: rgba(255,255,255,0.04);
+  --fill-05: rgba(255,255,255,0.05);
+  --fill-08: rgba(255,255,255,0.08);
+  --ring-track: rgba(255,255,255,0.07);
+
+  /* Layered glass gradients */
+  --glass-panel:
+    linear-gradient(150deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0) 32%),
+    linear-gradient(158deg, rgba(74,94,124,0.19) 0%, rgba(24,34,52,0.09) 100%);
+  --glass-card:
+    linear-gradient(150deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0) 36%),
+    linear-gradient(158deg, rgba(74,94,124,0.15), rgba(24,34,52,0.08));
+  --glass-card-active:
+    linear-gradient(150deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0) 36%),
+    linear-gradient(158deg, rgba(106,98,78,0.22), rgba(44,42,38,0.12));
+  --glass-summary:
+    radial-gradient(120% 130% at 0% 0%, rgba(126,148,196,0.10), rgba(0,0,0,0) 60%),
+    linear-gradient(150deg, rgba(255,255,255,0.075), rgba(255,255,255,0.015));
+  --glass-table:
+    radial-gradient(130% 90% at 50% -18%, rgba(126,148,196,0.12), rgba(0,0,0,0) 56%),
+    linear-gradient(160deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.02) 40%, rgba(255,255,255,0) 100%),
+    linear-gradient(158deg, rgba(74,94,124,0.085), rgba(24,34,52,0.03));
+
+  /* Elevation shadows */
+  --shadow-panel: 0 44px 96px rgba(0,0,0,0.50), inset 0 1px 0 rgba(255,255,255,0.15);
+  --shadow-card-active: 0 24px 50px rgba(0,0,0,0.40), inset 0 1px 0 rgba(255,255,255,0.15);
+  --shadow-rail:  0 22px 50px rgba(0,0,0,0.36), inset 0 1px 0 rgba(255,255,255,0.12);
+  --shadow-table: 0 44px 100px rgba(0,0,0,0.40), inset 0 1px 0 rgba(255,255,255,0.16);
+  --shadow-summary: 0 22px 50px rgba(0,0,0,0.30), inset 0 1px 0 rgba(255,255,255,0.15);
+
+  /* Backdrop blur strengths */
+  --blur-panel: blur(38px) saturate(155%);
+  --blur-rail:  blur(26px) saturate(150%);
+  --blur-table: blur(46px) saturate(165%);
+
+  /* Radii */
+  --r-sm:  7px;
+  --r-md:  8px;
+  --r-lg:  11px;
+  --r-card: 14px;
+  --r-xl:  16px;
+  --r-panel: 18px;
+  --r-pill: 999px;
+
+  /* Layout */
+  --max-w: 1580px;
+  --rail-w: 362px;
+
+  /* Page surface */
+  font-family: var(--font-sans);
+  font-feature-settings: 'tnum' 1;            /* tabular figures for ledgers */
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  color: var(--text-1);
+  background: var(--page-bg);
+  background-attachment: fixed;
+}
+
+.page[data-page="scenarios"] *,
+.page[data-page="scenarios"] *::before,
+.page[data-page="scenarios"] *::after { box-sizing: border-box; }
+
+/* Inner stage: centers + pads the content (replaces prototype .page/.body). */
+.page[data-page="scenarios"] .scn-stage { max-width: var(--max-w); margin: 0 auto; padding: 28px 34px 48px; }
+
+/* Accessible focus ring for every interactive control in the page. */
+.page[data-page="scenarios"] :focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; border-radius: var(--r-sm); }
+
+/* ---- Toolbar -------------------------------------------------------------- */
+.page[data-page="scenarios"] .toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 26px; gap: 24px; }
+.page[data-page="scenarios"] .toolbar__left { display: flex; align-items: center; gap: 26px; }
+.page[data-page="scenarios"] .page-title { font-family: var(--font-serif); font-weight: 300; font-size: 28px; color: var(--text-1); margin: 0; }
+.page[data-page="scenarios"] .page-sub { font-size: 13px; color: var(--text-5); margin: 5px 0 0; letter-spacing: 0.01em; }
+.page[data-page="scenarios"] .toolbar__actions { display: flex; align-items: center; gap: 11px; }
+
+/* Segmented Compare / Focus control */
+.page[data-page="scenarios"] .seg { display: inline-flex; border-radius: var(--r-lg); background: var(--fill-03); border: 1px solid var(--line-08); padding: 4px; }
+.page[data-page="scenarios"] .seg__btn { padding: 7px 17px; border-radius: var(--r-md); font-size: 12px; cursor: pointer; background: transparent; color: var(--text-4); border: 0; font-family: inherit; transition: background .15s, color .15s; }
+.page[data-page="scenarios"] .seg__btn.is-active { background: var(--fill-08); color: var(--text-1); }
+
+/* Pill buttons (Add / Solve) + Suggest */
+.page[data-page="scenarios"] .btn { display: inline-flex; align-items: center; gap: 7px; padding: 10px 16px; border-radius: var(--r-lg); background: var(--fill-04); border: 1px solid var(--line-08); font-family: inherit; font-size: 13px; color: var(--text-1); cursor: pointer; }
+.page[data-page="scenarios"] .btn__plus { font-size: 15px; color: var(--text-4); }
+.page[data-page="scenarios"] .btn-suggest { display: inline-flex; align-items: center; gap: 8px; padding: 10px 17px; border-radius: var(--r-lg); background: rgba(230,184,106,0.08); border: 1px solid rgba(230,184,106,0.45); font-family: inherit; font-size: 13px; color: var(--gold-bright); cursor: pointer; }
+
+/* Cash Flow toggle chip */
+.page[data-page="scenarios"] .cash-chip { display: inline-flex; align-items: center; gap: 10px; padding: 9px 15px; border-radius: var(--r-lg); cursor: pointer; transition: background .15s, border-color .15s; background: var(--fill-03); border: 1px solid var(--line-07); font-family: inherit; }
+.page[data-page="scenarios"] .cash-chip__label { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-4); }
+.page[data-page="scenarios"] .switch { position: relative; width: 32px; height: 17px; border-radius: var(--r-pill); background: var(--line-10); transition: background .15s; }
+.page[data-page="scenarios"] .switch__knob { position: absolute; top: 2px; left: 2px; width: 13px; height: 13px; border-radius: 50%; background: var(--text-2); box-shadow: 0 1px 3px rgba(0,0,0,0.3); transition: left .15s, background .15s; }
+.page[data-page="scenarios"] .cash-chip.is-on { background: rgba(230,184,106,0.10); border-color: rgba(230,184,106,0.45); }
+.page[data-page="scenarios"] .cash-chip.is-on .cash-chip__label { color: var(--gold-bright); }
+.page[data-page="scenarios"] .cash-chip.is-on .switch { background: rgba(230,184,106,0.5); }
+.page[data-page="scenarios"] .cash-chip.is-on .switch__knob { left: 17px; background: var(--gold-bright); }
+
+/* ---- Reusable bits -------------------------------------------------------- */
+.page[data-page="scenarios"] .glass-panel { position: relative; border-radius: var(--r-panel); background: var(--glass-panel); border: 1px solid var(--line-09); box-shadow: var(--shadow-panel); backdrop-filter: var(--blur-panel); -webkit-backdrop-filter: var(--blur-panel); }
+.page[data-page="scenarios"] .eyebrow { font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--gold-eyebrow); }
+.page[data-page="scenarios"] .divider { height: 1px; background: var(--line-06); }
+
+/* Progress ring (size + tone set inline; --tone is the scenario color) */
+.page[data-page="scenarios"] .ring { position: relative; flex: none; }
+.page[data-page="scenarios"] .ring svg { display: block; transform: rotate(-90deg); }
+.page[data-page="scenarios"] .ring__track { fill: none; stroke: var(--ring-track); }
+.page[data-page="scenarios"] .ring__arc { fill: none; stroke: var(--tone); stroke-linecap: round; }
+.page[data-page="scenarios"] .ring__label { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+.page[data-page="scenarios"] .numeral { font-family: var(--font-serif); font-weight: 300; color: var(--text-hi); line-height: 1; }
+.page[data-page="scenarios"] .numeral .pct { color: var(--text-3); }
+
+/* =============================================================================
+   COMPARE VIEW
+   ============================================================================= */
+.page[data-page="scenarios"] .compare { border-radius: var(--r-panel); padding: 10px 20px 18px; background: var(--glass-panel); border: 1px solid var(--line-09); box-shadow: var(--shadow-panel); backdrop-filter: blur(36px) saturate(155%); -webkit-backdrop-filter: blur(36px) saturate(155%); }
+.page[data-page="scenarios"] .compare__grid { display: grid; grid-template-columns: 212px 1fr 1fr 1fr; align-items: center; }
+.page[data-page="scenarios"] .compare__rule { grid-column: 1 / -1; height: 1px; background: var(--line-07); }
+
+.page[data-page="scenarios"] .lever { padding: 13px 14px; }
+.page[data-page="scenarios"] .lever__name { font-size: 11px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--text-4); }
+.page[data-page="scenarios"] .lever--head { padding: 22px 14px; align-self: end; }
+.page[data-page="scenarios"] .lever--head .lever__name { color: var(--gold-eyebrow); letter-spacing: 0.18em; }
+.page[data-page="scenarios"] .lever__hint { font-size: 11px; color: var(--text-6); margin-top: 6px; }
+
+.page[data-page="scenarios"] .scol { padding: 20px 18px; }
+.page[data-page="scenarios"] .scol__head { display: flex; align-items: center; gap: 9px; }
+.page[data-page="scenarios"] .scol__head--menu { justify-content: space-between; }
+.page[data-page="scenarios"] .scol__dot { width: 7px; height: 7px; border-radius: 50%; background: var(--tone); box-shadow: 0 0 8px var(--tone-glow); }
+.page[data-page="scenarios"] .scol__name { font-family: var(--font-serif); font-weight: 300; font-size: 18px; white-space: nowrap; color: var(--text-1); }
+.page[data-page="scenarios"] .scol__menu { font-size: 16px; color: var(--text-nav); line-height: 0.5; background: transparent; border: 0; cursor: pointer; padding: 0; }
+.page[data-page="scenarios"] .scol__metric { display: flex; align-items: center; gap: 13px; margin-top: 14px; }
+.page[data-page="scenarios"] .scol__prob { font-family: var(--font-serif); font-weight: 300; font-size: 30px; color: var(--text-hi); line-height: 1; }
+.page[data-page="scenarios"] .scol__prob .pct { font-size: 14px; color: var(--text-3); }
+.page[data-page="scenarios"] .scol__median { font-size: 11.5px; color: var(--text-4); margin-top: 5px; }
+.page[data-page="scenarios"] .scol__median b { color: var(--text-1); font-weight: 400; }
+.page[data-page="scenarios"] .scol__tag { margin-top: 14px; }
+.page[data-page="scenarios"] .tag-ref { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold-eyebrow); border: 1px solid rgba(230,184,106,0.32); border-radius: var(--r-sm); padding: 3px 9px; }
+.page[data-page="scenarios"] .tag-delta { display: inline-flex; align-items: center; gap: 7px; padding: 4px 11px; border-radius: var(--r-pill); background: rgba(189,126,97,0.12); font-size: 11.5px; color: var(--down); }
+
+.page[data-page="scenarios"] .cell { padding: 8px 18px; }
+.page[data-page="scenarios"] .cell__val { padding: 7px 0; }
+.page[data-page="scenarios"] .cell__num { font-family: var(--font-serif); font-size: 17.5px; color: var(--text-1); }
+.page[data-page="scenarios"] .cell--same .cell__val { padding: 7px 13px; }
+.page[data-page="scenarios"] .cell--same .cell__num { color: var(--text-dim); }
+.page[data-page="scenarios"] .cell--delta__box { display: inline-flex; flex-direction: column; gap: 2px; padding: 7px 13px; border-radius: 10px; background: rgba(201,163,106,0.08); }
+.page[data-page="scenarios"] .cell--delta .cell__num { color: var(--text-1); }
+.page[data-page="scenarios"] .cell__delta { font-size: 11px; color: var(--gold-soft); }
+.page[data-page="scenarios"] .cell--goal { padding: 14px 18px; }
+.page[data-page="scenarios"] .goal-pill { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-2); }
+.page[data-page="scenarios"] .goal-pill__dot { width: 5px; height: 5px; border-radius: 50%; background: var(--tone, var(--tone-green)); }
+.page[data-page="scenarios"] .goal-note { font-size: 12.5px; color: var(--text-6); }
+.page[data-page="scenarios"] .goal-added { font-size: 11px; color: var(--gold-soft); }
+
+/* =============================================================================
+   FOCUS VIEW
+   ============================================================================= */
+.page[data-page="scenarios"] .focus { display: flex; gap: 22px; align-items: start; }
+.page[data-page="scenarios"] .focus__panel { flex: 1; padding: 28px 30px 26px; }
+.page[data-page="scenarios"] .focus__head { display: flex; align-items: center; justify-content: space-between; }
+.page[data-page="scenarios"] .focus__title { display: flex; align-items: center; gap: 11px; }
+.page[data-page="scenarios"] .focus__dot { width: 8px; height: 8px; border-radius: 50%; background: var(--tone); }
+.page[data-page="scenarios"] .focus__name { font-family: var(--font-serif); font-weight: 300; font-size: 24px; white-space: nowrap; color: var(--text-1); }
+.page[data-page="scenarios"] .badge-editing { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold-eyebrow); border: 1px solid rgba(230,184,106,0.32); border-radius: var(--r-sm); padding: 3px 9px; margin-left: 4px; }
+.page[data-page="scenarios"] .focus__menu { font-size: 18px; color: var(--text-nav); line-height: 0.5; background: transparent; border: 0; cursor: pointer; padding: 0; }
+
+.page[data-page="scenarios"] .hero { display: flex; align-items: center; gap: 38px; margin-top: 24px; }
+.page[data-page="scenarios"] .hero__ringwrap { display: flex; flex-direction: column; align-items: center; flex: none; }
+.page[data-page="scenarios"] .hero__ringlabel { font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-5); margin-bottom: 12px; }
+.page[data-page="scenarios"] .hero__numeral { font-family: var(--font-serif); font-weight: 300; font-size: 54px; color: var(--text-hi); line-height: 1; }
+.page[data-page="scenarios"] .hero__numeral .pct { font-size: 25px; color: var(--text-3); }
+.page[data-page="scenarios"] .hero__right { flex: 1; }
+.page[data-page="scenarios"] .kicker { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-5); }
+.page[data-page="scenarios"] .hero__median { font-family: var(--font-serif); font-weight: 300; font-size: 34px; color: var(--text-1); margin-top: 4px; }
+
+.page[data-page="scenarios"] .range { margin-top: 16px; }
+.page[data-page="scenarios"] .range__head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+.page[data-page="scenarios"] .range__label { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-5); }
+.page[data-page="scenarios"] .range__bounds { font-size: 11.5px; color: var(--text-4); }
+.page[data-page="scenarios"] .range__bar { position: relative; height: 8px; border-radius: var(--r-pill); background: linear-gradient(90deg, var(--fill-04), rgba(255,255,255,0.12)); }
+.page[data-page="scenarios"] .range__marker { position: absolute; top: 50%; transform: translate(-50%, -50%); width: 3px; height: 17px; border-radius: 2px; background: var(--tone); }
+.page[data-page="scenarios"] .viability { display: flex; align-items: center; gap: 9px; }
+.page[data-page="scenarios"] .viability__dot { width: 6px; height: 6px; border-radius: 50%; background: var(--tone); }
+.page[data-page="scenarios"] .viability__text { font-size: 13px; color: var(--text-3); }
+
+.page[data-page="scenarios"] .assum-grid { display: grid; grid-template-columns: 1fr 1fr; column-gap: 44px; row-gap: 22px; }
+.page[data-page="scenarios"] .assum__label { font-size: 11px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--text-4); }
+.page[data-page="scenarios"] .assum__stepper { display: flex; align-items: center; gap: 13px; margin-top: 9px; }
+.page[data-page="scenarios"] .stepper-btn { width: 26px; height: 26px; display: inline-flex; align-items: center; justify-content: center; border-radius: var(--r-md); background: var(--fill-05); border: 1px solid var(--line-10); color: var(--text-2); font-size: 16px; flex: none; cursor: pointer; font-family: inherit; }
+.page[data-page="scenarios"] .assum__value { font-family: var(--font-serif); font-size: 20px; color: var(--text-1); min-width: 92px; text-align: center; }
+.page[data-page="scenarios"] .assum__delta { font-size: 11.5px; color: var(--gold-soft); }
+
+.page[data-page="scenarios"] .goals__head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+.page[data-page="scenarios"] .goals__title { display: flex; align-items: baseline; gap: 12px; }
+.page[data-page="scenarios"] .goals__count { font-size: 12px; color: var(--text-5); }
+.page[data-page="scenarios"] .goals__manage { font-size: 12px; color: var(--text-4); background: transparent; border: 0; cursor: pointer; font-family: inherit; }
+.page[data-page="scenarios"] .goal-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; }
+.page[data-page="scenarios"] .goal-row.is-off { opacity: 0.42; }
+.page[data-page="scenarios"] .goal-row__left { display: flex; align-items: center; gap: 14px; }
+.page[data-page="scenarios"] .goal-toggle { position: relative; width: 34px; height: 19px; border-radius: var(--r-pill); flex: none; background: var(--line-08); border: 0; cursor: pointer; padding: 0; }
+.page[data-page="scenarios"] .goal-toggle__knob { position: absolute; top: 2.5px; left: 2.5px; width: 14px; height: 14px; border-radius: 50%; background: var(--text-6); }
+.page[data-page="scenarios"] .goal-row.is-on .goal-toggle { background: rgba(127,176,140,0.32); }
+.page[data-page="scenarios"] .goal-row.is-on .goal-toggle__knob { left: 17px; background: #9FCBA9; }
+.page[data-page="scenarios"] .goal-row__body { display: flex; align-items: center; gap: 8px; }
+.page[data-page="scenarios"] .goal-added-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--gold); flex: none; }
+.page[data-page="scenarios"] .goal-row__name { font-size: 14.5px; color: var(--text-1); }
+.page[data-page="scenarios"] .goal-row.is-off .goal-row__name { text-decoration: line-through; }
+.page[data-page="scenarios"] .goal-row__meta { font-size: 11.5px; color: var(--text-6); margin-top: 1px; }
+.page[data-page="scenarios"] .goal-row__amt { text-align: right; }
+.page[data-page="scenarios"] .goal-row__amt b { font-size: 14.5px; color: var(--text-1); font-weight: 400; }
+.page[data-page="scenarios"] .goal-row__sub { font-size: 11.5px; color: var(--text-6); margin-top: 1px; }
+
+/* right rail */
+.page[data-page="scenarios"] .focus__rail { width: var(--rail-w); flex: none; display: flex; flex-direction: column; gap: 13px; }
+.page[data-page="scenarios"] .rail__head { display: flex; align-items: center; justify-content: space-between; padding: 0 2px 2px; }
+.page[data-page="scenarios"] .rail__head-label { font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-5); }
+.page[data-page="scenarios"] .rail__head-hint { font-size: 12px; color: var(--text-4); }
+.page[data-page="scenarios"] .rail-card { border-radius: var(--r-card); padding: 16px; cursor: pointer; text-align: left; width: 100%; font-family: inherit; background: var(--glass-card); border: 1px solid var(--line-08); box-shadow: var(--shadow-rail); backdrop-filter: var(--blur-rail); -webkit-backdrop-filter: var(--blur-rail); }
+.page[data-page="scenarios"] .rail-card.is-active { background: var(--glass-card-active); border-color: rgba(230,184,106,0.48); box-shadow: var(--shadow-card-active); }
+.page[data-page="scenarios"] .rail-card__head { display: flex; align-items: center; justify-content: space-between; }
+.page[data-page="scenarios"] .rail-card__title { display: flex; align-items: center; gap: 9px; }
+.page[data-page="scenarios"] .rail-card__dot { width: 7px; height: 7px; border-radius: 50%; background: var(--tone); }
+.page[data-page="scenarios"] .rail-card__name { font-size: 14.5px; white-space: nowrap; color: var(--text-1); }
+.page[data-page="scenarios"] .rail-card__tag { font-size: 9.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-5); }
+.page[data-page="scenarios"] .rail-card__tag--focus { color: var(--gold-eyebrow); }
+.page[data-page="scenarios"] .rail-card__tag--delta { font-size: 11px; color: var(--down); letter-spacing: 0; text-transform: none; }
+.page[data-page="scenarios"] .rail-card__metric { display: flex; align-items: center; gap: 13px; margin-top: 12px; }
+.page[data-page="scenarios"] .rail-card__prob { font-family: var(--font-serif); font-weight: 300; font-size: 22px; color: var(--text-hi); line-height: 1; }
+.page[data-page="scenarios"] .rail-card__prob .pct { font-size: 12px; color: var(--text-3); }
+.page[data-page="scenarios"] .rail-card__median-l { font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-6); }
+.page[data-page="scenarios"] .rail-card__median { font-family: var(--font-serif); font-weight: 300; font-size: 18px; color: var(--text-1); margin-top: 1px; }
+.page[data-page="scenarios"] .rail-add { border-radius: var(--r-card); padding: 15px; border: 1px dashed var(--line-11); display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--text-4); font-size: 12.5px; background: transparent; cursor: pointer; width: 100%; font-family: inherit; }
+
+.page[data-page="scenarios"] .stress-rail { margin-top: 4px; border-radius: var(--r-card); padding: 18px 18px 14px; background: var(--glass-card); border: 1px solid var(--line-08); box-shadow: var(--shadow-rail); backdrop-filter: var(--blur-rail); -webkit-backdrop-filter: var(--blur-rail); }
+.page[data-page="scenarios"] .stress-rail__head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px; }
+.page[data-page="scenarios"] .stress-rail__verdict { font-size: 11px; letter-spacing: 0.04em; }
+.page[data-page="scenarios"] .stress-rail__row { display: flex; align-items: center; gap: 12px; padding: 7px 0; }
+.page[data-page="scenarios"] .stress-rail__icon { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex: none; }
+.page[data-page="scenarios"] .stress-rail__icon--pass { background: rgba(143,185,154,0.14); border: 1px solid rgba(143,185,154,0.42); }
+.page[data-page="scenarios"] .stress-rail__icon--marginal { background: rgba(214,168,106,0.13); border: 1px solid rgba(214,168,106,0.42); color: var(--marginal); font-size: 13px; }
+.page[data-page="scenarios"] .stress-rail__body { flex: 1; display: flex; align-items: baseline; gap: 8px; }
+.page[data-page="scenarios"] .stress-rail__year { font-family: var(--font-serif); font-weight: 300; font-size: 16px; color: var(--text-1); }
+.page[data-page="scenarios"] .stress-rail__name { font-size: 11.5px; color: var(--text-5); }
+.page[data-page="scenarios"] .stress-rail__result { font-size: 10px; letter-spacing: 0.05em; text-transform: uppercase; }
+
+/* =============================================================================
+   CASH FLOW VIEW
+   ============================================================================= */
+.page[data-page="scenarios"] .cf__head { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-bottom: 16px; }
+.page[data-page="scenarios"] .cf__head-left { display: flex; align-items: center; gap: 14px; }
+.page[data-page="scenarios"] .cf__pills { display: inline-flex; gap: 7px; }
+.page[data-page="scenarios"] .cf-pill { display: inline-flex; align-items: center; gap: 7px; padding: 6px 13px; border-radius: var(--r-pill); font-size: 12.5px; cursor: pointer; background: transparent; border: 1px solid var(--line-07); color: var(--text-4); font-family: inherit; }
+.page[data-page="scenarios"] .cf-pill.is-active { background: var(--fill-08); border-color: rgba(255,255,255,0.16); color: var(--text-1); }
+.page[data-page="scenarios"] .cf-pill__dot { width: 6px; height: 6px; border-radius: 50%; background: var(--tone); }
+.page[data-page="scenarios"] .cf__caption { font-size: 11.5px; letter-spacing: 0.05em; color: var(--text-6); }
+
+/* Path-replay controls slot — production's existing typical/historical path
+   controls mount here. Subordinate styling: no heavy glass, just a hairline. */
+.page[data-page="scenarios"] .cf__path-controls { display: inline-flex; align-items: center; gap: 8px; padding-left: 14px; margin-left: 4px; border-left: 1px solid var(--line-08); }
+
+/* summary strip */
+.page[data-page="scenarios"] .cf-summary { display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap; border-radius: var(--r-xl); padding: 18px 26px; margin-bottom: 16px; background: var(--glass-summary); border: 1px solid var(--line-10); box-shadow: var(--shadow-summary); backdrop-filter: blur(36px) saturate(160%); -webkit-backdrop-filter: blur(36px) saturate(160%); }
+.page[data-page="scenarios"] .cf-summary__id { display: flex; align-items: center; gap: 16px; }
+.page[data-page="scenarios"] .cf-summary__name-row { display: flex; align-items: center; gap: 9px; }
+.page[data-page="scenarios"] .cf-summary__dot { width: 8px; height: 8px; border-radius: 50%; background: var(--tone); box-shadow: 0 0 8px var(--tone-glow); }
+.page[data-page="scenarios"] .cf-summary__name { font-family: var(--font-serif); font-weight: 300; font-size: 21px; color: var(--text-1); }
+.page[data-page="scenarios"] .cf-summary__sub { font-size: 11.5px; color: var(--text-5); margin-top: 3px; }
+.page[data-page="scenarios"] .cf-summary__stats { display: flex; align-items: stretch; }
+.page[data-page="scenarios"] .cf-stat { padding: 0 26px; }
+.page[data-page="scenarios"] .cf-stat + .cf-stat { border-left: 1px solid var(--line-08); }
+.page[data-page="scenarios"] .cf-stat:last-child { padding-right: 0; }
+.page[data-page="scenarios"] .cf-stat__label { font-size: 9.5px; letter-spacing: 0.12em; text-transform: uppercase; color: #8A929C; }
+.page[data-page="scenarios"] .cf-stat__value { font-family: var(--font-serif); font-weight: 300; font-size: 22px; color: var(--text-1); margin-top: 5px; }
+.page[data-page="scenarios"] .cf-stat__peak { display: flex; align-items: baseline; gap: 7px; margin-top: 5px; }
+.page[data-page="scenarios"] .cf-stat__peak-age { font-size: 11.5px; color: var(--text-5); }
+
+/* the ledger table */
+.page[data-page="scenarios"] .cf-table { border-radius: var(--r-panel); overflow: hidden; background: var(--glass-table); border: 1px solid var(--line-11); box-shadow: var(--shadow-table); backdrop-filter: var(--blur-table); -webkit-backdrop-filter: var(--blur-table); }
+/* shared 10-column grid for header + every data row */
+.page[data-page="scenarios"] .cf-grid { display: grid; grid-template-columns: 66px 46px repeat(5, 1fr) 1.2fr 70px 1.4fr; column-gap: 8px; }
+.page[data-page="scenarios"] .cf-table__head { padding: 13px 26px; border-bottom: 1px solid var(--line-09); }
+.page[data-page="scenarios"] .cf-th { font-size: 9.5px; letter-spacing: 0.08em; text-transform: uppercase; color: #8A929C; }
+.page[data-page="scenarios"] .cf-th--r { text-align: right; }
+
+.page[data-page="scenarios"] .cf-phase { display: flex; align-items: center; justify-content: space-between; padding: 7px 26px 6px; background: rgba(230,184,106,0.04); border-top: 1px solid var(--fill-05); }
+.page[data-page="scenarios"] .cf-phase__left { display: flex; align-items: baseline; gap: 11px; }
+.page[data-page="scenarios"] .cf-phase__name { font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--gold-eyebrow); }
+.page[data-page="scenarios"] .cf-phase__meta { font-size: 12px; color: var(--text-5); }
+.page[data-page="scenarios"] .cf-phase__stats { display: flex; align-items: center; gap: 18px; font-size: 11.5px; color: var(--text-5); }
+.page[data-page="scenarios"] .cf-phase__stats b { font-weight: 400; }
+.page[data-page="scenarios"] .cf-phase__stats .draw { color: var(--text-1); }
+.page[data-page="scenarios"] .cf-phase__stats .inc { color: var(--text-2); }
+.page[data-page="scenarios"] .cf-band { padding: 2px 0 4px; }
+.page[data-page="scenarios"] .cf-band.is-shaded { background: rgba(255,255,255,0.016); }
+
+.page[data-page="scenarios"] .cf-row { align-items: start; padding: 5px 26px; }
+.page[data-page="scenarios"] .cf-row__year-wrap { display: flex; flex-direction: column; gap: 1px; }
+.page[data-page="scenarios"] .cf-row__year { display: flex; align-items: center; gap: 6px; font-size: 13.5px; }
+.page[data-page="scenarios"] .cf-row__year-dot { width: 5px; height: 5px; border-radius: 50%; flex: none; }
+.page[data-page="scenarios"] .cf-row__lifetag { font-size: 9.5px; letter-spacing: 0.03em; white-space: nowrap; padding-left: 11px; }
+.page[data-page="scenarios"] .cf-cell { font-size: 13.5px; text-align: right; }
+.page[data-page="scenarios"] .cf-cell--age { color: var(--text-4); text-align: left; }
+.page[data-page="scenarios"] .cf-cell--essential { color: var(--text-2b); }
+.page[data-page="scenarios"] .cf-cell--tax { color: var(--text-2b); }
+.page[data-page="scenarios"] .cf-cell--draw { color: var(--text-1); }
+.page[data-page="scenarios"] .cf-cell--wd { font-size: 13px; }
+.page[data-page="scenarios"] .cf-cell--ending { font-size: 14px; font-weight: 500; }
+.page[data-page="scenarios"] .cf-row__goals-wrap { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
+.page[data-page="scenarios"] .cf-row__goaltag { font-size: 9.5px; letter-spacing: 0.02em; white-space: nowrap; color: #CDA877; }
+
+/* ---- 1920-wide safety (no global shrink; only the wide grids breathe) ----- */
+@media (max-width: 1640px) {
+  .page[data-page="scenarios"] .scn-stage { padding-left: 24px; padding-right: 24px; }
+  .page[data-page="scenarios"] .cf-grid { column-gap: 6px; }
+  .page[data-page="scenarios"] .cf-row, .page[data-page="scenarios"] .cf-table__head, .page[data-page="scenarios"] .cf-phase { padding-left: 18px; padding-right: 18px; }
+}
