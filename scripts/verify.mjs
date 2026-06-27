@@ -137,7 +137,15 @@ try {
   page.on('console', m => { if(m.type() === 'error') errs.push('CON: ' + m.text()); });
 
   await step('load index.html', async () => {
+    // Deterministic seed: scenarios persist to localStorage and boot via
+    // `loadScenarios() || demoScenarios()`, and reseedScenarios() re-derives each
+    // scenario from its delta to baseSnapshot — so a stale browser store would
+    // silently replace the demo seed (Baseline 65 / Scenario B 67 / Aggressive
+    // risk 5) and make the per-scenario assertions flaky. Clear it and reload so
+    // every run starts from demoScenarios().
     await page.goto(`http://127.0.0.1:${PORT}/index.html`, { waitUntil: 'networkidle2', timeout: 20000 });
+    await page.evaluate(() => { try { localStorage.clear(); } catch (e) {} });
+    await page.reload({ waitUntil: 'networkidle2', timeout: 20000 });
     await new Promise(r => setTimeout(r, 1500));
   });
 
@@ -459,14 +467,33 @@ try {
     });
     if(retireAge !== '65') throw new Error(`baseline retirement marker not at age 65 (got "${retireAge}")`);
 
-    // The scenario pills switch which plan's cash flow is shown.
-    const beforeName = m.summaryName;
-    await page.evaluate(() => [...document.querySelectorAll('#scn-view .cf-pill')].find(p => !p.classList.contains('is-active'))?.click());
-    await new Promise(r => setTimeout(r, 400));
-    const afterName = await page.evaluate(() => document.querySelector('#scn-view .cf-summary__name')?.textContent.trim() || '');
-    if(!beforeName || afterName === beforeName) throw new Error(`cash-flow scenario pill did not switch the active plan (${beforeName} -> ${afterName})`);
-    await page.evaluate(() => document.querySelectorAll('#scn-view .cf-pill')[0]?.click());
-    await new Promise(r => setTimeout(r, 300));
+    // The scenario pills switch which plan's cash flow is shown, and each plan's
+    // retirement marker reflects ITS OWN retire age. demoScenarios seeds Baseline
+    // at 65 (asserted just above) and Scenario B at 67 (s[1].lev.retireAge = 67),
+    // so selecting the Scenario B pill — the NEW mechanism; there is no longer a
+    // .cf-chip path — must move the "Retirement begins" marker from 65 to 67.
+    const markerAge = () => page.evaluate(() => {
+      const row = [...document.querySelectorAll('#scn-view .cf-row')]
+        .find(r => /Retirement begins/.test(r.querySelector('.cf-row__lifetag')?.textContent || ''));
+      return row ? (row.querySelector('.cf-cell--age')?.textContent.trim() || '') : '';
+    });
+    const pickedB = await page.evaluate(() => {
+      const pill = [...document.querySelectorAll('#scn-view .cf-pill')].find(p => /Scenario B/.test(p.textContent));
+      if(!pill) return false;
+      pill.click();
+      return true;
+    });
+    if(!pickedB) throw new Error(`Scenario B pill not found among ${JSON.stringify(m.pills)}`);
+    await new Promise(r => setTimeout(r, 450));
+    await waitCashRows(page, 10);
+    const bName = await page.evaluate(() => document.querySelector('#scn-view .cf-summary__name')?.textContent.trim() || '');
+    if(bName !== 'Scenario B') throw new Error(`cash-flow pill did not switch to Scenario B (got "${bName}")`);
+    const bMarker = await markerAge();
+    if(bMarker !== '67') throw new Error(`Scenario B retirement marker not at age 67 (got "${bMarker}")`);
+    // Restore Baseline for the path-replay checks below.
+    await page.evaluate(() => [...document.querySelectorAll('#scn-view .cf-pill')].find(p => /Baseline/.test(p.textContent))?.click());
+    await new Promise(r => setTimeout(r, 350));
+    await waitCashRows(page, 10);
 
     // Path replay: choose mode reveals the advanced controls and re-renders the
     // table; favorable mode is available and also re-renders. (#path-mode is the
