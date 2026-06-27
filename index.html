@@ -10,9 +10,11 @@
 <!-- Scenarios redesign type: Spectral (serif numerals/headlines) + Hanken Grotesk (UI). -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@300;400;500;600;700&family=Spectral:wght@200;300;400;500&display=swap"/>
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3E%3Crect%20width='64'%20height='64'%20rx='12'%20fill='%231e3d2b'/%3E%3Cpath%20d='M16%2038c8-20%2024-20%2032%200'%20fill='none'%20stroke='%23d9a07e'%20stroke-width='6'%20stroke-linecap='round'/%3E%3Ccircle%20cx='32'%20cy='32'%20r='7'%20fill='%23e5d9c4'/%3E%3C/svg%3E"/>
-<link rel="stylesheet" href="styles/main.css"/>
-<link rel="stylesheet" href="styles/household.css"/>
-<link rel="stylesheet" href="styles/scenarios.css"/>
+<!-- ?v= cache-buster: bump on any CSS change so browsers fetch the new file
+     instead of serving a stale cached copy (GitHub Pages caches CSS hard). -->
+<link rel="stylesheet" href="styles/main.css?v=2"/>
+<link rel="stylesheet" href="styles/household.css?v=2"/>
+<link rel="stylesheet" href="styles/scenarios.css?v=2"/>
 </head>
 <body>
 <div class="wrap">
@@ -3240,16 +3242,29 @@ $('#path-seed').onchange=e=>{
       );
     }).join('');
 
-    const labels = (baseline ? baseline.levers : scns[0].levers).map((l) => l.label);
-    const leverRows = labels.map((label, li) => {
-      const cells = scns.map((s, si) => {
+    // Compare is editable: every lever cell carries its own column's scenario id,
+    // so the −/+ steppers mutate THAT scenario (data-scn-id), reusing the same
+    // stepFocusLever mutation + manual Run flow as Focus. The row label is taken
+    // from the baseline's lever set (stable order across scenarios).
+    const baseLevers = (baseline ? baseline.levers : scns[0].levers);
+    const leverRows = baseLevers.map((bl, li) => {
+      const cells = scns.map((s) => {
         const lev = s.levers[li] || {};
         const value = esc(lev.value);
-        if (si === 0) return '<div class="cell"><div class="cell__val"><span class="cell__num">' + value + '</span></div></div>';
-        if (lev.delta) return '<div class="cell cell--delta"><div class="cell--delta__box"><span class="cell__num">' + value + '</span><span class="cell__delta">' + esc(lev.delta) + '</span></div></div>';
-        return '<div class="cell cell--same"><div class="cell__val"><span class="cell__num">' + value + '</span></div></div>';
+        if (!lev.key) return '<div class="cell"><div class="cell__val"><span class="cell__num">' + value + '</span></div></div>';
+        const btn = (dir, sym, verb) =>
+          '<button class="stepper-btn" type="button" data-scn-id="' + esc(s.id) + '" data-lever-key="' + esc(lev.key) + '" data-dir="' + dir + '" aria-label="' + verb + ' ' + esc(lev.label) + ' for ' + esc(s.name) + '">' + sym + '</button>';
+        const delta = (!s.isBaseline && lev.delta) ? '<span class="cell__delta">' + esc(lev.delta) + '</span>' : '';
+        return (
+          '<div class="cell cell--edit">' +
+            '<div class="cmp-step">' + btn('-1', '−', 'Decrease') +
+              '<span class="cmp-val">' + value + '</span>' +
+              btn('1', '+', 'Increase') +
+            '</div>' + delta +
+          '</div>'
+        );
       }).join('');
-      return '<div class="lever"><span class="lever__name">' + esc(label) + '</span></div>' + cells;
+      return '<div class="lever"><span class="lever__name">' + esc(bl.label) + '</span></div>' + cells;
     }).join('<div class="compare__rule" style="margin:0;"></div>');
 
     const goalCells = scns.map((s) => {
@@ -3404,7 +3419,7 @@ $('#path-seed').onchange=e=>{
     const summaryStrip = (
       '<div class="cf-summary" style="--tone:' + scn.tone + ';--tone-glow:' + toneGlow(scn.tone) + ';">' +
         '<div class="cf-summary__id">' +
-          ring(52, 21, 4.5, scn.tone, scn.prob, '<span class="numeral" style="font-size:15px;">' + scn.probStr + '</span>') +
+          ring(52, 21, 4.5, scn.tone, scn.prob, '<span class="numeral" style="font-size:19px;">' + scn.probStr + '</span>') +
           '<div><div class="cf-summary__name-row"><span class="cf-summary__dot"></span><span class="cf-summary__name">' + esc(scn.name) + '</span></div>' +
             '<div class="cf-summary__sub">Probability of success</div></div>' +
         '</div>' +
@@ -3559,7 +3574,14 @@ $('#path-seed').onchange=e=>{
       el.addEventListener('click', () => { state.focusedId = el.dataset.cashPick; PROD.setSelectedId(state.focusedId); syncScenariosView(); });
     });
     view.querySelectorAll('[data-lever-key]').forEach((el) => {
-      el.addEventListener('click', () => { stepFocusLever(parseInt(state.focusedId, 10), el.dataset.leverKey, +el.dataset.dir); syncScenariosView(); });
+      el.addEventListener('click', () => {
+        // Compare steppers carry the target column's scenario id; Focus steppers
+        // omit it and act on the focused scenario.
+        const ci = (el.dataset.scnId != null && el.dataset.scnId !== '')
+          ? parseInt(el.dataset.scnId, 10) : parseInt(state.focusedId, 10);
+        stepFocusLever(ci, el.dataset.leverKey, +el.dataset.dir);
+        syncScenariosView();
+      });
     });
   }
 

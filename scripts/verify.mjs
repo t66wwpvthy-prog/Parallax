@@ -384,6 +384,20 @@ try {
     if(!m.solveBtn || !m.addBtn || !m.suggestBtn) throw new Error('Solve / Add / Suggest toolbar actions missing from Scenarios');
     if(!m.segActive) throw new Error('Compare segment did not mark itself active');
     if(m.names.some(n => /sell\s*home/i.test(n))) throw new Error(`stale sale scenario visible: ${JSON.stringify(m.names)}`);
+
+    // Compare is editable: every lever cell carries per-column −/+ steppers
+    // (data-scn-id) that mutate that scenario and request a manual Run. Step up
+    // then back down so the baseline is left as found (the Cash-Flow step checks
+    // the baseline retirement marker is at 65).
+    const cmpSteppers = await page.evaluate(() => document.querySelectorAll('#scn-view .compare .cmp-step .stepper-btn[data-scn-id]').length);
+    if(cmpSteppers < 6) throw new Error(`Compare editable steppers missing (found ${cmpSteppers})`);
+    await page.evaluate(() => document.querySelector('#scn-view .compare .cmp-step .stepper-btn[data-dir="1"]')?.click());
+    await new Promise(r => setTimeout(r, 250));
+    const cmpStatus = await page.evaluate(() => document.querySelector('#status')?.textContent || '');
+    if(!/Run to update/i.test(cmpStatus)) throw new Error(`Compare stepper did not request a manual Run: "${cmpStatus}"`);
+    await page.evaluate(() => document.querySelector('#scn-view .compare .cmp-step .stepper-btn[data-dir="-1"]')?.click());
+    await new Promise(r => setTimeout(r, 250));
+
     await page.screenshot({ path: join(OUT, '03-scenarios.png'), fullPage: true });
   });
 
