@@ -24,7 +24,7 @@ html,body{height:100%;background:var(--bg);font-family:'Sora',sans-serif;color:v
    Every floating panel is a frosted surface: translucent fill (--surface)
    + backdrop blur so the ground bleeds through + a faint top inner-rim
    highlight and a soft drop shadow for lift. One rule covers all cards. */
-.solve-panel,.acct-picker,.metric,.cf-drawer,.seq-pick,.seq-chart,.seq-print,.prop{
+.solve-panel,.acct-picker,.metric,.seq-pick,.seq-chart,.seq-print,.prop{
   backdrop-filter:blur(16px) saturate(1.15);
   -webkit-backdrop-filter:blur(16px) saturate(1.15);
   background-image:linear-gradient(155deg,rgba(214,230,248,.08),rgba(214,230,248,0) 52%);
@@ -50,10 +50,6 @@ html,body{height:100%;background:var(--bg);font-family:'Sora',sans-serif;color:v
 
 /* SCENARIOS */
 .page[data-page="scenarios"]{overflow-y:auto;overflow-x:hidden}
-/* Cap the scenarios block so columns don't stretch across a wide monitor.
-   ~210px per scenario + the 148px label gutter; centered. */
-.scn-scroll,.page[data-page="scenarios"] .cf-toggle,.page[data-page="scenarios"] .cf-drawer,.page[data-page="scenarios"] .cf-wrapper{max-width:1180px;width:100%;margin-left:auto;margin-right:auto}
-.page[data-page="scenarios"] .eyebrow{position:sticky;top:0;z-index:25;background:var(--bg);padding:20px 0 16px}
 .scn-band{position:sticky;top:53px;z-index:20;display:grid;grid-template-columns:148px repeat(3,1fr);column-gap:14px}
 /* Opaque backdrop behind the WHOLE sticky band (not just a 10px lip) so scrolling
    lever rows can't bleed through the translucent glass column-cards. */
@@ -602,28 +598,6 @@ html,body{height:100%;background:var(--bg);font-family:'Sora',sans-serif;color:v
 .path-control input{width:64px;text-align:center}
 .path-control.advanced{display:none}
 .path-control.advanced.on{display:flex}
-.cf-drawer{border-radius:14px;background:var(--surface);overflow:hidden;margin-bottom:18px;flex-shrink:0}
-.cf-drawer-head{padding:12px 18px;border-bottom:1px solid var(--rule);font-family:'Sora',sans-serif;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);display:flex;justify-content:space-between;align-items:center}
-.cf-drawer-head .sub{color:var(--ink-faint);font-family:'Sora',sans-serif;font-weight:400;letter-spacing:.04em;text-transform:none;font-size:11px}
-.cf-scroll{max-height:460px;overflow:auto}
-.cf-empty{padding:26px 18px;color:var(--ink-mute);font-family:'Sora',sans-serif;font-size:13px;text-align:center}
-.cf-table{width:100%;border-collapse:collapse;font-family:'Inter',sans-serif;font-size:12px;font-variant-numeric:tabular-nums}
-.cf-table thead{position:sticky;top:0;background:var(--bg-deep);z-index:5}
-.cf-table th,.cf-table td{padding:7px 10px;text-align:right;border-bottom:1px solid var(--rule-faint);white-space:nowrap}
-.cf-table th{font-weight:500;color:var(--ink-mute);font-size:10px;letter-spacing:.08em;text-transform:uppercase;border-bottom:1px solid var(--rule)}
-.cf-table th.scen{text-align:center;font-weight:600;letter-spacing:.12em}
-.cf-table th.age, .cf-table td.age{position:sticky;left:0;background:var(--surface);text-align:left;color:var(--ink);font-weight:600;z-index:1}
-.cf-table thead th.age{background:var(--bg-deep);z-index:6}
-.cf-table th.source,.cf-table td.source{text-align:left;color:var(--ink-faint);font-size:11px}
-.cf-table th.cf-start,.cf-table td.cf-start{border-left:1px solid var(--rule)}
-.cf-table th.cf-end,.cf-table td.cf-end{border-right:1px solid var(--rule)}
-.cf-table td.dim{color:var(--ink-faint)}
-.cf-table .cf-pos{color:var(--status-positive)} .cf-table .cf-neg{color:var(--negative)}
-/* Alternating per-scenario column tint in the cash-flow table — two faint
-   washes that cycle regardless of how many scenarios there are. */
-.cf-g0{background:rgba(255,255,255,.03)} .cf-g1{background:rgba(159,184,205,.05)}
-.cf-table td.retire{border-top:1px dashed var(--accent);}
-.cf-table td.retire-start::after{content:'  retire';color:var(--accent);font-size:10px;font-weight:500;letter-spacing:.1em}
 
 /* ──────────────────────────────────────────────────────────────────────────
    PHONE / TOUCH (iOS-first). The desktop layout is a fixed 100vh, no-scroll,
@@ -646,7 +620,6 @@ html,body{height:100%;background:var(--bg);font-family:'Sora',sans-serif;color:v
 
   .page{padding:0 14px 28px}
   .page[data-page="scenarios"]{overflow-x:visible}
-  .page[data-page="scenarios"] .eyebrow{position:static;padding:16px 0 12px}
 
   /* Scenario comparison: scroll the band+levers+foot together horizontally so
      the % circles, sliders, and totals stay in the same three columns. */
@@ -934,7 +907,7 @@ body::after{
   background-color:transparent!important;
   color:var(--ink-bright);
 }
-.solve-panel,.acct-picker,.metric,.cf-drawer,.seq-pick,.seq-chart,.seq-print,.prop{
+.solve-panel,.acct-picker,.metric,.seq-pick,.seq-chart,.seq-print,.prop{
   background:
     linear-gradient(135deg,rgba(255,240,210,.14),rgba(255,240,210,.045) 42%,rgba(75,42,19,.06)),
     rgba(33,24,15,.34);
@@ -984,12 +957,7 @@ body::after{
 .band-cell:not(.label),.lev-cell,.foot-cell,.goal-cell{
   background:rgba(214,230,248,.065);
 }
-.scn-band::before,.page[data-page="scenarios"] .eyebrow{
-  background:transparent;
-}
 .circle-val .big{font-family:'Inter','Sora',sans-serif;color:var(--value-highlight)}
-.cf-table thead,.cf-table thead th.age{background:#0d1722}
-.cf-table th.age,.cf-table td.age{background:rgba(30,22,14,.88)}
 .np-snapshot-page .snap{
   max-width:640px;
   border-radius:22px;
@@ -1221,18 +1189,6 @@ body::after{inset:var(--frame-inset);border-radius:var(--frame-radius);border-co
 }
 .np-snapshot-page .m-hero{font-size:30px}
 
-.scn-scroll,
-.page[data-page="scenarios"] .cf-toggle,
-.page[data-page="scenarios"] .cf-drawer,
-.page[data-page="scenarios"] .cf-wrapper{
-  max-width:min(1090px,calc(100vw - (var(--page-x) * 2)));
-}
-/* Liquid glass: the sticky band/eyebrow carry no paint of their own — the
-   gauge cards' own backdrop-blur does the masking as rows scroll beneath. */
-.scn-band::before,
-.page[data-page="scenarios"] .eyebrow{
-  background:transparent!important;
-}
 .band-cell:not(.label),
 .lev-cell,
 .foot-cell:not(:first-child),
@@ -1272,18 +1228,6 @@ body::after{inset:var(--frame-inset);border-radius:var(--frame-radius);border-co
 }
 .cf-drawer{border-radius:var(--panel-radius)}
 .cf-drawer-head{padding:11px 16px;font-size:10.5px}
-.cf-table{font-size:12px}
-.cf-table thead,
-.cf-table thead th.age,
-.cf-table th.age,
-.cf-table td.age{
-  background:rgba(18,12,7,.34)!important;
-  backdrop-filter:blur(22px) saturate(1.1);
-  -webkit-backdrop-filter:blur(22px) saturate(1.1);
-}
-.cf-table th,.cf-table td{padding:6.5px 9px}
-.cf-table th{font-size:10px}
-.cf-g0,.cf-g1{background:rgba(255,244,218,.018)!important}
 
 .seq-bar{margin:16px 0}
 .seq-pick{padding:7px 13px;border-radius:12px}
@@ -1313,7 +1257,6 @@ body::after{inset:var(--frame-inset);border-radius:var(--frame-radius);border-co
   .brand-logo{width:146px;height:60px}
   .np-page.np-bal{max-width:1760px}
   .np-page{max-width:1500px}
-  .scn-scroll,.page[data-page="scenarios"] .cf-toggle,.page[data-page="scenarios"] .cf-drawer,.page[data-page="scenarios"] .cf-wrapper{max-width:1220px}
   .seq-chart{min-height:570px}
   .seq-chart .chart-body{min-height:455px}
 }
@@ -1346,121 +1289,6 @@ body::after{inset:var(--frame-inset);border-radius:var(--frame-radius);border-co
 .sn-copy.sn-copied{color:#16242f;background:var(--accent);border-color:var(--accent)}
 .sn-mode .sn-clear,.sn-mode .sn-copy{display:block}
 
-/* ── CF MODE (Cash Flow triggered view on Scenarios page) ── */
-/* Prominent trigger button in the eyebrow */
-.cf-mode-btn{
-  margin-left:auto;padding:7px 16px;
-  background:var(--accent);color:#16242f;
-  border:none;border-radius:5px;cursor:pointer;
-  font-family:'Sora',sans-serif;font-size:11px;font-weight:700;
-  letter-spacing:.14em;text-transform:uppercase;
-  transition:background .15s,transform .1s;
-  flex-shrink:0;
-}
-.cf-mode-btn:hover{background:var(--accent-bright);transform:scale(1.04)}
-.cf-mode-btn.cfc-active{
-  background:transparent;color:var(--ink-mute);
-  border:1px solid var(--rule);padding:6px 15px;
-}
-.cf-mode-btn.cfc-active:hover{color:var(--ink);border-color:var(--rule-bright)}
-
-/* Hide the scenario column layout in CF mode */
-.page[data-page="scenarios"].cf-mode .scn-scroll{display:none}
-
-/* cf-wrapper: hidden by default; flex-row when CF mode is active */
-.cf-wrapper{display:none;gap:16px;padding-top:10px;align-items:flex-start}
-/* flex!important beats the max-width centering block's block display */
-.page[data-page="scenarios"].cf-mode #cf-wrapper{display:flex!important}
-
-/* Sidebar: sticky, fixed width, vertical scenario chip list. The top margin
-   drops the first chip down so its top edge lines up with the cash-flow table
-   panel (which sits below the PATH controls in the main column). */
-.cf-sidebar{
-  width:180px;flex-shrink:0;
-  display:flex;flex-direction:column;gap:8px;
-  margin-top:48px;
-  position:sticky;top:72px;
-  max-height:calc(100vh - 96px);overflow-y:auto;
-}
-
-/* Main area: table + path controls */
-.cf-main{flex:1;min-width:0;display:flex;flex-direction:column}
-.cf-main .cf-toggle{margin:0 0 10px;justify-content:flex-start}
-/* CF mode is full-bleed and left-aligned — fill the screen, sidebar tight to
-   the left edge, table extends to the right. The ID selector beats the
-   max-width centering rules that apply to .cf-wrapper elsewhere. */
-body .page[data-page="scenarios"].cf-mode{padding-left:24px;padding-right:24px}
-/* Push the layout below the absolutely-positioned eyebrow + path controls so
-   the "SCENARIOS" title, the "← Scenarios" toggle, and the PATH selects don't
-   collide at the top. */
-body .page[data-page="scenarios"].cf-mode #cf-wrapper{max-width:none;margin:54px 0 0;width:100%}
-body .page[data-page="scenarios"].cf-mode #cf-wrapper .cf-drawer,
-body .page[data-page="scenarios"].cf-mode #cf-wrapper .cf-toggle{max-width:none;margin:0 0 10px}
-/* In CF mode the table fills the viewport instead of a fixed 460px box,
-   so there's no large dead zone below it. Sidebar stays sticky alongside. */
-.page[data-page="scenarios"].cf-mode .cf-drawer{margin-bottom:0}
-.page[data-page="scenarios"].cf-mode .cf-scroll{max-height:calc(100vh - 230px)}
-/* Larger, friendlier table text in CF mode — more readable, still clean.
-   Body 14px, headers 11.5px, roomier row padding. */
-.page[data-page="scenarios"].cf-mode .cf-table{font-size:14px}
-.page[data-page="scenarios"].cf-mode .cf-table th{font-size:11.5px}
-.page[data-page="scenarios"].cf-mode .cf-table td.source{font-size:12.5px}
-.page[data-page="scenarios"].cf-mode .cf-table th,
-.page[data-page="scenarios"].cf-mode .cf-table td{padding:9px 12px}
-/* Uniform, content-sized columns instead of stretching to fill (which made
-   each column gigantic). Fixed layout honors the <colgroup> widths; the table
-   sizes to their sum (no 100% stretch). Headers may wrap to two lines; data
-   cells stay on one line. */
-.page[data-page="scenarios"].cf-mode .cf-table{width:auto;table-layout:fixed}
-.page[data-page="scenarios"].cf-mode .cf-table th{white-space:normal;line-height:1.2;vertical-align:bottom}
-.page[data-page="scenarios"].cf-mode .cf-table td{white-space:nowrap}
-
-/* Scenario chips — collapsed probability gauges (the expanded band's ring,
-   shrunk). Vertical card: name · ring with centered % · spend · action. */
-.cf-chip{
-  display:flex;flex-direction:column;align-items:center;gap:5px;
-  padding:12px 10px 11px;border-radius:11px;
-  border:1.5px solid var(--rule);
-  background:var(--surface);cursor:pointer;
-  transition:border-color .15s,box-shadow .15s,background .15s;
-}
-.cf-chip:hover{border-color:var(--cc,var(--accent))}
-/* Selected scenario: a thin accent border (bronze-copper for the base plan),
-   a soft drop shadow — no chunky double ring. */
-.cfc-primary{border-color:var(--cc)!important;box-shadow:0 6px 18px -12px rgba(0,0,0,.6)}
-.cfc-compare{border-color:var(--cc)!important;border-style:dashed}
-.cfc-name{
-  display:flex;align-items:center;gap:6px;max-width:100%;
-  font-family:'Sora',sans-serif;font-size:12px;font-weight:600;color:var(--ink);
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-}
-.cfc-dot{width:7px;height:7px;border-radius:50%;flex:0 0 auto}
-.cfc-ring{position:relative;width:78px;height:78px;margin:1px auto 0}
-.cfc-ring-val{
-  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
-  font-family:'Inter',sans-serif;font-size:20px;font-weight:400;letter-spacing:-.01em;
-}
-.cfc-spend{font-family:'Sora',sans-serif;font-size:10.5px;color:var(--ink-mute)}
-.cfc-add,.cfc-rm{
-  margin-top:3px;background:none;border:1px solid var(--rule);
-  color:var(--ink-mute);font-family:'Sora',sans-serif;font-size:10px;
-  letter-spacing:.08em;text-transform:uppercase;border-radius:4px;padding:4px 11px;
-  cursor:pointer;transition:color .1s,border-color .1s;
-}
-.cfc-add:hover{color:var(--accent);border-color:var(--accent)}
-.cfc-rm:hover{color:#e05050;border-color:#e05050}
-
-/* 2-scenario compare separator: a distinct vertical rule between the two column groups */
-.cf-sep-head,.cf-sep-cell{
-  width:16px;padding:0 !important;border:none !important;
-  background:transparent !important;position:relative;
-}
-.cf-sep-head::after,.cf-sep-cell::after{
-  content:'';position:absolute;top:0;bottom:0;left:50%;
-  width:2px;background:var(--accent);opacity:.3;
-  transform:translateX(-50%);
-}
-.cf-sep-head{vertical-align:middle}
 
 /* Native glass design system. These tokens are the portable layer for applying
    the same champagne text, blue-silver logo, glass panels, and success rings
@@ -1548,123 +1376,6 @@ body .htab.on{color:var(--ng-ink);border-bottom-color:var(--ng-accent);box-shado
 body .hdr-right{gap:30px}
 body .status{font-size:12px;letter-spacing:.20em;color:var(--ng-ink-muted)}
 body .run-btn{min-width:123px;min-height:40px;border-radius:10px;background:linear-gradient(180deg,#f8e5c1,#efc982);color:#15130f;box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 13px 30px -20px rgba(233,190,120,.70)}
-body .page[data-page="scenarios"]{position:relative;padding:16px 56px 26px;overflow-y:auto;background:transparent}
-body .page[data-page="scenarios"] .eyebrow{position:absolute!important;top:24px;left:84px;z-index:4;padding:0!important;background:transparent!important;font-family:'Sora',sans-serif;font-size:18px;letter-spacing:.14em;color:var(--ng-ink)}
-body .page[data-page="scenarios"] .eyebrow::after{width:172px;flex:0 0 172px;background:linear-gradient(90deg,rgba(229,218,197,.30),transparent)}
-body .page[data-page="scenarios"] .scn-scroll{
-  position:relative;width:calc(100vw - 112px);max-width:none;min-height:min(780px,calc(100vh - 161px));margin:0 auto;padding:30px 74px 42px;
-  border:0;border-radius:0;background:transparent;
-  backdrop-filter:none;-webkit-backdrop-filter:none;
-  box-shadow:none;
-}
-body .page[data-page="scenarios"] .scn-band,
-body .page[data-page="scenarios"] .scn-levers,
-body .page[data-page="scenarios"] .scn-goals,
-body .page[data-page="scenarios"] .scn-tax,
-body .page[data-page="scenarios"] .scn-foot{column-gap:30px}
-body .page[data-page="scenarios"] .scn-levers,
-body .page[data-page="scenarios"] .scn-goals{row-gap:2px}
-body .page[data-page="scenarios"] .scn-band{position:relative;top:auto!important;margin-top:0}
-body .page[data-page="scenarios"] .scn-band::before{display:none}
-body .page[data-page="scenarios"] .band-cell:not(.label),
-body .page[data-page="scenarios"] .lev-cell,
-body .page[data-page="scenarios"] .sg-cell,
-body .page[data-page="scenarios"] .sg-tcell,
-body .page[data-page="scenarios"] .tax-cell{background:var(--ng-glass-fill)!important;border-color:var(--ng-glass-border)!important;border-left:1px solid var(--ng-glass-border-soft)!important;border-right:1px solid var(--ng-glass-border-soft)!important;backdrop-filter:blur(22px) saturate(1.34);-webkit-backdrop-filter:blur(22px) saturate(1.34);box-shadow:var(--ng-glass-rim)}
-body .page[data-page="scenarios"] .band-cell:not(.label){position:relative;height:202px;min-height:0;padding:10px 14px 12px;gap:6px;border:1px solid var(--ng-glass-border-strong)!important;border-radius:9px 9px 0 0;box-shadow:inset 0 1px 0 rgba(255,255,255,.26),inset 0 0 0 1px rgba(255,255,255,.055),0 24px 44px -40px rgba(0,0,0,.48)}
-body .page[data-page="scenarios"] .band-cell.base{background:var(--ng-glass-fill-base)!important;border-color:var(--ng-base-rim)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.32),inset 0 0 0 1px rgba(239,194,128,.13),0 26px 50px -40px rgba(0,0,0,.50),0 0 24px rgba(210,154,96,.075)}
-body .page[data-page="scenarios"] .band-cell.base::after{content:"";position:absolute;left:13px;right:13px;top:0;height:1px;background:linear-gradient(90deg,transparent,var(--ng-base-glint),transparent);opacity:.70}
-body .page[data-page="scenarios"] .band-cell:not(.label)::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:linear-gradient(132deg,rgba(255,255,255,.10),rgba(255,255,255,.024) 29%,transparent 57%)}
-body .page[data-page="scenarios"] .band-cell.label,
-body .page[data-page="scenarios"] .lev-name,
-body .page[data-page="scenarios"] .sg-name,
-body .page[data-page="scenarios"] .sg-head:not(.sg-col),
-body .page[data-page="scenarios"] .sg-total,
-body .page[data-page="scenarios"] .tax-head{background:var(--ng-glass-fill-label);border-left:1px solid var(--ng-glass-border-soft);border-right:1px solid var(--ng-glass-border-soft);backdrop-filter:blur(22px) saturate(1.30);-webkit-backdrop-filter:blur(22px) saturate(1.30)}
-body .page[data-page="scenarios"] .band-cell.label,
-body .page[data-page="scenarios"] .lev-name,
-body .page[data-page="scenarios"] .sg-name,
-body .page[data-page="scenarios"] .sg-head:not(.sg-col),
-body .page[data-page="scenarios"] .sg-total,
-body .page[data-page="scenarios"] .tax-head{width:270px;justify-self:start}
-body .page[data-page="scenarios"] .band-cell.label{height:172px;min-height:0;margin-top:30px;border-radius:9px 9px 0 0;padding:16px 22px;box-shadow:inset 0 1px 0 rgba(255,255,255,.20),inset 0 0 0 1px rgba(255,255,255,.045)}
-body .page[data-page="scenarios"] .band-cell.label span{font-size:13px;letter-spacing:.14em;color:var(--ng-ink)}
-body .page[data-page="scenarios"] .add-scen,
-body .page[data-page="scenarios"] .solve-btn,
-body .page[data-page="scenarios"] .reset-scen{display:flex;align-items:center;gap:10px;width:calc(100% - 4px);height:31px;margin:7px 0 0;padding:0 13px;border:1px solid rgba(226,239,246,.18);border-radius:6px;background:rgba(226,239,246,.065);color:var(--ng-ink-soft);font-size:12px;letter-spacing:.12em;text-align:left}
-body .page[data-page="scenarios"] .circle-wrap{width:112px;height:112px;filter:drop-shadow(0 7px 18px rgba(0,0,0,.34))}
-body .page[data-page="scenarios"] .circle-val .big{font-size:27px;font-weight:300!important;text-shadow:none}
-body .page[data-page="scenarios"] .circle-val .lbl{font-size:11px;font-weight:400!important;letter-spacing:.08em;color:var(--ng-ink-soft)}
-body .page[data-page="scenarios"] .col-name,
-body .page[data-page="scenarios"] .col-rename{font-size:15.5px;font-weight:400;letter-spacing:.18em;color:var(--ng-ink);text-shadow:0 0 14px rgba(238,225,201,.12)}
-body .page[data-page="scenarios"] .col-name.base-tag{color:rgba(244,232,209,.96)}
-body .page[data-page="scenarios"] .col-rename{-webkit-text-fill-color:var(--ng-ink)!important}
-body .page[data-page="scenarios"] .col-dot{width:9px;height:9px;background:var(--ng-success)!important;box-shadow:0 0 6px var(--ng-success-glow)}
-body .page[data-page="scenarios"] .col-menu{position:absolute;top:14px;right:15px;width:auto;height:auto;border:0;background:transparent;color:var(--ng-ink);font-size:17px;line-height:1;letter-spacing:.08em;box-shadow:none;appearance:none;cursor:pointer}
-body .page[data-page="scenarios"] .tax-head{font-size:13px;letter-spacing:.12em;color:var(--ng-ink-soft);font-weight:400}
-body .page[data-page="scenarios"] .tax-head .tax-sub{color:var(--ng-ink-muted)}
-body .page[data-page="scenarios"] .tax-cell{min-height:52px;border:1px solid var(--ng-glass-border)!important;border-radius:0 0 9px 9px;padding:11px 16px 13px}
-body .page[data-page="scenarios"] .tax-cell.base{background:var(--ng-glass-fill-base)!important;border-color:var(--ng-base-rim)!important}
-body .page[data-page="scenarios"] .tax-pair{color:var(--ng-ink);font-weight:400;font-size:13.5px}
-body .page[data-page="scenarios"] .tax-delta{color:var(--ng-ink-muted);font-size:12px}
-body .page[data-page="scenarios"] .col-delta.up{color:var(--ng-success)}
-body .page[data-page="scenarios"] .lev-name,
-body .page[data-page="scenarios"] .lev-cell{min-height:43px}
-body .page[data-page="scenarios"] .lev-name{padding:0 22px;font-size:14px;font-weight:400;letter-spacing:.11em;color:var(--ng-ink-soft)}
-body .page[data-page="scenarios"] .lev-name.row-alt,
-body .page[data-page="scenarios"] .lev-cell.row-alt,
-body .page[data-page="scenarios"] .sg-name.row-alt,
-body .page[data-page="scenarios"] .sg-cell.row-alt{background:linear-gradient(145deg,var(--ng-row-wash),rgba(76,114,140,.026) 48%,rgba(8,23,35,.105))!important}
-body .page[data-page="scenarios"] .lev-cell.base,
-body .page[data-page="scenarios"] .sg-cell.base,
-body .page[data-page="scenarios"] .sg-tcell.base{background:var(--ng-glass-fill-base)!important;border-left-color:rgba(210,154,96,.22)!important;border-right-color:rgba(210,154,96,.16)!important}
-
-body .page[data-page="scenarios"] .lev-cell.base{box-shadow:var(--ng-glass-rim),inset 2px 0 0 rgba(210,154,96,.20)}
-body .page[data-page="scenarios"] .lev-name .lev-ic{width:18px;margin-right:10px;color:var(--ng-ink);opacity:.84}
-body .page[data-page="scenarios"] .lev-cell{padding:0 24px}
-body .page[data-page="scenarios"] .lev-val,
-body .page[data-page="scenarios"] .lev-val .lev-in{font-size:15.5px;font-weight:300!important;color:var(--ng-ink-value)!important}
-body .page[data-page="scenarios"] .lev-val .lev-in{width:78px}
-body .page[data-page="scenarios"] .lev-val .unit{font-size:11px;color:var(--ng-ink-faint)}
-body .page[data-page="scenarios"] .step-btn{width:22px;height:22px;border-radius:5px;border-color:rgba(226,239,246,.20);background:rgba(226,239,246,.06);color:var(--ng-ink)}
-body .page[data-page="scenarios"] .sg-head:not(.sg-col){min-height:28px;padding:9px 14px 5px 22px;color:var(--ng-accent);font-size:12px;letter-spacing:.12em}
-body .page[data-page="scenarios"] .sg-head.sg-col{min-height:28px;padding:0;background:transparent!important;border-color:transparent!important;box-shadow:none!important}
-body .page[data-page="scenarios"] .sg-name,
-body .page[data-page="scenarios"] .sg-cell{min-height:32px}
-body .page[data-page="scenarios"] .sg-name{padding-left:22px;font-size:11.5px;line-height:1.15;color:var(--ng-ink)}
-body .page[data-page="scenarios"] .sg-name .sg-win{font-size:10px;margin-top:1px;color:var(--ng-ink-muted)}
-body .page[data-page="scenarios"] .lev-cell{border-bottom-color:rgba(226,239,246,.14)!important}
-body .page[data-page="scenarios"] .sg-cell{font-size:13.5px;font-weight:300;color:var(--ng-ink-value)!important;background:var(--ng-glass-fill)!important;border-left:1px solid var(--ng-glass-border-soft)!important;border-right:1px solid var(--ng-glass-border-soft)!important;border-bottom-color:var(--ng-glass-border)!important}
-body .page[data-page="scenarios"] .sg-total,
-body .page[data-page="scenarios"] .sg-tcell{min-height:44px}
-body .page[data-page="scenarios"] .sg-total{padding-left:22px;font-size:11px;letter-spacing:.11em;color:var(--ng-ink)}
-body .page[data-page="scenarios"] .sg-tcell{font-size:17px;font-weight:300;color:var(--ng-ink-total)!important;background:var(--ng-glass-fill-total)!important;border-radius:0 0 9px 9px}
-body .page[data-page="scenarios"] .lev-val,
-body .page[data-page="scenarios"] .lev-val.base,
-body .page[data-page="scenarios"] .lev-val .pen-in,
-body .page[data-page="scenarios"] .sg-cell,
-body .page[data-page="scenarios"] .sg-tcell,
-body .page[data-page="scenarios"] .sg-tag,
-body .page[data-page="scenarios"] .col-delta{
-  font-weight:300!important;
-}
-body .page[data-page="scenarios"] .col-name,
-body .page[data-page="scenarios"] .col-rename,
-body .page[data-page="scenarios"] .lev-name,
-body .page[data-page="scenarios"] .band-cell.label span,
-body .page[data-page="scenarios"] .add-scen,
-body .page[data-page="scenarios"] .solve-btn,
-body .page[data-page="scenarios"] .reset-scen,
-body .page[data-page="scenarios"] .sg-total,
-body .page[data-page="scenarios"] .sg-head:not(.sg-col){
-  font-weight:400!important;
-}
-body .page[data-page="scenarios"] .scn-foot{display:none!important}
-body .page[data-page="scenarios"] .cf-toggle,
-body .page[data-page="scenarios"] .story-wrap,
-body .page[data-page="scenarios"] .cf-drawer{max-width:1568px;margin-left:auto;margin-right:auto}
-body .page[data-page="scenarios"] .cf-wrapper{max-width:1568px;margin-left:auto;margin-right:auto}
-body .page[data-page="scenarios"] .scn-suggest{position:absolute;right:20px;bottom:-5px;z-index:5;min-width:154px;padding:12px 28px;border-radius:24px;border:1px solid rgba(226,239,246,.20);background:rgba(18,32,45,.72);color:var(--ng-accent);font-size:12px;letter-spacing:.17em;text-transform:uppercase;box-shadow:0 16px 34px -18px rgba(0,0,0,.65)}
 
 body .page[data-page="net-worth"],
 body .page[data-page="sequencing"],
@@ -1803,51 +1514,10 @@ body .stmt th{
   }
   body .page[data-page="net-worth"],
   body .page[data-page="sequencing"],
-  body .page[data-page="history"],
-  body .page[data-page="scenarios"]{
+  body .page[data-page="history"]{
     padding:28px 22px 34px;
     overflow-x:hidden;
   }
-  body .page[data-page="scenarios"] .eyebrow{
-    position:static!important;
-    margin:4px 0 26px;
-    font-size:20px;
-    letter-spacing:.17em;
-  }
-  body .page[data-page="scenarios"] .scn-scroll{
-    width:100%;
-    min-height:0;
-    padding:0 0 34px;
-    overflow-x:auto;
-    -webkit-overflow-scrolling:touch;
-  }
-  body .page[data-page="scenarios"] .scn-band,
-  body .page[data-page="scenarios"] .scn-levers,
-  body .page[data-page="scenarios"] .scn-goals,
-  body .page[data-page="scenarios"] .scn-tax,
-  body .page[data-page="scenarios"] .scn-foot{
-    min-width:860px;
-    column-gap:18px;
-  }
-  body .page[data-page="scenarios"] .band-cell.label,
-  body .page[data-page="scenarios"] .lev-name,
-  body .page[data-page="scenarios"] .sg-name,
-  body .page[data-page="scenarios"] .sg-head:not(.sg-col),
-  body .page[data-page="scenarios"] .sg-total{
-    width:230px;
-  }
-  body .page[data-page="scenarios"] .scn-suggest{
-    position:fixed;
-    right:32px;
-    bottom:32px;
-    min-width:0;
-    width:58px;
-    height:58px;
-    padding:0;
-    overflow:hidden;
-    color:transparent;
-  }
-  body .page[data-page="scenarios"] .scn-suggest::first-letter{color:var(--ng-accent)}
   body .subnav{
     display:none;
   }

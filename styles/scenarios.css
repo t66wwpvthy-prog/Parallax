@@ -175,7 +175,11 @@
 
 /* ---- Reusable bits -------------------------------------------------------- */
 .page[data-page="scenarios"] .glass-panel { position: relative; border-radius: var(--r-panel); background: var(--glass-panel); border: 1px solid var(--line-09); box-shadow: var(--shadow-panel); backdrop-filter: var(--blur-panel); -webkit-backdrop-filter: var(--blur-panel); }
-.page[data-page="scenarios"] .eyebrow { font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--gold-eyebrow); }
+/* .eyebrow is a class the rest of the app also styles (serif font + a trailing
+   rule line for the native-glass pages). Assert this layer's authority over it
+   for the Scenarios page: sans font, plain label, no trailing line. */
+.page[data-page="scenarios"] .eyebrow { display: block; font-family: var(--font-sans); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--gold-eyebrow); }
+.page[data-page="scenarios"] .eyebrow::after { content: none; }
 .page[data-page="scenarios"] .divider { height: 1px; background: var(--line-06); }
 
 /* Progress ring (size + tone set inline; --tone is the scenario color) */
