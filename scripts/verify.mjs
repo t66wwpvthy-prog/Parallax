@@ -63,13 +63,29 @@ function closeServer(server){
   return new Promise(resolveClose => server.close(resolveClose));
 }
 
-async function ensureCashflowMode(page, open = true){
+// Cash Flow is a view inside the ScenariosUI layer, toggled by #scn-cash-toggle
+// (state.cashActive). Click the chip only when it isn't already in the wanted
+// state, then let the single authoritative sync repaint #scn-view.
+async function setCashFlow(page, open = true){
   await page.evaluate(wantOpen => {
-    const pageEl = document.querySelector('.page[data-page="scenarios"]');
-    const isOpen = pageEl?.classList.contains('cf-mode');
-    if(isOpen !== wantOpen) document.querySelector('#cf-mode-btn')?.click();
+    const chip = document.querySelector('#scn-cash-toggle');
+    const isOn = !!chip?.classList.contains('is-on');
+    if(isOn !== wantOpen) chip?.click();
   }, open);
-  await new Promise(r => setTimeout(r, 500));
+  await new Promise(r => setTimeout(r, 400));
+}
+
+// Poll until the Cash Flow view has painted its engine-backed rows. The run is
+// async (runAll defers, computes, then ScenariosUI.sync repaints), so a fixed
+// sleep is unreliable.
+async function waitCashRows(page, min = 1, ms = 8000){
+  const deadline = Date.now() + ms;
+  while(Date.now() < deadline){
+    const n = await page.evaluate(() => document.querySelectorAll('#scn-view .cf-row').length);
+    if(n >= min) return n;
+    await new Promise(r => setTimeout(r, 250));
+  }
+  return page.evaluate(() => document.querySelectorAll('#scn-view .cf-row').length);
 }
 
 async function ensureHouseholdNetWorthView(page){
@@ -121,7 +137,15 @@ try {
   page.on('console', m => { if(m.type() === 'error') errs.push('CON: ' + m.text()); });
 
   await step('load index.html', async () => {
+    // Deterministic seed: scenarios persist to localStorage and boot via
+    // `loadScenarios() || demoScenarios()`, and reseedScenarios() re-derives each
+    // scenario from its delta to baseSnapshot — so a stale browser store would
+    // silently replace the demo seed (Baseline 65 / Scenario B 67 / Aggressive
+    // risk 5) and make the per-scenario assertions flaky. Clear it and reload so
+    // every run starts from demoScenarios().
     await page.goto(`http://127.0.0.1:${PORT}/index.html`, { waitUntil: 'networkidle2', timeout: 20000 });
+    await page.evaluate(() => { try { localStorage.clear(); } catch (e) {} });
+    await page.reload({ waitUntil: 'networkidle2', timeout: 20000 });
     await new Promise(r => setTimeout(r, 1500));
   });
 
@@ -168,69 +192,61 @@ try {
   });
 
   await step('household spouse inputs flow into cash-flow engine rows', async () => {
+    // The Cash Flow view shows the baseline plan's engine rows. Editing a
+    // Household spouse input, returning to Scenarios (which re-runs the engine on
+    // a dirty plan), and opening Cash Flow must change those rows. Income is the
+    // third cell of a .cf-row: [year-wrap, Age, Income, RMD, Essential, …].
+    const setHH = (path, value) => page.evaluate(({ p, v }) => {
+      const el = document.querySelector(`input[data-path="${p}"]`);
+      el.value = v; el.dispatchEvent(new Event('change', { bubbles: true }));
+    }, { p: path, v: value });
+    const openCashFlow = async () => {
+      await page.click('button[data-page="scenarios"]');
+      await new Promise(r => setTimeout(r, 900));
+      await setCashFlow(page, true);
+      await waitCashRows(page, 4);
+    };
+    const incomeAtAge = (age) => page.evaluate(a => {
+      const row = [...document.querySelectorAll('#scn-view .cf-row')]
+        .find(r => r.querySelector('.cf-cell--age')?.textContent.trim() === String(a));
+      return row ? (row.children[2]?.textContent.trim() || '') : '';
+    }, age);
+    const firstAge = () => page.evaluate(() => {
+      const ages = [...document.querySelectorAll('#scn-view .cf-row .cf-cell--age')]
+        .map(e => parseInt(e.textContent.trim(), 10)).filter(Number.isFinite);
+      return ages.length ? Math.min(...ages) : null;
+    });
+
+    // Sanity: the demo spouse inputs are present and editable.
     await ensureHouseholdNetWorthView(page);
-    const before = await page.evaluate(() => {
-      const ss = document.querySelector('input[data-path="income.socialSecurity.spouse.pia"]');
-      ss.value = '30,000';
-      ss.dispatchEvent(new Event('change', { bubbles: true }));
-      return {
-        spouseAge: document.querySelector('input[data-path="household.spouse.currentAge"]')?.value,
-        spouseRetirementAge: document.querySelector('input[data-path="household.spouse.retirementAge"]')?.value,
-        spouseSS: document.querySelector('input[data-path="income.socialSecurity.spouse.pia"]')?.value,
-      };
-    });
-    if(before.spouseAge !== '57' || before.spouseRetirementAge !== '64' || !/30,000/.test(before.spouseSS)) throw new Error(`spouse household inputs not visible (${JSON.stringify(before)})`);
-    await page.click('button[data-page="scenarios"]');
-    await new Promise(r => setTimeout(r, 900));
-    await ensureCashflowMode(page, true);
-    const withSpouse = await page.evaluate(() => {
-      const row = [...document.querySelectorAll('#cf-drawer .cf-table tbody tr')]
-        .find(tr => tr.querySelector('td.age')?.textContent.trim() === '68');
-      return row ? row.querySelectorAll('td')[3]?.textContent.trim() : '';
-    });
-    await ensureHouseholdNetWorthView(page);
-    await page.evaluate(() => {
-      const input = document.querySelector('input[data-path="income.socialSecurity.spouse.pia"]');
-      input.value = '0';
-      input.dispatchEvent(new Event('change', { bubbles: true }));
-    });
-    await page.click('button[data-page="scenarios"]');
-    await new Promise(r => setTimeout(r, 900));
-    await ensureCashflowMode(page, true);
-    const withoutSpouse = await page.evaluate(() => {
-      const row = [...document.querySelectorAll('#cf-drawer .cf-table tbody tr')]
-        .find(tr => tr.querySelector('td.age')?.textContent.trim() === '68');
-      return row ? row.querySelectorAll('td')[3]?.textContent.trim() : '';
-    });
-    if(withSpouse === withoutSpouse) throw new Error(`spouse SS edit did not change baseline income at age 68 (${withSpouse} vs ${withoutSpouse})`);
-    await ensureHouseholdNetWorthView(page);
-    await page.evaluate(() => {
-      const input = document.querySelector('input[data-path="income.socialSecurity.spouse.pia"]');
-      input.value = '30,000';
-      input.dispatchEvent(new Event('change', { bubbles: true }));
-      const retire = document.querySelector('input[data-path="household.spouse.retirementAge"]');
-      retire.value = '67';
-      retire.dispatchEvent(new Event('change', { bubbles: true }));
-    });
-    await page.click('button[data-page="scenarios"]');
-    await new Promise(r => setTimeout(r, 900));
-    await ensureCashflowMode(page, true);
-    const laterSpouseRetirement = await page.evaluate(() => {
-      const row = [...document.querySelectorAll('#cf-drawer .cf-table tbody tr')]
-        .find(tr => tr.querySelector('td.age')?.textContent.trim() === '67');
-      const tds = row ? [...row.querySelectorAll('td')].map(td => td.textContent.trim()) : [];
-      return { income: tds[3] || '', outflows: tds[4] || '' };
-    });
-    if(/\$30,000/.test(laterSpouseRetirement.income)) {
-      throw new Error(`spouse SS appeared before claim age when retirement delayed (${JSON.stringify(laterSpouseRetirement)})`);
-    }
-    await ensureHouseholdNetWorthView(page);
-    await page.evaluate(() => {
-      const retire = document.querySelector('input[data-path="household.spouse.retirementAge"]');
-      retire.value = '64';
-      retire.dispatchEvent(new Event('change', { bubbles: true }));
-    });
-    await ensureCashflowMode(page, false);
+    const seed = await page.evaluate(() => ({
+      spouseAge: document.querySelector('input[data-path="household.spouse.currentAge"]')?.value,
+      spouseRetirementAge: document.querySelector('input[data-path="household.spouse.retirementAge"]')?.value,
+    }));
+    if(seed.spouseAge !== '57' || seed.spouseRetirementAge !== '64') throw new Error(`spouse household inputs not visible (${JSON.stringify(seed)})`);
+
+    // (1) Spouse Social Security on vs off changes baseline income. Age 72 is past
+    // both spouses' claim ages, so the $30k benefit is fully flowing there.
+    await setHH('income.socialSecurity.spouse.pia', '30,000');
+    await openCashFlow(); const withSpouse = await incomeAtAge(72);
+    await ensureHouseholdNetWorthView(page); await setHH('income.socialSecurity.spouse.pia', '0');
+    await openCashFlow(); const withoutSpouse = await incomeAtAge(72);
+    if(!withSpouse || !withoutSpouse) throw new Error(`cash-flow income cell missing at age 72 (${withSpouse} vs ${withoutSpouse})`);
+    if(withSpouse === withoutSpouse) throw new Error(`spouse SS edit did not change baseline income at age 72 (${withSpouse} vs ${withoutSpouse})`);
+
+    // (2) Delaying the spouse's retirement raises the household retirement age on
+    // the primary timeline (engine.js), so the first retirement-phase row appears
+    // at a later age. Restore SS first so the only change is the retirement age.
+    await ensureHouseholdNetWorthView(page); await setHH('income.socialSecurity.spouse.pia', '30,000');
+    await openCashFlow(); const firstWhenEarly = await firstAge();
+    await ensureHouseholdNetWorthView(page); await setHH('household.spouse.retirementAge', '67');
+    await openCashFlow(); const firstWhenLate = await firstAge();
+    if(firstWhenEarly == null || firstWhenLate == null) throw new Error(`first cash-flow age missing (${firstWhenEarly} vs ${firstWhenLate})`);
+    if(!(firstWhenLate > firstWhenEarly)) throw new Error(`delaying spouse retirement did not push the retirement start later (${firstWhenEarly} -> ${firstWhenLate})`);
+
+    // Restore the demo household and leave Cash Flow closed.
+    await ensureHouseholdNetWorthView(page); await setHH('household.spouse.retirementAge', '64');
+    await setCashFlow(page, false);
   });
 
   await step('goals renders tributaries and statement rows', async () => {
@@ -333,91 +349,176 @@ try {
     await page.evaluate(() => document.querySelector('.gt-hit').dispatchEvent(new MouseEvent('click', { bubbles: true })));
   });
 
-  await step('scenarios renders after tab switch', async () => {
+  await step('scenarios Compare view: columns, rings, levers, goals', async () => {
     await page.click('button[data-page="scenarios"]');
-    await new Promise(r => setTimeout(r, 800));
-    const m = await page.evaluate(() => ({
-      band: document.querySelectorAll('.scn-band svg circle').length,
-      status: document.querySelector('#status')?.textContent || '',
-      goalRows: document.querySelectorAll('#scn-goals .sg-name').length,
-      goalCells: document.querySelectorAll('#scn-goals .sg-cell').length,
-      goalTotal: document.querySelector('#scn-goals .sg-tcell')?.textContent || '',
-      solve: !!document.querySelector('.solve-btn'),
-      saleLever: [...document.querySelectorAll('.lev-lbl')].some(e => /^Sell\b/.test(e.textContent.trim())),
-      scenarioNames: [...document.querySelectorAll('.col-name')].map(e => e.textContent.trim()),
-    }));
-    if(m.band < 1) throw new Error(`scenarios did not render (band circles=${m.band}, status="${m.status}")`);
-    if(m.goalRows < 1) throw new Error(`scenarios goals section rendered no goal rows (goalRows=${m.goalRows})`);
-    if(m.goalCells < m.goalRows) throw new Error(`goals not mirrored into columns (cells=${m.goalCells}, rows=${m.goalRows})`);
-    if(!m.goalTotal.startsWith('$')) throw new Error(`goals total row missing a dollar figure (got "${m.goalTotal}")`);
-    if(!m.solve) throw new Error('Solve-For button missing from scenarios');
-    if(m.saleLever) throw new Error('parked property-sale lever is visible in scenarios');
-    if(m.scenarioNames.some(n => /sell\s*home/i.test(n))) throw new Error(`stale sale scenario visible: ${JSON.stringify(m.scenarioNames)}`);
+    await new Promise(r => setTimeout(r, 900));
+    await page.click('#scn-seg-compare');
+    await new Promise(r => setTimeout(r, 400));
+    const m = await page.evaluate(() => {
+      const v = document.querySelector('#scn-view');
+      return {
+        compare: !!v?.querySelector('.compare'),
+        cols: v?.querySelectorAll('.scol').length || 0,
+        rings: v?.querySelectorAll('.ring__arc').length || 0,
+        probs: [...(v?.querySelectorAll('.scol__prob') || [])].map(e => e.textContent.trim()),
+        names: [...(v?.querySelectorAll('.scol__name') || [])].map(e => e.textContent.trim()),
+        leverNames: [...(v?.querySelectorAll('.lever__name') || [])].map(e => e.textContent.trim()),
+        goalCells: v?.querySelectorAll('.cell--goal').length || 0,
+        goalPill: v?.querySelector('.goal-pill, .goal-note')?.textContent || '',
+        reference: !!v?.querySelector('.tag-ref'),
+        solveBtn: !!document.querySelector('#scn-solve'),
+        addBtn: !!document.querySelector('#scn-add'),
+        suggestBtn: !!document.querySelector('#scn-suggest'),
+        status: document.querySelector('#status')?.textContent || '',
+        segActive: document.querySelector('#scn-seg-compare')?.classList.contains('is-active') || false,
+      };
+    });
+    if(!m.compare) throw new Error(`Compare view did not render (status="${m.status}")`);
+    if(m.cols < 1) throw new Error(`no scenario columns rendered (cols=${m.cols}, status="${m.status}")`);
+    if(m.rings < m.cols) throw new Error(`success rings missing (rings=${m.rings}, cols=${m.cols})`);
+    if(!m.probs.some(p => /\d/.test(p))) throw new Error(`scenario probabilities not populated: ${JSON.stringify(m.probs)}`);
+    if(!m.leverNames.includes('Plan Levers')) throw new Error(`Plan Levers header missing: ${JSON.stringify(m.leverNames)}`);
+    if(m.goalCells < m.cols) throw new Error(`goals row not mirrored across columns (cells=${m.goalCells}, cols=${m.cols})`);
+    if(!/active/.test(m.goalPill)) throw new Error(`goals summary cell missing an active count: "${m.goalPill}"`);
+    if(!m.reference) throw new Error('baseline Reference tag missing from Compare');
+    if(!m.solveBtn || !m.addBtn || !m.suggestBtn) throw new Error('Solve / Add / Suggest toolbar actions missing from Scenarios');
+    if(!m.segActive) throw new Error('Compare segment did not mark itself active');
+    if(m.names.some(n => /sell\s*home/i.test(n))) throw new Error(`stale sale scenario visible: ${JSON.stringify(m.names)}`);
     await page.screenshot({ path: join(OUT, '03-scenarios.png'), fullPage: true });
   });
 
-  await step('cash-flow drawer opens with path replay controls and rows', async () => {
-    await page.click('button[data-page="scenarios"]');
-    await new Promise(r => setTimeout(r, 300));
-    await ensureCashflowMode(page, true);
+  await step('scenarios Focus view: hero ring, lever steppers, goals, rail', async () => {
+    await page.click('#scn-seg-focus');
+    await new Promise(r => setTimeout(r, 400));
     const m = await page.evaluate(() => {
-      const d = document.querySelector('#cf-drawer');
+      const v = document.querySelector('#scn-view');
       return {
-        rows: d?.querySelectorAll('.cf-table tbody tr').length || 0,
-        height: d?.getBoundingClientRect().height || 0,
-        mode: document.querySelector('#path-mode')?.value || '',
-        header: d?.querySelector('.cf-drawer-head')?.textContent || '',
-        columnLabels: [...(d?.querySelectorAll('.cf-table thead tr:nth-child(2) th') || [])].map(th => th.textContent.trim()),
-        sources: [...(d?.querySelectorAll('td.source') || [])].slice(0, 8).map(td => td.textContent.trim()),
-        sourceHead: !!d?.querySelector('th.source'),
-        retireAges: [...(d?.querySelectorAll('td.retire-start') || [])]
-          .map(td => td.parentElement.querySelector('td.age')?.textContent.trim())
-          .filter(Boolean),
+        focus: !!v?.querySelector('.focus'),
+        heroRing: !!v?.querySelector('.hero .ring__arc'),
+        heroNumeral: v?.querySelector('.hero__numeral')?.textContent || '',
+        steppers: v?.querySelectorAll('.assum__stepper .stepper-btn[data-lever-key]').length || 0,
+        goalRows: v?.querySelectorAll('.goal-row').length || 0,
+        railCards: v?.querySelectorAll('.rail-card[data-pick]').length || 0,
+        railFocus: !!v?.querySelector('.rail-card__tag--focus'),
+        segActive: document.querySelector('#scn-seg-focus')?.classList.contains('is-active') || false,
       };
     });
+    if(!m.focus) throw new Error('Focus view did not render');
+    if(!m.heroRing) throw new Error('Focus hero ring missing');
+    if(!/\d/.test(m.heroNumeral)) throw new Error(`Focus hero probability not populated: "${m.heroNumeral}"`);
+    if(m.steppers < 2) throw new Error(`Focus lever steppers missing (${m.steppers})`);
+    if(m.goalRows < 1) throw new Error(`Focus goals list rendered no rows (${m.goalRows})`);
+    if(m.railCards < 1) throw new Error(`Focus scenario rail rendered no cards (${m.railCards})`);
+    if(!m.railFocus) throw new Error('Focus rail did not mark the in-focus scenario');
+    if(!m.segActive) throw new Error('Focus segment did not mark itself active');
+
+    // A lever stepper mutates the focused scenario and asks for a manual Run
+    // (existing production flow — no auto-run). Step up then back down so the
+    // scenario's levers are left exactly as found (no Run fires, so s.res and the
+    // baseline retirement marker the Cash Flow step checks stay consistent).
+    await page.evaluate(() => document.querySelector('#scn-view .assum__stepper .stepper-btn[data-dir="1"]')?.click());
+    await new Promise(r => setTimeout(r, 250));
+    const status = await page.evaluate(() => document.querySelector('#status')?.textContent || '');
+    if(!/Run to update/i.test(status)) throw new Error(`lever stepper did not request a manual Run: "${status}"`);
+    await page.evaluate(() => document.querySelector('#scn-view .assum__stepper .stepper-btn[data-dir="-1"]')?.click());
+    await new Promise(r => setTimeout(r, 250));
+    await page.screenshot({ path: join(OUT, '03b-scenarios-focus.png'), fullPage: true });
+  });
+
+  await step('cash-flow view: exact columns, rows, summary, path controls, pills', async () => {
+    await page.click('button[data-page="scenarios"]');
+    await new Promise(r => setTimeout(r, 600));
+    await setCashFlow(page, true);
+    await waitCashRows(page, 10);
+    const EXPECT = ['Year', 'Age', 'Income', 'RMD', 'Essential', 'Goals', 'Tax', 'Portfolio Draw', 'WD Rate', 'Ending'];
+    const m = await page.evaluate(() => {
+      const v = document.querySelector('#scn-view');
+      return {
+        cf: !!v?.querySelector('.cf'),
+        rows: v?.querySelectorAll('.cf-row').length || 0,
+        cols: [...(v?.querySelectorAll('.cf-table__head .cf-th') || [])].map(th => th.textContent.trim()),
+        pills: [...(v?.querySelectorAll('.cf-pill') || [])].map(p => p.textContent.trim()),
+        summaryName: v?.querySelector('.cf-summary__name')?.textContent.trim() || '',
+        stats: [...(v?.querySelectorAll('.cf-stat__label') || [])].map(s => s.textContent.trim()),
+        pathControls: !!v?.querySelector('#scn-cf-path-controls #path-mode'),
+        mode: v?.querySelector('#scn-cf-path-controls #path-mode')?.value || '',
+        caption: v?.querySelector('.cf__caption')?.textContent || '',
+      };
+    });
+    if(!m.cf) throw new Error('cash-flow view did not render');
     if(m.rows < 10) throw new Error(`cash-flow rows = ${m.rows} (expected >=10)`);
-    if(m.height < 100) throw new Error(`cash-flow height = ${m.height}px (expected >=100)`);
+    if(JSON.stringify(m.cols) !== JSON.stringify(EXPECT)) throw new Error(`cash-flow columns are not the exact contract: ${JSON.stringify(m.cols)}`);
+    // The diagnostic Engine-tax / Federal-tax columns must NOT appear in this view.
+    if(m.cols.some(c => /engine tax|federal tax/i.test(c))) throw new Error(`diagnostic tax column leaked into cash flow: ${JSON.stringify(m.cols)}`);
+    if(m.cols.some(c => ['Withdraw', 'One-time', 'Return $', 'Starting value', 'Inflows', 'Outflows', 'Annual return', 'Ending value'].includes(c))) throw new Error(`old cash-flow columns still present: ${JSON.stringify(m.cols)}`);
+    if(m.pills.length < 2) throw new Error(`scenario pills missing: ${JSON.stringify(m.pills)}`);
+    if(!m.pathControls) throw new Error('path-replay controls not relocated into #scn-cf-path-controls');
     if(m.mode !== 'typical') throw new Error(`path replay default mode not typical (${m.mode})`);
-    if(!/Path Replay/.test(m.header) || !/Seed/.test(m.header) || !/Path/.test(m.header)) throw new Error(`path replay header missing metadata: "${m.header}"`);
-    for(const label of ['Starting value','Income','Outflows','Inflows','Engine tax','Federal tax','Annual return','Ending value']){
-      if(!m.columnLabels.includes(label)) throw new Error(`cash-flow column missing: ${label}`);
+    for(const label of ['Median Ending', 'Lifetime Draw', 'Funds Last', 'Peak Withdrawal']){
+      if(!m.stats.includes(label)) throw new Error(`cash-flow summary stat missing: ${label} (${JSON.stringify(m.stats)})`);
     }
-    if(m.columnLabels.some(label => ['Withdraw','RMD','Goals','One-time','Return $'].includes(label))) {
-      throw new Error(`old cash-flow columns still visible: ${JSON.stringify(m.columnLabels)}`);
-    }
-    if(!m.sourceHead || !m.sources.some(v => /^\d{4}$/.test(v))) throw new Error(`cash-flow source years missing: ${JSON.stringify(m.sources)}`);
-    if(m.retireAges.length < 1 || !m.retireAges.includes('65')) throw new Error(`baseline retirement marker missing (${JSON.stringify(m.retireAges)})`);
-    await page.click('.cf-chip[data-i="1"]');
-    await new Promise(r => setTimeout(r, 400));
-    const laterRetire = await page.evaluate(() => [...document.querySelectorAll('#cf-drawer td.retire-start')]
-      .map(td => td.parentElement.querySelector('td.age')?.textContent.trim())
-      .filter(Boolean));
-    if(!laterRetire.includes('67')) throw new Error(`later-retirement scenario marker missing (${JSON.stringify(laterRetire)})`);
+    if(!/nominal/.test(m.caption)) throw new Error(`cash-flow caption missing nominal-$ note: "${m.caption}"`);
+
+    // The baseline plan's retirement marker (lifeTag) lands on the retirement age.
+    const retireAge = await page.evaluate(() => {
+      const row = [...document.querySelectorAll('#scn-view .cf-row')]
+        .find(r => /Retirement begins/.test(r.querySelector('.cf-row__lifetag')?.textContent || ''));
+      return row ? (row.querySelector('.cf-cell--age')?.textContent.trim() || '') : '';
+    });
+    if(retireAge !== '65') throw new Error(`baseline retirement marker not at age 65 (got "${retireAge}")`);
+
+    // The scenario pills switch which plan's cash flow is shown, and each plan's
+    // retirement marker reflects ITS OWN retire age. demoScenarios seeds Baseline
+    // at 65 (asserted just above) and Scenario B at 67 (s[1].lev.retireAge = 67),
+    // so selecting the Scenario B pill — the NEW mechanism; there is no longer a
+    // .cf-chip path — must move the "Retirement begins" marker from 65 to 67.
+    const markerAge = () => page.evaluate(() => {
+      const row = [...document.querySelectorAll('#scn-view .cf-row')]
+        .find(r => /Retirement begins/.test(r.querySelector('.cf-row__lifetag')?.textContent || ''));
+      return row ? (row.querySelector('.cf-cell--age')?.textContent.trim() || '') : '';
+    });
+    const pickedB = await page.evaluate(() => {
+      const pill = [...document.querySelectorAll('#scn-view .cf-pill')].find(p => /Scenario B/.test(p.textContent));
+      if(!pill) return false;
+      pill.click();
+      return true;
+    });
+    if(!pickedB) throw new Error(`Scenario B pill not found among ${JSON.stringify(m.pills)}`);
+    await new Promise(r => setTimeout(r, 450));
+    await waitCashRows(page, 10);
+    const bName = await page.evaluate(() => document.querySelector('#scn-view .cf-summary__name')?.textContent.trim() || '');
+    if(bName !== 'Scenario B') throw new Error(`cash-flow pill did not switch to Scenario B (got "${bName}")`);
+    const bMarker = await markerAge();
+    if(bMarker !== '67') throw new Error(`Scenario B retirement marker not at age 67 (got "${bMarker}")`);
+    // Restore Baseline for the path-replay checks below.
+    await page.evaluate(() => [...document.querySelectorAll('#scn-view .cf-pill')].find(p => /Baseline/.test(p.textContent))?.click());
+    await new Promise(r => setTimeout(r, 350));
+    await waitCashRows(page, 10);
+
+    // Path replay: choose mode reveals the advanced controls and re-renders the
+    // table; favorable mode is available and also re-renders. (#path-mode is the
+    // production node relocated into the Cash Flow header — same element, same
+    // bindings.)
     await page.select('#path-mode', 'choose');
-    await new Promise(r => setTimeout(r, 100));
+    await new Promise(r => setTimeout(r, 300));
+    const chosen = await page.evaluate(() => ({
+      chooseOn: document.querySelector('#path-choose')?.classList.contains('on') || false,
+      seedOn: document.querySelector('#path-seed-wrap')?.classList.contains('on') || false,
+    }));
+    if(!chosen.chooseOn || !chosen.seedOn) throw new Error(`choose-path advanced controls not revealed: ${JSON.stringify(chosen)}`);
     await page.evaluate(() => {
       const input = document.querySelector('#path-index');
-      input.value = '47';
-      input.dispatchEvent(new Event('change', { bubbles: true }));
+      input.value = '47'; input.dispatchEvent(new Event('change', { bubbles: true }));
     });
-    await new Promise(r => setTimeout(r, 250));
-    const chosen = await page.evaluate(() => ({
-      chooseVisible: document.querySelector('#path-choose')?.classList.contains('on') || false,
-      seedVisible: document.querySelector('#path-seed-wrap')?.classList.contains('on') || false,
-      header: document.querySelector('#cf-drawer .cf-drawer-head')?.textContent || '',
-    }));
-    if(!chosen.chooseVisible || !chosen.seedVisible) throw new Error(`choose-path advanced controls not visible: ${JSON.stringify(chosen)}`);
-    if(!/Path 047/.test(chosen.header)) throw new Error(`chosen path header did not update: "${chosen.header}"`);
+    await new Promise(r => setTimeout(r, 400));
+    if(await waitCashRows(page, 10) < 10) throw new Error('choosing path 47 emptied the cash-flow table');
     const hasFavorable = await page.evaluate(() => [...document.querySelectorAll('#path-mode option')].some(o => o.value === 'favorable'));
     if(!hasFavorable) throw new Error('favorable option missing from path-mode select');
     await page.select('#path-mode', 'favorable');
-    await new Promise(r => setTimeout(r, 250));
-    const favHeader = await page.evaluate(() => document.querySelector('#cf-drawer .cf-drawer-head')?.textContent || '');
-    if(!/Favorable path/.test(favHeader)) throw new Error(`favorable path did not relabel the drawer: "${favHeader}"`);
-    await page.select('#path-mode', 'choose');
-    await new Promise(r => setTimeout(r, 250));
-    await page.evaluate(() => document.querySelector('#cf-drawer').scrollIntoView());
-    await new Promise(r => setTimeout(r, 200));
+    await new Promise(r => setTimeout(r, 400));
+    if(await waitCashRows(page, 10) < 10) throw new Error('favorable path emptied the cash-flow table');
+    await page.select('#path-mode', 'typical');
+    await new Promise(r => setTimeout(r, 300));
     await page.screenshot({ path: join(OUT, '04-cashflow.png'), fullPage: true });
   });
 
