@@ -120,7 +120,7 @@
   --r-pill: 999px;
 
   /* Layout */
-  --max-w: 1580px;
+  --max-w: none;          /* full-bleed — Scenarios views fill the page width */
   --rail-w: 362px;
 
   /* Page surface */
@@ -137,10 +137,11 @@
 .page[data-page="scenarios"] *::before,
 .page[data-page="scenarios"] *::after { box-sizing: border-box; }
 
-/* Inner stage: centers + pads the content (replaces prototype .page/.body).
-   width:100% so the stage fills to its max-width and centers even when the
-   production .page shell is a flex container (a flex item otherwise shrinks to
-   content width). */
+/* Inner stage: full-bleed — fills the production .page content box (which already
+   supplies the side gutter via --page-x); the stage's own 34px padding keeps
+   content off the page edge. width:100% so it fills even as a column-flex item
+   (which would otherwise shrink to content width). --max-w:none removes the old
+   centered cap; margin:0 auto is harmless once uncapped. */
 .page[data-page="scenarios"] .scn-stage { width: 100%; max-width: var(--max-w); margin: 0 auto; padding: 28px 34px 48px; }
 
 /* Accessible focus ring for every interactive control in the page. */
