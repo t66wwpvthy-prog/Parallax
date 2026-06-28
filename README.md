@@ -27,10 +27,6 @@ explain a client decision:
   Do not change engine math without explicit agreement and tests.
 - `engine.test.js` — Node test suite guarding the engine. Runs in CI on every
   push (`.github/workflows/test.yml`).
-- `history.js` — cross-era reference analytics for the History tab: 3-year
-  block profiles over the engine's return record, macro-environment tags,
-  and closest-period matching. Informational only — nothing here feeds
-  simulations or scenarios. Guarded by `history.test.js`.
 - `index.html` — the current app prototype. UI only: it imports the engine
   from `engine.js` as an ES module, so the page must be served over HTTP
   (as `scripts/verify.mjs` and GitHub Pages both do) rather than opened
