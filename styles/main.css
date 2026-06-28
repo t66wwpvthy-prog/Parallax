@@ -554,18 +554,6 @@ html,body{height:100%;background:var(--bg);font-family:'Sora',sans-serif;color:v
 .led-row .dots{flex:1;border-bottom:1px dotted var(--rule-faint);margin:0 10px;transform:translateY(-3px)}
 .led-row b{font-family:'Inter',sans-serif;font-size:13px;font-weight:600;color:var(--ink-bright);font-variant-numeric:tabular-nums;white-space:nowrap}
 .led-none{font-family:Georgia,"Times New Roman",serif;font-style:italic;font-size:12.5px;color:var(--ink-faint);padding:7px 0}
-/* History page — reference rows + record notes (reuses story/ledger language) */
-.hist-rows{margin-top:4px}
-.hist-row{cursor:pointer;gap:12px}
-.hist-row .hist-period{font-family:'Inter',sans-serif;font-size:14px;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums;min-width:96px}
-.hist-row .hist-env{font-family:Georgia,"Times New Roman",serif;font-style:italic;font-size:12.5px;color:var(--ink-faint)}
-.hist-row:hover .hist-period{color:var(--accent-bright)}
-.hist-row.on .hist-period{color:var(--accent-bright)}
-.hist-row.on .hist-env{color:var(--ink-mute)}
-.hist-note{font-family:'Sora',sans-serif;font-size:12px;color:var(--ink-mute);line-height:1.55;padding:5px 0}
-.hist-note b{font-family:'Inter',sans-serif;color:var(--ink-bright);font-weight:600;margin-right:6px}
-.hist-foot{margin:30px 0 14px;font-family:Georgia,"Times New Roman",serif;font-style:italic;font-size:12.5px;color:var(--ink-faint)}
-.page[data-page="history"]{overflow-y:auto}
 @media (max-width:760px){
   .ledger{grid-template-columns:1fr}
   .ledger h5{grid-row:auto}
@@ -1375,8 +1363,7 @@ body .status{font-size:12px;letter-spacing:.20em;color:var(--ng-ink-muted)}
 body .run-btn{min-width:123px;min-height:40px;border-radius:10px;background:linear-gradient(180deg,#f8e5c1,#efc982);color:#15130f;box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 13px 30px -20px rgba(233,190,120,.70)}
 
 body .page[data-page="net-worth"],
-body .page[data-page="sequencing"],
-body .page[data-page="history"]{
+body .page[data-page="sequencing"]{
   position:relative;
   padding:24px 56px 34px;
   background:transparent;
@@ -1410,8 +1397,7 @@ body .gl-wrap,
 body .seq-bar,
 body .seq-chart,
 body .seq-prints,
-body .story-wrap,
-body .hist-rows{
+body .story-wrap{
   /* width:100% keeps these flex-column panels filling the page up to the cap;
      without it the auto side-margins below collapse them to content width and
      center them as narrow cards (e.g. the Sequencing Resilience chart). */
@@ -1510,8 +1496,7 @@ body .stmt th{
     min-height:46px;
   }
   body .page[data-page="net-worth"],
-  body .page[data-page="sequencing"],
-  body .page[data-page="history"]{
+  body .page[data-page="sequencing"]{
     padding:28px 22px 34px;
     overflow-x:hidden;
   }

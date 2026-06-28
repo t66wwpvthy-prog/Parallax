@@ -99,7 +99,7 @@ rmSync(OUT, { recursive: true, force: true });
 mkdirSync(OUT, { recursive: true });
 
 console.log('full test suite (npm test)');
-const test = spawnSync(process.execPath, ['--test', 'engine.test.js', 'history.test.js', 'src/tax/federal/rules/ordinaryIncomeTax.test.js', 'src/tax/federal/rules/standardDeduction.test.js', 'src/tax/federal/rules/traditionalIraDeductibility.test.js', 'src/tax/federal/rules/capitalGainsStacking.test.js', 'src/tax/federal/rules/taxableSocialSecurity.test.js', 'src/tax/federal/composers/form1040Spine.test.js', 'src/tax/tests/integration.test.js', 'src/tax/tests/golden1040.test.js', 'src/tax/tests/intakeCompleteness.test.js', 'src/tax/tests/annual1040Fixtures.test.js', 'src/tax/tests/law2025.test.js', 'src/tax/tests/engineYearTo1040Input.test.js', 'src/tax/tests/demoWagesRegression.test.js', 'src/tax/tests/marginalRateSummary.test.js', 'src/planning/tax/runTaxForScenarioPath.test.js', 'src/planning/tax/attachTypicalPathFederalTax.test.js'], { cwd: ROOT, stdio: 'inherit' });
+const test = spawnSync(process.execPath, ['--test', 'engine.test.js', 'src/tax/federal/rules/ordinaryIncomeTax.test.js', 'src/tax/federal/rules/standardDeduction.test.js', 'src/tax/federal/rules/traditionalIraDeductibility.test.js', 'src/tax/federal/rules/capitalGainsStacking.test.js', 'src/tax/federal/rules/taxableSocialSecurity.test.js', 'src/tax/federal/composers/form1040Spine.test.js', 'src/tax/tests/integration.test.js', 'src/tax/tests/golden1040.test.js', 'src/tax/tests/intakeCompleteness.test.js', 'src/tax/tests/annual1040Fixtures.test.js', 'src/tax/tests/law2025.test.js', 'src/tax/tests/engineYearTo1040Input.test.js', 'src/tax/tests/demoWagesRegression.test.js', 'src/tax/tests/marginalRateSummary.test.js', 'src/planning/tax/runTaxForScenarioPath.test.js', 'src/planning/tax/attachTypicalPathFederalTax.test.js'], { cwd: ROOT, stdio: 'inherit' });
 if(test.status !== 0){ console.error('npm test failed'); process.exit(1); }
 
 console.log('serve + drive');
@@ -158,7 +158,7 @@ try {
       toggles: document.querySelectorAll('.hh-toggle-btn').length,
       accountBank: !!document.querySelector('.hh-bankrail, .acct-picker'),
     }));
-    const expectedNav = ['Household', 'Goals', 'Scenarios', 'Sequencing', 'History'];
+    const expectedNav = ['Household', 'Goals', 'Scenarios', 'Sequencing'];
     if(JSON.stringify(m.nav) !== JSON.stringify(expectedNav)) throw new Error(`main nav mismatch: ${JSON.stringify(m.nav)}`);
     if(m.hasSubnav) throw new Error('old net-worth subnav is still rendered');
     if(!m.shell) throw new Error('household shell missing from #np-content');
@@ -577,35 +577,6 @@ try {
     await page.evaluate(() => document.querySelector('#playback-panel').scrollIntoView({ block: 'start' }));
     await new Promise(r => setTimeout(r, 250));
     await page.screenshot({ path: join(OUT, '06-playback.png') });
-  });
-
-  await step('history renders present block, reference set and selected detail', async () => {
-    await page.click('button[data-page="history"]');
-    await new Promise(r => setTimeout(r, 600));
-    const m = await page.evaluate(() => ({
-      stats: document.querySelectorAll('#hist-body .story-stat').length,
-      rows: document.querySelectorAll('.hist-row').length,
-      onRows: document.querySelectorAll('.hist-row.on').length,
-      rowText: document.querySelector('.hist-row')?.textContent || '',
-      ledger: document.querySelectorAll('#hist-body .ledger h5').length,
-      notes: document.querySelectorAll('.hist-note').length,
-      foot: document.querySelector('.hist-foot')?.textContent || '',
-    }));
-    if(m.stats < 8) throw new Error(`history stat lines incomplete (${m.stats})`);
-    if(m.rows !== 5 || m.onRows !== 1) throw new Error(`reference rows wrong (rows=${m.rows}, on=${m.onRows})`);
-    if(!/during \+?[\d.]+/.test(m.rowText) || !/next 3 yrs/.test(m.rowText)) throw new Error(`reference row missing during/next facts: "${m.rowText}"`);
-    if(m.ledger !== 2 || m.notes < 3) throw new Error(`selected detail incomplete (ledger=${m.ledger}, notes=${m.notes})`);
-    if(!/not a forecast/.test(m.foot) || !/not used in planning/.test(m.foot)) throw new Error(`context disclaimer missing: "${m.foot}"`);
-    // Selecting another reference re-renders its detail.
-    const firstDetail = await page.evaluate(() => document.querySelector('#hist-body .ledger')?.textContent || '');
-    await page.evaluate(() => [...document.querySelectorAll('.hist-row')][1].click());
-    await new Promise(r => setTimeout(r, 300));
-    const m2 = await page.evaluate(() => ({
-      on: document.querySelector('.hist-row.on')?.dataset.hist || '',
-      detail: document.querySelector('#hist-body .ledger')?.textContent || '',
-    }));
-    if(m2.detail === firstDetail) throw new Error('selecting a reference did not change the detail');
-    await page.screenshot({ path: join(OUT, '07-history.png'), fullPage: true });
   });
 
   if(errs.length){
