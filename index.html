@@ -78,7 +78,6 @@
       <button class="htab htab-secondary" data-page="net-worth" data-sub-target="goals">Goals</button>
       <button class="htab" data-page="scenarios">Scenarios</button>
       <button class="htab" data-page="sequencing">Sequencing</button>
-      <button class="htab htab-secondary" data-page="history">History</button>
     </div>
     <div class="hdr-right">
       <span class="status" id="status">Ready</span>
@@ -186,13 +185,6 @@
     <div class="story-wrap" id="playback-panel"></div>
   </section>
 
-  <!-- History: cross-era reference. Informational context only — reads the
-       1928–2025 record through history.js; nothing here feeds planning. -->
-  <section class="page" data-page="history">
-    <div class="eyebrow"><span>History</span></div>
-    <div class="story-wrap" id="hist-body"></div>
-  </section>
-
 </div>
 
 
@@ -200,7 +192,6 @@
 <script type="module">
 import { runSimulation, runHistoricalPath, generateReturnPath, resetSeed, annualMortgagePayment, LONGRUN_INFLATION, pathDigest, assessPlan, RISK_PROFILES, defaultPlan as plan } from './engine.js';
 import { attachTypicalPathFederalTax } from './src/planning/tax/attachTypicalPathFederalTax.js';
-import { MACRO_TAGS, HC_BLOCKS, HC_SHAPE_LABELS, HC_ASSET_LABELS, hcBlockGmr, profileThroughWeights, hcSymmetry, hcNextReturn, hcEnvironmentLabel, hcReferenceSet } from './history.js';
 import { fmtM, fmtMoney, fmtMDelta, fmtPts, cfMoney, cfRetPct, cfGain } from './ui/formatters.js';
 import { storyChart, seqChartSvg } from './ui/charts.js';
 import { HH_VIEW_KEY, renderHouseholdStatement } from './ui/household.js';
@@ -2831,85 +2822,6 @@ function renderPlayback(){
   $('#pb-detail-btn').onclick=()=>{ pbDetailOpen=!pbDetailOpen; renderPlayback(); };
 }
 
-/* ── History — cross-era reference ────────────────────────────────────────
-   Informational context only: the present three years against the closest
-   historical blocks (same broad environment first), and what the record
-   says happened next. Reads history.js, which composes engine exports;
-   nothing here feeds simulations or scenarios. Facts only — periods,
-   figures, the macro tags, and the record's own aftermath. */
-let histSel=null;
-const hPct=v=>(v>=0?'+':'−')+Math.abs(v*100).toFixed(1)+'%';
-function renderHistory(){
-  const el=$('#hist-body'); if(!el) return;
-  const now=HC_BLOCKS[HC_BLOCKS.length-1];
-  const refs=hcReferenceSet(now, 5);
-  if(histSel==null || !refs.some(r=>r.block.start===histSel)) histSel=refs[0]?.block.start ?? null;
-  const sel=refs.find(r=>r.block.start===histSel)?.block || null;
-  const mixW=(RISK_PROFILES[plan.portfolio.riskProfile]||RISK_PROFILES[3]).weights;
-  const mixLabel=(RISK_PROFILES[plan.portfolio.riskProfile]||RISK_PROFILES[3]).label;
-  const mNow=MACRO_TAGS[now.start]||{};
-
-  const nowMix=profileThroughWeights(now.start, mixW);
-  let h=`
-    <div class="story-sec"><span>The last three years · ${now.label}</span></div>
-    <div class="story-stats">
-      <div class="story-stat"><b>${hPct(now.gmr)}</b><i>real return/yr · equity lens</i></div>
-      <div class="story-stat"><b>${nowMix!=null?hPct(nowMix):'—'}</b><i>through the ${escHtml(mixLabel)} mix</i></div>
-      <div class="story-stat"><b>${(now.vol*100).toFixed(1)}%</b><i>volatility</i></div>
-      <div class="story-stat"><b>${HC_ASSET_LABELS[now.winnerAsset]||now.winnerAsset}</b><i>top asset</i></div>
-      <div class="story-stat"><b>${escHtml(hcEnvironmentLabel(now))}</b><i>${escHtml(mNow.phase||'')} · ${escHtml(mNow.inflation||'')} inflation · Fed ${escHtml(mNow.fed||'')}</i></div>
-    </div>
-    <div class="story-sec"><span>Closest reference periods · same broad environment first</span></div>
-    <div class="hist-rows">`;
-  for(const r of refs){
-    const b=r.block, on=b.start===histSel;
-    const next=hcNextReturn(b);
-    h+=`<div class="led-row hist-row${on?' on':''}" data-hist="${b.start}">
-      <span class="hist-period">${b.label}</span>
-      <span class="hist-env">${escHtml(hcEnvironmentLabel(b))} · ${escHtml(HC_SHAPE_LABELS[b.shape]||b.shape)}</span>
-      <span class="dots"></span>
-      <b>during ${hPct(b.gmr)} · next 3 yrs ${next!=null?hPct(next):'—'}</b>
-    </div>`;
-  }
-  h+=`</div>`;
-
-  if(sel){
-    const before=hcBlockGmr(sel.start-3), after=hcBlockGmr(sel.end+1);
-    const mSel=MACRO_TAGS[sel.start]||{};
-    const {checks}=hcSymmetry(now, sel);
-    const dims=[
-      ['Cycle phase',      checks.phase,     escHtml(mNow.phase||'—'),                          escHtml(mSel.phase||'—')],
-      ['Inflation regime', checks.inflation, escHtml(mNow.inflation||'—'),                      escHtml(mSel.inflation||'—')],
-      ['Fed posture',      checks.fed,       escHtml(mNow.fed||'—'),                            escHtml(mSel.fed||'—')],
-      ['Path shape',       checks.shape,     escHtml(HC_SHAPE_LABELS[now.shape]),               escHtml(HC_SHAPE_LABELS[sel.shape])],
-      ['Real return/yr',   checks.gmr,       hPct(now.gmr),                                     hPct(sel.gmr)],
-      ['Volatility',       checks.vol,       (now.vol*100).toFixed(1)+'%',                      (sel.vol*100).toFixed(1)+'%'],
-      ['Top asset',        checks.winner,    HC_ASSET_LABELS[now.winnerAsset]||now.winnerAsset, HC_ASSET_LABELS[sel.winnerAsset]||sel.winnerAsset]
-    ];
-    const row=d=>`<div class="led-row"><span>${d[0]} — ${d[2]} vs ${d[3]}</span><span class="dots"></span><b>${d[1]>=1?'shared':d[1]>=0.5?'close':'different'}</b></div>`;
-    const selMixDuring=profileThroughWeights(sel.start, mixW);
-    const selMixNext=profileThroughWeights(sel.end+1, mixW);
-    const notes=[sel.start, sel.start+1, sel.start+2]
-      .map(y=>MACRO_TAGS[y]?`<div class="hist-note"><b>${y}</b> ${escHtml(MACRO_TAGS[y].notes||'')}</div>`:'').join('');
-    h+=`
-    <div class="story-sec"><span>${sel.label} in sequence</span></div>
-    <div class="story-stats">
-      <div class="story-stat"><b>${before?hPct(before.gmr):'—'}</b><i>before · ${before?before.label:'no record'}</i></div>
-      <div class="story-stat"><b>${hPct(sel.gmr)}</b><i>during · ${sel.label}</i></div>
-      <div class="story-stat"><b>${after?hPct(after.gmr):'—'}</b><i>after · ${after?after.label:'no record'}</i></div>
-      <div class="story-stat"><b>${selMixDuring!=null?hPct(selMixDuring):'—'} / ${selMixNext!=null?hPct(selMixNext):'—'}</b><i>during / after · ${escHtml(mixLabel)} mix</i></div>
-    </div>
-    <div class="ledger">
-      <div><h5>${now.label} vs ${sel.label}</h5>${dims.map(row).join('')}</div>
-      <div><h5>The record, year by year</h5>${notes}
-        <div class="hist-note"><b>${sel.end+1}–${sel.end+3}</b> real return ${after?hPct(after.gmr):'—'}/yr</div></div>
-    </div>`;
-  }
-  h+=`<div class="hist-foot">Three-year windows of the 1928–2025 real-return record · context, not a forecast · not used in planning</div>`;
-  el.innerHTML=h;
-  el.querySelectorAll('[data-hist]').forEach(r=>r.onclick=()=>{ histSel=+r.dataset.hist; renderHistory(); });
-}
-
 /* ── tab switch + boot ── */
 $$('.htab').forEach(t=>t.onclick=()=>{
   $$('.htab').forEach(x=>x.classList.remove('on'));
@@ -2925,7 +2837,6 @@ $$('.htab').forEach(t=>t.onclick=()=>{
   if(t.dataset.page==='scenarios'){ if(plansDirty){ plansDirty=false; runAll(); } }
   if(t.dataset.page==='sequencing') runSeq();
   if(t.dataset.page==='net-worth') renderInputs();
-  if(t.dataset.page==='history') renderHistory();
 });
 // Net Worth sub-nav: switch the active sub-page, persist, re-render.
 $$('#np-subnav .stab').forEach(b => b.onclick = () => {
