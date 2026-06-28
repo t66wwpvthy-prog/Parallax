@@ -2,23 +2,50 @@
   /* VISUAL SYSTEM — role-based surface, text, border, and accent tokens.
      Do not encode theme names, color doctrines, or redesign concepts here.
      Tokens describe UI function only, so future agents do not resurrect old design directions. */
-  --bg-deep:#0a141d; --bg:#101d28;
+  --bg-deep:#0A111E; --bg:#111E31;
+  --surface:rgba(236,233,224,.10); --surface-2:rgba(236,233,224,.065); --surface-3:rgba(236,233,224,.04);
+  --rule:rgba(255,255,255,.11); --rule-bright:rgba(255,255,255,.18); --rule-faint:rgba(255,255,255,.06);
+  --ink:#ECE5D8; --ink-bright:#F0EADE; --ink-mute:#C9CDD4; --ink-faint:rgba(236,233,222,.56); --ink-ghost:rgba(236,233,222,.32);
+  /* Primary accent — small emphasis only (links, active rules, key figures). */
+  --accent:#E6B86A; --accent-bright:#F4D9A6; --accent-deep:#C9A47A; --accent-glow:rgba(230,184,106,.34);
+  /* Highlight tone for hero financial values. */
+  --value-highlight:#F0EADE;
+  /* Status roles. Positive is reserved for genuinely positive/healthy signals. */
+  --status-positive:#8FB99A; --status-positive-bright:#A9CFB2;
+  --negative:#BD7E61; --negative-bright:#D49A7E;
+  /* Secondary decorative accent for category swatches / scenario slots. */
+  --accent-secondary:#8FB99A;
+  /* Type roles. Serif for headlines/hero numerals, sans for UI. */
+  --font-sans:'Hanken Grotesk',system-ui,-apple-system,sans-serif;
+  --font-serif:'Spectral',Georgia,"Times New Roman",serif;
+  /* The Scenarios page background (navy + warm-gold glow), copied verbatim from
+     styles/scenarios.css --page-bg so non-Household pages share the exact surface. */
+  --app-page-bg:
+    radial-gradient(56% 52% at 85% -10%, rgba(238,192,116,0.42), rgba(238,192,116,0) 58%),
+    radial-gradient(58% 60% at 2% 106%, rgba(84,144,172,0.32), rgba(0,0,0,0) 62%),
+    radial-gradient(50% 48% at 50% 48%, rgba(126,148,196,0.17), rgba(0,0,0,0) 72%),
+    linear-gradient(160deg, #111E31 0%, #0A111E 50%, #15232F 100%);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);font-family:var(--font-sans);color:var(--ink);font-size:14px;-webkit-font-smoothing:antialiased;overflow:hidden}
+.wrap{height:100vh;display:flex;flex-direction:column;overflow:hidden}
+
+/* Household is excluded from the app-wide Scenarios retone (redesign in progress).
+   It renders entirely inside .hh-shell, so pin the shared role + type tokens it
+   consumes back to their pre-retone values here. Freezes Household pixel-for-pixel
+   without editing any Household rule, while the global tokens above stay on the new
+   palette for Goals / Sequencing. */
+.hh-shell{
   --surface:rgba(212,228,246,.21); --surface-2:rgba(212,228,246,.15); --surface-3:rgba(212,228,246,.10);
   --rule:rgba(206,226,246,.30); --rule-bright:rgba(222,236,250,.46); --rule-faint:rgba(206,226,246,.17);
   --ink:#eef4fa; --ink-bright:#ffffff; --ink-mute:#c7d6e4; --ink-faint:rgba(234,242,250,.66); --ink-ghost:rgba(234,242,250,.3);
-  /* Primary accent — small emphasis only (links, active rules, key figures). */
   --accent:#9fb8cd; --accent-bright:#d9e8f5; --accent-deep:#6f8aa0; --accent-glow:rgba(176,206,236,.32);
-  /* Highlight tone for hero financial values. */
   --value-highlight:#f1f6fb;
-  /* Status roles. Positive is reserved for genuinely positive/healthy signals. */
   --status-positive:#b9cfa6; --status-positive-bright:#d7e4be;
   --negative:#bd695b; --negative-bright:#d58a77;
-  /* Secondary decorative accent for category swatches / scenario slots. */
   --accent-secondary:#b45991;
+  --font-serif:Georgia,"Times New Roman",serif;
 }
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%;background:var(--bg);font-family:'Sora',sans-serif;color:var(--ink);font-size:14px;-webkit-font-smoothing:antialiased;overflow:hidden}
-.wrap{height:100vh;display:flex;flex-direction:column;overflow:hidden}
 
 /* ─── PANEL LAYER ───────────────────────────────────────────────────
    Every floating panel is a frosted surface: translucent fill (--surface)
@@ -532,28 +559,28 @@ html,body{height:100%;background:var(--bg);font-family:'Sora',sans-serif;color:v
 .story-pick .pk-l{font-family:'Sora',sans-serif;font-size:11px;letter-spacing:.06em;color:var(--ink-faint)}
 .story-pick button{background:none;border:none;padding:0 0 3px;cursor:pointer;font-family:'Sora',sans-serif;font-size:12.5px;color:var(--ink-faint);border-bottom:1.5px solid transparent}
 .story-pick button.on{color:var(--ink-bright);font-weight:700;border-bottom-color:var(--accent)}
-.story-pick .pk-note{margin-left:auto;font-family:Georgia,"Times New Roman",serif;font-style:italic;font-size:12px;color:var(--ink-faint)}
-.story-head{font-family:Georgia,"Times New Roman",serif;font-size:27px;line-height:1.25;color:var(--ink-bright);margin:18px 0 4px}
-.story-sub{font-family:Georgia,"Times New Roman",serif;font-style:italic;font-size:15px;color:var(--ink-mute);margin-bottom:26px}
+.story-pick .pk-note{margin-left:auto;font-family:var(--font-serif);font-style:italic;font-size:12px;color:var(--ink-faint)}
+.story-head{font-family:var(--font-serif);font-size:27px;line-height:1.25;color:var(--ink-bright);margin:18px 0 4px}
+.story-sub{font-family:var(--font-serif);font-style:italic;font-size:15px;color:var(--ink-mute);margin-bottom:26px}
 .story-stats{display:flex;flex-wrap:wrap;margin:0 0 8px}
 .story-stat{flex:1 1 0;min-width:150px;padding:4px 22px 10px 0}
 .story-stat+.story-stat{border-left:1px solid var(--rule);padding-left:22px}
-.story-stat b{display:block;font-family:'Inter',sans-serif;font-size:27px;font-weight:600;color:var(--value-highlight);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.story-stat b{display:block;font-family:var(--font-serif);font-size:29px;font-weight:400;color:var(--value-highlight);font-variant-numeric:tabular-nums;letter-spacing:0}
 .story-stat i{display:block;font-style:normal;font-family:'Sora',sans-serif;font-size:11px;color:var(--ink-faint);margin-top:5px}
 .story-rule{border:none;border-top:1px solid var(--rule);margin:10px 0 26px}
 .story-chart-l{font-family:'Sora',sans-serif;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-faint);font-weight:600;margin-bottom:8px}
 .story-chart svg{display:block;width:100%;height:auto}
 .story-read{display:flex;gap:26px;align-items:baseline;padding:16px 0}
 .story-read+.story-read{border-top:1px solid var(--rule-faint)}
-.story-read b{flex:0 0 150px;font-family:'Inter',sans-serif;font-size:23px;font-weight:600;color:var(--value-highlight);font-variant-numeric:tabular-nums}
+.story-read b{flex:0 0 150px;font-family:var(--font-serif);font-size:25px;font-weight:400;color:var(--value-highlight);font-variant-numeric:tabular-nums}
 .story-read .rd-h{display:block;font-family:'Sora',sans-serif;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-mute);font-weight:600;margin-bottom:5px}
 .story-read .rd-b{font-family:'Sora',sans-serif;font-size:13px;color:var(--ink);line-height:1.5}
 .ledger{display:grid;grid-template-columns:1fr 1fr;gap:8px 70px;margin:16px 0 8px}
-.ledger h5{grid-row:1;font-family:Georgia,"Times New Roman",serif;font-style:italic;font-size:14.5px;font-weight:600;color:var(--ink-bright);margin-bottom:8px}
+.ledger h5{grid-row:1;font-family:var(--font-serif);font-style:italic;font-size:14.5px;font-weight:600;color:var(--ink-bright);margin-bottom:8px}
 .led-row{display:flex;align-items:baseline;padding:7px 0;font-family:'Sora',sans-serif;font-size:12.5px;color:var(--ink-mute)}
 .led-row .dots{flex:1;border-bottom:1px dotted var(--rule-faint);margin:0 10px;transform:translateY(-3px)}
 .led-row b{font-family:'Inter',sans-serif;font-size:13px;font-weight:600;color:var(--ink-bright);font-variant-numeric:tabular-nums;white-space:nowrap}
-.led-none{font-family:Georgia,"Times New Roman",serif;font-style:italic;font-size:12.5px;color:var(--ink-faint);padding:7px 0}
+.led-none{font-family:var(--font-serif);font-style:italic;font-size:12.5px;color:var(--ink-faint);padding:7px 0}
 @media (max-width:760px){
   .ledger{grid-template-columns:1fr}
   .ledger h5{grid-row:auto}
@@ -561,8 +588,8 @@ html,body{height:100%;background:var(--bg);font-family:'Sora',sans-serif;color:v
 }
 /* Playback (Sequencing) — same statement language. Verdict is a serif
    sentence; comparisons and the year-by-year are hairline tables. */
-.pb-verdict{font-family:Georgia,"Times New Roman",serif;font-size:34px;line-height:1.2;color:var(--ink-bright);margin:20px 0 6px}
-.pb-sub{font-family:Georgia,"Times New Roman",serif;font-style:italic;font-size:15px;color:var(--ink-mute);margin-bottom:20px}
+.pb-verdict{font-family:var(--font-serif);font-size:34px;line-height:1.2;color:var(--ink-bright);margin:20px 0 6px}
+.pb-sub{font-family:var(--font-serif);font-style:italic;font-size:15px;color:var(--ink-mute);margin-bottom:20px}
 .pb-sub b{font-style:normal;font-family:'Inter',sans-serif;font-weight:600;color:var(--value-highlight)}
 .stmt{width:100%;border-collapse:collapse;margin:10px 0 6px}
 .stmt th{font-family:'Sora',sans-serif;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-mute);font-weight:600;text-align:right;padding:6px 0 8px;border-bottom:1px solid var(--rule)}
@@ -570,11 +597,11 @@ html,body{height:100%;background:var(--bg);font-family:'Sora',sans-serif;color:v
 .stmt th.l,.stmt td.l{text-align:left}
 .stmt td{font-family:'Inter',sans-serif;font-size:12.5px;color:var(--ink);font-variant-numeric:tabular-nums;text-align:right;padding:8px 0;border-bottom:1px solid var(--rule-faint)}
 .stmt td.l{font-family:'Sora',sans-serif;color:var(--ink-mute)}
-.stmt td.era{font-family:Georgia,"Times New Roman",serif;font-style:italic;font-size:12px;color:var(--ink-mute);padding-left:18px}
+.stmt td.era{font-family:var(--font-serif);font-style:italic;font-size:12px;color:var(--ink-mute);padding-left:18px}
 .stmt tr.plan td{color:var(--ink-bright);font-weight:600}
 .stmt td.end{color:var(--value-highlight);font-weight:600}
 .stmt td.neg{color:var(--negative-bright)}
-.pb-detail-btn{background:none;border:none;cursor:pointer;font-family:Georgia,"Times New Roman",serif;font-style:italic;font-size:13px;color:var(--ink-mute);padding:4px 0}
+.pb-detail-btn{background:none;border:none;cursor:pointer;font-family:var(--font-serif);font-style:italic;font-size:13px;color:var(--ink-mute);padding:4px 0}
 .pb-detail-btn:hover{color:var(--accent-bright)}
 
 .cf-toggle{margin:18px 0 12px;display:flex;justify-content:flex-end;align-items:center;gap:10px;flex-wrap:wrap;flex-shrink:0}
@@ -696,7 +723,7 @@ html,body{height:100%;background:var(--bg);font-family:'Sora',sans-serif;color:v
 .gl-adds .hp-add{margin-top:16px}
 .gl-runs{margin-top:20px;padding-top:12px;border-top:1px solid var(--rule-faint);font-family:'Sora',sans-serif;font-size:12.5px;color:var(--ink-mute);display:flex;gap:34px;flex-wrap:wrap}
 .gl-runs b{font-family:'Inter',sans-serif;color:var(--ink-bright);font-weight:600;font-variant-numeric:tabular-nums}
-.gl-none{font-family:Georgia,"Times New Roman",serif;font-style:italic;color:var(--ink-faint);padding:18px 0}
+.gl-none{font-family:var(--font-serif);font-style:italic;color:var(--ink-faint);padding:18px 0}
 /* Life-area chips + intake strip. Areas are STRUCTURE only — the tool never
    suggests goal content; the client names the goal in their own words. */
 .ga-chips{display:flex;flex-wrap:wrap;gap:9px;padding:2px 2px 16px}
@@ -805,7 +832,7 @@ body::after{
 .hdr-tabs{margin-left:22px;gap:24px}
 .htab{
   color:rgba(230,211,178,.60);
-  font-family:Georgia,"Times New Roman",serif;
+  font-family:var(--font-serif);
   font-size:14px;
   letter-spacing:.22em;
   padding:17px 6px 15px;
@@ -834,7 +861,7 @@ body::after{
   background:linear-gradient(90deg,rgba(235,213,178,.028),transparent 68%);
 }
 .stab{
-  font-family:Georgia,"Times New Roman",serif;
+  font-family:var(--font-serif);
   color:rgba(230,211,178,.54);
   font-size:12px;
   letter-spacing:.22em;
@@ -843,7 +870,7 @@ body::after{
 }
 .stab:hover{color:rgba(230,211,178,.78)}
 .stab.on{color:var(--ink-bright);border-bottom-color:var(--accent-bright)}
-.eyebrow{color:rgba(230,211,178,.70);font-family:Georgia,"Times New Roman",serif;font-size:15px}
+.eyebrow{color:rgba(230,211,178,.70);font-family:var(--font-serif);font-size:15px}
 .eyebrow::after{background:linear-gradient(90deg,rgba(232,205,161,.32),transparent)}
 .np-page{
   max-width:min(1480px, calc(100vw - 64px));
@@ -859,7 +886,7 @@ body::after{
   color:var(--ink-mute);
 }
 .np-gutter .big-num,.m-hero{
-  font-family:Georgia,"Times New Roman",serif;
+  font-family:var(--font-serif);
   color:var(--value-highlight);
   text-shadow:0 0 18px rgba(242,221,186,.13);
 }
@@ -869,7 +896,7 @@ body::after{
   letter-spacing:.24em;
 }
 .bs-title{
-  font-family:Georgia,"Times New Roman",serif;
+  font-family:var(--font-serif);
   font-size:25px;
   color:var(--ink-bright);
   text-shadow:0 0 16px rgba(242,221,186,.10);
@@ -930,7 +957,7 @@ body::after{
 .prop{border-radius:18px}
 .prop-meta,.bs-add,.hp-add{color:var(--accent-bright)}
 .chart-title{
-  font-family:Georgia,"Times New Roman",serif;
+  font-family:var(--font-serif);
   color:var(--ink-bright);
   font-size:21px;
 }
@@ -1349,14 +1376,19 @@ body .page input{
   caret-color:var(--ng-ink);
 }
 body .hdr{
-  min-height:99px;margin:20px 30px 0;padding:10px 36px;border:1px solid rgba(232,243,249,.18)!important;border-radius:13px!important;
-  background:linear-gradient(120deg,rgba(255,255,255,.05),rgba(74,94,124,.12) 45%,rgba(24,34,52,.06))!important;
+  min-height:99px;margin:20px 30px 0;padding:10px 36px;border:1px solid rgba(232,243,249,.10)!important;border-radius:13px!important;
+  /* Dark navy glass + a faint warm-gold note (top-right, near the gold RUN button)
+     so the shared header reads as part of the navy+gold Scenarios system rather
+     than the light steel-blue it became in #54. */
+  background:
+    radial-gradient(130% 240% at 86% -80%, rgba(230,184,106,.13), rgba(230,184,106,0) 55%),
+    linear-gradient(120deg, rgba(255,255,255,.045) 0%, rgba(74,94,124,.13) 40%, rgba(17,30,49,.55) 100%)!important;
   backdrop-filter:blur(22px) saturate(1.30);-webkit-backdrop-filter:blur(22px) saturate(1.30);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.23),inset 0 -1px 0 rgba(255,255,255,.045),0 24px 70px -58px rgba(0,0,0,.62)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.12),inset 0 -1px 0 rgba(0,0,0,.10),0 24px 70px -58px rgba(0,0,0,.64)!important;
 }
 body svg.brand-logo{width:154px;height:74px;mix-blend-mode:normal;filter:drop-shadow(0 0 12px rgba(196,218,234,.22))}
 body .hdr-tabs{margin-left:2px;padding-left:32px;gap:38px;border-left:1px solid rgba(222,237,247,.14)}
-body .htab{font-family:'Sora',sans-serif;font-size:14px;font-weight:400;letter-spacing:.15em;padding:12px 0 17px;color:var(--ng-ink-muted);text-shadow:none}
+body .htab{font-family:var(--font-sans);font-size:14px;font-weight:400;letter-spacing:.15em;padding:12px 0 17px;color:var(--ng-ink-muted);text-shadow:none}
 body .htab.on{color:var(--ng-ink);border-bottom-color:var(--ng-accent);box-shadow:0 10px 26px -18px rgba(231,201,135,.78)}
 body .hdr-right{gap:30px}
 body .status{font-size:12px;letter-spacing:.20em;color:var(--ng-ink-muted)}
@@ -1366,7 +1398,16 @@ body .page[data-page="net-worth"],
 body .page[data-page="sequencing"]{
   position:relative;
   padding:24px 56px 34px;
-  background:transparent;
+}
+/* Sequencing + the Goals sub-view sit on the Scenarios page background so they read
+   as the same surface as the Scenarios tab. Household keeps its own warm background
+   (household.css, scoped to :has(.hh-shell)); Goals mounts .gl-wrap, so this targets
+   Goals only. No !important needed — the Household background no longer claims the
+   shared net-worth page. */
+body .page[data-page="sequencing"],
+body .page[data-page="net-worth"]:has(.gl-wrap){
+  background:var(--app-page-bg);
+  background-attachment:fixed;
 }
 body .subnav,
 body .seq-pick,
