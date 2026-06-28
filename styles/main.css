@@ -1004,13 +1004,13 @@ body::after{
 :root{
   --frame-inset:16px;
   --frame-radius:28px;
-  --glass-fill:rgba(255,244,218,.052);
-  --glass-fill-soft:rgba(255,244,218,.033);
-  --glass-fill-strong:rgba(255,244,218,.078);
-  --glass-warm:rgba(199,145,82,.050);
-  --glass-stroke:rgba(248,226,190,.175);
-  --glass-stroke-strong:rgba(248,226,190,.285);
-  --glass-glint:rgba(255,248,226,.255);
+  --glass-fill:rgba(214,230,248,.052);
+  --glass-fill-soft:rgba(214,230,248,.030);
+  --glass-fill-strong:rgba(214,230,248,.075);
+  --glass-warm:rgba(74,94,124,.060);
+  --glass-stroke:rgba(232,243,249,.16);
+  --glass-stroke-strong:rgba(232,243,249,.26);
+  --glass-glint:rgba(244,250,255,.22);
   --glass-shadow:0 26px 74px -48px rgba(0,0,0,.86);
   --glass-shadow-tight:0 18px 48px -34px rgba(0,0,0,.78);
   --glass-blur:28px;
@@ -1019,18 +1019,16 @@ body::after{
 }
 html,body{font-size:13.5px;text-rendering:geometricPrecision}
 body{
-  background-color:#0f0906;
+  background-color:#0A111E;
   background-image:
-    radial-gradient(ellipse at 49% -2%, rgba(249,228,188,.26), transparent 30%),
-    radial-gradient(ellipse at 14% 78%, rgba(196,177,128,.115), transparent 31%),
-    radial-gradient(ellipse at 92% 34%, rgba(146,86,35,.19), transparent 39%),
-    linear-gradient(90deg, rgba(255,235,192,.020) 1px, transparent 1px),
-    linear-gradient(180deg, rgba(255,235,192,.015) 1px, transparent 1px),
-    linear-gradient(118deg,#070503 0%,#15100a 44%,#231609 100%);
-  background-size:auto,auto,auto,68px 68px,68px 68px,auto;
+    radial-gradient(56% 52% at 85% -10%, rgba(238,192,116,.20), rgba(238,192,116,0) 58%),
+    radial-gradient(58% 60% at 2% 106%, rgba(84,144,172,.30), rgba(0,0,0,0) 62%),
+    radial-gradient(50% 48% at 50% 48%, rgba(126,148,196,.15), rgba(0,0,0,0) 72%),
+    linear-gradient(160deg,#111E31 0%,#0A111E 50%,#15232F 100%);
+  background-attachment:fixed;
 }
 body::before{filter:blur(12px);opacity:.72}
-body::after{inset:var(--frame-inset);border-radius:var(--frame-radius);border-color:rgba(248,228,191,.145);box-shadow:inset 0 1px 0 rgba(255,244,218,.15),inset 0 -1px 0 rgba(255,244,218,.08),0 0 30px rgba(238,203,145,.085)}
+body::after{inset:var(--frame-inset);border-radius:var(--frame-radius);border-color:rgba(232,243,249,.14);box-shadow:inset 0 1px 0 rgba(255,255,255,.12),inset 0 -1px 0 rgba(255,255,255,.06),0 0 30px rgba(126,148,196,.10)}
 .wrap::before{opacity:.66}
 
 .hdr,
@@ -1294,37 +1292,36 @@ body::after{inset:var(--frame-inset);border-radius:var(--frame-radius);border-co
    the same champagne text, blue-silver logo, glass panels, and success rings
    across the other tabs without copy/pasting page-specific values. */
 :root{
-  --ng-ink:#eadcc4;
-  --ng-ink-soft:#e3d4bb;
-  --ng-ink-muted:rgba(231,218,195,.82);
-  --ng-ink-faint:rgba(226,211,186,.62);
-  --ng-ink-value:rgba(241,228,204,.92);
-  --ng-ink-total:rgba(244,231,207,.94);
-  --ng-accent:#e7c987;
-  --ng-success:#8fdea1;
-  --ng-success-glow:rgba(143,222,161,.45);
-  --ng-caution:#d7be83;
-  --ng-risk:#8f5851;
-  --ng-ring-track:rgba(238,226,205,.13);
-  --ng-glass-border:rgba(232,243,249,.105);
-  --ng-glass-border-soft:rgba(232,243,249,.095);
-  --ng-glass-border-strong:rgba(232,243,249,.20);
-  --ng-glass-fill:linear-gradient(145deg,rgba(248,252,255,.044),rgba(81,120,146,.038) 48%,rgba(8,23,36,.105));
-  --ng-glass-fill-label:linear-gradient(145deg,rgba(246,251,255,.042),rgba(72,109,135,.040) 52%,rgba(8,22,34,.10));
-  --ng-glass-fill-total:linear-gradient(145deg,rgba(248,252,255,.052),rgba(84,123,149,.040) 48%,rgba(8,23,35,.13));
-  --ng-glass-fill-base:linear-gradient(145deg,rgba(255,246,229,.068),rgba(116,139,151,.045) 48%,rgba(9,26,40,.105));
-  --ng-base-rim:rgba(210,154,96,.34);
-  --ng-base-glint:rgba(239,194,128,.62);
+  --ng-ink:#ECE5D8;
+  --ng-ink-soft:#D8DEE6;
+  --ng-ink-muted:rgba(210,216,224,.82);
+  --ng-ink-faint:rgba(200,208,218,.60);
+  --ng-ink-value:rgba(236,229,216,.94);
+  --ng-ink-total:rgba(240,234,222,.96);
+  --ng-accent:#E6B86A;
+  --ng-success:#8FB99A;
+  --ng-success-glow:rgba(143,185,154,.45);
+  --ng-caution:#D6A86A;
+  --ng-risk:#BD7E61;
+  --ng-ring-track:rgba(255,255,255,.07);
+  --ng-glass-border:rgba(232,243,249,.10);
+  --ng-glass-border-soft:rgba(232,243,249,.085);
+  --ng-glass-border-strong:rgba(232,243,249,.18);
+  --ng-glass-fill:linear-gradient(150deg,rgba(255,255,255,.06),rgba(255,255,255,0) 34%),linear-gradient(158deg,rgba(74,94,124,.16),rgba(24,34,52,.08));
+  --ng-glass-fill-label:linear-gradient(150deg,rgba(255,255,255,.05),rgba(255,255,255,0) 36%),linear-gradient(158deg,rgba(74,94,124,.13),rgba(24,34,52,.07));
+  --ng-glass-fill-total:linear-gradient(150deg,rgba(255,255,255,.07),rgba(255,255,255,0) 34%),linear-gradient(158deg,rgba(84,108,140,.18),rgba(24,34,52,.10));
+  --ng-glass-fill-base:linear-gradient(150deg,rgba(255,255,255,.08),rgba(255,255,255,0) 36%),linear-gradient(158deg,rgba(106,124,156,.20),rgba(28,40,60,.10));
+  --ng-base-rim:rgba(126,148,196,.30);
+  --ng-base-glint:rgba(244,250,255,.55);
 
   --ng-row-wash:rgba(234,244,249,.030);
   --ng-glass-rim:inset 1px 0 0 rgba(255,255,255,.075),inset -1px 0 0 rgba(255,255,255,.045);
-  --ng-bg-base:#2d485e;
+  --ng-bg-base:#0A111E;
   --ng-bg-image:
-    radial-gradient(44% 82% at 99% 25%, rgba(250,224,190,.62), rgba(238,199,151,.24) 42%, rgba(238,197,149,0) 68%),
-    radial-gradient(54% 64% at 16% 0%, rgba(199,225,239,.26), transparent 66%),
-    radial-gradient(66% 90% at 46% 38%, rgba(70,111,140,.24), transparent 70%),
-    linear-gradient(180deg, rgba(32,62,82,.02) 0%, rgba(24,52,72,.13) 54%, rgba(6,20,32,.78) 100%),
-    linear-gradient(180deg,#324d61 0%,#496777 43%,#596b73 64%,#1a3449 100%);
+    radial-gradient(56% 52% at 85% -10%, rgba(238,192,116,.20), rgba(238,192,116,0) 58%),
+    radial-gradient(58% 60% at 2% 106%, rgba(84,144,172,.30), rgba(0,0,0,0) 62%),
+    radial-gradient(50% 48% at 50% 48%, rgba(126,148,196,.15), rgba(0,0,0,0) 72%),
+    linear-gradient(160deg,#111E31 0%,#0A111E 50%,#15232F 100%);
 }
 
 /* Native glass app shell shared by all tabs. */
@@ -1341,12 +1338,12 @@ body::before{
 body::after{
   content:"";position:fixed;left:-4vw;right:-4vw;bottom:-12vh;height:54vh;z-index:0;pointer-events:none;border:0;box-shadow:none;
   background:
-    radial-gradient(circle at 7% 78%,rgba(239,194,125,.22) 0 2px,transparent 7px),
-    radial-gradient(circle at 12% 68%,rgba(235,186,108,.18) 0 1px,transparent 6px),
-    radial-gradient(circle at 89% 66%,rgba(248,216,167,.26) 0 2px,transparent 8px),
-    radial-gradient(circle at 96% 58%,rgba(244,205,148,.22) 0 1px,transparent 7px),
-    radial-gradient(circle at 12% 70%,rgba(239,206,150,.20) 0 1px,transparent 2px) 0 0/18px 22px,
-    radial-gradient(circle at 84% 34%,rgba(247,221,173,.16) 0 1px,transparent 2px) 0 0/22px 26px,
+    radial-gradient(circle at 7% 78%,rgba(176,206,236,.20) 0 2px,transparent 7px),
+    radial-gradient(circle at 12% 68%,rgba(150,184,210,.16) 0 1px,transparent 6px),
+    radial-gradient(circle at 89% 66%,rgba(196,218,238,.22) 0 2px,transparent 8px),
+    radial-gradient(circle at 96% 58%,rgba(170,200,228,.18) 0 1px,transparent 7px),
+    radial-gradient(circle at 12% 70%,rgba(176,206,236,.16) 0 1px,transparent 2px) 0 0/18px 22px,
+    radial-gradient(circle at 84% 34%,rgba(196,218,238,.14) 0 1px,transparent 2px) 0 0/22px 26px,
     linear-gradient(180deg,transparent 0 22%,rgba(8,21,33,.62) 100%);
   -webkit-mask-image:linear-gradient(180deg, transparent 0%, rgba(0,0,0,.06) 38%, rgba(0,0,0,.55) 70%, #000 100%);mask-image:linear-gradient(180deg, transparent 0%, rgba(0,0,0,.06) 38%, rgba(0,0,0,.55) 70%, #000 100%);
   filter:blur(7px);opacity:.38;
@@ -1365,7 +1362,7 @@ body .page input{
 }
 body .hdr{
   min-height:99px;margin:20px 30px 0;padding:10px 36px;border:1px solid rgba(232,243,249,.18)!important;border-radius:13px!important;
-  background:linear-gradient(90deg,rgba(240,248,252,.042),rgba(85,120,143,.070) 43%,rgba(239,211,174,.098))!important;
+  background:linear-gradient(120deg,rgba(255,255,255,.05),rgba(74,94,124,.12) 45%,rgba(24,34,52,.06))!important;
   backdrop-filter:blur(22px) saturate(1.30);-webkit-backdrop-filter:blur(22px) saturate(1.30);
   box-shadow:inset 0 1px 0 rgba(255,255,255,.23),inset 0 -1px 0 rgba(255,255,255,.045),0 24px 70px -58px rgba(0,0,0,.62)!important;
 }
