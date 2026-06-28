@@ -18,7 +18,10 @@
   --hh-real:#bfc0a6;
   --hh-liability:#b36a56;
 }
-body .page[data-page="net-worth"]{
+/* Scoped to :has(.hh-shell) so this warm Household-workspace background applies
+   only to the Household statement/map view — NOT the Goals sub-view, which shares
+   the data-page="net-worth" page and must read as a Scenarios (navy) surface. */
+body .page[data-page="net-worth"]:has(.hh-shell){
   padding:22px 40px 34px;
   background:
     radial-gradient(circle at 24% 24%,rgba(214,176,112,.10),transparent 31%),
@@ -628,7 +631,7 @@ body .hh-net-foot span{
   body .hh-ledger-row .field{justify-content:flex-start;min-width:0}
 }
 
-body .page[data-page="net-worth"]{
+body .page[data-page="net-worth"]:has(.hh-shell){
   background-color:var(--hh-charcoal);
 }
 body .hh-map-grid{
@@ -693,7 +696,7 @@ body .hh-bankrail .acct-add{
   color:var(--hh-gold-bright)!important;
   box-shadow:inset 0 1px 0 rgba(255,248,226,.13),0 14px 34px -28px rgba(214,176,112,.6)!important;
 }
-body .page[data-page="net-worth"]{
+body .page[data-page="net-worth"]:has(.hh-shell){
   padding:30px 40px 46px;
   background:
     radial-gradient(circle at 50% 17%,rgba(236,228,212,.040),transparent 33%),

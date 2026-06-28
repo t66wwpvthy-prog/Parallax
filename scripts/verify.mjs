@@ -579,6 +579,43 @@ try {
     await page.screenshot({ path: join(OUT, '06-playback.png') });
   });
 
+  // Objective theme contract: the page BACKGROUND (not just foreground tokens) must be
+  // the Scenarios navy --page-bg on Goals + Sequencing, and must NOT be the Household
+  // warm bronze. Household itself must KEEP the bronze (it is excluded). Computed-style
+  // assertions so a brown-vs-navy regression fails loudly instead of relying on a human
+  // reading a screenshot.
+  await step('theme: Goals + Sequencing sit on the Scenarios navy background; Household excluded', async () => {
+    const NAVY = '17, 30, 49';      // #111E31 — Scenarios --page-bg base
+    const BRONZE = '154, 102, 56';  // household.css net-worth warm background
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
+    const bgOf = sel => page.evaluate(s => {
+      const el = document.querySelector(s);
+      return el ? getComputedStyle(el).backgroundImage : '(no element)';
+    }, sel);
+
+    await page.click('button[data-page="scenarios"]'); await sleep(500);
+    const scnBg = await bgOf('.page[data-page="scenarios"]');
+    if(!scnBg.includes(NAVY)) throw new Error(`Scenarios page lost its navy --page-bg: ${scnBg}`);
+
+    await page.click('.htab[data-sub-target="goals"]'); await sleep(600);
+    if(!await page.evaluate(() => !!document.querySelector('#np-content .gl-wrap'))) throw new Error('Goals view did not mount .gl-wrap');
+    const goalsBg = await bgOf('.page[data-page="net-worth"]');
+
+    await page.click('button[data-page="sequencing"]'); await sleep(450);
+    const seqBg = await bgOf('.page[data-page="sequencing"]');
+
+    for(const [name, bg] of [['goals', goalsBg], ['sequencing', seqBg]]){
+      if(!bg.includes(NAVY)) throw new Error(`${name} page is NOT on the Scenarios navy background: ${bg}`);
+      if(bg.includes(BRONZE)) throw new Error(`${name} page still shows the Household bronze background: ${bg}`);
+    }
+
+    // Household stays warm + excluded.
+    await page.click('.htab[data-sub-target="balance-sheet"]'); await sleep(600);
+    const hhBg = await bgOf('.page[data-page="net-worth"]');
+    if(!hhBg.includes(BRONZE)) throw new Error(`Household lost its warm background (must stay excluded): ${hhBg}`);
+    if(hhBg.includes(NAVY)) throw new Error(`Household picked up the Scenarios navy background (must stay excluded): ${hhBg}`);
+  });
+
   if(errs.length){
     console.error('PAGE/CONSOLE ERRORS:');
     errs.forEach(e => console.error('  ' + e));
