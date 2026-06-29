@@ -4003,7 +4003,7 @@ $('#path-seed').onchange=e=>{
     const rowHtml = (r) => {
       const tax = resolveRowTax(r, sidecar);
       const ending = (r.shortfall || r.ending <= 0) ? '$0' : fmtMoney(r.ending);
-      const endColor = (r.shortfall || r.ending <= 0) ? 'var(--down-deep)' : 'var(--text-1)';
+      const endColor = (r.shortfall || r.ending <= 0) ? 'var(--down-deep)' : 'var(--text-2)';
       const goalsColor = r.goals > 0 ? (r.goalTag ? '#E2C089' : '#C8A876') : 'var(--text-mute)';
       const lifeTag = r.lifeTag || null;
       return (
