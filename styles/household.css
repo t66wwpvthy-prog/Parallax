@@ -1,962 +1,479 @@
-/* Household packet translation. Scoped to the real Household tab only. */
-:root{
-  --hh-charcoal:#11100d;
-  --hh-graphite:#1d1b17;
-  --hh-graphite-2:#25211a;
-  --hh-bronze:#9a6638;
-  --hh-gold:#d6b070;
-  --hh-gold-bright:#f0d192;
-  --hh-ivory:#ece4d4;
-  --hh-muted:#8c8578;
-  --hh-line:rgba(236,228,212,.14);
-  --hh-line-strong:rgba(214,176,112,.34);
-  --hh-glass:linear-gradient(145deg,rgba(255,246,222,.075),rgba(255,246,222,.026) 46%,rgba(31,26,19,.54));
-  --hh-shadow:0 30px 90px -58px rgba(0,0,0,.92),0 0 40px -30px rgba(214,176,112,.72);
-  --hh-taxable:#d6b070;
-  --hh-pre-tax:#b58a52;
-  --hh-roth:#d7c27d;
-  --hh-real:#bfc0a6;
-  --hh-liability:#b36a56;
-}
-/* Scoped to :has(.hh-shell) so this warm Household-workspace background applies
-   only to the Household statement/map view — NOT the Goals sub-view, which shares
-   the data-page="net-worth" page and must read as a Scenarios (navy) surface. */
-body .page[data-page="net-worth"]:has(.hh-shell){
-  padding:22px 40px 34px;
-  background:
-    radial-gradient(circle at 24% 24%,rgba(214,176,112,.10),transparent 31%),
-    radial-gradient(circle at 76% 12%,rgba(154,102,56,.16),transparent 28%),
-    linear-gradient(180deg,rgba(17,16,13,.10),rgba(17,16,13,.34));
-}
-body .hh-shell,
-body .hh-shell input,
-body .hh-shell button,
-body .hh-shell select{
-  font-family:'Sora',Arial,sans-serif;
-}
-body .hh-shell{
-  position:relative;
-  width:100%;
-  max-width:1568px;
-  margin:0 auto;
-  color:var(--hh-ivory);
-}
-body .hh-view-toggle{
-  display:flex;
-  justify-content:center;
-  gap:5px;
-  width:max-content;
-  margin:0 auto 18px;
-  padding:5px;
-  border:1px solid var(--hh-line);
-  border-radius:14px;
-  background:rgba(14,14,13,.62);
-  box-shadow:var(--hh-shadow),inset 0 1px 0 rgba(255,248,226,.13);
-  backdrop-filter:blur(22px) saturate(1.15);
-  -webkit-backdrop-filter:blur(22px) saturate(1.15);
-}
-body .hh-toggle-btn{
-  min-width:110px;
-  min-height:38px;
-  border:0;
-  border-radius:10px;
-  background:transparent;
-  color:var(--hh-muted);
-  font-size:12px;
-  letter-spacing:.14em;
-  text-transform:uppercase;
-  cursor:pointer;
-}
-body .hh-toggle-btn:hover{color:var(--hh-ivory)}
-body .hh-toggle-btn.on{
-  color:#21170b;
-  background:linear-gradient(180deg,var(--hh-gold-bright),var(--hh-gold));
-  box-shadow:0 10px 24px -16px rgba(214,176,112,.9),inset 0 1px 0 rgba(255,255,255,.34);
-  font-weight:700;
-}
-body .hh-map-grid{
-  min-height:calc(100vh - 170px);
-  display:grid;
-  grid-template-columns:minmax(0,1fr) 330px;
-  gap:38px;
-  align-items:stretch;
-}
-body .hh-map-main{
-  position:relative;
-  min-height:680px;
-  border-radius:24px;
-  padding:28px 32px 26px;
-  background:
-    radial-gradient(circle at 50% 22%,rgba(214,176,112,.12),transparent 28%),
-    radial-gradient(circle at 18% 62%,rgba(236,228,212,.045),transparent 27%),
-    linear-gradient(180deg,rgba(22,20,17,.34),rgba(7,8,8,.26));
-  border:1px solid rgba(236,228,212,.08);
-  overflow:hidden;
-}
-body .hh-map-main::before{
-  content:"";
-  position:absolute;
-  left:8%;
-  right:8%;
-  top:132px;
-  height:1px;
-  background:linear-gradient(90deg,transparent,rgba(214,176,112,.34),transparent);
-  opacity:.7;
-}
-body .hh-map-kpis{
-  display:grid;
-  grid-template-columns:repeat(4,minmax(0,1fr));
-  gap:14px;
-  max-width:980px;
-  margin:0 auto 44px;
-}
-body .hh-map-kpis div,
-body .hh-statement-hero,
-body .hh-glass-card,
-body .hh-bankrail{
-  background:var(--hh-glass)!important;
-  border:1px solid var(--hh-line)!important;
-  box-shadow:var(--hh-shadow),inset 0 1px 0 rgba(255,248,226,.18)!important;
-  backdrop-filter:blur(28px) saturate(1.22)!important;
-  -webkit-backdrop-filter:blur(28px) saturate(1.22)!important;
-}
-body .hh-map-kpis div{
-  min-height:86px;
-  border-radius:16px;
-  padding:15px 17px;
-}
-body .hh-map-kpis span,
-body .hh-hero-figs span,
-body .hh-kicker,
-body .hh-cloud-label,
-body .hh-subhead,
-body .hh-person-stats span:first-child,
-body .hh-field-sec h4{
-  display:block;
-  color:var(--hh-muted);
-  font-size:12.5px;
-  line-height:1.2;
-  letter-spacing:.15em;
-  text-transform:uppercase;
-}
-body .hh-map-kpis b,
-body .hh-hero-figs b,
-body .hh-card-head b,
-body .hh-net-foot b{
-  display:block;
-  margin-top:8px;
-  font-family:Georgia,"Times New Roman",serif;
-  font-size:28px;
-  line-height:1;
-  font-weight:400;
-  color:var(--hh-ivory);
-  font-variant-numeric:tabular-nums;
-}
-body .hh-people{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:min(8vw,120px);
-  align-items:start;
-  max-width:880px;
-  margin:0 auto;
-}
-body .hh-person-card{
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  min-width:0;
-}
-body .hh-orb{
-  width:178px;
-  aspect-ratio:1;
-  border-radius:50%;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:center;
-  text-align:center;
-  position:relative;
-  background:
-    radial-gradient(circle at 50% 34%,rgba(255,255,255,.08),rgba(22,20,17,.25) 58%,rgba(7,8,8,.72)),
-    linear-gradient(145deg,rgba(214,176,112,.10),transparent);
-  border:1px solid rgba(214,176,112,.55);
-  box-shadow:0 0 0 1px rgba(214,176,112,.18),0 0 78px -18px rgba(214,176,112,.52),inset 0 0 58px -24px rgba(214,176,112,.38);
-}
-body .hh-orb::after{
-  content:"";
-  position:absolute;
-  inset:12px;
-  border-radius:inherit;
-  border:1px solid rgba(236,228,212,.045);
-}
-body .hh-orb-icon{
-  width:18px;
-  height:18px;
-  margin-bottom:12px;
-  color:transparent;
-  position:relative;
-}
-body .hh-orb-icon::before,
-body .hh-orb-icon::after{
-  content:"";
-  position:absolute;
-  left:50%;
-  transform:translateX(-50%);
-  border:1.5px solid var(--hh-bronze);
-}
-body .hh-orb-icon::before{top:0;width:8px;height:8px;border-radius:50%}
-body .hh-orb-icon::after{bottom:0;width:16px;height:10px;border-bottom:0;border-radius:10px 10px 0 0}
-body .hh-orb-name{
-  max-width:140px;
-  overflow:hidden;
-  text-overflow:ellipsis;
-  font-family:Georgia,"Times New Roman",serif;
-  font-size:30px;
-  line-height:1.05;
-  color:var(--hh-ivory);
-}
-body .hh-orb-age{
-  margin-top:9px;
-  color:var(--hh-gold);
-  font-size:13px;
-  letter-spacing:.05em;
-}
-body .hh-orb-status{
-  margin-top:9px;
-  color:var(--hh-gold);
-  font-size:11px;
-  letter-spacing:.18em;
-  text-transform:uppercase;
-}
-body .hh-person-stats{
-  width:100%;
-  max-width:350px;
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:0;
-  margin-top:28px;
-}
-body .hh-person-stats label{
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  gap:8px;
-  padding:0 16px;
-  border-left:1px solid var(--hh-line);
-}
-body .hh-person-stats label:first-child{border-left:0}
-body .hh-person-stats .field{
-  display:flex;
-  align-items:baseline;
-  justify-content:center;
-  gap:4px;
-  min-height:30px;
-}
-body .hh-person-stats input,
-body .hh-ledger-row input,
-body .hh-ledger-row select{
-  border:0;
-  border-bottom:1px dashed rgba(214,176,112,.32);
-  background:transparent;
-  color:var(--hh-ivory)!important;
-  text-align:right;
-  outline:none;
-  font-size:16px!important;
-  font-weight:500!important;
-  font-variant-numeric:tabular-nums;
-}
-body .hh-person-stats input{
-  width:74px;
-  text-align:center;
-  font-family:Georgia,"Times New Roman",serif!important;
-  font-size:24px!important;
-}
-body .hh-person-stats .pre,
-body .hh-ledger-row .pre{color:var(--hh-muted)}
-body .hh-person-stats input:focus,
-body .hh-ledger-row input:focus,
-body .hh-ledger-row select:focus{border-bottom-color:var(--hh-gold)}
-body .hh-account-cloud{
-  max-width:960px;
-  margin:38px auto 0;
-  text-align:center;
-}
-body .hh-pills{
-  display:flex;
-  flex-wrap:wrap;
-  justify-content:center;
-  gap:12px;
-  margin-top:15px;
-}
-body .hh-pill{
-  display:inline-flex;
-  align-items:center;
-  gap:10px;
-  min-height:46px;
-  padding:0 16px;
-  border-radius:999px;
-  background:linear-gradient(145deg,rgba(255,246,222,.065),rgba(255,246,222,.022));
-  border:1px solid rgba(236,228,212,.13);
-  box-shadow:0 18px 38px -28px rgba(0,0,0,.9),inset 0 1px 0 rgba(255,248,226,.14);
-}
-body .hh-pill-dot{
-  width:9px;
-  height:9px;
-  border-radius:3px;
-  background:var(--hh-pill);
-  box-shadow:0 0 12px -3px var(--hh-pill);
-}
-body .hh-pill-name{
-  color:var(--hh-ivory);
-  font-size:14px;
-  font-weight:600;
-}
-body .hh-pill-value{
-  color:var(--hh-muted);
-  font-family:Georgia,"Times New Roman",serif;
-  font-size:16px;
-  font-variant-numeric:tabular-nums;
-}
-body .hh-bankrail{
-  align-self:stretch;
-  display:flex;
-  flex-direction:column;
-  min-height:680px;
-  margin:0!important;
-  padding:0!important;
-  border-radius:24px!important;
-  overflow:hidden;
-}
-body .hh-bank-head{
-  padding:25px 24px 17px;
-  border-bottom:1px solid var(--hh-line);
-}
-body .hh-bank-head h3{
-  margin:8px 0 4px;
-  font-family:Georgia,"Times New Roman",serif;
-  font-size:26px;
-  line-height:1.05;
-  font-weight:400;
-  color:var(--hh-ivory);
-}
-body .hh-bank-total{
-  color:var(--hh-muted);
-  font-size:13px;
-}
-body .hh-bank-body{
-  flex:1;
-  overflow:auto;
-  padding:17px 18px 8px;
-}
-body .hh-bankrail .acct-brow{
-  display:block;
-  padding:0 0 17px;
-  margin-bottom:15px;
-  border-bottom:1px solid rgba(236,228,212,.075);
-}
-body .hh-bankrail .acct-blabel{
-  display:block;
-  width:auto;
-  padding:0;
-  margin:0 0 10px;
-  color:var(--hh-muted)!important;
-  font-size:11px;
-  letter-spacing:.18em;
-}
-body .hh-bankrail .acct-chips{
-  display:grid;
-  grid-template-columns:1fr;
-  gap:8px;
-}
-body .hh-bankrail .acct-chip{
-  display:flex;
-  align-items:center;
-  min-height:42px;
-  border-radius:12px!important;
-  padding:0 13px!important;
-  color:var(--hh-ivory)!important;
-  font-size:13.5px!important;
-  background:rgba(255,246,222,.035)!important;
-  border-color:rgba(236,228,212,.12)!important;
-}
-body .hh-bankrail .acct-chip::after{
-  content:"+";
-  margin-left:auto;
-  width:24px;
-  height:24px;
-  display:grid;
-  place-items:center;
-  border:1px dashed rgba(236,228,212,.18);
-  border-radius:8px;
-  color:var(--hh-muted);
-}
-body .hh-bankrail .acct-chip.sel{
-  border-color:rgba(214,176,112,.56)!important;
-  background:rgba(214,176,112,.10)!important;
-  color:var(--hh-gold)!important;
-}
-body .hh-bankrail .acct-foot{
-  margin:0;
-  padding:18px 20px 20px;
-  border-top:1px solid var(--hh-line);
-}
-body .hh-bankrail .acct-amt{
-  width:132px;
-  border-radius:10px;
-  background:rgba(0,0,0,.18)!important;
-  border-color:rgba(236,228,212,.14)!important;
-  color:var(--hh-ivory)!important;
-  font-size:15px!important;
-}
-body .hh-bankrail .acct-add{
-  min-height:40px;
-  border-radius:10px;
-  color:#21170b;
-  background:linear-gradient(180deg,var(--hh-gold-bright),var(--hh-gold));
-}
-body .hh-statement-shell{
-  min-height:calc(100vh - 170px);
-}
-body .hh-statement-hero{
-  display:flex;
-  justify-content:space-between;
-  align-items:flex-end;
-  gap:28px;
-  border-radius:22px;
-  padding:24px 28px;
-  margin-bottom:16px;
-}
-body .hh-statement-hero h2{
-  margin-top:8px;
-  font-family:Georgia,"Times New Roman",serif;
-  font-size:38px;
-  font-weight:400;
-  line-height:1.05;
-  color:var(--hh-ivory);
-}
-body .hh-hero-figs{
-  display:flex;
-  align-items:flex-end;
-  gap:30px;
-  text-align:right;
-}
-body .hh-hero-figs .lead b{
-  color:var(--hh-gold-bright);
-  font-size:42px;
-}
-body .hh-comp{
-  margin:0 0 18px;
-}
-body .hh-comp-bar{
-  display:flex;
-  gap:2px;
-  height:16px;
-  border-radius:10px;
-  overflow:hidden;
-  background:rgba(0,0,0,.28);
-}
-body .hh-comp-bar i{display:block;height:100%}
-body .hh-comp-legend{
-  display:flex;
-  flex-wrap:wrap;
-  gap:12px 24px;
-  margin-top:11px;
-}
-body .hh-comp-legend span{
-  display:inline-flex;
-  align-items:center;
-  gap:8px;
-  color:var(--hh-muted);
-  font-size:13px;
-}
-body .hh-comp-legend i{
-  width:9px;
-  height:9px;
-  border-radius:2px;
-}
-body .hh-comp-legend b{
-  color:var(--hh-ivory);
-  font-family:Georgia,"Times New Roman",serif;
-  font-size:15px;
-  font-weight:400;
-}
-body .hh-statement-grid{
-  display:grid;
-  grid-template-columns:minmax(340px,1.05fr) minmax(420px,1.3fr) minmax(280px,.78fr);
-  gap:18px;
-  align-items:start;
-}
-body .hh-glass-card{
-  border-radius:20px;
-  padding:21px 22px 22px;
-}
-body .hh-card-head{
-  display:flex;
-  justify-content:space-between;
-  align-items:baseline;
-  gap:18px;
-  padding-bottom:13px;
-  border-bottom:1px solid var(--hh-line-strong);
-}
-body .hh-card-head h3{
-  font-family:Georgia,"Times New Roman",serif;
-  font-size:25px;
-  font-weight:400;
-  color:var(--hh-ivory);
-}
-body .hh-subhead,
-body .hh-field-sec h4{
-  margin:18px 0 7px;
-  padding-bottom:7px;
-  border-bottom:1px solid rgba(214,176,112,.23);
-}
-body .hh-ledger-row{
-  display:grid;
-  grid-template-columns:minmax(0,1fr) auto;
-  gap:14px;
-  align-items:center;
-  min-height:45px;
-  border-bottom:1px solid rgba(236,228,212,.075);
-}
-body .hh-ledger-name{
-  min-width:0;
-  display:flex;
-  align-items:center;
-  gap:10px;
-  color:var(--hh-ivory);
-  font-size:15px;
-  line-height:1.25;
-}
-body .hh-ledger-name i{
-  width:9px;
-  height:9px;
-  flex:none;
-  border-radius:3px;
-  background:var(--hh-pill,var(--hh-gold));
-}
-body .hh-ledger-name small{
-  color:var(--hh-muted);
-  font-size:11.5px;
-  letter-spacing:.04em;
-}
-body .hh-field-row .hh-ledger-name{color:var(--hh-muted)}
-body .hh-ledger-row .field{
-  display:flex;
-  align-items:baseline;
-  justify-content:flex-end;
-  gap:4px;
-  min-width:132px;
-}
-body .hh-row-suffix{
-  color:var(--hh-muted);
-  font-size:12.5px;
-  letter-spacing:.04em;
-}
-body .hh-ledger-row input{width:112px}
-body .hh-ledger-row select{
-  width:152px;
-  appearance:none;
-  text-align:left;
-}
-body .hh-ledger-row .acct-x{
-  width:22px;
-  height:22px;
-  border:1px solid rgba(236,228,212,.14);
-  border-radius:7px;
-  background:rgba(255,255,255,.025);
-  color:var(--hh-muted);
-  cursor:pointer;
-}
-body .hh-empty-row{
-  padding:15px 0;
-  color:var(--hh-muted);
-  font-family:Georgia,"Times New Roman",serif;
-  font-size:15px;
-  font-style:italic;
-  border-bottom:1px solid rgba(236,228,212,.075);
-}
-body .hh-net-foot{
-  display:flex;
-  justify-content:space-between;
-  align-items:baseline;
-  gap:16px;
-  margin-top:22px;
-  padding-top:18px;
-  border-top:2px solid var(--hh-line-strong);
-}
-body .hh-net-foot span{
-  color:var(--hh-gold);
-  font-size:12px;
-  letter-spacing:.18em;
-  text-transform:uppercase;
+/* =============================================================================
+   household.css — THE single authoritative Household style layer (production)
+   -----------------------------------------------------------------------------
+   Lifted from the canonical "Folio + Equilibrium" handoff and adapted for
+   production:
+
+   • Tokens live on .page[data-page="household"] (NOT :root) so nothing leaks.
+   • EVERY selector is scoped beneath .page[data-page="household"].
+   • No global html/body resets, no !important, no specificity escalation.
+   • The prototype's global PARALLAX top bar (logo / orb / nav / RUN) is
+     intentionally NOT reproduced here — production already owns the global
+     header. The Household page paints ONE primary glass surface: the Folio
+     app-frame (chapter rail + document area) floating on the page background.
+
+   4K-QUALITY GLASS (the look this design lives or dies on — see INTEGRATION.md):
+     The premium read comes from layered glass, not flat panels. Keep all three
+     intact at 3840×2160:
+       1. Layered gradient fills (--glass-*: a top sheen layer + a body tint),
+       2. Real backdrop-filter blur+saturate (--blur-*),
+       3. A deep ambient drop shadow PLUS a 1px inner top highlight
+          (inset 0 1px 0 rgba(255,255,255,.14)) on every glass surface.
+     Do not flatten these to solid fills or drop the inner highlight "for perf" —
+     on a 4K meeting display that inner hairline + blur is what makes the surface
+     read as glass rather than a grey box. Tax-category accents are passed inline
+     by the view layer (style="--cat:…") and consumed via var(--cat).
+   ============================================================================= */
+
+/* ---- Tokens + page base (household route only) ---------------------------- */
+.page[data-page="household"] {
+  /* Type */
+  --font-sans: 'Hanken Grotesk', system-ui, -apple-system, sans-serif;
+  --font-serif: 'Spectral', Georgia, serif;
+
+  /* Page background (fixed, behind the floating glass) */
+  --bg-deep:   #0A111E;
+  --bg-top:    #111E31;
+  --bg-bottom: #15232F;
+  --page-bg:
+    radial-gradient(56% 52% at 85% -10%, rgba(238,192,116,0.20), rgba(238,192,116,0) 58%),
+    radial-gradient(58% 60% at 2% 106%, rgba(84,144,172,0.26), rgba(0,0,0,0) 62%),
+    radial-gradient(50% 48% at 50% 48%, rgba(126,148,196,0.12), rgba(0,0,0,0) 72%),
+    linear-gradient(160deg, var(--bg-top) 0%, var(--bg-deep) 50%, var(--bg-bottom) 100%);
+
+  /* Gold accent */
+  --gold:         #E6B86A;
+  --gold-bright:  #F4D9A6;
+  --gold-soft:    #C9A47A;
+  --gold-eyebrow: #E6B86A;
+
+  /* Spouse (cool) accent */
+  --blue-soft:  #8FA9C9;
+  --blue-bright:#C2CFE2;
+  --blue-dim:   #9FB2CC;
+
+  /* Tax-category ramp (semantic; used by Net Worth ledger if accent dots return) */
+  --cat-taxable: #E6B86A;
+  --cat-trad:    #C9A36A;
+  --cat-roth:    #8FA9C9;
+  --cat-cash:    #7FB08C;
+  --cat-hsa:     #BD7E61;
+
+  /* Income / spending tones */
+  --pass: #8FB99A;
+  --down: #D49A7E;
+
+  /* Text ramp */
+  --text-hi: #F0EADE;
+  --text-1:  #ECE5D8;
+  --text-2:  #C9CDD4;
+  --text-3:  #AEB4BC;
+  --text-4:  #9AA0A8;
+  --text-5:  #838A93;
+  --text-6:  #727983;
+
+  /* Hairlines + fills */
+  --line-06: rgba(255,255,255,0.06);
+  --line-08: rgba(255,255,255,0.08);
+  --line-09: rgba(255,255,255,0.09);
+  --line-10: rgba(255,255,255,0.10);
+  --fill-03: rgba(255,255,255,0.03);
+  --fill-04: rgba(255,255,255,0.04);
+  --fill-05: rgba(255,255,255,0.05);
+
+  /* Layered glass gradients (the sheen layer + the body tint) */
+  --glass-panel:
+    linear-gradient(150deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0) 32%),
+    linear-gradient(158deg, rgba(74,94,124,0.19) 0%, rgba(24,34,52,0.09) 100%);
+  --glass-card:
+    linear-gradient(150deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0) 36%),
+    linear-gradient(158deg, rgba(74,94,124,0.15), rgba(24,34,52,0.08));
+  --glass-summary:
+    radial-gradient(120% 130% at 0% 0%, rgba(126,148,196,0.10), rgba(0,0,0,0) 60%),
+    linear-gradient(150deg, rgba(255,255,255,0.075), rgba(255,255,255,0.015));
+
+  /* Elevation shadows (ambient depth + inner top highlight = the glass read) */
+  --shadow-frame:  0 44px 96px rgba(0,0,0,0.50), inset 0 1px 0 rgba(255,255,255,0.14);
+  --shadow-card:   0 16px 40px rgba(0,0,0,0.30);
+  --shadow-fulcrum:0 28px 64px rgba(0,0,0,0.40), inset 0 1px 0 rgba(255,255,255,0.14);
+
+  /* Backdrop blur strengths */
+  --blur-frame:   blur(38px) saturate(155%);
+  --blur-card:    blur(20px);
+  --blur-fulcrum: blur(30px);
+
+  /* Radii */
+  --r-sm:    7px;
+  --r-md:    11px;
+  --r-card:  14px;
+  --r-frame: 18px;
+  --r-pill:  999px;
+
+  /* Layout */
+  --max-w: 1580px;
+  --rail-w: 230px;
+  --frame-min-h: 700px;
+
+  /* Page surface */
+  font-family: var(--font-sans);
+  font-feature-settings: 'tnum' 1;            /* tabular figures for ledgers */
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  color: var(--text-2);
+  background: var(--page-bg);
+  background-attachment: fixed;
+  overflow-y: auto;            /* tall chapters (Cash Flow) scroll; body is overflow:hidden */
+  overflow-x: hidden;
 }
 
-@media (max-width:1180px){
-  body .hh-map-grid,
-  body .hh-statement-grid{
-    grid-template-columns:1fr;
-  }
-  body .hh-bankrail{min-height:0}
-  body .hh-bankrail .acct-chips{grid-template-columns:repeat(2,minmax(0,1fr))}
-  body .hh-statement-hero,
-  body .hh-hero-figs{
-    align-items:flex-start;
-    flex-direction:column;
-    text-align:left;
-  }
-}
-@media (max-width:760px){
-  body .page[data-page="net-worth"]{padding:20px 16px 34px}
-  body .hh-view-toggle{width:100%}
-  body .hh-toggle-btn{flex:1;min-width:0}
-  body .hh-map-main{min-height:0;padding:22px 16px}
-  body .hh-map-kpis,
-  body .hh-people,
-  body .hh-person-stats{
-    grid-template-columns:1fr;
-  }
-  body .hh-person-stats label{
-    border-left:0;
-    border-top:1px solid var(--hh-line);
-    padding:14px 0 0;
-  }
-  body .hh-person-stats label:first-child{border-top:0}
-  body .hh-bankrail .acct-chips{grid-template-columns:1fr}
-  body .hh-statement-hero{padding:20px}
-  body .hh-statement-hero h2{font-size:31px}
-  body .hh-hero-figs{gap:16px}
-  body .hh-hero-figs .lead b{font-size:34px}
-  body .hh-glass-card{padding:18px 16px}
-  body .hh-ledger-row{grid-template-columns:1fr;gap:8px;padding:10px 0}
-  body .hh-ledger-row .field{justify-content:flex-start;min-width:0}
+.page[data-page="household"] *,
+.page[data-page="household"] *::before,
+.page[data-page="household"] *::after { box-sizing: border-box; }
+
+.page[data-page="household"] :focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; border-radius: var(--r-sm); }
+
+/* Inner stage: centers + pads the content. Premium floating glass — at 4K it
+   sits centered with wide margins (intended). Raise --max-w to occupy more
+   width; that is the one knob. */
+.page[data-page="household"] .hh-stage { width: 100%; max-width: var(--max-w); margin: 28px auto; padding: 0 22px 64px; }
+
+/* =============================================================================
+   APP FRAME — the single primary glass surface (chapter rail + document area)
+   ============================================================================= */
+.page[data-page="household"] .hh-frame {
+  display: grid;
+  grid-template-columns: var(--rail-w) 1fr;
+  min-height: var(--frame-min-h);
+  overflow: hidden;
+  border-radius: var(--r-frame);
+  background: var(--glass-panel);
+  border: 1px solid var(--line-09);
+  box-shadow: var(--shadow-frame);
+  backdrop-filter: var(--blur-frame);
+  -webkit-backdrop-filter: var(--blur-frame);
 }
 
-body .page[data-page="net-worth"]:has(.hh-shell){
-  background-color:var(--hh-charcoal);
+/* ---- Folio chapter rail (sidebar) ----------------------------------------- */
+.page[data-page="household"] .hh-rail {
+  display: flex;
+  flex-direction: column;
+  padding: 40px 0;
+  border-right: 1px solid var(--line-08);
+  background: linear-gradient(180deg, rgba(255,255,255,0.025), rgba(0,0,0,0));
 }
-body .hh-map-grid{
-  height:clamp(620px,calc(100vh - 238px),720px);
-  min-height:0;
+.page[data-page="household"] .hh-rail__id { padding: 0 28px 26px; }
+.page[data-page="household"] .hh-avatars { display: flex; align-items: center; margin-bottom: 16px; }
+.page[data-page="household"] .hh-avatar {
+  width: 38px; height: 38px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-serif); font-size: 16px;
 }
-body .hh-map-main{
-  min-height:0;
-  background:
-    radial-gradient(circle at 50% 21%,rgba(214,176,112,.13),transparent 30%),
-    radial-gradient(circle at 18% 62%,rgba(236,228,212,.035),transparent 27%),
-    linear-gradient(180deg,rgba(31,29,24,.88),rgba(10,10,9,.92));
+.page[data-page="household"] .hh-avatar--c {
+  border: 1px solid rgba(230,184,106,0.40);
+  background: radial-gradient(120% 120% at 30% 25%, rgba(230,184,106,0.22), rgba(255,255,255,0.02));
+  color: var(--gold-bright); position: relative; z-index: 2;
 }
-body .hh-bankrail{
-  min-height:0;
+.page[data-page="household"] .hh-avatar--s {
+  border: 1px solid rgba(143,169,201,0.42);
+  background: radial-gradient(120% 120% at 30% 25%, rgba(143,169,201,0.24), rgba(255,255,255,0.02));
+  color: #B8C6DC; margin-left: -11px;
 }
-body .hh-statement-hero,
-body .hh-glass-card,
-body .hh-bankrail,
-body .hh-map-kpis div{
-  background:
-    linear-gradient(145deg,rgba(255,246,222,.070),rgba(255,246,222,.024) 46%,rgba(29,25,18,.80)),
-    rgba(17,16,13,.72)!important;
+.page[data-page="household"] .hh-rail__eyebrow { font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--text-6); font-weight: 600; margin-bottom: 5px; }
+.page[data-page="household"] .hh-rail__name { font-family: var(--font-serif); font-size: 22px; color: var(--text-1); font-weight: 400; }
+.page[data-page="household"] .hh-rail__filing { font-family: var(--font-serif); font-size: 13px; color: var(--text-5); font-style: italic; margin-top: 4px; line-height: 1.5; }
+.page[data-page="household"] .hh-rail__rule { height: 1px; background: var(--line-06); margin: 0 22px 10px; }
+
+/* Chapter nav items (view switch). Stable IDs bound by the view layer. */
+.page[data-page="household"] .hh-chapter {
+  display: flex; align-items: center; gap: 14px;
+  padding: 13px 28px; position: relative; cursor: pointer;
+  width: 100%; text-align: left; background: transparent; border: 0;
+  font-family: inherit; transition: background .2s;
 }
-body .hh-person-stats input[data-type="money"]{
-  width:96px;
+.page[data-page="household"] .hh-chapter__mark { position: absolute; left: 0; top: 9px; bottom: 9px; width: 2px; border-radius: 2px; background: transparent; }
+.page[data-page="household"] .hh-chapter__num { font-family: var(--font-serif); font-size: 16px; width: 22px; color: var(--text-6); }
+.page[data-page="household"] .hh-chapter__label { font-size: 14px; font-weight: 500; letter-spacing: 0.01em; color: var(--text-4); }
+.page[data-page="household"] .hh-chapter.is-active { background: linear-gradient(90deg, rgba(230,184,106,0.09), rgba(230,184,106,0)); }
+.page[data-page="household"] .hh-chapter.is-active .hh-chapter__mark { background: var(--gold); }
+.page[data-page="household"] .hh-chapter.is-active .hh-chapter__num { color: var(--gold-bright); }
+.page[data-page="household"] .hh-chapter.is-active .hh-chapter__label { color: var(--text-hi); }
+.page[data-page="household"] .hh-rail__spacer { flex: 1; }
+
+/* Document / content area — exactly one chapter renders here per sync. */
+.page[data-page="household"] .hh-content { min-width: 0; display: flex; flex-direction: column; }
+
+/* =============================================================================
+   SHARED — Folio document chrome (Demographics + Cash Flow)
+   ============================================================================= */
+.page[data-page="household"] .hh-doc { padding: 46px 50px 50px; min-height: 660px; display: flex; flex-direction: column; }
+.page[data-page="household"] .hh-doc__head { border-bottom: 1px solid var(--line-08); padding-bottom: 20px; margin-bottom: 8px; }
+.page[data-page="household"] .hh-doc__head--split { display: flex; align-items: flex-end; justify-content: space-between; padding-bottom: 22px; margin-bottom: 28px; }
+.page[data-page="household"] .hh-eyebrow { font-size: 12px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold-eyebrow); font-weight: 600; margin-bottom: 8px; }
+.page[data-page="household"] .hh-doc__title { font-family: var(--font-serif); font-size: 37px; color: var(--text-hi); font-weight: 400; }
+
+/* =============================================================================
+   I · DEMOGRAPHICS
+   ============================================================================= */
+.page[data-page="household"] .hh-people { display: grid; grid-template-columns: 1fr 1fr; flex: 1; }
+.page[data-page="household"] .hh-person { display: flex; flex-direction: column; padding: 34px 0 30px; }
+.page[data-page="household"] .hh-person--client { padding-right: 40px; border-right: 1px solid var(--line-06); }
+.page[data-page="household"] .hh-person--spouse { padding-left: 40px; }
+.page[data-page="household"] .hh-person__id { display: flex; align-items: center; gap: 14px; margin-bottom: 22px; }
+.page[data-page="household"] .hh-person__avatar {
+  width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--line-10);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-serif); font-size: 18px;
+}
+.page[data-page="household"] .hh-person--client .hh-person__avatar { background: radial-gradient(120% 120% at 30% 25%, rgba(230,184,106,0.20), rgba(255,255,255,0.02)); color: var(--gold-bright); }
+.page[data-page="household"] .hh-person--spouse .hh-person__avatar { background: radial-gradient(120% 120% at 30% 25%, rgba(143,169,201,0.22), rgba(255,255,255,0.02)); color: #B8C6DC; }
+.page[data-page="household"] .hh-person__name { font-family: var(--font-serif); font-size: 23px; color: var(--text-1); }
+.page[data-page="household"] .hh-person__role { font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-5); }
+/* Facts distribute to fill the document height (a well-set ledger, not a clump). */
+.page[data-page="household"] .hh-facts { flex: 1; display: flex; flex-direction: column; justify-content: space-between; padding-top: 6px; }
+.page[data-page="household"] .hh-fact { display: flex; justify-content: space-between; align-items: baseline; padding: 17px 0; border-bottom: 1px solid var(--line-06); }
+.page[data-page="household"] .hh-fact__k { font-size: 14.5px; color: var(--text-5); }
+.page[data-page="household"] .hh-fact__v { font-family: var(--font-serif); font-size: 23px; color: var(--text-1); }
+
+/* =============================================================================
+   II · NET WORTH (Equilibrium)
+   ============================================================================= */
+.page[data-page="household"] .hh-nw { padding: 30px 30px 40px; display: flex; flex-direction: column; }
+.page[data-page="household"] .hh-nw__grid { display: grid; grid-template-columns: 1fr 1.1fr 1fr; align-items: stretch; }
+
+/* Client / Spouse pillars */
+.page[data-page="household"] .hh-pillar { padding: 30px 26px; background: var(--glass-card); border: 1px solid var(--line-08); box-shadow: var(--shadow-card); backdrop-filter: var(--blur-card); -webkit-backdrop-filter: var(--blur-card); }
+.page[data-page="household"] .hh-pillar--client { border-right: none; border-radius: var(--r-card) 0 0 var(--r-card); }
+.page[data-page="household"] .hh-pillar--spouse { border-left: none; border-radius: 0 var(--r-card) var(--r-card) 0; }
+.page[data-page="household"] .hh-pillar__id { display: flex; flex-direction: column; align-items: center; text-align: center; margin-bottom: 20px; }
+.page[data-page="household"] .hh-pillar__avatar {
+  width: 68px; height: 68px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-serif); font-size: 26px; margin-bottom: 12px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.30);
+}
+.page[data-page="household"] .hh-pillar--client .hh-pillar__avatar { border: 1px solid rgba(230,184,106,0.40); background: radial-gradient(130% 130% at 32% 24%, rgba(230,184,106,0.22), rgba(255,255,255,0.02)); color: var(--gold-bright); }
+.page[data-page="household"] .hh-pillar--spouse .hh-pillar__avatar { border: 1px solid rgba(143,169,201,0.40); background: radial-gradient(130% 130% at 32% 24%, rgba(143,169,201,0.24), rgba(255,255,255,0.02)); color: #C2CFE2; }
+.page[data-page="household"] .hh-pillar__role { font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; font-weight: 600; }
+.page[data-page="household"] .hh-pillar--client .hh-pillar__role { color: var(--gold-eyebrow); }
+.page[data-page="household"] .hh-pillar--spouse .hh-pillar__role { color: var(--blue-dim); }
+.page[data-page="household"] .hh-pillar__age { font-family: var(--font-serif); font-size: 26px; color: var(--text-hi); margin-top: 4px; }
+.page[data-page="household"] .hh-pillar__rule { height: 1px; background: var(--line-08); margin-bottom: 18px; }
+.page[data-page="household"] .hh-pillar__investable { text-align: center; margin-bottom: 16px; }
+.page[data-page="household"] .hh-pillar__inv-label { font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-5); }
+.page[data-page="household"] .hh-pillar__inv-value { font-family: var(--font-serif); font-size: 28px; color: var(--text-hi); }
+/* Account ledger rows (plain label/value — the prototype's bars were removed). */
+.page[data-page="household"] .hh-acct { display: flex; justify-content: space-between; align-items: baseline; padding: 11px 0; border-bottom: 1px solid var(--line-06); }
+.page[data-page="household"] .hh-acct__cat { font-size: 13px; color: var(--text-4); }
+.page[data-page="household"] .hh-acct__amt { font-family: var(--font-serif); font-size: 16px; color: var(--text-2); }
+
+/* Centre fulcrum (household total + balance beam) — lifted, elevated glass. */
+.page[data-page="household"] .hh-fulcrum {
+  position: relative; z-index: 2; margin: -12px 0;
+  padding: 28px 22px; text-align: center;
+  display: flex; flex-direction: column; justify-content: center; align-items: center;
+  border-radius: 12px; background: var(--glass-summary); border: 1px solid var(--line-10);
+  box-shadow: var(--shadow-fulcrum);
+  backdrop-filter: var(--blur-fulcrum); -webkit-backdrop-filter: var(--blur-fulcrum);
+}
+.page[data-page="household"] .hh-fulcrum__eyebrow { font-size: 11px; letter-spacing: 0.24em; text-transform: uppercase; color: var(--gold-eyebrow); font-weight: 600; margin-bottom: 8px; }
+.page[data-page="household"] .hh-fulcrum__label { font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-5); margin-bottom: 6px; }
+.page[data-page="household"] .hh-fulcrum__total { font-family: var(--font-serif); font-size: 44px; color: var(--gold-bright); line-height: 1; letter-spacing: 0.01em; margin-bottom: 18px; }
+
+/* balance beam */
+.page[data-page="household"] .hh-beam { width: 100%; margin-bottom: 14px; }
+.page[data-page="household"] .hh-beam__row { display: flex; align-items: center; width: 100%; }
+.page[data-page="household"] .hh-beam__arm { flex: 1; display: flex; }
+.page[data-page="household"] .hh-beam__arm--l { justify-content: flex-end; }
+.page[data-page="household"] .hh-beam__arm--r { justify-content: flex-start; }
+.page[data-page="household"] .hh-beam__bar-l { height: 6px; max-width: 100%; border-radius: 4px 0 0 4px; background: linear-gradient(90deg, rgba(230,184,106,0.25), var(--gold)); }
+.page[data-page="household"] .hh-beam__bar-r { height: 6px; max-width: 100%; border-radius: 0 4px 4px 0; background: linear-gradient(90deg, var(--blue-soft), rgba(143,169,201,0.25)); }
+.page[data-page="household"] .hh-beam__pivot { width: 12px; height: 12px; border-radius: 50%; background: var(--gold-bright); box-shadow: 0 0 16px rgba(244,217,166,0.55); flex: none; z-index: 2; }
+.page[data-page="household"] .hh-beam__legend { display: flex; justify-content: space-between; margin-top: 10px; font-size: 11.5px; color: var(--text-5); }
+.page[data-page="household"] .hh-beam__stem { width: 1px; height: 14px; background: var(--line-10); margin: 6px auto 0; }
+.page[data-page="household"] .hh-beam__base { width: 56px; height: 6px; border-radius: 0 0 6px 6px; background: linear-gradient(180deg, rgba(255,255,255,0.08), transparent); margin: 0 auto; }
+
+/* real-asset / debt chips */
+.page[data-page="household"] .hh-chips { display: flex; gap: 8px; margin-top: 8px; }
+.page[data-page="household"] .hh-chip { padding: 9px 14px; border-radius: var(--r-md); background: var(--fill-04); border: 1px solid var(--line-08); text-align: center; }
+.page[data-page="household"] .hh-chip__label { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-6); }
+.page[data-page="household"] .hh-chip__value { font-family: var(--font-serif); font-size: 16px; color: var(--text-1); }
+.page[data-page="household"] .hh-chip__value--debt { color: var(--down); }
+
+/* ownership bar */
+.page[data-page="household"] .hh-own { width: 100%; margin-top: 24px; }
+.page[data-page="household"] .hh-own__label { font-size: 10.5px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-6); margin-bottom: 8px; }
+.page[data-page="household"] .hh-own__bar { display: flex; height: 7px; border-radius: 4px; overflow: hidden; margin-bottom: 8px; }
+.page[data-page="household"] .hh-own__c { background: var(--gold); }
+.page[data-page="household"] .hh-own__s { background: var(--blue-soft); }
+.page[data-page="household"] .hh-own__legend { display: flex; justify-content: space-between; font-size: 11.5px; color: var(--text-5); }
+
+/* =============================================================================
+   III · CASH FLOW
+   ============================================================================= */
+.page[data-page="household"] .hh-surplus { text-align: right; }
+.page[data-page="household"] .hh-surplus__label { font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-5); }
+.page[data-page="household"] .hh-surplus__value { font-family: var(--font-serif); font-size: 40px; line-height: 1.1; }
+.page[data-page="household"] .hh-surplus__value--pos { color: var(--pass); }
+.page[data-page="household"] .hh-surplus__value--neg { color: var(--down); }
+.page[data-page="household"] .hh-flows { display: grid; grid-template-columns: 1fr 1fr; gap: 50px; }
+.page[data-page="household"] .hh-flow__label { font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-4); font-weight: 600; margin-bottom: 8px; }
+.page[data-page="household"] .hh-line { display: flex; align-items: center; gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--line-06); }
+.page[data-page="household"] .hh-line__tick { width: 5px; height: 24px; border-radius: 3px; flex: none; }
+.page[data-page="household"] .hh-line__tick--in { background: linear-gradient(180deg, var(--pass), rgba(143,185,154,0.3)); }
+.page[data-page="household"] .hh-line__tick--out { background: linear-gradient(180deg, var(--down), rgba(212,154,126,0.3)); }
+.page[data-page="household"] .hh-line__name { flex: 1; font-size: 14.5px; color: var(--text-2); }
+.page[data-page="household"] .hh-line__amt { font-family: var(--font-serif); font-size: 18px; color: var(--text-1); }
+.page[data-page="household"] .hh-total { display: flex; justify-content: space-between; align-items: center; padding-top: 16px; margin-top: 6px; }
+.page[data-page="household"] .hh-total__label { font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-4); }
+.page[data-page="household"] .hh-total__value { font-family: var(--font-serif); font-size: 24px; }
+.page[data-page="household"] .hh-total__value--in { color: var(--pass); }
+.page[data-page="household"] .hh-total__value--out { color: var(--down); }
+
+/* =============================================================================
+   EDITABLE INPUTS — the console reads as a refined document, not a form.
+   Inputs INHERIT the serif / size / colour of their value slot; the only chrome
+   is a hairline underline that warms to gold on focus. Selects (owner / bucket /
+   allocation / withdrawal) are quiet pills.
+   ============================================================================= */
+.page[data-page="household"] input {
+  font-family: inherit; font-size: inherit; color: inherit; line-height: inherit;
+  background: transparent; border: 0; border-bottom: 1px solid var(--line-08);
+  padding: 0 1px 2px; margin: 0; outline: none; min-width: 0;
+  font-variant-numeric: tabular-nums;
+  transition: border-color .15s, background .15s;
+}
+.page[data-page="household"] input::placeholder { color: var(--text-6); }
+.page[data-page="household"] input:hover  { border-bottom-color: var(--line-10); }
+.page[data-page="household"] input:focus  { border-bottom-color: var(--gold); background: rgba(230,184,106,0.06); }
+.page[data-page="household"] input[type=number]::-webkit-inner-spin-button,
+.page[data-page="household"] input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.page[data-page="household"] input[type=number] { -moz-appearance: textfield; }
+/* widths scale with the inherited serif size (ch units) */
+.page[data-page="household"] input[data-type="text"]  { width: 12ch; }
+.page[data-page="household"] input[data-type="money"] { width: 8ch;  text-align: right; }
+.page[data-page="household"] input[data-type="age"],
+.page[data-page="household"] input[data-type="num"]   { width: 4.5ch; text-align: right; }
+.page[data-page="household"] input[data-type="pct"]   { width: 3.5ch; text-align: right; }
+.page[data-page="household"] .pre { font-family: var(--font-sans); font-size: 0.62em; color: var(--text-5); margin-right: 1px; vertical-align: 0.1em; }
+.page[data-page="household"] .hh-derived { font-family: var(--font-serif); color: var(--text-1); }
+
+.page[data-page="household"] select {
+  font-family: var(--font-sans); font-size: 11.5px; color: var(--text-3);
+  background: var(--fill-04); border: 1px solid var(--line-08); border-radius: var(--r-sm);
+  padding: 2px 7px; cursor: pointer; outline: none;
+  -webkit-appearance: none; appearance: none; max-width: 100%;
+  transition: border-color .15s, color .15s;
+}
+.page[data-page="household"] select:hover { border-color: var(--line-10); color: var(--text-2); }
+.page[data-page="household"] select:focus { border-color: var(--gold); }
+.page[data-page="household"] .hh-sel--owner { color: var(--gold-soft); }
+
+/* Demographics name/age inputs sit in the serif fact ledger. */
+.page[data-page="household"] .hh-person__name input { width: 14ch; }
+.page[data-page="household"] .hh-fact__v { display: flex; align-items: baseline; justify-content: flex-end; gap: 2px; }
+
+/* Net Worth account rows: label + owner/type/bucket left, balance + × right. */
+.page[data-page="household"] .hh-acct__cat { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; min-width: 0; }
+.page[data-page="household"] .hh-acct__lbl { color: var(--text-4); }
+.page[data-page="household"] .hh-acct__amt { display: flex; align-items: center; justify-content: flex-end; gap: 6px; }
+.page[data-page="household"] .hh-acct--empty .hh-acct__cat { color: var(--text-6); font-style: italic; }
+.page[data-page="household"] .hh-acct__cat input[data-type="text"] { width: 10ch; font-family: var(--font-sans); font-size: 13px; }
+
+.page[data-page="household"] .row-x {
+  width: 18px; height: 18px; flex: none; border: 0; border-radius: var(--r-sm);
+  background: transparent; color: var(--text-6); font-size: 15px; line-height: 1; cursor: pointer; padding: 0;
+}
+.page[data-page="household"] .row-x:hover { color: var(--down); background: var(--fill-05); }
+.page[data-page="household"] .hh-add {
+  font-family: var(--font-sans); font-size: 11px; letter-spacing: 0.06em; font-weight: 600;
+  color: var(--gold-soft); background: var(--fill-04); border: 1px solid var(--line-08);
+  border-radius: var(--r-sm); padding: 4px 10px; cursor: pointer; transition: border-color .15s, color .15s;
+}
+.page[data-page="household"] .hh-add:hover { color: var(--gold-bright); border-color: rgba(230,184,106,0.40); }
+
+/* Household holdings (joint accounts / real assets / liabilities / assumptions)
+   below the equilibrium — a quiet ledger, hairline-separated. */
+.page[data-page="household"] .hh-holdings {
+  margin-top: 26px; padding-top: 22px; border-top: 1px solid var(--line-08);
+  display: grid; grid-template-columns: 1fr 1fr; gap: 14px 40px;
+}
+.page[data-page="household"] .hh-hold-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 6px; }
+.page[data-page="household"] .hh-hold-head > span { font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--gold-eyebrow); font-weight: 600; }
+.page[data-page="household"] .hh-hold-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line-06); }
+.page[data-page="household"] .hh-hold-name input { width: 13ch; font-family: var(--font-sans); font-size: 13.5px; color: var(--text-2); }
+.page[data-page="household"] .hh-hold-fields { display: flex; align-items: center; gap: 12px; font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-6); }
+.page[data-page="household"] .hh-hold-fields label { display: flex; align-items: center; gap: 5px; }
+.page[data-page="household"] .hh-hold-fields input { font-family: var(--font-serif); font-size: 15px; color: var(--text-1); text-transform: none; letter-spacing: 0; }
+.page[data-page="household"] .hh-suffix { color: var(--text-6); font-size: 0.7em; }
+.page[data-page="household"] .hh-hold-empty { padding: 8px 0; font-size: 12.5px; color: var(--text-6); font-style: italic; }
+.page[data-page="household"] .hh-assume { display: flex; flex-direction: column; gap: 8px; padding-top: 2px; }
+.page[data-page="household"] .hh-assume label { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.page[data-page="household"] .hh-assume label > span { font-size: 12px; color: var(--text-5); }
+.page[data-page="household"] .hh-assume select { min-width: 138px; }
+.page[data-page="household"] .hh-assume input[data-type="num"] { width: 6ch; }
+
+/* Cash Flow secondary fields (claim age / pension start / healthcare inflation). */
+.page[data-page="household"] .hh-line { flex-wrap: wrap; }
+.page[data-page="household"] .hh-line__name { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.page[data-page="household"] .hh-line__meta { font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-6); display: inline-flex; align-items: baseline; gap: 4px; }
+.page[data-page="household"] .hh-line__meta input { font-family: var(--font-serif); font-size: 13px; color: var(--text-3); text-transform: none; letter-spacing: 0; }
+.page[data-page="household"] .hh-line__amt { display: flex; align-items: baseline; justify-content: flex-end; gap: 2px; }
+.page[data-page="household"] .hh-line--add { border-bottom: 0; padding-top: 12px; }
+.page[data-page="household"] .hh-line--add .hh-add { margin-left: 19px; }
+/* Multiple add buttons in one add-row sit side-by-side. */
+.page[data-page="household"] .hh-line--add { gap: 6px; }
+
+/* Rail action buttons (Demo / Clear) at the bottom of the chapter rail. */
+.page[data-page="household"] .hh-rail__actions {
+  display: flex; gap: 6px; padding: 0 22px 22px; flex-shrink: 0;
+}
+.page[data-page="household"] .hh-rail-act {
+  flex: 1; font-family: var(--font-sans); font-size: 10px; letter-spacing: 0.14em;
+  font-weight: 600; text-transform: uppercase; padding: 7px 4px;
+  background: var(--fill-04); border: 1px solid var(--line-08);
+  border-radius: var(--r-sm); color: var(--text-5); cursor: pointer;
+  transition: color .15s, border-color .15s;
+}
+.page[data-page="household"] .hh-rail-act:hover { color: var(--gold-soft); border-color: rgba(230,184,106,0.28); }
+.page[data-page="household"] .hh-rail-act--clear:hover { color: var(--down); border-color: rgba(212,154,126,0.28); }
+
+/* Absent spouse placeholder in Demographics. */
+.page[data-page="household"] .hh-person--absent { opacity: 0.72; }
+.page[data-page="household"] .hh-person--absent__avatar {
+  border-style: dashed; font-size: 22px; color: var(--text-5);
+  background: var(--fill-03);
+}
+.page[data-page="household"] .hh-person--absent__label { color: var(--text-5); font-style: italic; }
+.page[data-page="household"] .hh-person--absent .hh-facts { padding-top: 24px; }
+/* Muted variant for the "Remove spouse" link. */
+.page[data-page="household"] .hh-add--muted { opacity: 0.55; }
+.page[data-page="household"] .hh-add--muted:hover { opacity: 1; }
+/* Inline pct span next to the cost-basis field (avoids the % character disappearing). */
+.page[data-page="household"] .hh-assume__pct { display: flex; align-items: baseline; gap: 2px; }
+/* Pension COLA meta field. */
+.page[data-page="household"] .hh-line__meta input[data-type="pct"] { width: 3ch; }
+
+/* ---- 4K / 1920 safety ----------------------------------------------------
+   No global shrink. The frame caps at --max-w and floats centered (premium at
+   3840×2160). Below 1640px only the wide grids tighten gutters so the Net Worth
+   equilibrium and the documents stay un-clipped at 1920×1080. */
+@media (max-width: 1640px) {
+  .page[data-page="household"] .hh-stage { padding-left: 18px; padding-right: 18px; }
+  .page[data-page="household"] .hh-doc { padding-left: 40px; padding-right: 40px; }
+  .page[data-page="household"] .hh-flows { gap: 38px; }
 }
 
-/* Visual polish pass: Household should read as charcoal first, with bronze only
-   as rim-light and interaction accent. Scoped through .hh-shell so the broader
-   app chrome is untouched on non-Household pages. */
-html:has(.page[data-page="net-worth"].on .hh-shell),
-body:has(.page[data-page="net-worth"].on .hh-shell),
-body:has(.page[data-page="net-worth"].on .hh-shell) .wrap{
-  --hh-taxable:#c79a5e;
-  --hh-pre-tax:#a97a48;
-  --hh-roth:#cfc17d;
-  background:
-    radial-gradient(circle at 50% 7%,rgba(236,228,212,.035),transparent 34%),
-    radial-gradient(circle at 18% 0%,rgba(214,176,112,.030),transparent 28%),
-    linear-gradient(180deg,#11100d 0%,#090908 72%,#070706 100%)!important;
+/* ---- Large displays: the glass occupies a premium share of the screen --------
+   "--max-w is the one knob" (INTEGRATION.md). On 2.5K / 4K panels the frame
+   widens and (at 4K) sits vertically centred instead of stuck at the top, so it
+   fills the meeting display rather than floating as a small island. The base
+   (≤~1920) is unchanged: capped at 1580 and fully fitting a 1600 page. */
+@media (min-width: 2400px) {
+  .page[data-page="household"] { --max-w: 1980px; --rail-w: 260px; }
 }
-body:has(.page[data-page="net-worth"].on .hh-shell) .hdr{
-  background:
-    linear-gradient(135deg,rgba(18,17,14,.92),rgba(23,21,17,.76) 56%,rgba(17,16,13,.88)),
-    rgba(17,16,13,.84)!important;
-  border-color:rgba(236,228,212,.11)!important;
-  box-shadow:0 26px 84px -58px rgba(0,0,0,.92),inset 0 1px 0 rgba(255,248,226,.10)!important;
-}
-body:has(.page[data-page="net-worth"].on .hh-shell) svg.brand-logo{
-  filter:drop-shadow(0 0 10px rgba(236,228,212,.10))!important;
-  opacity:.78;
-}
-body:has(.page[data-page="net-worth"].on .hh-shell) .htab.on{
-  border-bottom-color:rgba(214,176,112,.86)!important;
-  box-shadow:0 8px 22px -18px rgba(214,176,112,.74)!important;
-}
-body:has(.page[data-page="net-worth"].on .hh-shell) .run-btn,
-body .hh-bankrail .acct-add{
-  background:rgba(214,176,112,.13)!important;
-  border:1px solid rgba(214,176,112,.42)!important;
-  color:var(--hh-gold-bright)!important;
-  box-shadow:inset 0 1px 0 rgba(255,248,226,.13),0 14px 34px -28px rgba(214,176,112,.6)!important;
-}
-body .page[data-page="net-worth"]:has(.hh-shell){
-  padding:30px 40px 46px;
-  background:
-    radial-gradient(circle at 50% 17%,rgba(236,228,212,.040),transparent 33%),
-    radial-gradient(circle at 80% 18%,rgba(154,102,56,.055),transparent 28%),
-    radial-gradient(circle at 18% 72%,rgba(214,176,112,.045),transparent 32%),
-    linear-gradient(180deg,#0d0c0a 0%,#090907 100%)!important;
-}
-body .hh-view-toggle{
-  margin-bottom:28px;
-  background:rgba(8,8,7,.72);
-  border-color:rgba(236,228,212,.10);
-  box-shadow:0 20px 58px -42px rgba(0,0,0,.95),inset 0 1px 0 rgba(255,248,226,.08);
-}
-body .hh-toggle-btn.on{
-  color:var(--hh-gold-bright);
-  background:rgba(214,176,112,.10);
-  box-shadow:inset 0 0 0 1px rgba(214,176,112,.28),0 12px 30px -26px rgba(214,176,112,.75);
-}
-body .hh-map-grid{
-  height:clamp(720px,calc(100vh - 208px),840px);
-  grid-template-columns:minmax(0,1fr) 280px;
-  gap:46px;
-}
-body .hh-map-main{
-  padding:42px 48px 44px;
-  border-radius:30px;
-  background:
-    radial-gradient(circle at 50% 40%,rgba(236,228,212,.035),transparent 33%),
-    radial-gradient(circle at 50% 47%,rgba(214,176,112,.045),transparent 38%),
-    linear-gradient(180deg,rgba(18,17,14,.50),rgba(8,8,7,.34))!important;
-  border-color:rgba(236,228,212,.055);
-  box-shadow:inset 0 1px 0 rgba(255,248,226,.045),0 42px 110px -84px rgba(0,0,0,.96);
-}
-body .hh-map-main::before{
-  top:184px;
-  left:12%;
-  right:12%;
-  background:linear-gradient(90deg,transparent,rgba(214,176,112,.12),transparent);
-}
-body .hh-map-kpis{
-  max-width:1060px;
-  gap:18px;
-  margin-bottom:62px;
-}
-body .hh-map-kpis div,
-body .hh-statement-hero,
-body .hh-glass-card{
-  background:
-    linear-gradient(145deg,rgba(255,248,226,.070),rgba(255,248,226,.018) 48%,rgba(15,14,12,.34)),
-    rgba(13,12,10,.38)!important;
-  border-color:rgba(236,228,212,.115)!important;
-  box-shadow:0 44px 128px -72px rgba(0,0,0,.98),inset 0 1px 0 rgba(255,248,226,.18),inset 0 0 0 1px rgba(255,248,226,.025)!important;
-  backdrop-filter:blur(26px) saturate(1.08);
-  -webkit-backdrop-filter:blur(26px) saturate(1.08);
-}
-body .hh-map-kpis div{
-  min-height:98px;
-  padding:18px 19px;
-  border-radius:18px;
-}
-body .hh-map-kpis b{
-  font-size:30px;
-}
-body .hh-people{
-  max-width:1060px;
-  gap:min(10vw,160px);
-}
-body .hh-orb{
-  width:260px;
-  background:
-    radial-gradient(circle at 50% 34%,rgba(255,248,226,.12),rgba(28,26,22,.34) 54%,rgba(7,7,6,.82)),
-    radial-gradient(circle at 50% 50%,rgba(214,176,112,.070),transparent 69%);
-  border-color:rgba(214,176,112,.30);
-  box-shadow:0 0 0 1px rgba(236,228,212,.070),0 0 126px -44px rgba(214,176,112,.50),0 42px 96px -58px rgba(0,0,0,.98),inset 0 0 86px -38px rgba(214,176,112,.34);
-}
-body .hh-orb::after{
-  inset:16px;
-  border-color:rgba(236,228,212,.060);
-}
-body .hh-orb-name{
-  max-width:190px;
-  font-size:42px;
-}
-body .hh-orb-age{
-  color:rgba(236,228,212,.86);
-  font-size:14px;
-}
-body .hh-orb-status{
-  color:var(--hh-gold);
-  font-size:11.5px;
-}
-body .hh-person-stats{
-  max-width:430px;
-  margin-top:34px;
-}
-body .hh-account-cloud{
-  margin-top:50px;
-}
-body .hh-pill{
-  background:rgba(255,248,226,.040);
-  border-color:rgba(236,228,212,.12);
-  box-shadow:0 20px 56px -40px rgba(0,0,0,.92),inset 0 1px 0 rgba(255,248,226,.12);
-}
-body .hh-bankrail{
-  background:rgba(13,12,10,.24)!important;
-  border-color:rgba(236,228,212,.065)!important;
-  box-shadow:0 32px 88px -74px rgba(0,0,0,.96),inset 0 1px 0 rgba(255,248,226,.075)!important;
-  backdrop-filter:blur(24px) saturate(1.04)!important;
-  -webkit-backdrop-filter:blur(24px) saturate(1.04)!important;
-}
-body .hh-bank-head{
-  padding:23px 22px 15px;
-  border-bottom-color:rgba(236,228,212,.075);
-}
-body .hh-bank-head h3{
-  font-size:24px;
-}
-body .hh-bank-body{
-  padding:14px 16px 6px;
-}
-body .hh-bankrail .acct-brow{
-  margin-bottom:12px;
-  padding-bottom:14px;
-  border-bottom-color:rgba(236,228,212,.050);
-}
-body .hh-bankrail .acct-chip{
-  min-height:38px;
-  background:rgba(255,248,226,.012)!important;
-  border-color:rgba(236,228,212,.060)!important;
-  color:rgba(236,228,212,.82)!important;
-}
-body .hh-bankrail .acct-chip::after{
-  border-color:rgba(236,228,212,.12);
-  color:rgba(236,228,212,.40);
-}
-body .hh-bankrail .acct-chip.sel{
-  background:rgba(214,176,112,.042)!important;
-  border-color:rgba(214,176,112,.24)!important;
-}
-body .hh-bankrail .acct-foot{
-  border-top-color:rgba(236,228,212,.075);
-}
-body .hh-statement-shell{
-  min-height:calc(100vh - 196px);
-}
-body .hh-statement-hero{
-  padding:30px 30px;
-  margin-bottom:24px;
-}
-body .hh-statement-grid{
-  gap:24px;
-}
-body .hh-comp{
-  margin-bottom:24px;
-}
-body .hh-comp-bar{
-  height:11px;
-  background:rgba(236,228,212,.055);
-  box-shadow:inset 0 1px 0 rgba(255,248,226,.16),0 18px 46px -34px rgba(0,0,0,.86);
-}
-body .hh-comp-bar i{
-  opacity:.72;
-}
-body .hh-comp-legend{
-  gap:10px 22px;
-}
-body .hh-comp-legend i{
-  opacity:.78;
-}
-body .hh-glass-card{
-  padding:25px 24px 26px;
-}
-body .hh-card-head{
-  border-bottom-color:rgba(214,176,112,.22);
-}
-body .hh-net-foot{
-  border-top-color:rgba(214,176,112,.24);
-}
-
-@media (max-width:1180px){
-  body .hh-map-grid{
-    height:auto;
-    min-height:0;
-    gap:28px;
-  }
-  body .hh-orb{
-    width:236px;
-  }
-}
-
-@media (max-width:760px){
-  body:has(.page[data-page="net-worth"].on .hh-shell) .hdr{
-    margin:6px 10px 0;
-    padding:8px 10px;
-    gap:4px 10px;
-    border-radius:14px!important;
-  }
-  body:has(.page[data-page="net-worth"].on .hh-shell) svg.brand-logo{
-    width:106px;
-    height:46px;
-  }
-  body:has(.page[data-page="net-worth"].on .hh-shell) .hdr-tabs{
-    padding-top:4px;
-    gap:6px 14px;
-  }
-  body:has(.page[data-page="net-worth"].on .hh-shell) .htab{
-    font-size:11.5px;
-    padding:6px 0 8px;
-  }
-  body:has(.page[data-page="net-worth"].on .hh-shell) .hdr-right{
-    gap:12px;
-  }
-  body:has(.page[data-page="net-worth"].on .hh-shell) .run-btn{
-    min-width:116px;
-    min-height:36px;
-  }
-  body .page[data-page="net-worth"]{
-    padding:22px 16px 34px!important;
-  }
-  body .hh-view-toggle{
-    margin-bottom:22px;
-  }
-  body .hh-map-grid{
-    grid-template-columns:1fr;
-    height:auto;
-    min-height:0;
-    gap:24px;
-  }
-  body .hh-map-main{
-    order:1;
-    width:100%;
-    padding:24px 18px 28px;
-    border-radius:24px;
-  }
-  body .hh-map-kpis{
-    grid-template-columns:repeat(2,minmax(0,1fr));
-    gap:12px;
-    margin-bottom:38px;
-  }
-  body .hh-map-kpis div{
-    min-height:78px;
-    padding:14px 15px;
-  }
-  body .hh-map-kpis span{
-    font-size:13px;
-  }
-  body .hh-map-kpis b{
-    font-size:26px;
-  }
-  body .hh-orb{
-    width:224px;
-  }
-  body .hh-people{
-    gap:42px;
-  }
-  body .hh-account-cloud{
-    margin-top:42px;
-  }
-  body .hh-bankrail{
-    order:2;
-    border-radius:22px!important;
-  }
+@media (min-width: 3200px) {
+  .page[data-page="household"] { --max-w: 2520px; --rail-w: 290px; --frame-min-h: 900px; }
+  .page[data-page="household"] .hh-stage { margin-top: auto; margin-bottom: auto; }
+  .page[data-page="household"] .hh-doc { padding: 56px 64px 60px; }
+  .page[data-page="household"] .hh-nw { padding: 40px 44px 48px; }
 }

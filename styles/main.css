@@ -30,22 +30,9 @@
 html,body{height:100%;background:var(--bg);font-family:var(--font-sans);color:var(--ink);font-size:14px;-webkit-font-smoothing:antialiased;overflow:hidden}
 .wrap{height:100vh;display:flex;flex-direction:column;overflow:hidden}
 
-/* Household is excluded from the app-wide Scenarios retone (redesign in progress).
-   It renders entirely inside .hh-shell, so pin the shared role + type tokens it
-   consumes back to their pre-retone values here. Freezes Household pixel-for-pixel
-   without editing any Household rule, while the global tokens above stay on the new
-   palette for Goals / Sequencing. */
-.hh-shell{
-  --surface:rgba(212,228,246,.21); --surface-2:rgba(212,228,246,.15); --surface-3:rgba(212,228,246,.10);
-  --rule:rgba(206,226,246,.30); --rule-bright:rgba(222,236,250,.46); --rule-faint:rgba(206,226,246,.17);
-  --ink:#eef4fa; --ink-bright:#ffffff; --ink-mute:#c7d6e4; --ink-faint:rgba(234,242,250,.66); --ink-ghost:rgba(234,242,250,.3);
-  --accent:#9fb8cd; --accent-bright:#d9e8f5; --accent-deep:#6f8aa0; --accent-glow:rgba(176,206,236,.32);
-  --value-highlight:#f1f6fb;
-  --status-positive:#b9cfa6; --status-positive-bright:#d7e4be;
-  --negative:#bd695b; --negative-bright:#d58a77;
-  --accent-secondary:#b45991;
-  --font-serif:Georgia,"Times New Roman",serif;
-}
+/* The former .hh-shell token-pin and all retired .hh-bar/.hh-f/.acct-* rules have
+   been removed (CP4 cleanup). The Household page is now the Folio console, fully
+   scoped in styles/household.css. */
 
 /* ─── PANEL LAYER ───────────────────────────────────────────────────
    Every floating panel is a frosted surface: translucent fill (--surface)
@@ -370,17 +357,6 @@ html,body{height:100%;background:var(--bg);font-family:var(--font-sans);color:va
 .bs-title{font-family:'Sora',sans-serif;font-size:17px;font-weight:500;color:var(--ink);letter-spacing:-.01em;margin:0 0 4px}
 .bs-head{font-family:'Sora',sans-serif;font-size:10.5px;letter-spacing:.26em;text-transform:uppercase;color:var(--ink-mute);font-weight:600;margin:26px 0 8px;padding-bottom:8px;border-bottom:1px solid var(--accent)}
 .bs-head:first-of-type{margin-top:16px}
-/* Household stat bar — a connected full-width header band (bottom hairline) so it
-   grounds the page instead of floating; tight vertical rhythm. */
-.hh-bar{grid-column:1 / -1;display:flex;align-items:stretch;border-bottom:1px solid var(--rule-faint);padding-bottom:6px;margin-bottom:2px}
-.hh-f{display:flex;flex-direction:column;gap:2px;padding:2px 30px 6px 0;margin-right:30px;border-right:1px solid var(--rule-faint)}
-.hh-f:last-child{border-right:none;padding-right:0;margin-right:0}
-.hh-f label{font-family:'Sora',sans-serif;font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-faint);font-weight:600}
-.hh-f .field{display:flex;align-items:baseline;gap:3px}
-.hh-f .pre{color:var(--ink-faint);font-size:13px;font-family:'Inter',sans-serif}
-.hh-f input{font-family:'Inter',sans-serif;font-size:16px;font-weight:500;color:var(--ink);background:transparent;border:none;border-bottom:1px dashed transparent;padding:1px;width:90px;text-align:left;outline:none;font-variant-numeric:tabular-nums;transition:border-color .15s,background .15s}
-.hh-f input:hover{border-bottom-color:var(--rule-bright)}
-.hh-f input:focus{border-bottom:1px solid var(--accent);background:rgba(154,115,34,.05)}
 .bs-row{display:flex;align-items:baseline;padding:7px 0;font-size:14px}
 .bs-row label{color:var(--ink-mute);font-weight:500;font-family:'Sora',sans-serif}
 .bs-row.sub label{color:var(--ink-faint);font-size:13px;padding-left:18px;font-weight:400}
@@ -747,140 +723,11 @@ html,body{height:100%;background:var(--bg);font-family:var(--font-sans);color:va
 .gt-once.unpriced{fill:none;stroke:var(--ink-faint);stroke-width:1.5px;stroke-dasharray:3 3;opacity:.6}
 .gt-lbl.unpriced{fill:var(--ink-ghost);font-style:italic}
 
-/* ===== Surface & depth pass ================================================
-   Structural skin only: page background layers, header, and decorative depth.
-   Token values live in the single role-based :root at the top of this file. */
-html,body{
-  font-family:"Aptos","Segoe UI",Tahoma,sans-serif;
-  color:var(--ink);
-  background:#100b07;
-}
-body{
-  background-color:#120c08;
-  background-image:
-    radial-gradient(ellipse at 48% 0%, rgba(240,219,176,.28), transparent 32%),
-    radial-gradient(ellipse at 14% 78%, rgba(229,202,158,.16), transparent 30%),
-    radial-gradient(ellipse at 92% 34%, rgba(121,75,35,.22), transparent 38%),
-    linear-gradient(90deg, rgba(255,235,192,.018) 1px, transparent 1px),
-    linear-gradient(180deg, rgba(255,235,192,.014) 1px, transparent 1px),
-    linear-gradient(120deg,#080604 0%,#17100b 42%,#241709 100%);
-  background-size:auto,auto,auto,72px 72px,72px 72px,auto;
-}
-body::before{
-  content:"";
-  position:fixed;
-  inset:0;
-  pointer-events:none;
-  z-index:0;
-  background:
-    linear-gradient(103deg, transparent 0 13%, rgba(246,229,194,.17) 23%, transparent 35%),
-    linear-gradient(96deg, transparent 0 43%, rgba(246,229,194,.20) 52%, transparent 62%),
-    linear-gradient(88deg, transparent 0 78%, rgba(246,229,194,.11) 86%, transparent 100%),
-    radial-gradient(ellipse at 50% 115%, rgba(245,222,184,.13), transparent 44%);
-  filter:blur(10px);
-  opacity:.9;
-}
-body::after{
-  content:"";
-  position:fixed;
-  inset:var(--frame-inset,18px);
-  pointer-events:none;
-  z-index:45;
-  border-radius:var(--frame-radius,30px);
-  border:1px solid rgba(248,228,191,.16);
-  box-shadow:
-    inset 0 1px 0 rgba(255,244,218,.16),
-    inset 0 -1px 0 rgba(255,244,218,.10),
-    0 0 34px rgba(238,203,145,.10);
-}
+/* .wrap needs position:relative + z-index:1 so content layers above
+   the fixed body::before / body::after decorative pseudo-elements. */
 .wrap{position:relative;z-index:1}
-.wrap::before{
-  content:"";
-  position:absolute;
-  inset:0;
-  pointer-events:none;
-  background:
-    radial-gradient(ellipse at 52% 16%, rgba(251,238,210,.12), transparent 28%),
-    linear-gradient(180deg, rgba(255,240,210,.055), transparent 18%),
-    linear-gradient(90deg, rgba(0,0,0,.34), transparent 19%, transparent 78%, rgba(0,0,0,.28));
-  mix-blend-mode:screen;
-  opacity:.8;
-}
-.hdr{
-  min-height:76px;
-  padding:9px 32px 8px 32px;
-  gap:30px;
-  /* Nest the header INSIDE the fixed decorative frame (body::after): same
-     inset, top corners matched to the frame radius, so the frame line wraps
-     around the logo instead of cutting through it — at every viewport. */
-  margin:var(--frame-inset) var(--frame-inset) 0;
-  border-radius:var(--frame-radius) var(--frame-radius) 0 0;
-  border-bottom:1px solid rgba(229,202,158,.12);
-  background:linear-gradient(180deg,rgba(28,19,11,.72),rgba(25,17,10,.42));
-  box-shadow:inset 0 -1px 0 rgba(255,235,196,.06),0 14px 34px rgba(0,0,0,.2);
-}
-.brand-logo{
-  display:block;
-  width:145px;
-  height:58px;
-  object-fit:contain;
-  object-position:center;
-  mix-blend-mode:screen;
-  filter:drop-shadow(0 0 18px rgba(228,189,130,.18));
-}
-.wordmark{display:none}
-.hdr-tabs{margin-left:22px;gap:24px}
-.htab{
-  color:rgba(230,211,178,.60);
-  font-family:var(--font-serif);
-  font-size:14px;
-  letter-spacing:.22em;
-  padding:17px 6px 15px;
-  text-shadow:0 0 18px rgba(234,206,162,.12);
-}
-.htab:hover{color:rgba(255,238,207,.88)}
-.htab.on{
-  color:var(--ink-bright);
-  border-bottom-color:var(--accent-bright);
-  box-shadow:0 10px 28px -20px var(--accent-bright);
-}
-.status{color:rgba(230,211,178,.66);font-size:11px}
-.run-btn{
-  border-radius:12px;
-  padding:12px 24px;
-  color:#1d140c;
-  background:linear-gradient(180deg,#efc991,#c8904a);
-  box-shadow:0 18px 34px -18px rgba(228,189,130,.55),inset 0 1px 0 rgba(255,244,218,.4);
-}
-.page{padding:0 32px 28px}
-.page[data-page="net-worth"]{padding-top:22px}
-.subnav{
-  max-width:min(1720px, calc(100vw - 64px));
-  margin:0 0 30px;
-  border-bottom-color:rgba(238,218,182,.2);
-  background:linear-gradient(90deg,rgba(235,213,178,.028),transparent 68%);
-}
-.stab{
-  font-family:var(--font-serif);
-  color:rgba(230,211,178,.54);
-  font-size:12px;
-  letter-spacing:.22em;
-  padding-top:16px;
-  padding-bottom:15px;
-}
-.stab:hover{color:rgba(230,211,178,.78)}
-.stab.on{color:var(--ink-bright);border-bottom-color:var(--accent-bright)}
 .eyebrow{color:rgba(230,211,178,.70);font-family:var(--font-serif);font-size:15px}
 .eyebrow::after{background:linear-gradient(90deg,rgba(232,205,161,.32),transparent)}
-.np-page{
-  max-width:min(1480px, calc(100vw - 64px));
-  gap:20px 62px;
-}
-.np-page.np-bal{
-  max-width:min(1720px, calc(100vw - 64px));
-  grid-template-columns:220px minmax(0,1fr);
-}
-.np-bal .bs-sheet{gap:0 86px}
 .np-gutter{
   padding-top:4px;
   color:var(--ink-mute);
@@ -891,7 +738,7 @@ body::after{
   text-shadow:0 0 18px rgba(242,221,186,.13);
 }
 .np-gutter .big-num{font-size:38px}
-.np-gutter .lbl,.hh-f label,.bs-head,.hp-col h4,.m-eye,.stat-lbl,.acct-picker h5,.er-k{
+.np-gutter .lbl,.bs-head,.hp-col h4,.m-eye,.stat-lbl,.acct-picker h5,.er-k{
   color:rgba(230,211,178,.62);
   letter-spacing:.24em;
 }
@@ -903,18 +750,10 @@ body::after{
 }
 .bs-head{border-bottom-color:rgba(228,189,130,.78)}
 .bs-divider,.hp-rule{background:linear-gradient(180deg,transparent,rgba(206,226,246,.18),transparent)}
-.hh-bar{
-  padding:18px 24px 20px;
-  margin-bottom:20px;
-  border:1px solid rgba(238,218,182,.10);
-  border-radius:18px;
-  background:linear-gradient(135deg,rgba(242,220,184,.085),rgba(242,220,184,.028));
-  box-shadow:inset 0 1px 0 rgba(255,244,218,.12),0 28px 60px -48px #000;
-}
 .bs-row label,.hp-item .nm,.prop-name,.er-name,.ro-name,.np-gutter .row{
   color:rgba(234,217,191,.82);
 }
-.bs-row input,.hh-f input,.hp-item input,.erow input,.prop-f input,.prop-name,.er-name,.bs-row select,.acct-amt,.sf-box,.sf-select,.lev-val .pen-in,.lev-val .lev-in{
+.bs-row input,.hp-item input,.erow input,.prop-f input,.prop-name,.er-name,.bs-row select,.acct-amt,.sf-box,.sf-select,.lev-val .pen-in,.lev-val .lev-in{
   color:var(--ink-bright);
   caret-color:var(--accent-bright);
 }
@@ -1008,8 +847,6 @@ body::after{
   .brand-logo{width:118px;height:48px}
   .htab{font-size:12px;padding:10px 14px}
   .np-page,.np-page.np-bal{max-width:none}
-  .hh-bar{display:block}
-  .hh-f{border-right:none;border-bottom:1px solid var(--rule-faint);margin:0;padding:10px 0}
 }
 
 /* ===== Final panel & density pass ==========================================
@@ -1047,7 +884,6 @@ body::after{inset:var(--frame-inset);border-radius:var(--frame-radius);border-co
 .wrap::before{opacity:.66}
 
 .hdr,
-.hh-bar,
 .solve-panel,
 .acct-picker,
 .metric,
@@ -1153,8 +989,6 @@ body::after{inset:var(--frame-inset);border-radius:var(--frame-radius);border-co
 .bs-row input{width:108px}
 .bs-row select{min-width:120px;text-align:right}
 .bs-sub-v{font-size:14px}
-.hh-bar{padding:16px 22px 18px;margin-bottom:18px;border-radius:var(--panel-radius)}
-
 .hp-rule,.bs-divider{opacity:.86}
 .hp-col h4{margin-bottom:16px}
 .hp-item{padding:10px 0}
@@ -1346,9 +1180,16 @@ body{
 }
 body::before{
   content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
-  background:url("../assets/scenarios-city-backdrop.svg") center/cover no-repeat;
-  filter:blur(2.2px) saturate(1.06) brightness(1.07);
-  opacity:.88;
+  /* Atmospheric depth layer (CSS-only, replacing the removed city-backdrop SVG).
+     Cool blue light nodes at the horizon + a bottom-corner bloom give the same
+     cinematic depth without an external file dependency. */
+  background:
+    radial-gradient(circle at 22% 84%, rgba(84,144,172,.12) 0 3px, transparent 14px),
+    radial-gradient(circle at 78% 78%, rgba(126,148,196,.10) 0 2px, transparent 12px),
+    radial-gradient(ellipse at 50% 102%, rgba(84,144,172,.09), transparent 38%),
+    radial-gradient(ellipse at 0% 100%, rgba(84,144,172,.14), transparent 36%),
+    radial-gradient(ellipse at 100% 100%, rgba(126,148,196,.10), transparent 32%);
+  opacity:.80;
 }
 body::after{
   content:"";position:fixed;left:-4vw;right:-4vw;bottom:-12vh;height:54vh;z-index:0;pointer-events:none;border:0;box-shadow:none;
@@ -1389,6 +1230,7 @@ body .hdr{
 body svg.brand-logo{width:154px;height:74px;mix-blend-mode:normal;filter:drop-shadow(0 0 12px rgba(196,218,234,.22))}
 body .hdr-tabs{margin-left:2px;padding-left:32px;gap:38px;border-left:1px solid rgba(222,237,247,.14)}
 body .htab{font-family:var(--font-sans);font-size:14px;font-weight:400;letter-spacing:.15em;padding:12px 0 17px;color:var(--ng-ink-muted);text-shadow:none}
+body .htab:hover { color: var(--ng-ink); }
 body .htab.on{color:var(--ng-ink);border-bottom-color:var(--ng-accent);box-shadow:0 10px 26px -18px rgba(231,201,135,.78)}
 body .hdr-right{gap:30px}
 body .status{font-size:12px;letter-spacing:.20em;color:var(--ng-ink-muted)}
@@ -1399,11 +1241,11 @@ body .page[data-page="sequencing"]{
   position:relative;
   padding:24px 56px 34px;
 }
-/* Sequencing + the Goals sub-view sit on the Scenarios page background so they read
-   as the same surface as the Scenarios tab. Household keeps its own warm background
-   (household.css, scoped to :has(.hh-shell)); Goals mounts .gl-wrap, so this targets
-   Goals only. No !important needed — the Household background no longer claims the
-   shared net-worth page. */
+/* All page tabs sit on the Scenarios navy background. Household gets its own
+   slightly-subtler variant via household.css, but we anchor it here too so any
+   future regression (e.g. losing the household.css link) still shows navy.
+   Goals mounts .gl-wrap, so the :has() selector targets that sub-view only. */
+body .page[data-page="household"],
 body .page[data-page="sequencing"],
 body .page[data-page="net-worth"]:has(.gl-wrap){
   background:var(--app-page-bg);
@@ -1418,7 +1260,10 @@ body .cf-drawer,
 body .np-snapshot-page .snap,
 body .metric,
 body .prop,
-body .acct-picker{
+body .acct-picker,
+body .solve-panel,
+body .combo-field,
+body .combo-card{
   background:var(--ng-glass-fill)!important;
   border:1px solid var(--ng-glass-border)!important;
   backdrop-filter:blur(22px) saturate(1.30);
@@ -1467,7 +1312,6 @@ body .story-read .rd-b{
   color:var(--ng-ink-soft)!important;
 }
 body .bs-row input,
-body .hh-f input,
 body .hp-item input,
 body .erow input,
 body .er-name,
@@ -1570,17 +1414,6 @@ body .stmt th{
   body .hp-col{
     min-width:0;
     padding:0;
-  }
-  body .hh-bar{
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:12px 18px;
-  }
-  body .hh-f{
-    margin:0;
-    padding:0 0 10px;
-    border-right:0;
-    border-bottom:1px solid rgba(226,239,246,.10);
   }
   body .bs-row,
   body .hp-item .ti,

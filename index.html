@@ -12,8 +12,8 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3E%3Crect%20width='64'%20height='64'%20rx='12'%20fill='%231e3d2b'/%3E%3Cpath%20d='M16%2038c8-20%2024-20%2032%200'%20fill='none'%20stroke='%23d9a07e'%20stroke-width='6'%20stroke-linecap='round'/%3E%3Ccircle%20cx='32'%20cy='32'%20r='7'%20fill='%23e5d9c4'/%3E%3C/svg%3E"/>
 <!-- ?v= cache-buster: bump on any CSS change so browsers fetch the new file
      instead of serving a stale cached copy (GitHub Pages caches CSS hard). -->
-<link rel="stylesheet" href="styles/main.css?v=4"/>
-<link rel="stylesheet" href="styles/household.css?v=4"/>
+<link rel="stylesheet" href="styles/main.css?v=6"/>
+<link rel="stylesheet" href="styles/household.css?v=8"/>
 <link rel="stylesheet" href="styles/scenarios.css?v=4"/>
 </head>
 <body>
@@ -74,7 +74,7 @@
       </g>
     </svg>
     <div class="hdr-tabs">
-      <button class="htab on" data-page="net-worth" data-sub-target="balance-sheet">Household</button>
+      <button class="htab on" data-page="household">Household</button>
       <button class="htab htab-secondary" data-page="net-worth" data-sub-target="goals">Goals</button>
       <button class="htab" data-page="scenarios">Scenarios</button>
       <button class="htab" data-page="sequencing">Sequencing</button>
@@ -85,7 +85,74 @@
     </div>
   </header>
 
-  <section class="page on" data-page="net-worth">
+  <!-- =====================================================================
+       Household — the EDITABLE plan-input console (canonical "Folio + Equilibrium"
+       design). syncHousehold() renders the Demographics / Net Worth / Cash Flow
+       chapters into #hh-view from the live `plan`; every value slot is an inline
+       renderField() input and the #hh-view delegate writes edits back to `plan`
+       and reseeds/dirties scenarios. One primary glass surface (the Folio app-frame);
+       the chapter rail + equilibrium pillars are regions inside it. No logo/orb/global
+       header here — production already owns those.
+       ===================================================================== -->
+  <section class="page on" data-page="household">
+    <div class="hh-stage">
+      <div class="hh-frame">
+
+        <!-- Folio chapter rail. Household identity (name + filing) is production
+             state — the view layer fills #hh-rail-name / #hh-rail-filing on every
+             sync. The C/S avatars are the two principals (initials set on sync). -->
+        <aside class="hh-rail">
+          <div class="hh-rail__id">
+            <div class="hh-avatars">
+              <div class="hh-avatar hh-avatar--c" id="hh-avatar-c" aria-hidden="true">C</div>
+              <div class="hh-avatar hh-avatar--s" id="hh-avatar-s" aria-hidden="true">S</div>
+            </div>
+            <div class="hh-rail__eyebrow">Household</div>
+            <div class="hh-rail__name" id="hh-rail-name" data-hh-name></div>
+            <div class="hh-rail__filing" id="hh-rail-filing" data-hh-filing></div>
+          </div>
+
+          <div class="hh-rail__rule"></div>
+
+          <!-- Chapter nav = the view switch. The view layer toggles .is-active and
+               renders the matching chapter into #hh-view. Keep these IDs. -->
+          <nav class="hh-chapters" role="tablist" aria-label="Household chapter">
+            <button class="hh-chapter is-active" id="hh-chap-demographics" type="button"
+                    role="tab" aria-selected="true" aria-controls="hh-view">
+              <span class="hh-chapter__mark" aria-hidden="true"></span>
+              <span class="hh-chapter__num" aria-hidden="true">I</span>
+              <span class="hh-chapter__label">Demographics</span>
+            </button>
+            <button class="hh-chapter" id="hh-chap-networth" type="button"
+                    role="tab" aria-selected="false" aria-controls="hh-view">
+              <span class="hh-chapter__mark" aria-hidden="true"></span>
+              <span class="hh-chapter__num" aria-hidden="true">II</span>
+              <span class="hh-chapter__label">Net Worth</span>
+            </button>
+            <button class="hh-chapter" id="hh-chap-cashflow" type="button"
+                    role="tab" aria-selected="false" aria-controls="hh-view">
+              <span class="hh-chapter__mark" aria-hidden="true"></span>
+              <span class="hh-chapter__num" aria-hidden="true">III</span>
+              <span class="hh-chapter__label">Cash Flow</span>
+            </button>
+          </nav>
+
+          <div class="hh-rail__spacer"></div>
+          <!-- Household reset / clear — bound in bindHouseholdRailOnce() -->
+          <div class="hh-rail__actions">
+            <button class="hh-rail-act" id="hh-act-demo" type="button" title="Reload the built-in demo household">Demo</button>
+            <button class="hh-rail-act hh-rail-act--clear" id="hh-act-clear" type="button" title="Clear all plan data and start fresh">Clear</button>
+          </div>
+        </aside>
+
+        <!-- Document mount — exactly one renderer writes here per sync. -->
+        <div class="hh-content" id="hh-view" aria-live="polite"></div>
+
+      </div>
+    </div>
+  </section>
+
+  <section class="page" data-page="net-worth">
     <div id="np-content"></div>
   </section>
 
@@ -194,7 +261,6 @@ import { runSimulation, runHistoricalPath, generateReturnPath, resetSeed, annual
 import { attachTypicalPathFederalTax } from './src/planning/tax/attachTypicalPathFederalTax.js';
 import { fmtM, fmtMoney, fmtMDelta, fmtPts, cfMoney, cfRetPct, cfGain } from './ui/formatters.js';
 import { storyChart, seqChartSvg } from './ui/charts.js';
-import { HH_VIEW_KEY, renderHouseholdStatement } from './ui/household.js';
 /* ╔══════════════════════════════════════════════════════════════╗
    ║  PARALLAX V2 — UI WIRING (calls the engine above)             ║
    ╚══════════════════════════════════════════════════════════════╝ */
@@ -222,6 +288,12 @@ plan.household.primary.planEndAge    = 95;
 plan.portfolio.accounts.taxable.balance      = 800000;
 plan.portfolio.accounts.traditional.balance  = 1600000;
 plan.portfolio.accounts.roth.balance         = 400000;
+// Account OWNERSHIP is a LABEL on the data (not engine math): it places each
+// holding in the Client or Spouse pillar of the Net Worth equilibrium. Demo —
+// Client holds the Traditional sleeve; Spouse holds the Taxable + Roth.
+plan.portfolio.accounts.traditional.owner    = 'client';
+plan.portfolio.accounts.taxable.owner        = 'spouse';
+plan.portfolio.accounts.roth.owner           = 'spouse';
 plan.portfolio.accounts.taxable.basisPct     = 0.55;
 plan.expenses.living                = 205000;
 plan.expenses.healthcare            = 12000;
@@ -896,7 +968,6 @@ const RISK_NAMES={1:'Conservative',2:'Mod-Cons',3:'Moderate',4:'Mod-Agg',5:'Aggr
    Each hybrid page's gutter computes its own running total from the live
    plan values — same place on every page so the eye knows where to land. */
 const SUB_PAGES = {
-  'balance-sheet': { label:'Household', layout:'statement' },
   'cashflow':      { label:'Cash Flow', layout:'hybrid', totLabel:'Annual income' },
   'goals':         { label:'Goals',     layout:'goals',  totLabel:'Annual goal spend' },
   'snapshot':      { label:'Snapshot',  layout:'snapshot' },
@@ -970,13 +1041,11 @@ const HYBRID = {
   },
 };
 
-/* Active sub-page persisted across sessions so the advisor returns to where
-   they were. Falls back to balance-sheet if the saved key is unknown. */
+/* Active sub-page for the net-worth page. The Goals sub-view lives here.
+   Household is its own editable data-page="household" console (inline renderers
+   syncHousehold / renderHhDemographics / renderHhNetWorth / renderHhCashflow). */
 const SUB_KEY = 'parallax.netWorth.sub';
-let activeSub = 'balance-sheet';
-let householdView = 'map';
-try { householdView = localStorage.getItem(HH_VIEW_KEY) || 'map'; } catch {}
-if(!['map','networth'].includes(householdView)) householdView = 'map';
+let activeSub = 'goals';
 const getPath=(o,p)=>p.split('.').reduce((a,k)=>a&&a[k],o);
 const setPath=(o,p,v)=>{const ks=p.split('.');const last=ks.pop();let t=o;for(const k of ks){if(t==null)return;t=t[k];}if(t!=null)t[last]=v;};
 
@@ -1055,6 +1124,404 @@ function commitPlanEdit(){
 // Real assets are current balance-sheet values. The Household module keeps
 // recurring payment streams out of strict net-worth liability totals.
 function realAssetsTotal(){ return (plan.properties||[]).reduce((s,a)=>s+(a.value||0),0); }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   HOUSEHOLD — the editable plan-input console (Demographics / Net Worth / Cash
+   Flow), rendered as the Folio/glass document. EVERY core input is editable
+   inline at all times: each value slot is a renderField() data-path control, and
+   the #hh-view delegated handler writes back to `plan` and reseeds/dirties
+   scenarios EXACTLY like the rest of the input layer (setPath → reseedScenarios →
+   buildLevers → plansDirty=true). Money TRUTH (balances) is typed by the advisor;
+   the OWNER of an account is a LABEL placing it in the Client / Spouse pillar or
+   the joint holdings — derived displays (net-worth total, per-owner investable,
+   ownership %, beam) recompute read-only on every sync, never faked.
+   ═══════════════════════════════════════════════════════════════════════════ */
+const HH_BUCKET_LABEL = { taxable:'Taxable', traditional:'Traditional', roth:'Roth' };
+const HH_OWNERS  = [['client','Client'],['spouse','Spouse'],['joint','Joint']];
+const HH_BUCKETS = [['taxable','Taxable'],['traditional','Traditional'],['roth','Roth']];
+let hhChapter = 'demographics';   // 'demographics' | 'networth' | 'cashflow'
+
+/* Every sleeve + extra account as an EDITABLE row (carries its data-paths). Core
+   sleeves are permanent; extras are add/removable with an editable type + bucket. */
+function hhAllAccounts(){
+  const acc = (plan.portfolio && plan.portfolio.accounts) || {};
+  const rows = [];
+  ['taxable','traditional','roth'].forEach(k => {
+    const a = acc[k] || {};
+    rows.push({ label: HH_BUCKET_LABEL[k], balance: a.balance||0, owner: a.owner || 'joint',
+      balPath:`portfolio.accounts.${k}.balance`, ownerPath:`portfolio.accounts.${k}.owner`, core:true,
+      basisPath: k==='taxable' ? 'portfolio.accounts.taxable.basisPct' : null
+    });
+  });
+  (plan.portfolio.extraAccounts || []).forEach((x,i) => {
+    rows.push({ label: x.type || 'Account', balance: x.balance||0, owner: x.owner || 'joint', bucket: x.bucket || 'taxable',
+      typePath:`portfolio.extraAccounts.${i}.type`, bucketPath:`portfolio.extraAccounts.${i}.bucket`,
+      balPath:`portfolio.extraAccounts.${i}.balance`, ownerPath:`portfolio.extraAccounts.${i}.owner`, idx:i, core:false });
+  });
+  return rows;
+}
+function hhDebtTotal(){
+  const mort = (plan.properties||[]).reduce((s,p)=>s+((p.mortgage&&p.mortgage.balance)||0),0);
+  const liab = (plan.liabilities||[]).reduce((s,l)=>s+(l.amount||0),0);
+  return mort + liab;
+}
+function hhNetWorthTotal(){ return investableTotal() + realAssetsTotal() - hhDebtTotal(); }
+function hhFilingLine(){
+  const FS = { marriedFilingJointly:'Married filing jointly', single:'Single', headOfHousehold:'Head of household', marriedFilingSeparately:'Married filing separately' };
+  const fs = plan.meta && plan.meta.filingStatus;
+  const hasSpouse = !!(plan.household && plan.household.spouse);
+  if(fs && FS[fs]) return FS[fs] + (hasSpouse ? ' · two-person household' : '');
+  return hasSpouse ? 'Two-person household' : 'Single household';
+}
+function hhInitial(name, fallback){ const n=(name||'').trim(); return n ? n.charAt(0).toUpperCase() : fallback; }
+
+/* Formatting for the DERIVED (read-only) displays only — inputs are typed. */
+function hhMoney(v){ const n=Math.round(Number(v)||0); return (n<0?'–$':'$') + Math.abs(n).toLocaleString('en-US'); }
+function hhShort(v){ const n=Number(v)||0, a=Math.abs(n), s=n<0?'–':''; if(a>=1e6) return s+'$'+(a/1e6).toFixed(2).replace(/\.?0+$/,'')+'M'; if(a>=1e3) return s+'$'+Math.round(a/1e3)+'K'; return s+'$'+Math.round(a); }
+function hhSigned(v){ const n=Math.round(Number(v)||0); return (n<0?'–$':'+$') + Math.abs(n).toLocaleString('en-US'); }
+
+/* Editable controls bound by data-path (handled by the #hh-view delegate). */
+function hhField(path, type, extra){ return renderField(Object.assign({ path, type }, extra||{})); }
+function hhSelect(path, value, opts, kind){
+  const o = opts.map(([v,l]) => `<option value="${v}" ${v===value?'selected':''}>${l}</option>`).join('');
+  return `<select data-path="${path}" data-type="${kind}" class="hh-sel hh-sel--${kind}">${o}</select>`;
+}
+const hhOwnerSelect  = (path, owner)  => hhSelect(path, owner,  HH_OWNERS,  'owner');
+const hhBucketSelect = (path, bucket) => hhSelect(path, bucket, HH_BUCKETS, 'bucket');
+
+/* ── I · DEMOGRAPHICS (editable) ─────────────────────────────────── */
+function renderHhPerson(role){
+  const isC = role==='client';
+
+  // Spouse not present — show an "absent" column so the user can add one.
+  if(!isC && !plan.household.spouse){
+    return `<div class="hh-person hh-person--spouse hh-person--absent">
+      <div class="hh-person__id">
+        <div class="hh-person__avatar hh-person--absent__avatar">+</div>
+        <div>
+          <div class="hh-person__name hh-person--absent__label">No spouse</div>
+          <div class="hh-person__role">Single household</div>
+        </div>
+      </div>
+      <div class="hh-facts">
+        <button class="hh-add" type="button" data-hh-action="add-spouse">+ Add spouse</button>
+      </div>
+    </div>`;
+  }
+
+  const p = (plan.household && plan.household[isC?'primary':'spouse']) || {};
+  const base = isC ? 'household.primary' : 'household.spouse';
+  const namePath = isC ? 'meta.primaryName' : 'meta.spouseName';
+  const a = Number(p.currentAge), r = Number(p.retirementAge);
+  const years = (Number.isFinite(a) && Number.isFinite(r)) ? Math.max(0, r-a) : '—';
+  const fact = (k, html) => `<div class="hh-fact"><span class="hh-fact__k">${k}</span><span class="hh-fact__v">${html}</span></div>`;
+  let facts = '';
+  facts += fact('Current age',    hhField(`${base}.currentAge`, 'age'));
+  facts += fact('Retirement age', hhField(`${base}.retirementAge`, 'age'));
+  if(isC) facts += fact('Plan to age', hhField('household.primary.planEndAge', 'age'));
+  facts += fact('Years to retire', `<span class="hh-derived">${years}</span>`);
+  // Spouse column gets a remove action at the bottom.
+  if(!isC) facts += `<div class="hh-fact hh-fact--action"><span class="hh-fact__k"></span><span class="hh-fact__v"><button class="hh-add hh-add--muted" type="button" data-hh-action="remove-spouse">Remove spouse</button></span></div>`;
+  return `<div class="hh-person hh-person--${role}">
+    <div class="hh-person__id">
+      <div class="hh-person__avatar">${isC?'C':'S'}</div>
+      <div><div class="hh-person__name">${hhField(namePath,'text')}</div><div class="hh-person__role">${isC?'Primary':'Partner'}</div></div>
+    </div>
+    <div class="hh-facts">${facts}</div>
+  </div>`;
+}
+function renderHhDemographics(){
+  const FS_OPTS = [
+    ['marriedFilingJointly',     'Married filing jointly'],
+    ['single',                   'Single'],
+    ['headOfHousehold',          'Head of household'],
+    ['marriedFilingSeparately',  'Married filing separately'],
+  ];
+  const defaultFs = plan.household.spouse ? 'marriedFilingJointly' : 'single';
+  const fsVal = (plan.meta && plan.meta.filingStatus) || defaultFs;
+  return `<div class="hh-doc">
+    <div class="hh-doc__head">
+      <div class="hh-eyebrow">Chapter I</div>
+      <div class="hh-doc__title">Demographics</div>
+      <label class="hh-assume hh-filing-row" style="flex-direction:row;align-items:center;gap:12px;margin-top:14px">
+        <span>Filing status</span>${hhSelect('meta.filingStatus', fsVal, FS_OPTS, 'text')}
+      </label>
+    </div>
+    <div class="hh-people">${renderHhPerson('client')}${renderHhPerson('spouse')}</div>
+  </div>`;
+}
+
+/* ── II · NET WORTH (editable equilibrium + household holdings) ───── */
+function hhAcctRow(a){
+  const owner = hhOwnerSelect(a.ownerPath, a.owner);
+  const cat = a.core
+    ? `<span class="hh-acct__lbl">${a.label}</span>${owner}`
+    : `${hhField(a.typePath,'text')}${hhBucketSelect(a.bucketPath, a.bucket)}${owner}`;
+  const rm = a.core ? '' : `<button class="row-x" title="Remove account" data-rmpath="portfolio.extraAccounts.${a.idx}">×</button>`;
+  return `<div class="hh-acct">
+    <span class="hh-acct__cat">${cat}</span>
+    <span class="hh-acct__amt">${hhField(a.balPath,'money')}${rm}</span>
+  </div>`;
+}
+function renderHhPillar(role){
+  const isC = role==='client';
+  const p = (plan.household && plan.household[isC?'primary':'spouse']) || {};
+  const accts = hhAllAccounts().filter(x => x.owner === role);
+  const inv = accts.reduce((s,x)=>s+(x.balance||0),0);
+  const ledger = accts.length ? accts.map(hhAcctRow).join('')
+    : `<div class="hh-acct hh-acct--empty"><span class="hh-acct__cat">No accounts assigned</span></div>`;
+  return `<div class="hh-pillar hh-pillar--${role}">
+    <div class="hh-pillar__id">
+      <div class="hh-pillar__avatar">${isC?'C':'S'}</div>
+      <div class="hh-pillar__role">${isC?'Client':'Spouse'}</div>
+      <div class="hh-pillar__age">Age ${p.currentAge ?? '—'}</div>
+    </div>
+    <div class="hh-pillar__rule"></div>
+    <div class="hh-pillar__investable"><div class="hh-pillar__inv-label">Investable</div><div class="hh-pillar__inv-value">${hhMoney(inv)}</div></div>
+    ${ledger}
+  </div>`;
+}
+function renderHhFulcrum(){
+  const all = hhAllAccounts();
+  const sum = o => all.filter(x=>x.owner===o).reduce((s,x)=>s+(x.balance||0),0);
+  const cInv = sum('client'), sInv = sum('spouse');
+  const big = Math.max(cInv,sInv)||1, ARM = 150;
+  const cPx = Math.round(ARM*cInv/big), sPx = Math.round(ARM*sInv/big);
+  const base = cInv + sInv, cPct = base ? Math.round(cInv/base*100) : 0, sPct = base ? 100-cPct : 0;
+  return `<div class="hh-fulcrum">
+    <div class="hh-fulcrum__eyebrow">Household</div>
+    <div class="hh-fulcrum__label">Net worth</div>
+    <div class="hh-fulcrum__total">${hhMoney(hhNetWorthTotal())}</div>
+    <div class="hh-fulcrum__label">Balance</div>
+    <div class="hh-beam">
+      <div class="hh-beam__row">
+        <div class="hh-beam__arm hh-beam__arm--l"><div class="hh-beam__bar-l" style="width:${cPx}px;"></div></div>
+        <div class="hh-beam__pivot"></div>
+        <div class="hh-beam__arm hh-beam__arm--r"><div class="hh-beam__bar-r" style="width:${sPx}px;"></div></div>
+      </div>
+      <div class="hh-beam__legend"><span>Client ${hhShort(cInv)}</span><span>Spouse ${hhShort(sInv)}</span></div>
+      <div class="hh-beam__stem"></div><div class="hh-beam__base"></div>
+    </div>
+    <div class="hh-chips">
+      <div class="hh-chip"><div class="hh-chip__label">Real</div><div class="hh-chip__value">${hhShort(realAssetsTotal())}</div></div>
+      <div class="hh-chip"><div class="hh-chip__label">Debt</div><div class="hh-chip__value hh-chip__value--debt">${hhShort(-hhDebtTotal())}</div></div>
+    </div>
+    <div class="hh-own">
+      <div class="hh-own__label">Ownership</div>
+      <div class="hh-own__bar"><div class="hh-own__c" style="width:${cPct}%;"></div><div class="hh-own__s" style="width:${sPct}%;"></div></div>
+      <div class="hh-own__legend"><span>Client ${cPct}%</span><span>Spouse ${sPct}%</span></div>
+    </div>
+  </div>`;
+}
+function renderHhHoldings(){
+  const joint = hhAllAccounts().filter(x => x.owner === 'joint');
+  const jointRows = joint.length ? joint.map(hhAcctRow).join('') : `<div class="hh-hold-empty">No jointly-held accounts</div>`;
+  const props = (plan.properties||[]).map((p,i)=>`<div class="hh-hold-row">
+      <span class="hh-hold-name">${hhField(`properties.${i}.name`,'text')}</span>
+      <span class="hh-hold-fields"><label>Value ${hhField(`properties.${i}.value`,'money')}</label><label>Mortgage ${hhField(`properties.${i}.mortgage.balance`,'money')}</label><button class="row-x" title="Remove asset" data-rmpath="properties.${i}">×</button></span>
+    </div>`).join('') || `<div class="hh-hold-empty">No real assets entered</div>`;
+  const liabs = (plan.liabilities||[]).map((l,i)=>`<div class="hh-hold-row">
+      <span class="hh-hold-name">${hhField(`liabilities.${i}.label`,'text')}</span>
+      <span class="hh-hold-fields"><label>${hhField(`liabilities.${i}.amount`,'money')}<span class="hh-suffix">/yr</span></label><button class="row-x" title="Remove liability" data-rmpath="liabilities.${i}">×</button></span>
+    </div>`).join('') || `<div class="hh-hold-empty">No liabilities entered</div>`;
+  return `<div class="hh-holdings">
+    <div class="hh-hold-grp">
+      <div class="hh-hold-head"><span>Joint accounts</span><button class="hh-add" type="button" data-add="account">+ Account</button></div>
+      ${jointRows}
+    </div>
+    <div class="hh-hold-grp">
+      <div class="hh-hold-head"><span>Real assets</span><button class="hh-add" type="button" data-add="property">+ Real asset</button></div>
+      ${props}
+    </div>
+    <div class="hh-hold-grp">
+      <div class="hh-hold-head"><span>Liabilities</span><button class="hh-add" type="button" data-add="liability">+ Liability</button></div>
+      ${liabs}
+    </div>
+    <div class="hh-hold-grp">
+      <div class="hh-hold-head"><span>Assumptions</span></div>
+      <div class="hh-assume">
+        <label><span>Allocation</span>${hhField('portfolio.riskProfile','risk')}</label>
+        <label><span>Withdrawal</span>${hhField('portfolio.withdrawalStrategy','strategy')}</label>
+        <label><span>Simulation paths</span>${hhField('simulation.iterations','num',{min:100,step:100})}</label>
+        <label><span>Taxable cost basis</span><span class="hh-assume__pct">${hhField('portfolio.accounts.taxable.basisPct','pct')}%</span></label>
+      </div>
+    </div>
+  </div>`;
+}
+function renderHhNetWorth(){
+  return `<div class="hh-nw">
+    <div class="hh-nw__grid">${renderHhPillar('client')}${renderHhFulcrum()}${renderHhPillar('spouse')}</div>
+    ${renderHhHoldings()}
+  </div>`;
+}
+
+/* ── III · CASH FLOW (editable income + expenses; derived totals) ── */
+function hhLine(dir, name, amtHtml, meta){
+  return `<div class="hh-line"><div class="hh-line__tick hh-line__tick--${dir}"></div>` +
+    `<span class="hh-line__name">${name}${meta?`<span class="hh-line__meta">${meta}</span>`:''}</span>` +
+    `<span class="hh-line__amt">${amtHtml}</span></div>`;
+}
+function renderHhCashflow(){
+  const inc = plan.income||{}, exp = plan.expenses||{}, ss = inc.socialSecurity||{}, pen = inc.pension||{};
+  const c = plan.meta.primaryName||'Client', s = plan.meta.spouseName||'Spouse';
+  let inflows = '';
+  inflows += hhLine('in', 'Working income', hhField('income.workingIncome','money'));
+  // Social Security — always show primary; show spouse row only when spouse exists
+  inflows += hhLine('in', 'Social Security · '+c, hhField('income.socialSecurity.primary.pia','money'), `claim age ${hhField('income.socialSecurity.primary.claimAge','age')}`);
+  if(plan.household.spouse){
+    if(!inc.socialSecurity.spouse) plan.income.socialSecurity.spouse = { pia:0, claimAge:67 };
+    inflows += hhLine('in', 'Social Security · '+s, hhField('income.socialSecurity.spouse.pia','money'), `claim age ${hhField('income.socialSecurity.spouse.claimAge','age')}`);
+  }
+  // Pension benefit-by-age entries
+  const penAges = Object.keys(pen.benefitByAge||{}).map(Number).filter(n=>!isNaN(n)).sort((a,b)=>a-b);
+  penAges.forEach(age => {
+    const startMeta = age===penAges[0]
+      ? `start age ${hhField('income.pension.startAge','age')} · COLA ${hhField('income.pension.colaPct','pctPoints')}%`
+      : '';
+    inflows += hhLine('in', `Pension @ ${age}`, `${hhField(`income.pension.benefitByAge.${age}`,'money')}<button class="row-x" title="Remove this pension quote" data-rmpath="income.pension.benefitByAge.${age}">×</button>`, startMeta);
+  });
+  inflows += `<div class="hh-line hh-line--add">
+    <button class="hh-add" type="button" data-hh-action="add-pension-age">+ Pension age</button>
+    <button class="hh-add" type="button" data-add="income" style="margin-left:8px">+ Income source</button>
+  </div>`;
+  (inc.other||[]).forEach((o,i)=>{ inflows += hhLine('in', hhField(`income.other.${i}.label`,'text'), `${hhField(`income.other.${i}.amount`,'money')}<button class="row-x" title="Remove income" data-rmpath="income.other.${i}">×</button>`); });
+
+  let outflows = '';
+  outflows += hhLine('out', 'Lifestyle',  hhField('expenses.living','money'));
+  outflows += hhLine('out', 'Healthcare', hhField('expenses.healthcare','money'), `inflation ${hhField('expenses.healthcareRealGrowth','pct')}%`);
+  outflows += hhLine('out', 'Annual savings', hhField('savings.annual','money'));
+  // Recurring liabilities (from plan.liabilities — also editable in Net Worth)
+  (plan.liabilities||[]).forEach((l,i)=>{ outflows += hhLine('out', l.label||'Liability', `${hhField(`liabilities.${i}.amount`,'money')}<span class="hh-suffix">/yr</span><button class="row-x" title="Remove liability" data-rmpath="liabilities.${i}">×</button>`); });
+  outflows += `<div class="hh-line hh-line--add"><button class="hh-add" type="button" data-add="liability">+ Liability</button></div>`;
+
+  // Derived totals (read-only): pension pays its start-age benefit.
+  const penAmt = (pen.startAge!=null && pen.benefitByAge) ? (pen.benefitByAge[pen.startAge]||0) : 0;
+  const otherSum = (inc.other||[]).reduce((t,o)=>t+(o.amount||0),0);
+  const totalIn  = (inc.workingIncome||0) + ((ss.primary&&ss.primary.pia)||0) + ((ss.spouse&&ss.spouse.pia)||0) + penAmt + otherSum;
+  const liabSum  = (plan.liabilities||[]).reduce((t,l)=>t+(l.amount||0),0);
+  const totalOut = (exp.living||0) + (exp.healthcare||0) + ((plan.savings&&plan.savings.annual)||0) + liabSum;
+  const net = totalIn - totalOut, neg = net < 0;
+  return `<div class="hh-doc">
+    <div class="hh-doc__head hh-doc__head--split">
+      <div><div class="hh-eyebrow">Chapter III</div><div class="hh-doc__title">Cash Flow</div></div>
+      <div class="hh-surplus"><div class="hh-surplus__label">Net surplus</div><div class="hh-surplus__value ${neg?'hh-surplus__value--neg':'hh-surplus__value--pos'}">${hhSigned(net)}</div></div>
+    </div>
+    <div class="hh-flows">
+      <div class="hh-flow"><div class="hh-flow__label">Inflows</div>${inflows}
+        <div class="hh-total"><span class="hh-total__label">Total in</span><span class="hh-total__value hh-total__value--in">${hhMoney(totalIn)}</span></div></div>
+      <div class="hh-flow"><div class="hh-flow__label">Outflows</div>${outflows}
+        <div class="hh-total"><span class="hh-total__label">Total out</span><span class="hh-total__value hh-total__value--out">${hhMoney(totalOut)}</span></div></div>
+    </div>
+  </div>`;
+}
+
+/* ── Household reset helpers ───────────────────────────────────────────────
+   hhResetToDemo()     → re-applies the built-in demo household and scenarios.
+   hhClearHousehold()  → blanks all plan data so the advisor can start fresh.
+   Both call the full reseed/dirty/run flow and re-render Household. */
+function hhResetToDemo(){
+  if(!confirm('Reset to demo household? All unsaved edits will be lost.')) return;
+  plan.meta.primaryName = 'Client';
+  plan.meta.spouseName  = 'Spouse';
+  plan.meta.filingStatus = 'marriedFilingJointly';
+  plan.household.primary  = { currentAge: 58, retirementAge: 65, planEndAge: 95 };
+  plan.household.spouse   = { currentAge: 57, retirementAge: 64 };
+  plan.portfolio.accounts.taxable     = { balance: 800000,  owner: 'spouse', basisPct: 0.55 };
+  plan.portfolio.accounts.traditional = { balance: 1600000, owner: 'client' };
+  plan.portfolio.accounts.roth        = { balance: 400000,  owner: 'spouse' };
+  plan.portfolio.extraAccounts = [];
+  plan.properties  = [];
+  plan.liabilities = [];
+  plan.income.workingIncome = 300000;
+  plan.income.socialSecurity.primary = { pia: 48000, claimAge: 67 };
+  plan.income.socialSecurity.spouse  = { pia: 30000, claimAge: 67 };
+  plan.income.pension = { benefitByAge: { 62:36000, 63:38160, 64:40320, 65:42480 }, startAge:65, colaPct:0 };
+  plan.income.other   = [{ label:'Rental income', amount:18000, startAge:65, endAge:95, realGrowth:0.01, taxablePct:0.70 }];
+  plan.expenses.living              = 205000;
+  plan.expenses.healthcare          = 12000;
+  plan.expenses.healthcareRealGrowth = 0.02;
+  plan.savings.annual = 30000;
+  plan.goals = [
+    { name:'Travel',            amount:12000, startAge:65, endAge:95 },
+    { name:'Home improvements', amount:5000,  startAge:65, endAge:95 },
+    { name:'Gifts',             amount:5000,  startAge:65, endAge:95 },
+    { name:'New car',           amount:40000, startAge:72, endAge:72 },
+  ];
+  try{ localStorage.removeItem(SCEN_KEY); }catch(e){}
+  scenarios = demoScenarios(); baseSnapshot = defaultLevers();
+  hhChapter = 'demographics';
+  buildLevers(); plansDirty = true; sharedPaths = null;
+  syncHousehold();
+  renderInputs();
+  runAll();
+  $('#status').textContent = 'Demo household loaded';
+}
+function hhClearHousehold(){
+  if(!confirm('Clear all plan data? This cannot be undone.')) return;
+  plan.meta.primaryName  = '';
+  plan.meta.spouseName   = '';
+  plan.meta.filingStatus = 'single';
+  plan.household.primary  = { currentAge: 60, retirementAge: 65, planEndAge: 90 };
+  plan.household.spouse   = null;
+  plan.portfolio.accounts.taxable     = { balance: 0, owner: 'client', basisPct: 1.0 };
+  plan.portfolio.accounts.traditional = { balance: 0, owner: 'client' };
+  plan.portfolio.accounts.roth        = { balance: 0, owner: 'client' };
+  plan.portfolio.extraAccounts = [];
+  plan.properties  = [];
+  plan.liabilities = [];
+  plan.income.workingIncome = 0;
+  plan.income.socialSecurity.primary = { pia: 0, claimAge: 67 };
+  plan.income.socialSecurity.spouse  = null;
+  plan.income.pension = { benefitByAge: {}, startAge: 65, colaPct: 0 };
+  plan.income.other   = [];
+  plan.expenses.living              = 0;
+  plan.expenses.healthcare          = 0;
+  plan.expenses.healthcareRealGrowth = 0.02;
+  plan.savings.annual = 0;
+  plan.goals = [];
+  try{ localStorage.removeItem(SCEN_KEY); }catch(e){}
+  scenarios = demoScenarios(); baseSnapshot = defaultLevers();
+  hhChapter = 'demographics';
+  buildLevers(); plansDirty = true; sharedPaths = null;
+  syncHousehold();
+  renderInputs();
+  runAll();
+  $('#status').textContent = 'New household · fill in details';
+}
+
+/* One authoritative Household sync: fill rail identity, render the active chapter
+   into #hh-view, and reflect the active chapter on the rail. Called at boot, on
+   tab show, and after every edit (the #hh-view delegate re-renders through here). */
+function syncHousehold(){
+  const view = $('#hh-view'); if(!view) return;
+  const nm = $('#hh-rail-name'), fl = $('#hh-rail-filing');
+  if(nm){
+    const pn = plan.meta.primaryName||'Client';
+    const sn = plan.meta.spouseName||'Spouse';
+    nm.textContent = plan.household.spouse ? (pn + ' & ' + sn) : pn;
+  }
+  if(fl) fl.textContent = hhFilingLine();
+  if($('#hh-avatar-c')) $('#hh-avatar-c').textContent = hhInitial(plan.meta.primaryName,'C');
+  if($('#hh-avatar-s')) $('#hh-avatar-s').textContent = hhInitial(plan.meta.spouseName,'S');
+  view.innerHTML = hhChapter==='networth' ? renderHhNetWorth()
+                 : hhChapter==='cashflow' ? renderHhCashflow()
+                 :                          renderHhDemographics();
+  [['demographics','hh-chap-demographics'],['networth','hh-chap-networth'],['cashflow','hh-chap-cashflow']].forEach(([k,id]) => {
+    const el = $('#'+id); if(!el) return;
+    const on = hhChapter===k; el.classList.toggle('is-active', on); el.setAttribute('aria-selected', on?'true':'false');
+  });
+}
+/* Chapter rail = the view switch. Bound once at boot. */
+function bindHouseholdRailOnce(){
+  [['demographics','hh-chap-demographics'],['networth','hh-chap-networth'],['cashflow','hh-chap-cashflow']].forEach(([k,id]) => {
+    const el = $('#'+id); if(el) el.addEventListener('click', () => { hhChapter = k; syncHousehold(); });
+  });
+  // Demo / Clear household action buttons in the rail footer.
+  const demoBtn  = $('#hh-act-demo');
+  const clearBtn = $('#hh-act-clear');
+  if(demoBtn)  demoBtn.addEventListener('click',  () => hhResetToDemo());
+  if(clearBtn) clearBtn.addEventListener('click', () => hhClearHousehold());
+}
 
 // Column subtotals — sums every group in HYBRID[page].left / .right (a column may
 // be one or more groups). Dynamic-pension items are included automatically.
@@ -1150,6 +1617,13 @@ function renderField(f, klass){
     const dv = Math.round((v||0)*100);
     return `<input type="number" data-path="${f.path}" data-type="pct" value="${dv}" step="1"><span class="pre">%</span>`;
   }
+  /* pctPoints: user enters whole percentage points (0–100), plan stores as-is.
+     Use for fields where the engine itself divides by 100 (e.g. colaPct → engine does colaPct/100).
+     Contrast with 'pct': user enters 55, plan stores 0.55, engine reads 0.55 directly. */
+  if(f.type==='pctPoints'){
+    const dv = (v||0);
+    return `<input type="number" data-path="${f.path}" data-type="pctPoints" value="${dv}" step="0.5" min="0">`;
+  }
   if(f.type==='num'){
     return `<input type="number" data-path="${f.path}" data-type="num" value="${v}" min="${f.min||0}" step="${f.step||1}">`;
   }
@@ -1171,6 +1645,7 @@ const ROW_KINDS = {
   goalRec:   { arr:'goals',          mk:()=>({ name:'',  amount:0, startAge:plan.household.primary.retirementAge, endAge:plan.household.primary.planEndAge }) },
   goalOnce:  { arr:'goals',          mk:()=>({ name:'',  amount:0, startAge:70, endAge:70 }) },
   property:  { arr:'properties',     mk:()=>({ name:'',  value:0, purchasePrice:0, mortgage:{ balance:0, rate:0, termYears:0 } }) },
+  account:   { arr:'portfolio.extraAccounts', mk:()=>({ type:'New account', bucket:'taxable', owner:'joint', balance:0 }) },
 };
 const money = (p,base,k)=>`<span class="er-amt"><span class="pre">$</span><input type="text" inputmode="numeric" data-path="${base}.${k}" data-type="money" value="${(getPath(plan,base+'.'+k)||0).toLocaleString('en-US')}"></span>`;
 const num   = (p,base,k,step)=>`<input class="er-num" type="number" step="${step||1}" data-path="${base}.${k}" data-type="num" value="${getPath(plan,base+'.'+k)}">`;
@@ -1234,23 +1709,11 @@ function flowSection(arr, nameKey, ph, kind, addLabel){
   return h;
 }
 
-/* ── Statement layout (Balance Sheet) ─────────────────────────────
-   Section heads = small caps + thin accent underline. Rows = label, dotted
-   leader, boxless input. Subtotal closes a money section in slate. */
-function renderStatement(){
-  return renderHouseholdStatement({
-    plan,
-    householdView,
-    acctSel,
-    acctTypes: ACCT_TYPES,
-    balanceSheet: BALANCE_SHEET,
-    fmtMoney,
-    renderField,
-    escHtml,
-    investableTotal,
-    realAssetsTotal,
-  });
-}
+/* The old Balance-Sheet statement / Map editor (renderHouseholdStatement) was
+   retired. Household is now the EDITABLE plan-input console: the three chapters
+   (Demographics / Net Worth / Cash Flow) live inline in this file as
+   renderHhDemographics / renderHhNetWorth / renderHhCashflow, rendered by
+   syncHousehold() and backed by the #hh-view delegated change handler. */
 
 /* ── Hybrid layout (Inflows / Outflows / Goals) ───────────────────
    200px gutter (title + description + running total) + two facing columns
@@ -1766,8 +2229,7 @@ function renderInputs(){
   const np = $('#np-content');
   // Snapshot is its own diagnostic page again — embedding it on the Net Worth
   // page made that page too busy to read.
-  const html = layout==='statement' ? renderStatement()
-             : layout==='snapshot'  ? `<div class="np-snapshot-page">${renderSnapshot()}</div>`
+  const html = layout==='snapshot'  ? `<div class="np-snapshot-page">${renderSnapshot()}</div>`
              : layout==='goals'     ? renderGoalsPage()
              :                        renderHybrid(activeSub);
   np.innerHTML = html;
@@ -1779,13 +2241,7 @@ function renderInputs(){
 
 // ── All Net Worth interactions — delegated on the stable #np-content ─────────
 $('#np-content').addEventListener('click', e => {
-  const hhMode = e.target.closest('.hh-toggle-btn');
-  if(hhMode){
-    householdView = hhMode.dataset.hhView || 'map';
-    try { localStorage.setItem(HH_VIEW_KEY, householdView); } catch {}
-    renderInputs();
-    return;
-  }
+  // (The old Map / Net-Worth toggle was retired with the Household editor.)
   // Row delete (×)
   const rx = e.target.closest('.row-x');
   if(rx){
@@ -1897,6 +2353,97 @@ $('#np-content').addEventListener('change', e => {
   if(plan.portfolio.extraAccounts && plan.portfolio.extraAccounts[i]){
     plan.portfolio.extraAccounts[i].balance = v;
     commitPlanEdit();
+  }
+});
+
+/* ── Household input bindings — delegated on the stable #hh-view ───────────────
+   The Household page is an EDITABLE input console. These mirror the #np-content
+   handlers above (same setPath write-back + reseed/dirty/plansDirty sequence), but
+   re-render the Folio chapters via syncHousehold(). Kept as a separate, isolated
+   binding so the Goals/#np-content flow is untouched. `owner`/`bucket` are string
+   selects (account labels); everything else matches the shared field types. */
+function hhCommit(){
+  reseedScenarios(); buildLevers(); sharedPaths=null; plansDirty=true;
+  syncHousehold();
+  $('#status').textContent='Plan edited · open Scenarios';
+}
+$('#hh-view').addEventListener('input', e => {
+  if(e.target.dataset.type === 'money' || e.target.dataset.type === 'monthlyMoney') liveCommas(e.target);
+});
+$('#hh-view').addEventListener('change', e => {
+  const path = e.target.dataset.path, type = e.target.dataset.type;
+  if(!path) return;
+  const raw = e.target.value;
+  if(type==='text' || type==='strategy' || type==='owner' || type==='bucket'){   // string writes
+    setPath(plan, path, raw);
+    hhCommit();
+    return;
+  }
+  let v;
+  if(type==='money' || type==='monthlyMoney') v = parseFloat(String(raw).replace(/[^0-9.]/g,''));
+  else if(type==='risk') v = +raw;
+  else                   v = parseFloat(raw);
+  if(!isFinite(v)) return;                                   // blank/garbage → no-op
+  if(type==='pct')  v = Math.max(0, Math.min(100, v))/100;
+  if(type==='money'){ v = Math.max(0, Math.round(v)); e.target.value = v.toLocaleString('en-US'); }
+  if(type==='monthlyMoney'){ const m = Math.max(0, Math.round(v)); v = m*12; e.target.value = m.toLocaleString('en-US'); }
+  if(type==='num')  v = Math.max(1, Math.round(v));
+  setPath(plan, path, v);
+  hhCommit();
+});
+$('#hh-view').addEventListener('click', e => {
+  // Remove an account / asset / liability / income row.
+  const rx = e.target.closest('.row-x');
+  if(rx){
+    const rmpath = rx.dataset.rmpath;
+    // Special case: pension benefitByAge key deletion (e.g. "income.pension.benefitByAge.65")
+    if(/^income\.pension\.benefitByAge\./.test(rmpath)){
+      const age = rmpath.split('.').pop();
+      if(plan.income.pension && plan.income.pension.benefitByAge) delete plan.income.pension.benefitByAge[age];
+      hhCommit();
+      return;
+    }
+    const ks = rmpath.split('.'); const last = ks.pop();
+    let t = plan; for(const k of ks){ if(t==null) return; t=t[k]; }
+    if(Array.isArray(t)) t.splice(+last, 1); else if(t!=null) delete t[last];
+    hhCommit();
+    return;
+  }
+  // "+ Account / Real asset / Liability / Income source" — push a default row.
+  const adder = e.target.closest('[data-add]');
+  if(adder){
+    const k = ROW_KINDS[adder.dataset.add];
+    if(k){
+      const arr = getPath(plan, k.arr);
+      if(Array.isArray(arr)) arr.push(k.mk()); else setPath(plan, k.arr, [k.mk()]);
+      hhCommit();
+    }
+    return;
+  }
+  // Household-level actions (add-spouse, remove-spouse, add-pension-age)
+  const act = e.target.closest('[data-hh-action]');
+  if(act){
+    const action = act.dataset.hhAction;
+    if(action === 'add-spouse'){
+      plan.household.spouse = { currentAge: 55, retirementAge: 62 };
+      plan.meta.spouseName  = plan.meta.spouseName || '';
+      if(!plan.income.socialSecurity.spouse) plan.income.socialSecurity.spouse = { pia: 0, claimAge: 67 };
+      plan.meta.filingStatus = 'marriedFilingJointly';
+      hhCommit();
+    } else if(action === 'remove-spouse'){
+      if(!confirm('Remove spouse from this household?')) return;
+      plan.household.spouse = null;
+      plan.income.socialSecurity.spouse = null;
+      plan.meta.filingStatus = 'single';
+      hhCommit();
+    } else if(action === 'add-pension-age'){
+      if(!plan.income.pension) plan.income.pension = { benefitByAge:{}, startAge:65, colaPct:0 };
+      if(!plan.income.pension.benefitByAge) plan.income.pension.benefitByAge = {};
+      const existing = Object.keys(plan.income.pension.benefitByAge).map(Number).sort((a,b)=>a-b);
+      const newAge = existing.length ? (existing[existing.length-1]+1) : 65;
+      if(!plan.income.pension.benefitByAge[newAge]) plan.income.pension.benefitByAge[newAge] = 0;
+      hhCommit();
+    }
   }
 });
 
@@ -2837,6 +3384,7 @@ $$('.htab').forEach(t=>t.onclick=()=>{
   if(t.dataset.page==='scenarios'){ if(plansDirty){ plansDirty=false; runAll(); } }
   if(t.dataset.page==='sequencing') runSeq();
   if(t.dataset.page==='net-worth') renderInputs();
+  if(t.dataset.page==='household') syncHousehold();
 });
 // Net Worth sub-nav: switch the active sub-page, persist, re-render.
 $$('#np-subnav .stab').forEach(b => b.onclick = () => {
@@ -3522,6 +4070,8 @@ $('#path-seed').onchange=e=>{
 renderSolvePanel();
 syncPathControls();
 renderInputs();
+bindHouseholdRailOnce();   // chapter rail (Demographics / Net Worth / Cash Flow) view switch
+syncHousehold();           // render the editable landing Household page from `plan`
 document.body.classList.toggle('scn-active', document.querySelector('.page.on')?.dataset.page==='scenarios');
 runAll();   // first iteration runs immediately so the tool opens populated
 
