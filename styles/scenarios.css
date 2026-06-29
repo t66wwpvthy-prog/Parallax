@@ -223,11 +223,11 @@
 
 .page[data-page="scenarios"] .cell { padding: 8px 18px; }
 .page[data-page="scenarios"] .cell__val { padding: 7px 0; }
-.page[data-page="scenarios"] .cell__num { font-family: var(--font-serif); font-size: 17.5px; color: var(--text-1); }
+.page[data-page="scenarios"] .cell__num { font-family: var(--font-serif); font-size: 17.5px; color: var(--text-2); }
 .page[data-page="scenarios"] .cell--same .cell__val { padding: 7px 13px; }
 .page[data-page="scenarios"] .cell--same .cell__num { color: var(--text-dim); }
 .page[data-page="scenarios"] .cell--delta__box { display: inline-flex; flex-direction: column; gap: 2px; padding: 7px 13px; border-radius: 10px; background: rgba(201,163,106,0.08); }
-.page[data-page="scenarios"] .cell--delta .cell__num { color: var(--text-1); }
+.page[data-page="scenarios"] .cell--delta .cell__num { color: var(--text-1); }   /* changed chip value stays primary */
 .page[data-page="scenarios"] .cell__delta { font-size: 11px; color: var(--gold-soft); }
 .page[data-page="scenarios"] .cell--goal { padding: 14px 18px; }
 .page[data-page="scenarios"] .goal-pill { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-2); }
@@ -332,11 +332,11 @@
 .page[data-page="scenarios"] .goal-row.is-on .goal-toggle__knob { left: 17px; background: #9FCBA9; }
 .page[data-page="scenarios"] .goal-row__body { display: flex; align-items: center; gap: 8px; }
 .page[data-page="scenarios"] .goal-added-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--gold); flex: none; }
-.page[data-page="scenarios"] .goal-row__name { font-size: 14.5px; color: var(--text-1); }
+.page[data-page="scenarios"] .goal-row__name { font-size: 14.5px; color: var(--text-2); }
 .page[data-page="scenarios"] .goal-row.is-off .goal-row__name { text-decoration: line-through; }
 .page[data-page="scenarios"] .goal-row__meta { font-size: 11.5px; color: var(--text-6); margin-top: 1px; }
 .page[data-page="scenarios"] .goal-row__amt { text-align: right; }
-.page[data-page="scenarios"] .goal-row__amt b { font-size: 14.5px; color: var(--text-1); font-weight: 400; }
+.page[data-page="scenarios"] .goal-row__amt b { font-size: 14.5px; color: var(--text-2); font-weight: 400; }
 .page[data-page="scenarios"] .goal-row__sub { font-size: 11.5px; color: var(--text-6); margin-top: 1px; }
 
 /* right rail */
@@ -471,9 +471,9 @@
 .page[data-page="scenarios"] .cf-cell--age { color: var(--text-4); text-align: left; }
 .page[data-page="scenarios"] .cf-cell--essential { color: var(--text-2b); }
 .page[data-page="scenarios"] .cf-cell--tax { color: var(--text-2b); }
-.page[data-page="scenarios"] .cf-cell--draw { color: var(--text-1); }
+.page[data-page="scenarios"] .cf-cell--draw { color: var(--text-2); }
 .page[data-page="scenarios"] .cf-cell--wd { font-size: 13px; }
-.page[data-page="scenarios"] .cf-cell--ending { font-size: 14px; font-weight: 500; }
+.page[data-page="scenarios"] .cf-cell--ending { font-size: 14px; font-weight: 500; color: var(--text-2); }
 .page[data-page="scenarios"] .cf-row__goals-wrap { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
 .page[data-page="scenarios"] .cf-row__goaltag { font-size: 9.5px; letter-spacing: 0.02em; white-space: nowrap; color: #CDA877; }
 
