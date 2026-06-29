@@ -2553,6 +2553,62 @@ function ensureSharedPaths(){
   }
   return sharedPaths;
 }
+/* ── Historical Stress (Focus rail) ───────────────────────────────────────
+   Five canonical sequence-of-returns eras (design handoff → Focus → Historical
+   Stress). Each scenario is sequenced through an era the SAME way the
+   Sequencing tab does it: stand the household at its retirement age with the
+   median projected balance (retireNowClone), then replay the real historical
+   series from that start year (the engine WRAPS past 2025 so recent eras still
+   get a full retirement horizon). `y` is the real start year fed to the engine;
+   `year` is the display label — the late-70s high-inflation shock is shown as
+   the decade "1970s" but sequenced from a concrete 1977 start. */
+const STRESS_ERAS = [
+  { y: 1966, year: '1966',  name: 'Stagflation' },
+  { y: 1973, year: '1973',  name: 'Oil shock' },
+  { y: 2000, year: '2000',  name: 'Dot-com' },
+  { y: 2008, year: '2008',  name: 'Global Financial Crisis' },
+  { y: 1977, year: '1970s', name: 'High inflation' },
+];
+// Pass vs Marginal for ONE historical sequence — fully engine-derived (Engine
+// Truth: the card never invents an outcome). Pass = the plan funded the entire
+// horizon (never depleted) AND cleared the sequence-risk window with non-negative
+// real growth across the first retirement decade, where sequence risk lives.
+// A depletion or a negative first decade reads as Marginal; the design has no
+// "Fail" tier, so Marginal is the most severe state the card shows.
+function eraPasses(h){
+  if(!h || h.failed) return false;
+  if(h.first10Supports === false) return false;
+  return true;
+}
+// Sequence one scenario (plan clone + overrides) through every era. Reuses the
+// scenario's freshly-computed envelope so the retirement entry balance matches
+// the Scenarios / Sequencing tabs exactly (one shared-path truth, not a re-roll).
+function computeHistoricalStress(s, p, ov){
+  const curAge     = plan.household.primary.currentAge;
+  const retAge     = (s.lev.retireAge != null) ? s.lev.retireAge : p.household.primary.retirementAge;
+  const accumYears = Math.max(0, retAge - curAge);
+  const rp    = retireNowClone(p, ov, curAge, retAge, accumYears, s.res && s.res.envelope);
+  // Guard: ensure rp has a valid risk profile so resolveInputs doesn't throw on
+  // RISK_PROFILES[undefined].eq. A stale localStorage save can carry an invalid
+  // risk lever; fall back to the base plan's profile (or Moderate = 3).
+  if (!RISK_PROFILES[rp.portfolio.riskProfile]) {
+    rp.portfolio.riskProfile = (p.portfolio.riskProfile in RISK_PROFILES)
+      ? p.portfolio.riskProfile : 3;
+  }
+  const strat = normalizePlaybackStrategy(p.portfolio.withdrawalStrategy);
+  const ov2   = { ...ov, retireDelay: 0 };   // retirement age is baked into the clone
+  // Wrap each era individually: a single failing era must not blank the whole card.
+  // null entries are filtered out; if any eras succeed the card renders those rows.
+  const results = STRESS_ERAS.map(e => {
+    try {
+      const h = runHistoricalPath(rp, e.y, strat, undefined, ov2);
+      return { year: e.year, name: e.name, pass: eraPasses(h) };
+    } catch (_) {
+      return null;
+    }
+  }).filter(Boolean);
+  return results;
+}
 function runAll(){
   if(running) return; running=true;
   const btn=$('#run-btn'); btn.disabled=true; $('#status').textContent='Running…';
@@ -2592,6 +2648,10 @@ function runAll(){
             s.res.typicalPathFederalTax = null;
             console.warn('Federal tax attach failed:', s.name, taxErr);
           }
+          // Historical Stress (Focus rail): engine-derived per-scenario eras.
+          // Isolated so a stress hiccup never blanks the scenario's main result.
+          try{ s.res.stress = computeHistoricalStress(s, p, ov); }
+          catch(stressErr){ s.res.stress = []; console.warn('Historical stress failed:', s.name, stressErr); }
         }catch(err){ s.res=null; failed++; console.error('Scenario failed:', s.name, err); }
       });
       renderSolvePanel(); buildSeqSelect(); runSeq();
@@ -2620,9 +2680,6 @@ function syncGridCols(){
 
 /* ── render: lever grid (built once, values update in place) ── */
 // Format a single lever value into the inner HTML for its display span.
-// Special return ['__needs__', age] from a fmt() means "no entered amount for
-// this age yet" — render an inline input so the advisor can type one in
-// without leaving the lever. Plain numbers/strings render as before.
 // Neutral delta-vs-baseline chip — the COMPARISON cue (Scenarios = compare
 // choices). No good/bad coloring: later retirement isn't "better," it's a
 // trade-off, so the chip stays a muted, opinion-free tone. Empty on the
@@ -2643,7 +2700,7 @@ function levDelta(cfg, lev){
   else /* ages */                       txt = `${sign}${a} yr`;
   return `<span class="lev-delta">${txt}</span>`;
 }
-// Stepper buttons for the discrete levers (ages / allocation / pension). The
+// Stepper buttons for the discrete levers (ages / allocation). The
 // click handler derives the column from the enclosing #lv-… span, so the
 // buttons only carry key + direction. ml:auto pins them right when there's no
 // delta chip to do it.
@@ -3469,11 +3526,11 @@ $('#path-seed').onchange=e=>{
         ? Math.max(0, Math.min(100, (p50 - lo) / (hi - lo) * 100)) : 50;
       return { lo, hi, medianPct };
     },
-    viability: (s) => viabilityCopy(s.res && s.res.successRate),
+    viability: (s) => viabilityString(s),
     isBaseline:(s) => !!s.base,
     levers:    (s) => leversFor(s),
     goals:     (s) => goalsVM(),
-    stress:    (s) => (s.res && s.res.stress) || [],   // production stores none per scenario → Focus hides the card
+    stress:    (s) => (s.res && s.res.stress) || [],   // populated by computeHistoricalStress in runAll (engine-derived)
     pathRows:  (s) => buildPathRows(s),
     cashSummary: (s) => buildCashSummary(s),
     typicalPathFederalTax: (s) => s.res && s.res.typicalPathFederalTax,
@@ -3486,7 +3543,7 @@ $('#path-seed').onchange=e=>{
   function toneForProb(prob) {
     if (prob == null) return TONE.green;
     if (prob >= 85) return TONE.green;
-    if (prob >= 72) return TONE.amber;
+    if (prob >= 70) return TONE.amber;
     return TONE.rust;
   }
   function toneGlow(tone) { return GLOW[tone] || 'var(--tone-green-glow)'; }
@@ -3525,11 +3582,25 @@ $('#path-seed').onchange=e=>{
   const CHECK = (sw, s) => '<svg width="' + s + '" height="' + s + '" viewBox="0 0 15 15" fill="none"><path d="M3 7.5 L6 10.5 L12 4" stroke="#8FB99A" stroke-width="' + sw + '" stroke-linecap="round" stroke-linejoin="round"></path></svg>';
   const DOWN_TRI = '<svg width="8" height="8" viewBox="0 0 9 9" fill="#D49A7E"><path d="M4.5 8 L0.5 2 L8.5 2 Z"></path></svg>';
 
-  function viabilityCopy(prob) {
-    if (prob == null) return '';
-    if (prob >= 85) return 'Strong — the plan holds up across most simulated markets.';
-    if (prob >= 72) return 'Workable — but the margin thins in weaker markets.';
-    return 'At risk — many simulated markets exhaust the portfolio before plan end.';
+  // Age-specific viability string per the design spec:
+  //   "Funds last to age X"     — plan survives the median path
+  //   "Shortfall risk after age X" — median path depletes before plan end
+  // Reads the typical (p50) path from the scenario's already-computed results.
+  // Pure presentation: no engine math, no re-simulation.
+  function viabilityString(s) {
+    if (!s.res) return '';
+    const planEnd = plan.household.primary.planEndAge;
+    // Use the p50 (typical) path index from the scenario's own result set so
+    // the viability string is consistent with the rest of the Focus panel.
+    const p50Idx = (s.res.paths && s.res.paths.p50 && s.res.paths.p50.simIndex != null)
+      ? s.res.paths.p50.simIndex : 0;
+    const sim = (Array.isArray(s.res.sims) ? s.res.sims.find(x => x.simIndex === p50Idx) : null)
+             || (Array.isArray(s.res.sims) ? s.res.sims[0] : null);
+    if (!sim) return '';
+    if (sim.failed && sim.depletionAge) {
+      return 'Shortfall risk after age ' + sim.depletionAge;
+    }
+    return 'Funds last to age ' + planEnd;
   }
 
   /* ---- adapter helpers (production shapes → view-models) ------------------- */
@@ -3689,6 +3760,7 @@ $('#path-seed').onchange=e=>{
         '<div class="scol">' +
           '<div class="scol__head ' + (i ? 'scol__head--menu' : '') + '" style="--tone:' + s.tone + ';--tone-glow:' + toneGlow(s.tone) + ';">' +
             '<div class="scol__head"><span class="scol__dot"></span><span class="scol__name">' + esc(s.name) + '</span></div>' +
+            (i ? '<button class="scol__menu" type="button" aria-label="Options for ' + esc(s.name) + '">⋯</button>' : '') +
           '</div>' +
           '<div class="scol__metric" style="--tone:' + s.tone + ';">' +
             ring(46, 19, 4, s.tone, s.prob, '') +
@@ -3701,10 +3773,11 @@ $('#path-seed').onchange=e=>{
       );
     }).join('');
 
-    // Compare is editable: every lever cell carries its own column's scenario id,
-    // so the −/+ steppers mutate THAT scenario (data-scn-id), reusing the same
-    // stepFocusLever mutation + manual Run flow as Focus. The row label is taken
-    // from the baseline's lever set (stable order across scenarios).
+    // Compare cells: design-correct resting state (dim unchanged / gold chip when
+    // changed vs Baseline) plus overlay steppers revealed on click/tap. The overlay
+    // is absolutely positioned so column width and row height never shift. Stepper
+    // buttons carry data-scn-id so the same stepFocusLever path used by Focus works
+    // unchanged. Baseline column shows a plain value (it IS the reference).
     const baseLevers = (baseline ? baseline.levers : scns[0].levers);
     const leverRows = baseLevers.map((bl, li) => {
       const cells = scns.map((s) => {
@@ -3713,25 +3786,44 @@ $('#path-seed').onchange=e=>{
         if (!lev.key) return '<div class="cell"><div class="cell__val"><span class="cell__num">' + value + '</span></div></div>';
         const btn = (dir, sym, verb) =>
           '<button class="stepper-btn" type="button" data-scn-id="' + esc(s.id) + '" data-lever-key="' + esc(lev.key) + '" data-dir="' + dir + '" aria-label="' + verb + ' ' + esc(lev.label) + ' for ' + esc(s.name) + '">' + sym + '</button>';
-        const delta = (!s.isBaseline && lev.delta) ? '<span class="cell__delta">' + esc(lev.delta) + '</span>' : '';
+        const isChanged = !s.isBaseline && !!lev.delta;
+        // Resting view: plain (baseline), gold chip (changed), dim (same as baseline)
+        const restHtml = s.isBaseline
+          ? '<div class="cell__val"><span class="cell__num">' + value + '</span></div>'
+          : isChanged
+            ? '<div class="cell--delta__box"><span class="cell__num">' + value + '</span><span class="cell__delta">' + esc(lev.delta) + '</span></div>'
+            : '<div class="cell--same"><div class="cell__val"><span class="cell__num">' + value + '</span></div></div>';
         return (
-          '<div class="cell cell--edit">' +
-            '<div class="cmp-step">' + btn('-1', '−', 'Decrease') +
+          '<div class="cell cell--lev">' +
+            '<div class="cell__rest">' + restHtml + '</div>' +
+            '<div class="cmp-overlay" aria-hidden="true">' +
+              btn('-1', '−', 'Decrease') +
               '<span class="cmp-val">' + value + '</span>' +
               btn('1', '+', 'Increase') +
-            '</div>' + delta +
+            '</div>' +
           '</div>'
         );
       }).join('');
       return '<div class="lever"><span class="lever__name">' + esc(bl.label) + '</span></div>' + cells;
     }).join('<div class="compare__rule" style="margin:0;"></div>');
 
+    const baseGoals = (baseline ? baseline.goals : scns[0].goals);
+    const baseActive = baseGoals.filter((g) => g.on).length;
     const goalCells = scns.map((s) => {
       const active = s.goals.filter((g) => g.on).length;
+      const off    = s.goals.filter((g) => !g.on).length;
+      const added  = s.goals.filter((g) => g.added).length;
       if (s.isBaseline) {
         return '<div class="cell--goal"><span class="goal-pill" style="--tone:var(--tone-green);"><span class="goal-pill__dot"></span>' + active + ' active</span></div>';
       }
-      return '<div class="cell--goal"><span class="goal-note">' + active + ' active · same as Baseline</span></div>';
+      // Same count as Baseline and no added goals → dim note
+      if (active === baseActive && added === 0) {
+        return '<div class="cell--goal"><span class="goal-note">' + active + ' active · same as Baseline</span></div>';
+      }
+      // Changed: show active count, off count if any, added count if any
+      const offPart   = off > 0 ? ' · ' + off + ' off' : '';
+      const addedPart = added > 0 ? '<span class="goal-added"> +' + added + ' added</span>' : '';
+      return '<div class="cell--goal"><span class="goal-pill" style="--tone:var(--gold);"><span class="goal-pill__dot"></span>' + active + ' active' + offPart + addedPart + '</span></div>';
     }).join('');
 
     return (
@@ -3759,7 +3851,7 @@ $('#path-seed').onchange=e=>{
   function renderFocus(scns, baseline, focusedId, showRange) {
     const f = scns.find((s) => s.id === focusedId) || scns[0];
     const v = stressVerdict(f.stress);
-    const heroRing = ring(184, 80, 10, f.tone, f.prob, '<span class="hero__numeral">' + f.probStr + '<span class="pct">%</span></span>');
+    const heroRing = ring(152, 67, 9, f.tone, f.prob, '<span class="hero__numeral">' + f.probStr + '<span class="pct">%</span></span>');
 
     const assum = f.levers.map((l) => (
       '<div>' +
@@ -3814,14 +3906,29 @@ $('#path-seed').onchange=e=>{
         '<span class="stress-rail__result" style="color:' + (st.pass ? 'var(--pass)' : 'var(--marginal)') + ';">' + (st.pass ? 'Pass' : 'Marginal') + '</span>' +
       '</div>'
     )).join('');
-    // Hide the Historical Stress card when production supplies no per-scenario
-    // stress data (no fabricated numbers).
-    const stressBlock = f.stress.length ? (
-      '<div class="stress-rail">' +
-        '<div class="stress-rail__head"><span class="eyebrow" style="letter-spacing:0.16em;">Historical Stress</span><span class="stress-rail__verdict" style="color:' + v.color + ';">' + v.text + '</span></div>' +
-        stressRows +
-      '</div>'
-    ) : '';
+    // Render the Historical Stress card from engine-derived per-scenario eras.
+    // Gate: all 5 eras must be present. If computeHistoricalStress produced fewer
+    // than STRESS_ERAS.length results (even after the riskProfile guard), surface a
+    // diagnostic row instead of a silent partial card — never fabricate outcomes.
+    const stressEraCount = typeof STRESS_ERAS !== 'undefined' ? STRESS_ERAS.length : 5;
+    let stressBlock = '';
+    if (f.stress.length === stressEraCount) {
+      stressBlock = (
+        '<div class="stress-rail">' +
+          '<div class="stress-rail__head"><span class="eyebrow" style="letter-spacing:0.16em;">Historical Stress</span><span class="stress-rail__verdict" style="color:' + v.color + ';">' + v.text + '</span></div>' +
+          stressRows +
+        '</div>'
+      );
+    } else if (f.stress.length > 0) {
+      // Partial: some eras failed after the riskProfile guard — report, don't show incomplete card.
+      console.warn('Historical Stress incomplete: got ' + f.stress.length + ' of ' + stressEraCount + ' eras for scenario "' + f.name + '". Check browser console for per-era errors.');
+      stressBlock = (
+        '<div class="stress-rail">' +
+          '<div class="stress-rail__head"><span class="eyebrow" style="letter-spacing:0.16em;">Historical Stress</span></div>' +
+          '<div class="stress-rail__row" style="color:var(--marginal);font-size:11px;padding:8px 0;">Stress data incomplete (' + f.stress.length + '/' + stressEraCount + ' eras) — re-run the plan to resolve.</div>' +
+        '</div>'
+      );
+    }
 
     const rangeBlock = (showRange && f.range) ? (
       '<div class="range">' +
@@ -4060,6 +4167,22 @@ $('#path-seed').onchange=e=>{
     const src = document.querySelector('#scn-path-src .cf-toggle');
     if (src) window.scnPathControlsEl = src;
     bindToolbarOnce();
+    // Compare overlay: one delegated click handler on the container survives
+    // every innerHTML re-render. Click on a cell rest area → open overlay;
+    // click on a stepper → let stepper handler run (syncScenariosView re-renders,
+    // clearing .is-editing naturally); click outside → close all.
+    const view = document.getElementById('scn-view');
+    view.addEventListener('click', (e) => {
+      const cell = e.target.closest('.cell--lev');
+      if (!cell) {
+        view.querySelectorAll('.cell--lev.is-editing').forEach((c) => c.classList.remove('is-editing'));
+        return;
+      }
+      if (e.target.closest('.stepper-btn')) return; // stepper handler takes over
+      const wasEditing = cell.classList.contains('is-editing');
+      view.querySelectorAll('.cell--lev.is-editing').forEach((c) => c.classList.remove('is-editing'));
+      if (!wasEditing) cell.classList.add('is-editing');
+    });
     syncScenariosView();
   }
 
