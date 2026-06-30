@@ -58,7 +58,7 @@ html,body{height:100%;background:var(--bg);font-family:var(--font-sans);color:va
 .solve-panel,.acct-picker,.metric,.seq-pick,.seq-chart,.seq-print,.prop{
   backdrop-filter:blur(16px) saturate(1.15);
   -webkit-backdrop-filter:blur(16px) saturate(1.15);
-  background-image:linear-gradient(155deg,rgba(214,230,248,.08),rgba(214,230,248,0) 52%);
+  background-image:linear-gradient(155deg,rgba(231,222,201,.05),rgba(231,222,201,0) 52%);
   /* No hard border — the glass edge is a whisper-faint full inset ring + a
      brighter top rim-light, with a soft drop shadow for lift. */
   box-shadow:0 22px 48px -24px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.14), inset 0 0 0 1px rgba(255,255,255,.05);
@@ -71,7 +71,7 @@ html,body{height:100%;background:var(--bg);font-family:var(--font-sans);color:va
 .htab:hover{color:var(--ink)} .htab.on{color:var(--ink-bright);font-weight:600;border-bottom-color:var(--accent)}
 .hdr-right{margin-left:auto;display:flex;align-items:center;gap:16px}
 .status{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-mute)}
-.run-btn{padding:9px 22px;background:linear-gradient(180deg,var(--accent-bright),var(--accent));color:#16242f;border:none;border-radius:3px;font-family:var(--font-sans);font-weight:700;font-size:10.5px;letter-spacing:.26em;text-transform:uppercase;cursor:pointer;box-shadow:0 6px 18px -8px rgba(176,206,236,.4)}
+.run-btn{padding:9px 22px;background:var(--btn);color:var(--btn-ink);border:none;border-radius:3px;font-family:var(--font-sans);font-weight:700;font-size:10.5px;letter-spacing:.26em;text-transform:uppercase;cursor:pointer;box-shadow:0 6px 18px -8px var(--accent-glow)}
 .run-btn:active{transform:translateY(1px)} .run-btn:disabled{filter:saturate(.3) brightness(.7);cursor:wait}
 
 .page{flex:1 1 auto;min-height:0;display:none;flex-direction:column;padding:0 28px 22px}
@@ -115,12 +115,12 @@ html,body{height:100%;background:var(--bg);font-family:var(--font-sans);color:va
 /* Same idiom as every other input in the app: dashed underline, transparent,
    accent on focus. Just bigger. */
 .sf-box{font-family:var(--font-sans);font-size:19px;font-weight:500;color:var(--ink);background:rgba(255,255,255,.05);border:none;border-radius:6px;padding:3px 6px;outline:none;width:64px;text-align:right;-moz-appearance:textfield;transition:background .15s}
-.sf-box:focus{background:rgba(159,184,205,.16)}
+.sf-box:focus{background:var(--input-focus-bg);box-shadow:0 0 0 1px var(--input-focus-ring)}
 .sf-box::-webkit-outer-spin-button,.sf-box::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .sf-box:hover{border-bottom-color:var(--accent)}
 .sf-box:focus{border-bottom:1px solid var(--accent)}
 .sf-money{width:150px}
-.sf-go{font-family:var(--font-sans);font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;padding:11px 20px;border-radius:6px;cursor:pointer;border:1px solid var(--accent);background:var(--accent);color:#16242f;margin-left:auto}
+.sf-go{font-family:var(--font-sans);font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;padding:11px 20px;border-radius:6px;cursor:pointer;border:1px solid var(--accent);background:var(--accent);color:var(--btn-ink);margin-left:auto}
 .sf-go:hover{background:var(--accent-bright);border-color:var(--accent-bright)}
 /* Per-row loading spinner during a solve. Sits in place of the lever value
    until that row resolves; tiny pulse so it reads as work in progress. */
@@ -168,20 +168,20 @@ html,body{height:100%;background:var(--bg);font-family:var(--font-sans);color:va
 .fold-cta{display:flex;justify-content:center;margin:0}
 .fold-tab{margin-top:-1px;background:var(--surface-3);border:1px solid var(--rule-faint);border-top:none;border-radius:0 0 12px 12px;padding:7px 22px;font-family:var(--font-sans);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:var(--accent);cursor:pointer;display:flex;align-items:center;gap:8px}
 .fold-tab:hover{color:var(--accent-bright);border-color:var(--rule)}
-.combo-field{margin:14px 0 20px;padding:22px 24px;border-radius:16px;background:linear-gradient(180deg,rgba(30,52,74,.5),rgba(15,29,45,.5));backdrop-filter:blur(20px);box-shadow:inset 0 1px 0 var(--rule-faint),inset 0 0 0 1px var(--rule-faint),0 24px 50px -34px #000}
+.combo-field{margin:14px 0 20px;padding:22px 24px;border-radius:16px;background:linear-gradient(180deg,rgba(231,222,201,.05),rgba(231,222,201,.018));backdrop-filter:blur(20px);box-shadow:inset 0 1px 0 var(--rule-faint),inset 0 0 0 1px var(--rule-faint),0 24px 50px -34px #000}
 .combo-head{font-family:var(--font-sans);font-size:14px;color:var(--ink-bright);font-weight:600;margin-bottom:3px}
 .combo-sub{font-size:12px;color:var(--ink-faint);margin-bottom:18px}
 .combo-sub b{color:var(--accent);font-family:var(--font-sans);font-weight:700}
 .combo-card{display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:20px;padding:15px 18px;margin-bottom:11px;border-radius:13px;background:var(--surface);box-shadow:inset 0 0 0 1px var(--rule-faint)}
 .combo-card:last-child{margin-bottom:0}
-.combo-card.lead{box-shadow:inset 0 0 0 1px rgba(159,184,205,.28)}
+.combo-card.lead{box-shadow:inset 0 0 0 1px var(--accent-bd)}
 .cc-moves{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
 .cpill{display:inline-flex;align-items:baseline;gap:7px;padding:7px 12px;border-radius:9px;font-family:var(--font-sans);white-space:nowrap}
 .cpill .pk{font-family:var(--font-sans);font-size:9px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;opacity:.7}
 .cpill .pv{font-size:15px;font-weight:700}
 .cpill.pin{background:rgba(255,255,255,.04);color:var(--ink-mute)}
 .cpill.pin .pk{color:var(--ink-faint)}
-.cpill.move{background:rgba(159,184,205,.12);color:var(--accent)}
+.cpill.move{background:var(--accent-soft);color:var(--accent)}
 .cpill.move .pk{color:var(--accent-deep)}
 .cpill.cut{background:rgba(190,130,116,.10);color:#BE8475}
 .cpill.cut .pk{color:#A86F62}
@@ -219,7 +219,7 @@ html,body{height:100%;background:var(--bg);font-family:var(--font-sans);color:va
 /* No spreadsheet underlines — editability shows as a soft glassy fill on
    hover/focus instead, keeping the levers in the glass language. */
 .lev-val .pen-in:hover,.lev-val .lev-in:hover{background:rgba(255,255,255,.05)}
-.lev-val .pen-in:focus,.lev-val .lev-in:focus{background:rgba(159,184,205,.16)}
+.lev-val .pen-in:focus,.lev-val .lev-in:focus{background:var(--input-focus-bg);box-shadow:0 0 0 1px var(--input-focus-ring)}
 /* Inline type-in boxes for the dollar/age levers; width tuned per content. */
 .lev-val .lev-in{font-family:var(--font-sans);font-size:16.5px;font-weight:500;color:inherit;background:transparent;border:none;border-radius:5px;width:78px;padding:1px 3px;outline:none;text-align:right;transition:background .15s}
 .lev-val .lev-in.age-in{width:34px;text-align:center}
@@ -339,7 +339,7 @@ html,body{height:100%;background:var(--bg);font-family:var(--font-sans);color:va
 .np-snapshot-page .snap{display:flex;flex-direction:column;gap:0;max-width:560px;
   background:var(--surface);border-radius:14px;padding:2px 24px;
   backdrop-filter:blur(16px) saturate(1.15);-webkit-backdrop-filter:blur(16px) saturate(1.15);
-  background-image:linear-gradient(155deg,rgba(214,230,248,.08),rgba(214,230,248,0) 52%);
+  background-image:linear-gradient(155deg,rgba(231,222,201,.05),rgba(231,222,201,0) 52%);
   box-shadow:0 22px 48px -24px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.14),inset 0 0 0 1px rgba(255,255,255,.05)}
 .np-snapshot-page .metric{background:none;background-image:none;backdrop-filter:none;-webkit-backdrop-filter:none;
   box-shadow:none;border-radius:0;padding:16px 0;gap:8px;border-top:1px solid var(--rule-faint)}
@@ -411,7 +411,7 @@ html,body{height:100%;background:var(--bg);font-family:var(--font-sans);color:va
 .acct-foot .lbl{font-size:10.5px;color:var(--ink-faint);display:block;margin-bottom:4px}
 .acct-amt{font-family:var(--font-sans);font-size:14px;font-weight:500;color:var(--ink);background:var(--surface-2);border:1px solid var(--rule-faint);border-radius:7px;padding:7px 10px;width:130px;text-align:right;outline:none}
 .acct-amt:focus{border-color:var(--accent)}
-.acct-add{font-family:var(--font-sans);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;padding:8px 15px;border-radius:7px;border:none;background:var(--accent);color:#16242f;cursor:pointer;margin-left:auto}
+.acct-add{font-family:var(--font-sans);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;padding:8px 15px;border-radius:7px;border:none;background:var(--accent);color:var(--btn-ink);cursor:pointer;margin-left:auto}
 .acct-add:disabled{opacity:.45;cursor:default}
 .bs-row .acct-x{margin-left:8px;width:20px;height:20px;border:none;background:transparent;color:var(--ink-faint);font-size:16px;line-height:1;cursor:pointer;border-radius:4px;padding:0}
 .bs-row .acct-x:hover{color:var(--negative-bright)}
@@ -728,7 +728,7 @@ html,body{height:100%;background:var(--bg);font-family:var(--font-sans);color:va
 .ga-presets{display:inline-flex;gap:16px}
 .ga-preset{background:none;border:none;font-family:var(--font-sans);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-mute);padding:2px 0;border-bottom:1px dashed var(--rule);cursor:pointer;white-space:nowrap;transition:color .15s}
 .ga-preset.sel{color:var(--accent-bright);border-bottom-color:var(--accent-bright)}
-.ga-go{font-family:var(--font-sans);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;padding:6px 14px;border-radius:7px;border:none;background:var(--accent);color:#16242f;cursor:pointer}
+.ga-go{font-family:var(--font-sans);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;padding:6px 14px;border-radius:7px;border:none;background:var(--accent);color:var(--btn-ink);cursor:pointer}
 .ga-tag{font-family:var(--font-sans);font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:var(--ink-faint);border:1px solid var(--rule-faint);border-radius:20px;padding:2px 8px;white-space:nowrap}
 /* Unpriced ("price later") goal states — amount 0 is engine-inert, so these
    markers keep the picture complete without inventing a number. */
@@ -802,12 +802,12 @@ html,body{height:100%;background:var(--bg);font-family:var(--font-sans);color:va
   border-radius:9px;
 }
 .acct-chip.sel{
-  background:linear-gradient(180deg,rgba(239,201,145,.28),rgba(201,144,74,.18));
+  background:linear-gradient(180deg,rgba(198,166,98,.28),rgba(176,143,78,.18));
   color:var(--ink-bright);
 }
 .acct-add,.sf-go{
-  background:linear-gradient(180deg,#e8bd7e,#b77a35);
-  color:#1c130b;
+  background:var(--btn);
+  color:var(--btn-ink);
   border-radius:9px;
 }
 .prop{border-radius:18px}
@@ -826,7 +826,7 @@ html,body{height:100%;background:var(--bg);font-family:var(--font-sans);color:va
 .seq-prints{gap:14px}
 .seq-print{border-radius:18px}
 .band-cell:not(.label),.lev-cell,.foot-cell,.goal-cell{
-  background:rgba(214,230,248,.065);
+  background:rgba(231,222,201,.05);
 }
 .circle-val .big{font-family:var(--font-sans);color:var(--value-highlight)}
 .np-snapshot-page .snap{
@@ -873,13 +873,13 @@ html,body{height:100%;background:var(--bg);font-family:var(--font-sans);color:va
 :root{
   --frame-inset:16px;
   --frame-radius:28px;
-  --glass-fill:rgba(214,230,248,.052);
-  --glass-fill-soft:rgba(214,230,248,.030);
-  --glass-fill-strong:rgba(214,230,248,.075);
-  --glass-warm:rgba(74,94,124,.060);
-  --glass-stroke:rgba(232,243,249,.16);
-  --glass-stroke-strong:rgba(232,243,249,.26);
-  --glass-glint:rgba(244,250,255,.22);
+  --glass-fill:rgba(231,222,201,.045);
+  --glass-fill-soft:rgba(231,222,201,.025);
+  --glass-fill-strong:rgba(231,222,201,.065);
+  --glass-warm:rgba(231,222,201,.030);
+  --glass-stroke:rgba(231,222,201,.12);
+  --glass-stroke-strong:rgba(231,222,201,.20);
+  --glass-glint:rgba(255,255,255,.18);
   --glass-shadow:0 26px 74px -48px rgba(0,0,0,.86);
   --glass-shadow-tight:0 18px 48px -34px rgba(0,0,0,.78);
   --glass-blur:28px;
@@ -1133,7 +1133,7 @@ body::after{inset:var(--frame-inset);border-radius:var(--frame-radius);border-co
 }
 
 /* ── STICKY NOTES ── */
-.sn-btn{position:fixed;bottom:24px;right:24px;z-index:9998;width:44px;height:44px;border-radius:50%;border:none;background:var(--accent);color:#16242f;font-size:20px;line-height:1;cursor:pointer;box-shadow:0 4px 18px -4px rgba(0,0,0,.6);transition:background .2s,transform .15s}
+.sn-btn{position:fixed;bottom:24px;right:24px;z-index:9998;width:44px;height:44px;border-radius:50%;border:none;background:var(--accent);color:var(--btn-ink);font-size:20px;line-height:1;cursor:pointer;box-shadow:0 4px 18px -4px rgba(0,0,0,.6);transition:background .2s,transform .15s}
 .sn-btn:hover{background:var(--accent-bright);transform:scale(1.08)}
 .sn-btn.sn-btn-on{background:#e0c060;box-shadow:0 0 0 3px rgba(224,192,96,.35),0 4px 18px -4px rgba(0,0,0,.6)}
 .sn-overlay{display:none;position:fixed;inset:0;z-index:9990;cursor:crosshair}
@@ -1150,7 +1150,7 @@ body::after{inset:var(--frame-inset);border-radius:var(--frame-radius);border-co
 .sn-clear{right:84px}
 .sn-copy{right:180px}
 .sn-clear:hover,.sn-copy:hover{color:var(--ink);border-color:var(--rule-bright)}
-.sn-copy.sn-copied{color:#16242f;background:var(--accent);border-color:var(--accent)}
+.sn-copy.sn-copied{color:var(--btn-ink);background:var(--accent);border-color:var(--accent)}
 .sn-mode .sn-clear,.sn-mode .sn-copy{display:block}
 
 
@@ -1170,13 +1170,13 @@ body::after{inset:var(--frame-inset);border-radius:var(--frame-radius);border-co
   --ng-caution:#cd9a52;
   --ng-risk:#c0795f;
   --ng-ring-track:rgba(231,222,201,.07);
-  --ng-glass-border:rgba(232,243,249,.10);
-  --ng-glass-border-soft:rgba(232,243,249,.085);
-  --ng-glass-border-strong:rgba(232,243,249,.18);
-  --ng-glass-fill:linear-gradient(150deg,rgba(255,255,255,.06),rgba(255,255,255,0) 34%),linear-gradient(158deg,rgba(74,94,124,.16),rgba(24,34,52,.08));
-  --ng-glass-fill-label:linear-gradient(150deg,rgba(255,255,255,.05),rgba(255,255,255,0) 36%),linear-gradient(158deg,rgba(74,94,124,.13),rgba(24,34,52,.07));
-  --ng-glass-fill-total:linear-gradient(150deg,rgba(255,255,255,.07),rgba(255,255,255,0) 34%),linear-gradient(158deg,rgba(84,108,140,.18),rgba(24,34,52,.10));
-  --ng-glass-fill-base:linear-gradient(150deg,rgba(255,255,255,.08),rgba(255,255,255,0) 36%),linear-gradient(158deg,rgba(106,124,156,.20),rgba(28,40,60,.10));
+  --ng-glass-border:rgba(231,222,201,.10);
+  --ng-glass-border-soft:rgba(231,222,201,.085);
+  --ng-glass-border-strong:rgba(231,222,201,.18);
+  --ng-glass-fill:linear-gradient(150deg,rgba(255,255,255,.06),rgba(255,255,255,0) 34%),linear-gradient(158deg,rgba(231,222,201,.045),rgba(231,222,201,.018));
+  --ng-glass-fill-label:linear-gradient(150deg,rgba(255,255,255,.05),rgba(255,255,255,0) 36%),linear-gradient(158deg,rgba(231,222,201,.035),rgba(231,222,201,.015));
+  --ng-glass-fill-total:linear-gradient(150deg,rgba(255,255,255,.07),rgba(255,255,255,0) 34%),linear-gradient(158deg,rgba(231,222,201,.06),rgba(231,222,201,.02));
+  --ng-glass-fill-base:linear-gradient(150deg,rgba(255,255,255,.08),rgba(255,255,255,0) 36%),linear-gradient(158deg,rgba(198,166,98,.10),rgba(231,222,201,.025));
   --ng-base-rim:rgba(198,166,98,.30);
   --ng-base-glint:rgba(247,240,222,.50);
 
@@ -1234,24 +1234,23 @@ body .page input{
   caret-color:var(--ng-ink);
 }
 body .hdr{
-  min-height:99px;margin:20px 30px 0;padding:10px 36px;border:1px solid rgba(232,243,249,.10)!important;border-radius:13px!important;
-  /* Dark navy glass + a faint warm-gold note (top-right, near the gold RUN button)
-     so the shared header reads as part of the navy+gold Scenarios system rather
-     than the light steel-blue it became in #54. */
+  min-height:99px;margin:20px 30px 0;padding:10px 36px;border:1px solid rgba(231,222,201,.08)!important;border-radius:13px!important;
+  /* Charcoal glass header (Goals recipe): charcoal base + a faint warm-champagne
+     note top-right near the RUN button + a white low-alpha sheen. No navy/steel. */
   background:
-    radial-gradient(130% 240% at 86% -80%, rgba(230,184,106,.13), rgba(230,184,106,0) 55%),
-    linear-gradient(120deg, rgba(255,255,255,.045) 0%, rgba(74,94,124,.13) 40%, rgba(17,30,49,.55) 100%)!important;
+    radial-gradient(130% 240% at 86% -80%, rgba(198,166,98,.12), rgba(198,166,98,0) 55%),
+    linear-gradient(120deg, rgba(255,255,255,.045) 0%, rgba(231,222,201,.04) 40%, rgba(11,13,17,.55) 100%)!important;
   backdrop-filter:blur(22px) saturate(1.30);-webkit-backdrop-filter:blur(22px) saturate(1.30);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.12),inset 0 -1px 0 rgba(0,0,0,.10),0 24px 70px -58px rgba(0,0,0,.64)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.10),inset 0 -1px 0 rgba(0,0,0,.10),0 24px 70px -58px rgba(0,0,0,.64)!important;
 }
-body svg.brand-logo{width:154px;height:74px;mix-blend-mode:normal;filter:drop-shadow(0 0 12px rgba(196,218,234,.22))}
-body .hdr-tabs{margin-left:2px;padding-left:32px;gap:38px;border-left:1px solid rgba(222,237,247,.14)}
+body svg.brand-logo{width:154px;height:74px;mix-blend-mode:normal;filter:drop-shadow(0 0 12px rgba(224,212,178,.20))}
+body .hdr-tabs{margin-left:2px;padding-left:32px;gap:38px;border-left:1px solid rgba(231,222,201,.10)}
 body .htab{font-family:var(--font-sans);font-size:14px;font-weight:400;letter-spacing:.15em;padding:12px 0 17px;color:var(--ng-ink-muted);text-shadow:none}
 body .htab:hover { color: var(--ng-ink); }
 body .htab.on{color:var(--ng-ink);border-bottom-color:var(--ng-accent);box-shadow:0 10px 26px -18px rgba(231,201,135,.78)}
 body .hdr-right{gap:30px}
 body .status{font-size:12px;letter-spacing:.20em;color:var(--ng-ink-muted)}
-body .run-btn{min-width:123px;min-height:40px;border-radius:10px;background:linear-gradient(180deg,#f8e5c1,#efc982);color:#15130f;box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 13px 30px -20px rgba(233,190,120,.70)}
+body .run-btn{min-width:123px;min-height:40px;border-radius:10px;background:var(--btn);color:var(--btn-ink);box-shadow:inset 0 1px 0 rgba(255,255,255,.40),0 13px 30px -20px rgba(198,166,98,.55)}
 
 body .page[data-page="net-worth"],
 body .page[data-page="sequencing"]{
@@ -1374,7 +1373,7 @@ body .stmt th{
     margin:0;
     padding:8px 0 0;
     border-left:0;
-    border-top:1px solid rgba(222,237,247,.12);
+    border-top:1px solid rgba(231,222,201,.10);
     flex-wrap:wrap;
     gap:12px 22px;
     justify-content:center;

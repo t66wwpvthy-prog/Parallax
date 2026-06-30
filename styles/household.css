@@ -84,12 +84,12 @@
   /* Layered glass gradients (the sheen layer + the body tint) */
   --glass-panel:
     linear-gradient(150deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0) 32%),
-    linear-gradient(158deg, rgba(74,94,124,0.19) 0%, rgba(24,34,52,0.09) 100%);
+    linear-gradient(158deg, rgba(231,222,201,0.055) 0%, rgba(231,222,201,0.02) 100%);
   --glass-card:
     linear-gradient(150deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0) 36%),
-    linear-gradient(158deg, rgba(74,94,124,0.15), rgba(24,34,52,0.08));
+    linear-gradient(158deg, rgba(231,222,201,0.045), rgba(231,222,201,0.016));
   --glass-summary:
-    radial-gradient(120% 130% at 0% 0%, rgba(126,148,196,0.10), rgba(0,0,0,0) 60%),
+    radial-gradient(120% 130% at 0% 0%, rgba(198,166,98,0.07), rgba(0,0,0,0) 60%),
     linear-gradient(150deg, rgba(255,255,255,0.075), rgba(255,255,255,0.015));
 
   /* Elevation shadows (ambient depth + inner top highlight = the glass read) */
@@ -169,14 +169,14 @@
   font-family: var(--font-serif); font-size: 16px;
 }
 .page[data-page="household"] .hh-avatar--c {
-  border: 1px solid rgba(230,184,106,0.40);
-  background: radial-gradient(120% 120% at 30% 25%, rgba(230,184,106,0.22), rgba(255,255,255,0.02));
+  border: 1px solid rgba(198,166,98,0.40);
+  background: radial-gradient(120% 120% at 30% 25%, rgba(198,166,98,0.22), rgba(255,255,255,0.02));
   color: var(--gold-bright); position: relative; z-index: 2;
 }
 .page[data-page="household"] .hh-avatar--s {
-  border: 1px solid rgba(143,169,201,0.42);
-  background: radial-gradient(120% 120% at 30% 25%, rgba(143,169,201,0.24), rgba(255,255,255,0.02));
-  color: #B8C6DC; margin-left: -11px;
+  border: 1px solid rgba(139,148,168,0.42);
+  background: radial-gradient(120% 120% at 30% 25%, rgba(139,148,168,0.24), rgba(255,255,255,0.02));
+  color: #aeb4c2; margin-left: -11px;
 }
 .page[data-page="household"] .hh-rail__eyebrow { font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--text-6); font-weight: 600; margin-bottom: 5px; }
 .page[data-page="household"] .hh-rail__name { font-family: var(--font-serif); font-size: 22px; color: var(--text-1); font-weight: 400; }
@@ -193,7 +193,7 @@
 .page[data-page="household"] .hh-chapter__mark { position: absolute; left: 0; top: 9px; bottom: 9px; width: 2px; border-radius: 2px; background: transparent; }
 .page[data-page="household"] .hh-chapter__num { font-family: var(--font-serif); font-size: 16px; width: 22px; color: var(--text-6); }
 .page[data-page="household"] .hh-chapter__label { font-size: 14px; font-weight: 500; letter-spacing: 0.01em; color: var(--text-4); }
-.page[data-page="household"] .hh-chapter.is-active { background: linear-gradient(90deg, rgba(230,184,106,0.09), rgba(230,184,106,0)); }
+.page[data-page="household"] .hh-chapter.is-active { background: linear-gradient(90deg, rgba(198,166,98,0.09), rgba(198,166,98,0)); }
 .page[data-page="household"] .hh-chapter.is-active .hh-chapter__mark { background: var(--gold); }
 .page[data-page="household"] .hh-chapter.is-active .hh-chapter__num { color: var(--gold-bright); }
 .page[data-page="household"] .hh-chapter.is-active .hh-chapter__label { color: var(--text-hi); }
@@ -224,8 +224,8 @@
   display: flex; align-items: center; justify-content: center;
   font-family: var(--font-serif); font-size: 18px;
 }
-.page[data-page="household"] .hh-person--client .hh-person__avatar { background: radial-gradient(120% 120% at 30% 25%, rgba(230,184,106,0.20), rgba(255,255,255,0.02)); color: var(--gold-bright); }
-.page[data-page="household"] .hh-person--spouse .hh-person__avatar { background: radial-gradient(120% 120% at 30% 25%, rgba(143,169,201,0.22), rgba(255,255,255,0.02)); color: #B8C6DC; }
+.page[data-page="household"] .hh-person--client .hh-person__avatar { background: radial-gradient(120% 120% at 30% 25%, rgba(198,166,98,0.20), rgba(255,255,255,0.02)); color: var(--gold-bright); }
+.page[data-page="household"] .hh-person--spouse .hh-person__avatar { background: radial-gradient(120% 120% at 30% 25%, rgba(139,148,168,0.22), rgba(255,255,255,0.02)); color: #aeb4c2; }
 .page[data-page="household"] .hh-person__name { font-family: var(--font-serif); font-size: 23px; color: var(--text-1); }
 .page[data-page="household"] .hh-person__role { font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-5); }
 /* Facts distribute to fill the document height (a well-set ledger, not a clump). */
@@ -251,8 +251,8 @@
   font-family: var(--font-serif); font-size: 26px; margin-bottom: 12px;
   box-shadow: 0 8px 24px rgba(0,0,0,0.30);
 }
-.page[data-page="household"] .hh-pillar--client .hh-pillar__avatar { border: 1px solid rgba(230,184,106,0.40); background: radial-gradient(130% 130% at 32% 24%, rgba(230,184,106,0.22), rgba(255,255,255,0.02)); color: var(--gold-bright); }
-.page[data-page="household"] .hh-pillar--spouse .hh-pillar__avatar { border: 1px solid rgba(143,169,201,0.40); background: radial-gradient(130% 130% at 32% 24%, rgba(143,169,201,0.24), rgba(255,255,255,0.02)); color: #C2CFE2; }
+.page[data-page="household"] .hh-pillar--client .hh-pillar__avatar { border: 1px solid rgba(198,166,98,0.40); background: radial-gradient(130% 130% at 32% 24%, rgba(198,166,98,0.22), rgba(255,255,255,0.02)); color: var(--gold-bright); }
+.page[data-page="household"] .hh-pillar--spouse .hh-pillar__avatar { border: 1px solid rgba(139,148,168,0.40); background: radial-gradient(130% 130% at 32% 24%, rgba(139,148,168,0.24), rgba(255,255,255,0.02)); color: #aeb4c2; }
 .page[data-page="household"] .hh-pillar__role { font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; font-weight: 600; }
 .page[data-page="household"] .hh-pillar--client .hh-pillar__role { color: var(--gold-eyebrow); }
 .page[data-page="household"] .hh-pillar--spouse .hh-pillar__role { color: var(--blue-dim); }
@@ -285,8 +285,8 @@
 .page[data-page="household"] .hh-beam__arm { flex: 1; display: flex; }
 .page[data-page="household"] .hh-beam__arm--l { justify-content: flex-end; }
 .page[data-page="household"] .hh-beam__arm--r { justify-content: flex-start; }
-.page[data-page="household"] .hh-beam__bar-l { height: 6px; max-width: 100%; border-radius: 4px 0 0 4px; background: linear-gradient(90deg, rgba(230,184,106,0.25), var(--gold)); }
-.page[data-page="household"] .hh-beam__bar-r { height: 6px; max-width: 100%; border-radius: 0 4px 4px 0; background: linear-gradient(90deg, var(--blue-soft), rgba(143,169,201,0.25)); }
+.page[data-page="household"] .hh-beam__bar-l { height: 6px; max-width: 100%; border-radius: 4px 0 0 4px; background: linear-gradient(90deg, rgba(198,166,98,0.25), var(--gold)); }
+.page[data-page="household"] .hh-beam__bar-r { height: 6px; max-width: 100%; border-radius: 0 4px 4px 0; background: linear-gradient(90deg, var(--blue-soft), rgba(139,148,168,0.25)); }
 .page[data-page="household"] .hh-beam__pivot { width: 12px; height: 12px; border-radius: 50%; background: var(--gold-bright); box-shadow: 0 0 16px rgba(244,217,166,0.55); flex: none; z-index: 2; }
 .page[data-page="household"] .hh-beam__legend { display: flex; justify-content: space-between; margin-top: 10px; font-size: 11.5px; color: var(--text-5); }
 .page[data-page="household"] .hh-beam__stem { width: 1px; height: 14px; background: var(--line-10); margin: 6px auto 0; }
@@ -344,7 +344,7 @@
 }
 .page[data-page="household"] input::placeholder { color: var(--text-6); }
 .page[data-page="household"] input:hover  { border-bottom-color: var(--line-10); }
-.page[data-page="household"] input:focus  { border-bottom-color: var(--gold); background: rgba(230,184,106,0.06); }
+.page[data-page="household"] input:focus  { border-bottom-color: var(--gold); background: rgba(198,166,98,0.06); }
 .page[data-page="household"] input[type=number]::-webkit-inner-spin-button,
 .page[data-page="household"] input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 .page[data-page="household"] input[type=number] { -moz-appearance: textfield; }
@@ -389,7 +389,7 @@
   color: var(--gold-soft); background: var(--fill-04); border: 1px solid var(--line-08);
   border-radius: var(--r-sm); padding: 4px 10px; cursor: pointer; transition: border-color .15s, color .15s;
 }
-.page[data-page="household"] .hh-add:hover { color: var(--gold-bright); border-color: rgba(230,184,106,0.40); }
+.page[data-page="household"] .hh-add:hover { color: var(--gold-bright); border-color: rgba(198,166,98,0.40); }
 
 /* Household holdings (joint accounts / real assets / liabilities / assumptions)
    below the equilibrium — a quiet ledger, hairline-separated. */
@@ -434,7 +434,7 @@
   border-radius: var(--r-sm); color: var(--text-5); cursor: pointer;
   transition: color .15s, border-color .15s;
 }
-.page[data-page="household"] .hh-rail-act:hover { color: var(--gold-soft); border-color: rgba(230,184,106,0.28); }
+.page[data-page="household"] .hh-rail-act:hover { color: var(--gold-soft); border-color: rgba(198,166,98,0.28); }
 .page[data-page="household"] .hh-rail-act--clear:hover { color: var(--down); border-color: rgba(212,154,126,0.28); }
 
 /* Absent spouse placeholder in Demographics. */

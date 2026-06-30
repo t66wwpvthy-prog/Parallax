@@ -83,20 +83,20 @@
   /* Layered glass gradients */
   --glass-panel:
     linear-gradient(150deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0) 32%),
-    linear-gradient(158deg, rgba(74,94,124,0.19) 0%, rgba(24,34,52,0.09) 100%);
+    linear-gradient(158deg, rgba(231,222,201,0.055) 0%, rgba(231,222,201,0.02) 100%);
   --glass-card:
     linear-gradient(150deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0) 36%),
-    linear-gradient(158deg, rgba(74,94,124,0.15), rgba(24,34,52,0.08));
+    linear-gradient(158deg, rgba(231,222,201,0.045), rgba(231,222,201,0.016));
   --glass-card-active:
     linear-gradient(150deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0) 36%),
-    linear-gradient(158deg, rgba(106,98,78,0.22), rgba(44,42,38,0.12));
+    linear-gradient(158deg, rgba(198,166,98,0.16), rgba(176,143,78,0.06));
   --glass-summary:
-    radial-gradient(120% 130% at 0% 0%, rgba(126,148,196,0.10), rgba(0,0,0,0) 60%),
+    radial-gradient(120% 130% at 0% 0%, rgba(198,166,98,0.07), rgba(0,0,0,0) 60%),
     linear-gradient(150deg, rgba(255,255,255,0.075), rgba(255,255,255,0.015));
   --glass-table:
-    radial-gradient(130% 90% at 50% -18%, rgba(126,148,196,0.12), rgba(0,0,0,0) 56%),
+    radial-gradient(130% 90% at 50% -18%, rgba(198,166,98,0.07), rgba(0,0,0,0) 56%),
     linear-gradient(160deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.02) 40%, rgba(255,255,255,0) 100%),
-    linear-gradient(158deg, rgba(74,94,124,0.085), rgba(24,34,52,0.03));
+    linear-gradient(158deg, rgba(231,222,201,0.03), rgba(231,222,201,0.012));
 
   /* Elevation shadows */
   --shadow-panel: 0 44px 96px rgba(0,0,0,0.50), inset 0 1px 0 rgba(255,255,255,0.15);
@@ -163,16 +163,16 @@
 /* Pill buttons (Add / Solve) + Suggest */
 .page[data-page="scenarios"] .btn { display: inline-flex; align-items: center; gap: 7px; padding: 10px 16px; border-radius: var(--r-lg); background: var(--fill-04); border: 1px solid var(--line-08); font-family: inherit; font-size: 13px; color: var(--text-1); cursor: pointer; }
 .page[data-page="scenarios"] .btn__plus { font-size: 15px; color: var(--text-4); }
-.page[data-page="scenarios"] .btn-suggest { display: inline-flex; align-items: center; gap: 8px; padding: 10px 17px; border-radius: var(--r-lg); background: rgba(230,184,106,0.08); border: 1px solid rgba(230,184,106,0.45); font-family: inherit; font-size: 13px; color: var(--gold-bright); cursor: pointer; }
+.page[data-page="scenarios"] .btn-suggest { display: inline-flex; align-items: center; gap: 8px; padding: 10px 17px; border-radius: var(--r-lg); background: rgba(198,166,98,0.08); border: 1px solid rgba(198,166,98,0.45); font-family: inherit; font-size: 13px; color: var(--gold-bright); cursor: pointer; }
 
 /* Cash Flow toggle chip */
 .page[data-page="scenarios"] .cash-chip { display: inline-flex; align-items: center; gap: 10px; padding: 9px 15px; border-radius: var(--r-lg); cursor: pointer; transition: background .15s, border-color .15s; background: var(--fill-03); border: 1px solid var(--line-07); font-family: inherit; }
 .page[data-page="scenarios"] .cash-chip__label { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-4); }
 .page[data-page="scenarios"] .switch { position: relative; width: 32px; height: 17px; border-radius: var(--r-pill); background: var(--line-10); transition: background .15s; }
 .page[data-page="scenarios"] .switch__knob { position: absolute; top: 2px; left: 2px; width: 13px; height: 13px; border-radius: 50%; background: var(--text-2); box-shadow: 0 1px 3px rgba(0,0,0,0.3); transition: left .15s, background .15s; }
-.page[data-page="scenarios"] .cash-chip.is-on { background: rgba(230,184,106,0.10); border-color: rgba(230,184,106,0.45); }
+.page[data-page="scenarios"] .cash-chip.is-on { background: rgba(198,166,98,0.10); border-color: rgba(198,166,98,0.45); }
 .page[data-page="scenarios"] .cash-chip.is-on .cash-chip__label { color: var(--gold-bright); }
-.page[data-page="scenarios"] .cash-chip.is-on .switch { background: rgba(230,184,106,0.5); }
+.page[data-page="scenarios"] .cash-chip.is-on .switch { background: rgba(198,166,98,0.5); }
 .page[data-page="scenarios"] .cash-chip.is-on .switch__knob { left: 17px; background: var(--gold-bright); }
 
 /* ---- Reusable bits -------------------------------------------------------- */
@@ -218,7 +218,7 @@
 .page[data-page="scenarios"] .scol__median { font-size: 11.5px; color: var(--text-4); margin-top: 5px; }
 .page[data-page="scenarios"] .scol__median b { color: var(--text-1); font-weight: 400; }
 .page[data-page="scenarios"] .scol__tag { margin-top: 14px; }
-.page[data-page="scenarios"] .tag-ref { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold-eyebrow); border: 1px solid rgba(230,184,106,0.32); border-radius: var(--r-sm); padding: 3px 9px; }
+.page[data-page="scenarios"] .tag-ref { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold-eyebrow); border: 1px solid rgba(198,166,98,0.32); border-radius: var(--r-sm); padding: 3px 9px; }
 .page[data-page="scenarios"] .tag-delta { display: inline-flex; align-items: center; gap: 7px; padding: 4px 11px; border-radius: var(--r-pill); background: rgba(189,126,97,0.12); font-size: 11.5px; color: var(--down); }
 
 .page[data-page="scenarios"] .cell { padding: 8px 18px; }
@@ -290,7 +290,7 @@
 .page[data-page="scenarios"] .focus__title { display: flex; align-items: center; gap: 11px; }
 .page[data-page="scenarios"] .focus__dot { width: 8px; height: 8px; border-radius: 50%; background: var(--tone); }
 .page[data-page="scenarios"] .focus__name { font-family: var(--font-serif); font-weight: 300; font-size: 24px; white-space: nowrap; color: var(--text-1); }
-.page[data-page="scenarios"] .badge-editing { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold-eyebrow); border: 1px solid rgba(230,184,106,0.32); border-radius: var(--r-sm); padding: 3px 9px; margin-left: 4px; }
+.page[data-page="scenarios"] .badge-editing { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold-eyebrow); border: 1px solid rgba(198,166,98,0.32); border-radius: var(--r-sm); padding: 3px 9px; margin-left: 4px; }
 .page[data-page="scenarios"] .focus__menu { font-size: 18px; color: var(--text-nav); line-height: 0.5; background: transparent; border: 0; cursor: pointer; padding: 0; }
 
 .page[data-page="scenarios"] .hero { display: flex; align-items: center; gap: 38px; margin-top: 24px; }
@@ -345,7 +345,7 @@
 .page[data-page="scenarios"] .rail__head-label { font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-5); }
 .page[data-page="scenarios"] .rail__head-hint { font-size: 12px; color: var(--text-4); }
 .page[data-page="scenarios"] .rail-card { border-radius: var(--r-card); padding: 16px; cursor: pointer; text-align: left; width: 100%; font-family: inherit; background: var(--glass-card); border: 1px solid var(--line-08); box-shadow: var(--shadow-rail); backdrop-filter: var(--blur-rail); -webkit-backdrop-filter: var(--blur-rail); }
-.page[data-page="scenarios"] .rail-card.is-active { background: var(--glass-card-active); border-color: rgba(230,184,106,0.48); box-shadow: var(--shadow-card-active); }
+.page[data-page="scenarios"] .rail-card.is-active { background: var(--glass-card-active); border-color: rgba(198,166,98,0.48); box-shadow: var(--shadow-card-active); }
 .page[data-page="scenarios"] .rail-card__head { display: flex; align-items: center; justify-content: space-between; }
 .page[data-page="scenarios"] .rail-card__title { display: flex; align-items: center; gap: 9px; }
 .page[data-page="scenarios"] .rail-card__dot { width: 7px; height: 7px; border-radius: 50%; background: var(--tone); }
@@ -451,7 +451,7 @@
 .page[data-page="scenarios"] .cf-th { font-size: 9.5px; letter-spacing: 0.08em; text-transform: uppercase; color: #8A929C; }
 .page[data-page="scenarios"] .cf-th--r { text-align: right; }
 
-.page[data-page="scenarios"] .cf-phase { display: flex; align-items: center; justify-content: space-between; padding: 7px 26px 6px; background: rgba(230,184,106,0.04); border-top: 1px solid var(--fill-05); }
+.page[data-page="scenarios"] .cf-phase { display: flex; align-items: center; justify-content: space-between; padding: 7px 26px 6px; background: rgba(198,166,98,0.04); border-top: 1px solid var(--fill-05); }
 .page[data-page="scenarios"] .cf-phase__left { display: flex; align-items: baseline; gap: 11px; }
 .page[data-page="scenarios"] .cf-phase__name { font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--gold-eyebrow); }
 .page[data-page="scenarios"] .cf-phase__meta { font-size: 12px; color: var(--text-5); }
