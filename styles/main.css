@@ -888,16 +888,16 @@ html,body{height:100%;background:var(--bg);font-family:var(--font-sans);color:va
 }
 html,body{font-size:13.5px;text-rendering:geometricPrecision}
 body{
-  background-color:#0A111E;
+  background-color:#0b0d11;
   background-image:
-    radial-gradient(56% 52% at 85% -10%, rgba(238,192,116,.20), rgba(238,192,116,0) 58%),
-    radial-gradient(58% 60% at 2% 106%, rgba(84,144,172,.30), rgba(0,0,0,0) 62%),
-    radial-gradient(50% 48% at 50% 48%, rgba(126,148,196,.15), rgba(0,0,0,0) 72%),
-    linear-gradient(160deg,#111E31 0%,#0A111E 50%,#15232F 100%);
+    radial-gradient(56% 52% at 85% -10%, rgba(74,58,34,.16), rgba(74,58,34,0) 58%),
+    radial-gradient(58% 60% at 2% 106%, rgba(22,33,50,.5), rgba(0,0,0,0) 62%),
+    radial-gradient(50% 48% at 50% 48%, rgba(224,212,178,.10), rgba(0,0,0,0) 72%),
+    linear-gradient(158deg,#15181d 0%,#0f1216 50%,#0b0d11 100%);
   background-attachment:fixed;
 }
 body::before{filter:blur(12px);opacity:.72}
-body::after{inset:var(--frame-inset);border-radius:var(--frame-radius);border-color:rgba(232,243,249,.14);box-shadow:inset 0 1px 0 rgba(255,255,255,.12),inset 0 -1px 0 rgba(255,255,255,.06),0 0 30px rgba(126,148,196,.10)}
+body::after{inset:var(--frame-inset);border-radius:var(--frame-radius);border-color:rgba(231,222,201,.12);box-shadow:inset 0 1px 0 rgba(255,255,255,.12),inset 0 -1px 0 rgba(255,255,255,.06),0 0 30px rgba(20,22,26,.30)}
 .wrap::before{opacity:.66}
 
 .hdr,
@@ -1158,18 +1158,18 @@ body::after{inset:var(--frame-inset);border-radius:var(--frame-radius);border-co
    the same champagne text, blue-silver logo, glass panels, and success rings
    across the other tabs without copy/pasting page-specific values. */
 :root{
-  --ng-ink:#ECE5D8;
-  --ng-ink-soft:#D8DEE6;
-  --ng-ink-muted:rgba(210,216,224,.82);
-  --ng-ink-faint:rgba(200,208,218,.60);
-  --ng-ink-value:rgba(236,229,216,.94);
-  --ng-ink-total:rgba(240,234,222,.96);
-  --ng-accent:#E6B86A;
-  --ng-success:#8FB99A;
-  --ng-success-glow:rgba(143,185,154,.45);
-  --ng-caution:#D6A86A;
-  --ng-risk:#BD7E61;
-  --ng-ring-track:rgba(255,255,255,.07);
+  --ng-ink:#ddd5c4;
+  --ng-ink-soft:#c2bbab;
+  --ng-ink-muted:rgba(135,142,150,.82);
+  --ng-ink-faint:rgba(125,132,140,.60);
+  --ng-ink-value:rgba(221,213,196,.96);
+  --ng-ink-total:#e7dec9;
+  --ng-accent:#c6a662;
+  --ng-success:#8fa57e;
+  --ng-success-glow:rgba(143,165,126,.40);
+  --ng-caution:#cd9a52;
+  --ng-risk:#c0795f;
+  --ng-ring-track:rgba(231,222,201,.07);
   --ng-glass-border:rgba(232,243,249,.10);
   --ng-glass-border-soft:rgba(232,243,249,.085);
   --ng-glass-border-strong:rgba(232,243,249,.18);
@@ -1177,17 +1177,17 @@ body::after{inset:var(--frame-inset);border-radius:var(--frame-radius);border-co
   --ng-glass-fill-label:linear-gradient(150deg,rgba(255,255,255,.05),rgba(255,255,255,0) 36%),linear-gradient(158deg,rgba(74,94,124,.13),rgba(24,34,52,.07));
   --ng-glass-fill-total:linear-gradient(150deg,rgba(255,255,255,.07),rgba(255,255,255,0) 34%),linear-gradient(158deg,rgba(84,108,140,.18),rgba(24,34,52,.10));
   --ng-glass-fill-base:linear-gradient(150deg,rgba(255,255,255,.08),rgba(255,255,255,0) 36%),linear-gradient(158deg,rgba(106,124,156,.20),rgba(28,40,60,.10));
-  --ng-base-rim:rgba(126,148,196,.30);
-  --ng-base-glint:rgba(244,250,255,.55);
+  --ng-base-rim:rgba(198,166,98,.30);
+  --ng-base-glint:rgba(247,240,222,.50);
 
-  --ng-row-wash:rgba(234,244,249,.030);
+  --ng-row-wash:rgba(231,222,201,.030);
   --ng-glass-rim:inset 1px 0 0 rgba(255,255,255,.075),inset -1px 0 0 rgba(255,255,255,.045);
-  --ng-bg-base:#0A111E;
+  --ng-bg-base:#0b0d11;
   --ng-bg-image:
-    radial-gradient(56% 52% at 85% -10%, rgba(238,192,116,.20), rgba(238,192,116,0) 58%),
-    radial-gradient(58% 60% at 2% 106%, rgba(84,144,172,.30), rgba(0,0,0,0) 62%),
-    radial-gradient(50% 48% at 50% 48%, rgba(126,148,196,.15), rgba(0,0,0,0) 72%),
-    linear-gradient(160deg,#111E31 0%,#0A111E 50%,#15232F 100%);
+    radial-gradient(56% 52% at 85% -10%, rgba(74,58,34,.16), rgba(74,58,34,0) 58%),
+    radial-gradient(58% 60% at 2% 106%, rgba(22,33,50,.5), rgba(0,0,0,0) 62%),
+    radial-gradient(50% 48% at 50% 48%, rgba(224,212,178,.10), rgba(0,0,0,0) 72%),
+    linear-gradient(158deg,#15181d 0%,#0f1216 50%,#0b0d11 100%);
 }
 
 /* Native glass app shell shared by all tabs. */
@@ -1201,23 +1201,23 @@ body::before{
      Cool blue light nodes at the horizon + a bottom-corner bloom give the same
      cinematic depth without an external file dependency. */
   background:
-    radial-gradient(circle at 22% 84%, rgba(84,144,172,.12) 0 3px, transparent 14px),
-    radial-gradient(circle at 78% 78%, rgba(126,148,196,.10) 0 2px, transparent 12px),
-    radial-gradient(ellipse at 50% 102%, rgba(84,144,172,.09), transparent 38%),
-    radial-gradient(ellipse at 0% 100%, rgba(84,144,172,.14), transparent 36%),
-    radial-gradient(ellipse at 100% 100%, rgba(126,148,196,.10), transparent 32%);
-  opacity:.80;
+    radial-gradient(circle at 22% 84%, rgba(34,46,64,.12) 0 3px, transparent 14px),
+    radial-gradient(circle at 78% 78%, rgba(58,54,46,.10) 0 2px, transparent 12px),
+    radial-gradient(ellipse at 50% 102%, rgba(34,46,64,.10), transparent 38%),
+    radial-gradient(ellipse at 0% 100%, rgba(34,46,64,.14), transparent 36%),
+    radial-gradient(ellipse at 100% 100%, rgba(74,58,34,.10), transparent 32%);
+  opacity:.70;
 }
 body::after{
   content:"";position:fixed;left:-4vw;right:-4vw;bottom:-12vh;height:54vh;z-index:0;pointer-events:none;border:0;box-shadow:none;
   background:
-    radial-gradient(circle at 7% 78%,rgba(176,206,236,.20) 0 2px,transparent 7px),
-    radial-gradient(circle at 12% 68%,rgba(150,184,210,.16) 0 1px,transparent 6px),
-    radial-gradient(circle at 89% 66%,rgba(196,218,238,.22) 0 2px,transparent 8px),
-    radial-gradient(circle at 96% 58%,rgba(170,200,228,.18) 0 1px,transparent 7px),
-    radial-gradient(circle at 12% 70%,rgba(176,206,236,.16) 0 1px,transparent 2px) 0 0/18px 22px,
-    radial-gradient(circle at 84% 34%,rgba(196,218,238,.14) 0 1px,transparent 2px) 0 0/22px 26px,
-    linear-gradient(180deg,transparent 0 22%,rgba(8,21,33,.62) 100%);
+    radial-gradient(circle at 7% 78%,rgba(224,212,178,.18) 0 2px,transparent 7px),
+    radial-gradient(circle at 12% 68%,rgba(210,198,166,.14) 0 1px,transparent 6px),
+    radial-gradient(circle at 89% 66%,rgba(224,212,178,.20) 0 2px,transparent 8px),
+    radial-gradient(circle at 96% 58%,rgba(210,198,166,.16) 0 1px,transparent 7px),
+    radial-gradient(circle at 12% 70%,rgba(224,212,178,.14) 0 1px,transparent 2px) 0 0/18px 22px,
+    radial-gradient(circle at 84% 34%,rgba(224,212,178,.12) 0 1px,transparent 2px) 0 0/22px 26px,
+    linear-gradient(180deg,transparent 0 22%,rgba(7,8,9,.62) 100%);
   -webkit-mask-image:linear-gradient(180deg, transparent 0%, rgba(0,0,0,.06) 38%, rgba(0,0,0,.55) 70%, #000 100%);mask-image:linear-gradient(180deg, transparent 0%, rgba(0,0,0,.06) 38%, rgba(0,0,0,.55) 70%, #000 100%);
   filter:blur(7px);opacity:.38;
 }

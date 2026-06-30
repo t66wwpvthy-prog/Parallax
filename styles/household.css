@@ -32,25 +32,25 @@
   --font-serif: 'Spectral', Georgia, serif;
 
   /* Page background (fixed, behind the floating glass) */
-  --bg-deep:   #0A111E;
-  --bg-top:    #111E31;
-  --bg-bottom: #15232F;
+  --bg-deep:   #0f1216;
+  --bg-top:    #15181d;
+  --bg-bottom: #0b0d11;
   --page-bg:
-    radial-gradient(56% 52% at 85% -10%, rgba(238,192,116,0.20), rgba(238,192,116,0) 58%),
-    radial-gradient(58% 60% at 2% 106%, rgba(84,144,172,0.26), rgba(0,0,0,0) 62%),
-    radial-gradient(50% 48% at 50% 48%, rgba(126,148,196,0.12), rgba(0,0,0,0) 72%),
-    linear-gradient(160deg, var(--bg-top) 0%, var(--bg-deep) 50%, var(--bg-bottom) 100%);
+    radial-gradient(56% 52% at 85% -10%, rgba(74,58,34,0.16), rgba(74,58,34,0) 58%),
+    radial-gradient(58% 60% at 2% 106%, rgba(22,33,50,0.5), rgba(0,0,0,0) 62%),
+    radial-gradient(50% 48% at 50% 48%, rgba(224,212,178,0.10), rgba(0,0,0,0) 72%),
+    linear-gradient(158deg, var(--bg-top) 0%, var(--bg-deep) 50%, var(--bg-bottom) 100%);
 
   /* Gold accent */
-  --gold:         #E6B86A;
-  --gold-bright:  #F4D9A6;
-  --gold-soft:    #C9A47A;
-  --gold-eyebrow: #E6B86A;
+  --gold:         #c6a662;
+  --gold-bright:  #d8c084;
+  --gold-soft:    #b08f4e;
+  --gold-eyebrow: #c6a662;
 
-  /* Spouse (cool) accent */
-  --blue-soft:  #8FA9C9;
-  --blue-bright:#C2CFE2;
-  --blue-dim:   #9FB2CC;
+  /* Spouse (cool) accent — muted slate per charcoal system */
+  --blue-soft:  #8b94a8;
+  --blue-bright:#a7b0c2;
+  --blue-dim:   #8b94a8;
 
   /* Tax-category ramp (semantic; used by Net Worth ledger if accent dots return) */
   --cat-taxable: #E6B86A;
@@ -60,26 +60,26 @@
   --cat-hsa:     #BD7E61;
 
   /* Income / spending tones */
-  --pass: #8FB99A;
-  --down: #D49A7E;
+  --pass: #8fa57e;
+  --down: #c0795f;
 
   /* Text ramp */
-  --text-hi: #F0EADE;
-  --text-1:  #ECE5D8;
-  --text-2:  #C9CDD4;
-  --text-3:  #AEB4BC;
-  --text-4:  #9AA0A8;
-  --text-5:  #838A93;
-  --text-6:  #727983;
+  --text-hi: #e7dec9;
+  --text-1:  #ddd5c4;
+  --text-2:  #c2bbab;
+  --text-3:  #9097a0;
+  --text-4:  #878e96;
+  --text-5:  #7d848c;
+  --text-6:  #6b727a;
 
   /* Hairlines + fills */
-  --line-06: rgba(255,255,255,0.06);
-  --line-08: rgba(255,255,255,0.08);
-  --line-09: rgba(255,255,255,0.09);
-  --line-10: rgba(255,255,255,0.10);
-  --fill-03: rgba(255,255,255,0.03);
-  --fill-04: rgba(255,255,255,0.04);
-  --fill-05: rgba(255,255,255,0.05);
+  --line-06: rgba(231,222,201,0.06);
+  --line-08: rgba(231,222,201,0.08);
+  --line-09: rgba(231,222,201,0.09);
+  --line-10: rgba(231,222,201,0.10);
+  --fill-03: rgba(231,222,201,0.03);
+  --fill-04: rgba(231,222,201,0.04);
+  --fill-05: rgba(231,222,201,0.05);
 
   /* Layered glass gradients (the sheen layer + the body tint) */
   --glass-panel:
