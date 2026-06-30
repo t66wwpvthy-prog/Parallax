@@ -210,6 +210,10 @@
 
 .glh-tick--ret { color: #c6a662; }
 
+/* Final axis tick sits at the track's right edge; right-anchor it so the label
+   stays inside the panel instead of being clipped by the scroll container. */
+.glh-tick--end { transform: translateX(-100%); }
+
 /* Retirement guide line — extends downward through all lanes */
 .glh-ret-guide {
   position: absolute;

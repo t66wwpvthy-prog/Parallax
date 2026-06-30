@@ -11,10 +11,10 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3E%3Crect%20width='64'%20height='64'%20rx='12'%20fill='%231e3d2b'/%3E%3Cpath%20d='M16%2038c8-20%2024-20%2032%200'%20fill='none'%20stroke='%23d9a07e'%20stroke-width='6'%20stroke-linecap='round'/%3E%3Ccircle%20cx='32'%20cy='32'%20r='7'%20fill='%23e5d9c4'/%3E%3C/svg%3E"/>
 <!-- ?v= cache-buster: bump on any CSS change so browsers fetch the new file
      instead of serving a stale cached copy (GitHub Pages caches CSS hard). -->
-<link rel="stylesheet" href="styles/main.css?v=10"/>
-<link rel="stylesheet" href="styles/household.css?v=11"/>
+<link rel="stylesheet" href="styles/main.css?v=11"/>
+<link rel="stylesheet" href="styles/household.css?v=12"/>
 <link rel="stylesheet" href="styles/scenarios.css?v=7"/>
-<link rel="stylesheet" href="styles/goals.css?v=2"/>
+<link rel="stylesheet" href="styles/goals.css?v=3"/>
 </head>
 <body>
 <div class="wrap">
@@ -190,7 +190,7 @@
           <button class="btn" id="scn-add" type="button"><span class="btn__plus" aria-hidden="true">+</span> Add</button>
           <button class="btn" id="scn-solve" type="button">Solve</button>
           <button class="btn-suggest" id="scn-suggest" type="button">
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="#F4D9A6" aria-hidden="true"><path d="M6 0 L7 5 L12 6 L7 7 L6 12 L5 7 L0 6 L5 5 Z"></path></svg>
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="#d8c084" aria-hidden="true"><path d="M6 0 L7 5 L12 6 L7 7 L6 12 L5 7 L0 6 L5 5 Z"></path></svg>
             Suggest
           </button>
         </div>
@@ -260,7 +260,7 @@
 import { runSimulation, runHistoricalPath, generateReturnPath, resetSeed, annualMortgagePayment, LONGRUN_INFLATION, pathDigest, assessPlan, RISK_PROFILES, defaultPlan as plan } from './engine.js';
 import { attachTypicalPathFederalTax } from './src/planning/tax/attachTypicalPathFederalTax.js';
 import { fmtM, fmtMoney, fmtMDelta, fmtPts, cfMoney, cfRetPct, cfGain } from './ui/formatters.js';
-import { storyChart, seqChartSvg } from './ui/charts.js';
+import { storyChart, seqChartSvg } from './ui/charts.js?v=2';
 /* ╔══════════════════════════════════════════════════════════════╗
    ║  PARALLAX V2 — UI WIRING (calls the engine above)             ║
    ╚══════════════════════════════════════════════════════════════╝ */
@@ -2319,8 +2319,10 @@ function renderGoalsHorizon() {
 
   // ── Age axis ──────────────────────────────────────────────────
   let ticksHTML = '';
+  const lastTick = Math.floor(a1 / 5) * 5;
   for (let a = Math.ceil(a0 / 5) * 5; a <= a1; a += 5) {
-    ticksHTML += `<span class="glh-tick${a === ret ? ' glh-tick--ret' : ''}" style="left:${lp(a)}">${a}</span>`;
+    const endCls = a === lastTick ? ' glh-tick--end' : '';
+    ticksHTML += `<span class="glh-tick${a === ret ? ' glh-tick--ret' : ''}${endCls}" style="left:${lp(a)}">${a}</span>`;
   }
   const retGuideHTML = (ret > a0 && ret < a1)
     ? `<span class="glh-ret-guide" style="left:${lp(ret)}"></span>`
@@ -3337,7 +3339,7 @@ $('#scn-levers')?.addEventListener('change', e=>{
 
 /* ── chart helpers ── */
 // Chart axis colors, matched to the light-theme tokens (--rule-faint / --ink-faint).
-const GRID='rgba(230,246,235,.18)', AXIS_INK='rgba(226,232,232,.78)';
+const GRID='rgba(231,222,201,.10)', AXIS_INK='#878e96';
 /* ── Cash-flow drawer ────────────────────────────────────────────────────
    Each scenario's res.paths.p50 is the "typical" coherent simulated path —
    the engine picks the sim that tracks the year-by-year median envelope
@@ -3510,14 +3512,14 @@ function renderAssess(){
 // Distinct but DEEP, desaturated editorial tones — each line identifiable, none
 // candy-bright. Picked to be maximally distinct from each other on the ground.
 const SEQ_YEARS=[
-  {y:1929, tag:'Great Depression',  c:'#b45991', on:false},
-  {y:1966, tag:'the lost decade',   c:'#7a93b8', on:true },
-  {y:1973, tag:'stagflation',       c:'#c59152', on:true },
-  {y:1987, tag:'Black Monday',      c:'#d8b371', on:false},
-  {y:1995, tag:'the 90s boom',      c:'#D9A07E', on:true },
-  {y:2000, tag:'dot-com crash',     c:'#e68169', on:true },
-  {y:2008, tag:'financial crisis',  c:'#9c6585', on:false},
-  {y:2009, tag:'the recovery bull', c:'#93a9c4', on:false},
+  {y:1929, tag:'Great Depression',  c:'#c6a662', on:false},
+  {y:1966, tag:'the lost decade',   c:'#8b94a8', on:true },
+  {y:1973, tag:'stagflation',       c:'#cd9a52', on:true },
+  {y:1987, tag:'Black Monday',      c:'#b08f4e', on:false},
+  {y:1995, tag:'the 90s boom',      c:'#8fa57e', on:true },
+  {y:2000, tag:'dot-com crash',     c:'#c0795f', on:true },
+  {y:2008, tag:'financial crisis',  c:'#9a8fb0', on:false},
+  {y:2009, tag:'the recovery bull', c:'#d8c084', on:false},
 ];
 
 // REMOVED the cf-mode renderCashflow override — the renderer that showed the
@@ -3621,7 +3623,7 @@ function renderPrints(runs){
     // row would just read "—". Show it where it tells a story; omit it otherwise.
     const dwBlock = d.underwaterSpellMax ? `
       <div class="pr-row" style="border-bottom:none"><span class="pr-k">Duration</span><span class="pr-v">${d.underwaterSpellMax} yr${d.underwaterSpellMax>1?'s':''}</span></div>
-      <div class="dw-bar"><div class="dw-fill" style="width:${Math.min(100,d.underwaterSpellMax/12*100).toFixed(0)}%;background:#34465c"></div></div>` : '';
+      <div class="dw-bar"><div class="dw-fill" style="width:${Math.min(100,d.underwaterSpellMax/12*100).toFixed(0)}%;background:#c0795f"></div></div>` : '';
     return `<div class="seq-print">
       <h4><span class="dot" style="border-color:${m.c}"></span>${m.y} · ${m.tag}</h4>
       <div class="pr-row"><span class="pr-k">First decade</span><span class="pr-v">${pct(d.first10Cagr)}</span></div>
@@ -3838,8 +3840,8 @@ $('#path-seed').onchange=e=>{
   };
 
   /* ---- presentation helpers (formatting + color only) --------------------- */
-  const TONE = { green: '#7FB08C', amber: '#C9A36A', rust: '#BD7E61' };
-  const GLOW = { '#7FB08C': 'var(--tone-green-glow)', '#C9A36A': 'var(--tone-amber-glow)', '#BD7E61': 'var(--tone-rust-glow)' };
+  const TONE = { green: '#8fa57e', amber: '#cd9a52', rust: '#c0795f' };
+  const GLOW = { '#8fa57e': 'var(--tone-green-glow)', '#cd9a52': 'var(--tone-amber-glow)', '#c0795f': 'var(--tone-rust-glow)' };
   function toneForProb(prob) {
     if (prob == null) return TONE.green;
     if (prob >= 85) return TONE.green;
@@ -3879,8 +3881,8 @@ $('#path-seed').onchange=e=>{
       '</div>'
     );
   }
-  const CHECK = (sw, s) => '<svg width="' + s + '" height="' + s + '" viewBox="0 0 15 15" fill="none"><path d="M3 7.5 L6 10.5 L12 4" stroke="#8FB99A" stroke-width="' + sw + '" stroke-linecap="round" stroke-linejoin="round"></path></svg>';
-  const DOWN_TRI = '<svg width="8" height="8" viewBox="0 0 9 9" fill="#D49A7E"><path d="M4.5 8 L0.5 2 L8.5 2 Z"></path></svg>';
+  const CHECK = (sw, s) => '<svg width="' + s + '" height="' + s + '" viewBox="0 0 15 15" fill="none"><path d="M3 7.5 L6 10.5 L12 4" stroke="#8fa57e" stroke-width="' + sw + '" stroke-linecap="round" stroke-linejoin="round"></path></svg>';
+  const DOWN_TRI = '<svg width="8" height="8" viewBox="0 0 9 9" fill="#c0795f"><path d="M4.5 8 L0.5 2 L8.5 2 Z"></path></svg>';
 
   // Age-specific viability string per the design spec:
   //   "Funds last to age X"     — plan survives the median path
@@ -4304,7 +4306,7 @@ $('#path-seed').onchange=e=>{
       const tax = resolveRowTax(r, sidecar);
       const ending = (r.shortfall || r.ending <= 0) ? '$0' : fmtMoney(r.ending);
       const endColor = (r.shortfall || r.ending <= 0) ? 'var(--down-deep)' : 'var(--text-2)';
-      const goalsColor = r.goals > 0 ? (r.goalTag ? '#E2C089' : '#C8A876') : 'var(--text-mute)';
+      const goalsColor = r.goals > 0 ? (r.goalTag ? '#d8c084' : '#c6a662') : 'var(--text-mute)';
       const lifeTag = r.lifeTag || null;
       return (
         '<div class="cf-row cf-grid">' +

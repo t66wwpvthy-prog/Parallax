@@ -49,7 +49,7 @@
 
   /* Spouse (cool) accent — muted slate per charcoal system */
   --blue-soft:  #8b94a8;
-  --blue-bright:#a7b0c2;
+  --blue-bright:#a3aab8;
   --blue-dim:   #8b94a8;
 
   /* Tax-category ramp (semantic; used by Net Worth ledger if accent dots return) */
@@ -350,7 +350,7 @@
 .page[data-page="household"] input[type=number] { -moz-appearance: textfield; }
 /* widths scale with the inherited serif size (ch units) */
 .page[data-page="household"] input[data-type="text"]  { width: 12ch; }
-.page[data-page="household"] input[data-type="money"] { width: 8ch;  text-align: right; }
+.page[data-page="household"] input[data-type="money"] { width: 10ch;  text-align: right; }
 .page[data-page="household"] input[data-type="age"],
 .page[data-page="household"] input[data-type="num"]   { width: 4.5ch; text-align: right; }
 .page[data-page="household"] input[data-type="pct"]   { width: 3.5ch; text-align: right; }

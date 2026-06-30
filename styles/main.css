@@ -385,7 +385,7 @@ html,body{height:100%;background:var(--bg);font-family:var(--font-sans);color:va
 .bs-row input:focus{border-bottom:1px solid var(--accent);background:rgba(154,115,34,.05)}
 .bs-row select{font-family:var(--font-sans);font-size:14px;font-weight:500;color:var(--ink);background:transparent;border:none;border-bottom:1px dashed var(--rule-faint);padding:1px 18px 1px 1px;outline:none;cursor:pointer;appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M0 0 L5 6 L10 0' fill='%238a93a0'/></svg>");background-repeat:no-repeat;background-position:right 2px center}
 .bs-row select:hover,.bs-row select:focus{border-bottom-color:var(--accent)}
-.bs-row.sub input{font-size:14px;font-weight:400;color:var(--ink-mute);width:90px}
+.bs-row.sub input{font-size:14px;font-weight:400;color:var(--ink-mute);width:108px}
 .bs-sub{display:flex;align-items:baseline;padding:10px 0 4px;border-top:1px solid var(--rule-faint);margin-top:6px}
 .bs-sub-l{font-family:var(--font-sans);font-size:14px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-faint);font-weight:600}
 .bs-sub-d{flex:1;border-bottom:1px dotted var(--rule-faint);margin:0 10px;transform:translateY(-3px)}
@@ -513,7 +513,7 @@ html,body{height:100%;background:var(--bg);font-family:var(--font-sans);color:va
 .stat-val{font-family:var(--font-sans);font-size:16px;font-weight:600;color:var(--ink-bright);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
 /* coverage bar (income floor): filled = guaranteed, hatched = portfolio-drawn */
 .cov{height:40px;border-radius:6px;overflow:hidden;display:flex;background:repeating-linear-gradient(135deg,rgba(255,255,255,.05),rgba(255,255,255,.05) 7px,rgba(255,255,255,.09) 7px,rgba(255,255,255,.09) 14px);box-shadow:inset 0 0 0 1px var(--rule)}
-.cov .fill{background:linear-gradient(180deg,var(--accent-bright),var(--accent-deep));display:flex;align-items:center;padding-left:14px;color:#fff;font-family:var(--font-sans);font-size:14px;font-weight:600;white-space:nowrap;min-width:0;overflow:hidden}
+.cov .fill{background:linear-gradient(180deg,var(--accent-bright),var(--accent-deep));display:flex;align-items:center;padding-left:14px;color:#e7dec9;font-family:var(--font-sans);font-size:14px;font-weight:600;white-space:nowrap;min-width:0;overflow:hidden}
 .cov-legend,.seg-legend{display:flex;flex-wrap:wrap;gap:14px 26px;margin-top:14px;font-family:var(--font-sans);font-size:14px;color:var(--ink-mute);font-weight:500}
 .cov-legend .k,.seg-legend .k{display:flex;align-items:center;gap:8px}
 .cov-legend .sw,.seg-legend .sw{width:11px;height:11px;border-radius:2px;flex:none}
@@ -530,7 +530,7 @@ html,body{height:100%;background:var(--bg);font-family:var(--font-sans);color:va
 .g-note b{font-family:var(--font-sans);color:var(--ink-bright);font-weight:600}
 /* segmented proportion bar (tax location) */
 .seg{height:40px;border-radius:6px;overflow:hidden;display:flex;box-shadow:inset 0 0 0 1px var(--rule)}
-.seg div{display:flex;align-items:center;justify-content:center;color:#fff;font-family:var(--font-sans);font-size:14px;font-weight:600;min-width:0;overflow:hidden}
+.seg div{display:flex;align-items:center;justify-content:center;color:#e7dec9;font-family:var(--font-sans);font-size:14px;font-weight:600;min-width:0;overflow:hidden}
 .seg .s-tax{background:linear-gradient(180deg,#4a7a8a,#345c6a)}
 .seg .s-def{background:linear-gradient(180deg,#BFA78F,#8f7a5f)}
 .seg .s-roth{background:linear-gradient(180deg,#3d7a5a,#2c5c42)}
