@@ -61,7 +61,7 @@
 .glh-pill {
   padding: 7px 15px;
   border-radius: 30px;
-  font: 600 11px/1 'Hanken Grotesk', sans-serif;
+  font: 600 14px/1 'Hanken Grotesk', sans-serif;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   cursor: pointer;
@@ -96,7 +96,7 @@
 }
 
 .glh-eyebrow {
-  font: 600 11px/1 'Hanken Grotesk', sans-serif;
+  font: 600 14px/1 'Hanken Grotesk', sans-serif;
   letter-spacing: 0.30em;
   color: #c6a662;
   margin-bottom: 14px;
@@ -125,7 +125,7 @@
 }
 
 .glh-card-label {
-  font: 600 9px/1 'Hanken Grotesk', sans-serif;
+  font: 600 14px/1 'Hanken Grotesk', sans-serif;
   letter-spacing: 0.22em;
   color: #7d848c;
   text-transform: uppercase;
@@ -147,7 +147,7 @@
 }
 
 .glh-card-meta {
-  font: 500 11.5px/1.45 'Hanken Grotesk', sans-serif;
+  font: 500 14px/1.45 'Hanken Grotesk', sans-serif;
   color: #8b9298;
   margin-top: 8px;
 }
@@ -201,7 +201,7 @@
   position: absolute;
   top: 0;
   transform: translateX(-50%);
-  font: 600 11px/1 'Hanken Grotesk', sans-serif;
+  font: 600 14px/1 'Hanken Grotesk', sans-serif;
   color: #7d848c;
   white-space: nowrap;
   user-select: none;
@@ -280,7 +280,7 @@
 
 .glh-goal-meta {
   margin-top: 5px;
-  font: 500 13.5px/1 'Hanken Grotesk', sans-serif;
+  font: 500 14px/1 'Hanken Grotesk', sans-serif;
   color: #878e96;
   white-space: nowrap;
   overflow: hidden;
@@ -293,7 +293,7 @@
 }
 
 .glh-area-tag {
-  font: 600 8px/1 'Hanken Grotesk', sans-serif;
+  font: 600 14px/1 'Hanken Grotesk', sans-serif;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: #7d848c;
@@ -349,7 +349,7 @@
 
 .glh-diamond-label {
   padding-left: 16px;
-  font: 500 11.5px/1 'Hanken Grotesk', sans-serif;
+  font: 500 14px/1 'Hanken Grotesk', sans-serif;
   color: #9aa0a6;
   white-space: nowrap;
 }
@@ -386,7 +386,7 @@
   align-items: center;
   gap: 8px;
   cursor: pointer;
-  font: 600 12px/1 'Hanken Grotesk', sans-serif;
+  font: 600 14px/1 'Hanken Grotesk', sans-serif;
   color: #b3a888;
   transition: color 0.18s;
   border: none;
@@ -430,7 +430,7 @@
   margin: 0 -52px -30px;
   border-top: 1px solid rgba(255,255,255,0.06);
   background: linear-gradient(180deg, rgba(255,255,255,0.02), transparent);
-  font: 500 12.5px/1 'Hanken Grotesk', sans-serif;
+  font: 500 14px/1 'Hanken Grotesk', sans-serif;
   color: #7d848c;
   flex-wrap: wrap;
 }
@@ -455,7 +455,7 @@
 }
 
 .glh-edit-head {
-  font: 600 9.5px/1 'Hanken Grotesk', sans-serif;
+  font: 600 14px/1 'Hanken Grotesk', sans-serif;
   letter-spacing: 0.26em;
   text-transform: uppercase;
   color: #5d646c;
