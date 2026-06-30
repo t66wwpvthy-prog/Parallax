@@ -59,11 +59,11 @@ export function axes(W,H,ageStart,ageEnd,maxBal,{ layout, fmtM, grid, axisInk })
   for(let i=0;i<=4;i++){const y=y0+(y1-y0)/4*i; g+=`<line x1="${x0}" y1="${y}" x2="${x1}" y2="${y}" stroke="${grid}"/>`;}
   // y labels (right-aligned in the left gutter)
   for(let i=0;i<=4;i++){const v=maxBal*(1-i/4); const y=y0+(y1-y0)/4*i;
-    g+=`<text x="${x0-12}" y="${y+4}" fill="${axisInk}" font-size="11" font-family="Inter" text-anchor="end">${fmtM(v)}</text>`;}
+    g+=`<text x="${x0-12}" y="${y+4}" fill="${axisInk}" font-size="14" style="font-family:var(--font-sans)" text-anchor="end">${fmtM(v)}</text>`;}
   // x age ticks
   const span=ageEnd-ageStart;
   for(let k=0;k<=5;k++){const a=Math.round(ageStart+span*k/5); const x=x0+(x1-x0)*k/5;
-    g+=`<text x="${x}" y="${H-9}" fill="${axisInk}" font-size="11" font-family="Inter" text-anchor="${k===0?'start':k===5?'end':'middle'}">Age ${a}</text>`;}
+    g+=`<text x="${x}" y="${H-9}" fill="${axisInk}" font-size="14" style="font-family:var(--font-sans)" text-anchor="${k===0?'start':k===5?'end':'middle'}">Age ${a}</text>`;}
   return g;
 }
 
@@ -80,14 +80,14 @@ export function storyChart(rows,{ layout, fmtM }){
   for(const f of [0,.5,1]){
     const gy = padT + (H-padT-padB)*f;
     g += `<line x1="${padL}" y1="${gy}" x2="${W-padR}" y2="${gy}" stroke="var(--rule-faint)"/>`;
-    g += `<text x="${padL-8}" y="${gy+4}" fill="var(--ink-faint)" font-size="10.5" font-family="Inter" text-anchor="end">${fmtM(hi*(1-f))}</text>`;
+    g += `<text x="${padL-8}" y="${gy+4}" fill="var(--ink-faint)" font-size="14" style="font-family:var(--font-sans)" text-anchor="end">${fmtM(hi*(1-f))}</text>`;
   }
   const y0 = y(real[0].startBalance);
   g += `<line x1="${padL}" y1="${y0}" x2="${W-padR}" y2="${y0}" stroke="var(--ink-faint)" stroke-dasharray="3 6"/>`;
   const a0 = real[0].age, a1 = real[real.length-1].age;
   for(let a = Math.ceil(a0/5)*5; a <= a1; a += 5){
     const ax = x(Math.round((a-a0)/(a1-a0)*(real.length-1)));
-    g += `<text x="${ax}" y="${H-8}" fill="var(--ink-faint)" font-size="10.5" font-family="Inter" text-anchor="middle">${a===Math.ceil(a0/5)*5?'Age '+a:a}</text>`;
+    g += `<text x="${ax}" y="${H-8}" fill="var(--ink-faint)" font-size="14" style="font-family:var(--font-sans)" text-anchor="middle">${a===Math.ceil(a0/5)*5?'Age '+a:a}</text>`;
   }
   const d = smoothPath(pts);
   return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Balance path">

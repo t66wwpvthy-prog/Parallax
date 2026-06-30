@@ -32,25 +32,25 @@
   --font-serif: 'Spectral', Georgia, serif;
 
   /* Page background (fixed, behind the floating glass) */
-  --bg-deep:   #0A111E;
-  --bg-top:    #111E31;
-  --bg-bottom: #15232F;
+  --bg-deep:   #0f1216;
+  --bg-top:    #15181d;
+  --bg-bottom: #0b0d11;
   --page-bg:
-    radial-gradient(56% 52% at 85% -10%, rgba(238,192,116,0.20), rgba(238,192,116,0) 58%),
-    radial-gradient(58% 60% at 2% 106%, rgba(84,144,172,0.26), rgba(0,0,0,0) 62%),
-    radial-gradient(50% 48% at 50% 48%, rgba(126,148,196,0.12), rgba(0,0,0,0) 72%),
-    linear-gradient(160deg, var(--bg-top) 0%, var(--bg-deep) 50%, var(--bg-bottom) 100%);
+    radial-gradient(56% 52% at 85% -10%, rgba(74,58,34,0.16), rgba(74,58,34,0) 58%),
+    radial-gradient(58% 60% at 2% 106%, rgba(22,33,50,0.5), rgba(0,0,0,0) 62%),
+    radial-gradient(50% 48% at 50% 48%, rgba(224,212,178,0.10), rgba(0,0,0,0) 72%),
+    linear-gradient(158deg, var(--bg-top) 0%, var(--bg-deep) 50%, var(--bg-bottom) 100%);
 
   /* Gold accent */
-  --gold:         #E6B86A;
-  --gold-bright:  #F4D9A6;
-  --gold-soft:    #C9A47A;
-  --gold-eyebrow: #E6B86A;
+  --gold:         #c6a662;
+  --gold-bright:  #d8c084;
+  --gold-soft:    #b08f4e;
+  --gold-eyebrow: #c6a662;
 
-  /* Spouse (cool) accent */
-  --blue-soft:  #8FA9C9;
-  --blue-bright:#C2CFE2;
-  --blue-dim:   #9FB2CC;
+  /* Spouse (cool) accent — muted slate per charcoal system */
+  --blue-soft:  #8b94a8;
+  --blue-bright:#a3aab8;
+  --blue-dim:   #8b94a8;
 
   /* Tax-category ramp (semantic; used by Net Worth ledger if accent dots return) */
   --cat-taxable: #E6B86A;
@@ -60,36 +60,36 @@
   --cat-hsa:     #BD7E61;
 
   /* Income / spending tones */
-  --pass: #8FB99A;
-  --down: #D49A7E;
+  --pass: #8fa57e;
+  --down: #c0795f;
 
   /* Text ramp */
-  --text-hi: #F0EADE;
-  --text-1:  #ECE5D8;
-  --text-2:  #C9CDD4;
-  --text-3:  #AEB4BC;
-  --text-4:  #9AA0A8;
-  --text-5:  #838A93;
-  --text-6:  #727983;
+  --text-hi: #e7dec9;
+  --text-1:  #ddd5c4;
+  --text-2:  #c2bbab;
+  --text-3:  #9097a0;
+  --text-4:  #878e96;
+  --text-5:  #7d848c;
+  --text-6:  #6b727a;
 
   /* Hairlines + fills */
-  --line-06: rgba(255,255,255,0.06);
-  --line-08: rgba(255,255,255,0.08);
-  --line-09: rgba(255,255,255,0.09);
-  --line-10: rgba(255,255,255,0.10);
-  --fill-03: rgba(255,255,255,0.03);
-  --fill-04: rgba(255,255,255,0.04);
-  --fill-05: rgba(255,255,255,0.05);
+  --line-06: rgba(231,222,201,0.06);
+  --line-08: rgba(231,222,201,0.08);
+  --line-09: rgba(231,222,201,0.09);
+  --line-10: rgba(231,222,201,0.10);
+  --fill-03: rgba(231,222,201,0.03);
+  --fill-04: rgba(231,222,201,0.04);
+  --fill-05: rgba(231,222,201,0.05);
 
   /* Layered glass gradients (the sheen layer + the body tint) */
   --glass-panel:
     linear-gradient(150deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0) 32%),
-    linear-gradient(158deg, rgba(74,94,124,0.19) 0%, rgba(24,34,52,0.09) 100%);
+    linear-gradient(158deg, rgba(231,222,201,0.055) 0%, rgba(231,222,201,0.02) 100%);
   --glass-card:
     linear-gradient(150deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0) 36%),
-    linear-gradient(158deg, rgba(74,94,124,0.15), rgba(24,34,52,0.08));
+    linear-gradient(158deg, rgba(231,222,201,0.045), rgba(231,222,201,0.016));
   --glass-summary:
-    radial-gradient(120% 130% at 0% 0%, rgba(126,148,196,0.10), rgba(0,0,0,0) 60%),
+    radial-gradient(120% 130% at 0% 0%, rgba(198,166,98,0.07), rgba(0,0,0,0) 60%),
     linear-gradient(150deg, rgba(255,255,255,0.075), rgba(255,255,255,0.015));
 
   /* Elevation shadows (ambient depth + inner top highlight = the glass read) */
@@ -169,18 +169,18 @@
   font-family: var(--font-serif); font-size: 16px;
 }
 .page[data-page="household"] .hh-avatar--c {
-  border: 1px solid rgba(230,184,106,0.40);
-  background: radial-gradient(120% 120% at 30% 25%, rgba(230,184,106,0.22), rgba(255,255,255,0.02));
+  border: 1px solid rgba(198,166,98,0.40);
+  background: radial-gradient(120% 120% at 30% 25%, rgba(198,166,98,0.22), rgba(255,255,255,0.02));
   color: var(--gold-bright); position: relative; z-index: 2;
 }
 .page[data-page="household"] .hh-avatar--s {
-  border: 1px solid rgba(143,169,201,0.42);
-  background: radial-gradient(120% 120% at 30% 25%, rgba(143,169,201,0.24), rgba(255,255,255,0.02));
-  color: #B8C6DC; margin-left: -11px;
+  border: 1px solid rgba(139,148,168,0.42);
+  background: radial-gradient(120% 120% at 30% 25%, rgba(139,148,168,0.24), rgba(255,255,255,0.02));
+  color: #aeb4c2; margin-left: -11px;
 }
-.page[data-page="household"] .hh-rail__eyebrow { font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--text-6); font-weight: 600; margin-bottom: 5px; }
+.page[data-page="household"] .hh-rail__eyebrow { font-size: 14px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--text-6); font-weight: 600; margin-bottom: 5px; }
 .page[data-page="household"] .hh-rail__name { font-family: var(--font-serif); font-size: 22px; color: var(--text-1); font-weight: 400; }
-.page[data-page="household"] .hh-rail__filing { font-family: var(--font-serif); font-size: 13px; color: var(--text-5); font-style: italic; margin-top: 4px; line-height: 1.5; }
+.page[data-page="household"] .hh-rail__filing { font-family: var(--font-serif); font-size: 14px; color: var(--text-5); font-style: italic; margin-top: 4px; line-height: 1.5; }
 .page[data-page="household"] .hh-rail__rule { height: 1px; background: var(--line-06); margin: 0 22px 10px; }
 
 /* Chapter nav items (view switch). Stable IDs bound by the view layer. */
@@ -193,7 +193,7 @@
 .page[data-page="household"] .hh-chapter__mark { position: absolute; left: 0; top: 9px; bottom: 9px; width: 2px; border-radius: 2px; background: transparent; }
 .page[data-page="household"] .hh-chapter__num { font-family: var(--font-serif); font-size: 16px; width: 22px; color: var(--text-6); }
 .page[data-page="household"] .hh-chapter__label { font-size: 14px; font-weight: 500; letter-spacing: 0.01em; color: var(--text-4); }
-.page[data-page="household"] .hh-chapter.is-active { background: linear-gradient(90deg, rgba(230,184,106,0.09), rgba(230,184,106,0)); }
+.page[data-page="household"] .hh-chapter.is-active { background: linear-gradient(90deg, rgba(198,166,98,0.09), rgba(198,166,98,0)); }
 .page[data-page="household"] .hh-chapter.is-active .hh-chapter__mark { background: var(--gold); }
 .page[data-page="household"] .hh-chapter.is-active .hh-chapter__num { color: var(--gold-bright); }
 .page[data-page="household"] .hh-chapter.is-active .hh-chapter__label { color: var(--text-hi); }
@@ -208,7 +208,7 @@
 .page[data-page="household"] .hh-doc { padding: 46px 50px 50px; min-height: 660px; display: flex; flex-direction: column; }
 .page[data-page="household"] .hh-doc__head { border-bottom: 1px solid var(--line-08); padding-bottom: 20px; margin-bottom: 8px; }
 .page[data-page="household"] .hh-doc__head--split { display: flex; align-items: flex-end; justify-content: space-between; padding-bottom: 22px; margin-bottom: 28px; }
-.page[data-page="household"] .hh-eyebrow { font-size: 12px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold-eyebrow); font-weight: 600; margin-bottom: 8px; }
+.page[data-page="household"] .hh-eyebrow { font-size: 14px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold-eyebrow); font-weight: 600; margin-bottom: 8px; }
 .page[data-page="household"] .hh-doc__title { font-family: var(--font-serif); font-size: 37px; color: var(--text-hi); font-weight: 400; }
 
 /* =============================================================================
@@ -224,10 +224,10 @@
   display: flex; align-items: center; justify-content: center;
   font-family: var(--font-serif); font-size: 18px;
 }
-.page[data-page="household"] .hh-person--client .hh-person__avatar { background: radial-gradient(120% 120% at 30% 25%, rgba(230,184,106,0.20), rgba(255,255,255,0.02)); color: var(--gold-bright); }
-.page[data-page="household"] .hh-person--spouse .hh-person__avatar { background: radial-gradient(120% 120% at 30% 25%, rgba(143,169,201,0.22), rgba(255,255,255,0.02)); color: #B8C6DC; }
+.page[data-page="household"] .hh-person--client .hh-person__avatar { background: radial-gradient(120% 120% at 30% 25%, rgba(198,166,98,0.20), rgba(255,255,255,0.02)); color: var(--gold-bright); }
+.page[data-page="household"] .hh-person--spouse .hh-person__avatar { background: radial-gradient(120% 120% at 30% 25%, rgba(139,148,168,0.22), rgba(255,255,255,0.02)); color: #aeb4c2; }
 .page[data-page="household"] .hh-person__name { font-family: var(--font-serif); font-size: 23px; color: var(--text-1); }
-.page[data-page="household"] .hh-person__role { font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-5); }
+.page[data-page="household"] .hh-person__role { font-size: 14px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-5); }
 /* Facts distribute to fill the document height (a well-set ledger, not a clump). */
 .page[data-page="household"] .hh-facts { flex: 1; display: flex; flex-direction: column; justify-content: space-between; padding-top: 6px; }
 .page[data-page="household"] .hh-fact { display: flex; justify-content: space-between; align-items: baseline; padding: 17px 0; border-bottom: 1px solid var(--line-06); }
@@ -251,19 +251,19 @@
   font-family: var(--font-serif); font-size: 26px; margin-bottom: 12px;
   box-shadow: 0 8px 24px rgba(0,0,0,0.30);
 }
-.page[data-page="household"] .hh-pillar--client .hh-pillar__avatar { border: 1px solid rgba(230,184,106,0.40); background: radial-gradient(130% 130% at 32% 24%, rgba(230,184,106,0.22), rgba(255,255,255,0.02)); color: var(--gold-bright); }
-.page[data-page="household"] .hh-pillar--spouse .hh-pillar__avatar { border: 1px solid rgba(143,169,201,0.40); background: radial-gradient(130% 130% at 32% 24%, rgba(143,169,201,0.24), rgba(255,255,255,0.02)); color: #C2CFE2; }
-.page[data-page="household"] .hh-pillar__role { font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; font-weight: 600; }
+.page[data-page="household"] .hh-pillar--client .hh-pillar__avatar { border: 1px solid rgba(198,166,98,0.40); background: radial-gradient(130% 130% at 32% 24%, rgba(198,166,98,0.22), rgba(255,255,255,0.02)); color: var(--gold-bright); }
+.page[data-page="household"] .hh-pillar--spouse .hh-pillar__avatar { border: 1px solid rgba(139,148,168,0.40); background: radial-gradient(130% 130% at 32% 24%, rgba(139,148,168,0.24), rgba(255,255,255,0.02)); color: #aeb4c2; }
+.page[data-page="household"] .hh-pillar__role { font-size: 14px; letter-spacing: 0.22em; text-transform: uppercase; font-weight: 600; }
 .page[data-page="household"] .hh-pillar--client .hh-pillar__role { color: var(--gold-eyebrow); }
 .page[data-page="household"] .hh-pillar--spouse .hh-pillar__role { color: var(--blue-dim); }
 .page[data-page="household"] .hh-pillar__age { font-family: var(--font-serif); font-size: 26px; color: var(--text-hi); margin-top: 4px; }
 .page[data-page="household"] .hh-pillar__rule { height: 1px; background: var(--line-08); margin-bottom: 18px; }
 .page[data-page="household"] .hh-pillar__investable { text-align: center; margin-bottom: 16px; }
-.page[data-page="household"] .hh-pillar__inv-label { font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-5); }
+.page[data-page="household"] .hh-pillar__inv-label { font-size: 14px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-5); }
 .page[data-page="household"] .hh-pillar__inv-value { font-family: var(--font-serif); font-size: 28px; color: var(--text-hi); }
 /* Account ledger rows (plain label/value — the prototype's bars were removed). */
 .page[data-page="household"] .hh-acct { display: flex; justify-content: space-between; align-items: baseline; padding: 11px 0; border-bottom: 1px solid var(--line-06); }
-.page[data-page="household"] .hh-acct__cat { font-size: 13px; color: var(--text-4); }
+.page[data-page="household"] .hh-acct__cat { font-size: 14px; color: var(--text-4); }
 .page[data-page="household"] .hh-acct__amt { font-family: var(--font-serif); font-size: 16px; color: var(--text-2); }
 
 /* Centre fulcrum (household total + balance beam) — lifted, elevated glass. */
@@ -275,8 +275,8 @@
   box-shadow: var(--shadow-fulcrum);
   backdrop-filter: var(--blur-fulcrum); -webkit-backdrop-filter: var(--blur-fulcrum);
 }
-.page[data-page="household"] .hh-fulcrum__eyebrow { font-size: 11px; letter-spacing: 0.24em; text-transform: uppercase; color: var(--gold-eyebrow); font-weight: 600; margin-bottom: 8px; }
-.page[data-page="household"] .hh-fulcrum__label { font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-5); margin-bottom: 6px; }
+.page[data-page="household"] .hh-fulcrum__eyebrow { font-size: 14px; letter-spacing: 0.24em; text-transform: uppercase; color: var(--gold-eyebrow); font-weight: 600; margin-bottom: 8px; }
+.page[data-page="household"] .hh-fulcrum__label { font-size: 14px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-5); margin-bottom: 6px; }
 .page[data-page="household"] .hh-fulcrum__total { font-family: var(--font-serif); font-size: 44px; color: var(--gold-bright); line-height: 1; letter-spacing: 0.01em; margin-bottom: 18px; }
 
 /* balance beam */
@@ -285,38 +285,38 @@
 .page[data-page="household"] .hh-beam__arm { flex: 1; display: flex; }
 .page[data-page="household"] .hh-beam__arm--l { justify-content: flex-end; }
 .page[data-page="household"] .hh-beam__arm--r { justify-content: flex-start; }
-.page[data-page="household"] .hh-beam__bar-l { height: 6px; max-width: 100%; border-radius: 4px 0 0 4px; background: linear-gradient(90deg, rgba(230,184,106,0.25), var(--gold)); }
-.page[data-page="household"] .hh-beam__bar-r { height: 6px; max-width: 100%; border-radius: 0 4px 4px 0; background: linear-gradient(90deg, var(--blue-soft), rgba(143,169,201,0.25)); }
+.page[data-page="household"] .hh-beam__bar-l { height: 6px; max-width: 100%; border-radius: 4px 0 0 4px; background: linear-gradient(90deg, rgba(198,166,98,0.25), var(--gold)); }
+.page[data-page="household"] .hh-beam__bar-r { height: 6px; max-width: 100%; border-radius: 0 4px 4px 0; background: linear-gradient(90deg, var(--blue-soft), rgba(139,148,168,0.25)); }
 .page[data-page="household"] .hh-beam__pivot { width: 12px; height: 12px; border-radius: 50%; background: var(--gold-bright); box-shadow: 0 0 16px rgba(244,217,166,0.55); flex: none; z-index: 2; }
-.page[data-page="household"] .hh-beam__legend { display: flex; justify-content: space-between; margin-top: 10px; font-size: 11.5px; color: var(--text-5); }
+.page[data-page="household"] .hh-beam__legend { display: flex; justify-content: space-between; margin-top: 10px; font-size: 14px; color: var(--text-5); }
 .page[data-page="household"] .hh-beam__stem { width: 1px; height: 14px; background: var(--line-10); margin: 6px auto 0; }
 .page[data-page="household"] .hh-beam__base { width: 56px; height: 6px; border-radius: 0 0 6px 6px; background: linear-gradient(180deg, rgba(255,255,255,0.08), transparent); margin: 0 auto; }
 
 /* real-asset / debt chips */
 .page[data-page="household"] .hh-chips { display: flex; gap: 8px; margin-top: 8px; }
 .page[data-page="household"] .hh-chip { padding: 9px 14px; border-radius: var(--r-md); background: var(--fill-04); border: 1px solid var(--line-08); text-align: center; }
-.page[data-page="household"] .hh-chip__label { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-6); }
+.page[data-page="household"] .hh-chip__label { font-size: 14px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-6); }
 .page[data-page="household"] .hh-chip__value { font-family: var(--font-serif); font-size: 16px; color: var(--text-1); }
 .page[data-page="household"] .hh-chip__value--debt { color: var(--down); }
 
 /* ownership bar */
 .page[data-page="household"] .hh-own { width: 100%; margin-top: 24px; }
-.page[data-page="household"] .hh-own__label { font-size: 10.5px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-6); margin-bottom: 8px; }
+.page[data-page="household"] .hh-own__label { font-size: 14px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-6); margin-bottom: 8px; }
 .page[data-page="household"] .hh-own__bar { display: flex; height: 7px; border-radius: 4px; overflow: hidden; margin-bottom: 8px; }
 .page[data-page="household"] .hh-own__c { background: var(--gold); }
 .page[data-page="household"] .hh-own__s { background: var(--blue-soft); }
-.page[data-page="household"] .hh-own__legend { display: flex; justify-content: space-between; font-size: 11.5px; color: var(--text-5); }
+.page[data-page="household"] .hh-own__legend { display: flex; justify-content: space-between; font-size: 14px; color: var(--text-5); }
 
 /* =============================================================================
    III · CASH FLOW
    ============================================================================= */
 .page[data-page="household"] .hh-surplus { text-align: right; }
-.page[data-page="household"] .hh-surplus__label { font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-5); }
+.page[data-page="household"] .hh-surplus__label { font-size: 14px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-5); }
 .page[data-page="household"] .hh-surplus__value { font-family: var(--font-serif); font-size: 40px; line-height: 1.1; }
 .page[data-page="household"] .hh-surplus__value--pos { color: var(--pass); }
 .page[data-page="household"] .hh-surplus__value--neg { color: var(--down); }
 .page[data-page="household"] .hh-flows { display: grid; grid-template-columns: 1fr 1fr; gap: 50px; }
-.page[data-page="household"] .hh-flow__label { font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-4); font-weight: 600; margin-bottom: 8px; }
+.page[data-page="household"] .hh-flow__label { font-size: 14px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-4); font-weight: 600; margin-bottom: 8px; }
 .page[data-page="household"] .hh-line { display: flex; align-items: center; gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--line-06); }
 .page[data-page="household"] .hh-line__tick { width: 5px; height: 24px; border-radius: 3px; flex: none; }
 .page[data-page="household"] .hh-line__tick--in { background: linear-gradient(180deg, var(--pass), rgba(143,185,154,0.3)); }
@@ -324,7 +324,7 @@
 .page[data-page="household"] .hh-line__name { flex: 1; font-size: 14.5px; color: var(--text-2); }
 .page[data-page="household"] .hh-line__amt { font-family: var(--font-serif); font-size: 18px; color: var(--text-1); }
 .page[data-page="household"] .hh-total { display: flex; justify-content: space-between; align-items: center; padding-top: 16px; margin-top: 6px; }
-.page[data-page="household"] .hh-total__label { font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-4); }
+.page[data-page="household"] .hh-total__label { font-size: 14px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-4); }
 .page[data-page="household"] .hh-total__value { font-family: var(--font-serif); font-size: 24px; }
 .page[data-page="household"] .hh-total__value--in { color: var(--pass); }
 .page[data-page="household"] .hh-total__value--out { color: var(--down); }
@@ -344,13 +344,13 @@
 }
 .page[data-page="household"] input::placeholder { color: var(--text-6); }
 .page[data-page="household"] input:hover  { border-bottom-color: var(--line-10); }
-.page[data-page="household"] input:focus  { border-bottom-color: var(--gold); background: rgba(230,184,106,0.06); }
+.page[data-page="household"] input:focus  { border-bottom-color: var(--gold); background: rgba(198,166,98,0.06); }
 .page[data-page="household"] input[type=number]::-webkit-inner-spin-button,
 .page[data-page="household"] input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 .page[data-page="household"] input[type=number] { -moz-appearance: textfield; }
 /* widths scale with the inherited serif size (ch units) */
 .page[data-page="household"] input[data-type="text"]  { width: 12ch; }
-.page[data-page="household"] input[data-type="money"] { width: 8ch;  text-align: right; }
+.page[data-page="household"] input[data-type="money"] { width: 10ch;  text-align: right; }
 .page[data-page="household"] input[data-type="age"],
 .page[data-page="household"] input[data-type="num"]   { width: 4.5ch; text-align: right; }
 .page[data-page="household"] input[data-type="pct"]   { width: 3.5ch; text-align: right; }
@@ -358,7 +358,7 @@
 .page[data-page="household"] .hh-derived { font-family: var(--font-serif); color: var(--text-1); }
 
 .page[data-page="household"] select {
-  font-family: var(--font-sans); font-size: 11.5px; color: var(--text-3);
+  font-family: var(--font-sans); font-size: 14px; color: var(--text-3);
   background: var(--fill-04); border: 1px solid var(--line-08); border-radius: var(--r-sm);
   padding: 2px 7px; cursor: pointer; outline: none;
   -webkit-appearance: none; appearance: none; max-width: 100%;
@@ -377,7 +377,7 @@
 .page[data-page="household"] .hh-acct__lbl { color: var(--text-4); }
 .page[data-page="household"] .hh-acct__amt { display: flex; align-items: center; justify-content: flex-end; gap: 6px; }
 .page[data-page="household"] .hh-acct--empty .hh-acct__cat { color: var(--text-6); font-style: italic; }
-.page[data-page="household"] .hh-acct__cat input[data-type="text"] { width: 10ch; font-family: var(--font-sans); font-size: 13px; }
+.page[data-page="household"] .hh-acct__cat input[data-type="text"] { width: 10ch; font-family: var(--font-sans); font-size: 14px; }
 
 .page[data-page="household"] .row-x {
   width: 18px; height: 18px; flex: none; border: 0; border-radius: var(--r-sm);
@@ -385,11 +385,11 @@
 }
 .page[data-page="household"] .row-x:hover { color: var(--down); background: var(--fill-05); }
 .page[data-page="household"] .hh-add {
-  font-family: var(--font-sans); font-size: 11px; letter-spacing: 0.06em; font-weight: 600;
+  font-family: var(--font-sans); font-size: 14px; letter-spacing: 0.06em; font-weight: 600;
   color: var(--gold-soft); background: var(--fill-04); border: 1px solid var(--line-08);
   border-radius: var(--r-sm); padding: 4px 10px; cursor: pointer; transition: border-color .15s, color .15s;
 }
-.page[data-page="household"] .hh-add:hover { color: var(--gold-bright); border-color: rgba(230,184,106,0.40); }
+.page[data-page="household"] .hh-add:hover { color: var(--gold-bright); border-color: rgba(198,166,98,0.40); }
 
 /* Household holdings (joint accounts / real assets / liabilities / assumptions)
    below the equilibrium — a quiet ledger, hairline-separated. */
@@ -398,25 +398,25 @@
   display: grid; grid-template-columns: 1fr 1fr; gap: 14px 40px;
 }
 .page[data-page="household"] .hh-hold-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 6px; }
-.page[data-page="household"] .hh-hold-head > span { font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--gold-eyebrow); font-weight: 600; }
+.page[data-page="household"] .hh-hold-head > span { font-size: 14px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--gold-eyebrow); font-weight: 600; }
 .page[data-page="household"] .hh-hold-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line-06); }
-.page[data-page="household"] .hh-hold-name input { width: 13ch; font-family: var(--font-sans); font-size: 13.5px; color: var(--text-2); }
-.page[data-page="household"] .hh-hold-fields { display: flex; align-items: center; gap: 12px; font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-6); }
+.page[data-page="household"] .hh-hold-name input { width: 13ch; font-family: var(--font-sans); font-size: 14px; color: var(--text-2); }
+.page[data-page="household"] .hh-hold-fields { display: flex; align-items: center; gap: 12px; font-size: 14px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-6); }
 .page[data-page="household"] .hh-hold-fields label { display: flex; align-items: center; gap: 5px; }
 .page[data-page="household"] .hh-hold-fields input { font-family: var(--font-serif); font-size: 15px; color: var(--text-1); text-transform: none; letter-spacing: 0; }
 .page[data-page="household"] .hh-suffix { color: var(--text-6); font-size: 0.7em; }
-.page[data-page="household"] .hh-hold-empty { padding: 8px 0; font-size: 12.5px; color: var(--text-6); font-style: italic; }
+.page[data-page="household"] .hh-hold-empty { padding: 8px 0; font-size: 14px; color: var(--text-6); font-style: italic; }
 .page[data-page="household"] .hh-assume { display: flex; flex-direction: column; gap: 8px; padding-top: 2px; }
 .page[data-page="household"] .hh-assume label { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.page[data-page="household"] .hh-assume label > span { font-size: 12px; color: var(--text-5); }
+.page[data-page="household"] .hh-assume label > span { font-size: 14px; color: var(--text-5); }
 .page[data-page="household"] .hh-assume select { min-width: 138px; }
 .page[data-page="household"] .hh-assume input[data-type="num"] { width: 6ch; }
 
 /* Cash Flow secondary fields (claim age / pension start / healthcare inflation). */
 .page[data-page="household"] .hh-line { flex-wrap: wrap; }
 .page[data-page="household"] .hh-line__name { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
-.page[data-page="household"] .hh-line__meta { font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-6); display: inline-flex; align-items: baseline; gap: 4px; }
-.page[data-page="household"] .hh-line__meta input { font-family: var(--font-serif); font-size: 13px; color: var(--text-3); text-transform: none; letter-spacing: 0; }
+.page[data-page="household"] .hh-line__meta { font-size: 14px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-6); display: inline-flex; align-items: baseline; gap: 4px; }
+.page[data-page="household"] .hh-line__meta input { font-family: var(--font-serif); font-size: 14px; color: var(--text-3); text-transform: none; letter-spacing: 0; }
 .page[data-page="household"] .hh-line__amt { display: flex; align-items: baseline; justify-content: flex-end; gap: 2px; }
 .page[data-page="household"] .hh-line--add { border-bottom: 0; padding-top: 12px; }
 .page[data-page="household"] .hh-line--add .hh-add { margin-left: 19px; }
@@ -428,13 +428,13 @@
   display: flex; gap: 6px; padding: 0 22px 22px; flex-shrink: 0;
 }
 .page[data-page="household"] .hh-rail-act {
-  flex: 1; font-family: var(--font-sans); font-size: 10px; letter-spacing: 0.14em;
+  flex: 1; font-family: var(--font-sans); font-size: 14px; letter-spacing: 0.14em;
   font-weight: 600; text-transform: uppercase; padding: 7px 4px;
   background: var(--fill-04); border: 1px solid var(--line-08);
   border-radius: var(--r-sm); color: var(--text-5); cursor: pointer;
   transition: color .15s, border-color .15s;
 }
-.page[data-page="household"] .hh-rail-act:hover { color: var(--gold-soft); border-color: rgba(230,184,106,0.28); }
+.page[data-page="household"] .hh-rail-act:hover { color: var(--gold-soft); border-color: rgba(198,166,98,0.28); }
 .page[data-page="household"] .hh-rail-act--clear:hover { color: var(--down); border-color: rgba(212,154,126,0.28); }
 
 /* Absent spouse placeholder in Demographics. */

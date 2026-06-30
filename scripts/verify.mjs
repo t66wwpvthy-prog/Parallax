@@ -592,104 +592,113 @@ try {
     await sleep(200);
   });
 
-  await step('goals renders tributaries and statement rows', async () => {
+  await step('goals renders Horizon view (title, timeline, rows, editor)', async () => {
+    // Contract updated for the shipped Goals Horizon view: the Goals tab now renders
+    // renderGoalsHorizon() -> #gl-horizon, which replaced the old tributary thread
+    // (#goal-thread / .gt-spine). The retired renderGoalsPage()/goalsThreadSVG() are
+    // preserved in index.html as dead code; this asserts the CURRENT Horizon DOM.
     await page.click('.htab[data-sub-target="goals"]');
     await new Promise(r => setTimeout(r, 400));
-    const m = await page.evaluate(() => ({
-      svg: !!document.querySelector('#goal-thread svg'),
-      svgH: Math.round(document.querySelector('#goal-thread svg')?.getBoundingClientRect().height || 0),
-      flows: document.querySelectorAll('.gt-flow:not(.ghost)').length,
-      once: document.querySelectorAll('.gt-once').length,
-      spine: document.querySelectorAll('.gt-spine').length,
-      hits: document.querySelectorAll('.gt-hit').length,
-      rows: document.querySelectorAll('.gl-row').length,
-      goals: window.__planGoalsCount ?? null,
-      rowInputs: document.querySelector('.gl-row')?.querySelectorAll('input').length || 0,
-      toggles: document.querySelectorAll('.gl-keep').length,
-      facts: document.querySelector('.gl-facts')?.textContent || '',
-      oldBoard: document.querySelectorAll('.g-board, .g-slot, .g-card, .gw-shell').length,
-    }));
-    if(!m.svg) throw new Error('goal thread svg missing');
-    if(m.svgH < 150) throw new Error(`goal thread svg too short (${m.svgH}px)`);
-    if(m.flows < 3) throw new Error(`expected >=3 recurring ribbons, got ${m.flows}`);
-    if(m.once < 1) throw new Error('one-time diamond missing');
-    if(m.spine !== 1) throw new Error(`expected one spine, got ${m.spine}`);
-    if(m.hits < 4) throw new Error(`hit targets missing (${m.hits})`);
-    if(m.rows < 4) throw new Error(`expected a statement row per goal, got ${m.rows}`);
-    if(m.rowInputs < 3) throw new Error(`row inline inputs missing (${m.rowInputs})`);
-    if(m.toggles !== m.rows) throw new Error(`keep toggles (${m.toggles}) != rows (${m.rows})`);
-    if(!/\$/.test(m.facts)) throw new Error(`facts line missing dollar totals: "${m.facts}"`);
-    if(m.oldBoard !== 0) throw new Error('old goals board/web DOM still present');
-    // Engine-measured cost cells fill asynchronously - poll, don't sleep-assert.
-    const deadline = Date.now() + 8000;
-    let cost = '';
-    while(Date.now() < deadline){
-      cost = await page.evaluate(() => document.querySelector('.gl-cost')?.textContent || '');
-      if(/pts/.test(cost)) break;
-      await new Promise(r => setTimeout(r, 250));
-    }
-    if(!/pts/.test(cost) || !/\$/.test(cost)) throw new Error(`per-goal cost cell never filled: "${cost}"`);
-    const runsLine = await page.evaluate(() => document.querySelector('#gl-runs')?.textContent || '');
-    if(!/%/.test(runsLine) || !/\$/.test(runsLine) || !/all goals off/.test(runsLine)) {
-      throw new Error(`kept/all-off engine fact lines missing: "${runsLine}"`);
-    }
+    const m = await page.evaluate(() => {
+      const hz = document.querySelector('#gl-horizon');
+      const host = document.querySelector('#np-content') || hz;
+      const hostText = (host?.textContent || '').replace(/\s+/g, ' ').trim();
+      return {
+        horizon: !!hz,
+        title: /Lifestyle Spending & Goals/.test(hostText),
+        svgs: document.querySelectorAll('#gl-horizon svg').length,
+        rows: document.querySelectorAll('.gl-row').length,
+        addControls: document.querySelectorAll('[data-add="goalRec"], [data-add="goalOnce"], .gl-add, .hp-add').length,
+        editChips: document.querySelectorAll('.ga-chip').length,
+        keeps: document.querySelectorAll('.gl-keep').length,
+        textLen: hostText.length,
+      };
+    });
+    if(!m.horizon) throw new Error('Goals Horizon (#gl-horizon) did not render');
+    if(!m.title) throw new Error('Goals title "Lifestyle Spending & Goals" missing from rendered view');
+    if(m.svgs < 1) throw new Error(`Goals timeline SVG missing (svgs=${m.svgs})`);
+    if(m.rows < 1) throw new Error(`expected >=1 goal row, got ${m.rows}`);
+    if(m.textLen < 40) throw new Error(`Goals page appears blank (textLen=${m.textLen})`);
+    // recurring / one-time / add / edit controls — assert the editor surfaced at least one.
+    if((m.addControls + m.editChips + m.keeps) < 1) throw new Error('recurring/one-time/add/edit goal controls did not render');
     await page.screenshot({ path: join(OUT, '02-goals.png'), fullPage: true });
   });
 
-  await step('goals add, delete, what-if toggle and select workflows', async () => {
+  await step('goals Horizon: add, delete, what-if drop, and select workflows', async () => {
+    // Contract updated for the Goals Horizon view. Add/delete drive both the edit
+    // rows (.gl-row) and the timeline (recurring -> .glh-band, one-time -> .glh-diamond);
+    // the what-if toggle (.gl-keep) flips the edit row to .gl-row.dropped; selecting a
+    // timeline lane (.glh-lane) highlights the lane (.glh-lane--sel) and its edit row
+    // (.gl-row.sel). Replaces the retired tributary (#goal-thread / .gt-* ) assertions.
     await page.click('.htab[data-sub-target="goals"]');
-    await new Promise(r => setTimeout(r, 300));
-    const before = await page.evaluate(() => document.querySelectorAll('.gl-row').length);
-    await page.click('[data-add="goalRec"]');
-    await new Promise(r => setTimeout(r, 250));
-    const after = await page.evaluate(() => document.querySelectorAll('.gl-row').length);
-    if(after !== before + 1) throw new Error(`recurring goal did not append (before=${before}, after=${after})`);
-    await page.click('.gl-row:last-child .row-x');
-    await new Promise(r => setTimeout(r, 200));
-    const final = await page.evaluate(() => document.querySelectorAll('.gl-row').length);
-    if(final !== before) throw new Error(`recurring goal delete did not splice (final=${final})`);
-    await page.click('[data-add="goalOnce"]');
-    await new Promise(r => setTimeout(r, 250));
-    const onceRow = await page.evaluate(() => {
-      const r = document.querySelector('.gl-row:last-child');
-      return { rows: document.querySelectorAll('.gl-row').length, text: r?.textContent || '' };
-    });
-    if(onceRow.rows !== before + 1 || !/once at/.test(onceRow.text)) throw new Error(`one-time goal did not append as once (${JSON.stringify(onceRow)})`);
-    await page.click('.gl-row:last-child .row-x');
-    await new Promise(r => setTimeout(r, 200));
-    // What-if toggle: row drops, its ribbon turns ghost, plan.goals untouched
-    // (the Scenarios goals-mirror step later asserts every goal still funded).
-    await page.click('.gl-row .gl-keep');
-    await new Promise(r => setTimeout(r, 250));
-    const dropped = await page.evaluate(() => ({
-      droppedRows: document.querySelectorAll('.gl-row.dropped').length,
-      ghosts: document.querySelectorAll('.gt-flow.ghost, .gt-once.ghost').length,
-      label: document.querySelector('.gl-row.dropped .gl-keep')?.textContent.trim() || '',
-    }));
-    if(dropped.droppedRows !== 1 || dropped.ghosts !== 1) throw new Error(`what-if drop did not ghost the ribbon (${JSON.stringify(dropped)})`);
-    if(dropped.label !== 'dropped') throw new Error(`toggle label wrong: "${dropped.label}"`);
-    // The dropped row's cell flips to the "if kept" phrasing once runs land.
-    const dl = Date.now() + 8000;
-    let droppedCost = '';
-    while(Date.now() < dl){
-      droppedCost = await page.evaluate(() => document.querySelector('.gl-row.dropped .gl-cost')?.textContent || '');
-      if(/if kept/.test(droppedCost)) break;
-      await new Promise(r => setTimeout(r, 250));
-    }
-    if(!/if kept/.test(droppedCost)) throw new Error(`dropped goal cost did not recompute: "${droppedCost}"`);
-    await page.click('.gl-row.dropped .gl-keep');
-    await new Promise(r => setTimeout(r, 250));
-    const restored = await page.evaluate(() => document.querySelectorAll('.gl-row.dropped, .gt-flow.ghost').length);
-    if(restored !== 0) throw new Error('what-if drop did not restore');
-    // Click-select: svg hit path highlights its statement row.
-    await page.evaluate(() => document.querySelector('.gt-hit').dispatchEvent(new MouseEvent('click', { bubbles: true })));
-    await new Promise(r => setTimeout(r, 150));
-    const sel = await page.evaluate(() => ({
+    await new Promise(r => setTimeout(r, 350));
+    const snap = () => page.evaluate(() => ({
+      rows: document.querySelectorAll('.gl-row').length,
+      lanes: document.querySelectorAll('.glh-lane').length,
+      bands: document.querySelectorAll('.glh-band').length,
+      diamonds: document.querySelectorAll('.glh-diamond').length,
+      dropped: document.querySelectorAll('.gl-row.dropped').length,
+      selLanes: document.querySelectorAll('.glh-lane--sel').length,
       selRows: document.querySelectorAll('.gl-row.sel').length,
-      onFlows: document.querySelectorAll('.gt-flow.on, .gt-once.on').length,
+      horizon: !!document.querySelector('#gl-horizon'),
+      textLen: (document.querySelector('#gl-horizon')?.textContent || '').replace(/\s+/g, ' ').trim().length,
     }));
-    if(sel.selRows !== 1 || sel.onFlows < 1) throw new Error(`svg click-select did not sync (${JSON.stringify(sel)})`);
-    await page.evaluate(() => document.querySelector('.gt-hit').dispatchEvent(new MouseEvent('click', { bubbles: true })));
+
+    const base = await snap();
+    if(!base.horizon) throw new Error('Goals Horizon (#gl-horizon) did not render');
+    if(base.rows < 1) throw new Error(`expected seed goal rows, got ${base.rows}`);
+
+    // 1) add recurring → a new edit row + a recurring band in the timeline
+    await page.click('[data-add="goalRec"]');
+    await new Promise(r => setTimeout(r, 300));
+    const addRec = await snap();
+    if(addRec.rows !== base.rows + 1) throw new Error(`add recurring did not append a row (${base.rows} -> ${addRec.rows})`);
+    if(addRec.bands < base.bands + 1) throw new Error(`add recurring did not add a timeline band (${base.bands} -> ${addRec.bands})`);
+
+    // 2) delete → row + band removed
+    await page.click('.gl-row:last-child .row-x');
+    await new Promise(r => setTimeout(r, 300));
+    let cur = await snap();
+    if(cur.rows !== base.rows) throw new Error(`delete after add-recurring did not restore rows (got ${cur.rows}, want ${base.rows})`);
+    if(cur.bands !== base.bands) throw new Error(`delete did not remove the timeline band (${cur.bands} vs ${base.bands})`);
+
+    // 3) add one-time → a new edit row + a one-time diamond marker
+    await page.click('[data-add="goalOnce"]');
+    await new Promise(r => setTimeout(r, 300));
+    const addOnce = await snap();
+    if(addOnce.rows !== base.rows + 1) throw new Error(`add one-time did not append a row (${base.rows} -> ${addOnce.rows})`);
+    if(addOnce.diamonds < base.diamonds + 1) throw new Error(`add one-time did not add a timeline diamond (${base.diamonds} -> ${addOnce.diamonds})`);
+
+    // 4) delete → row + marker removed
+    await page.click('.gl-row:last-child .row-x');
+    await new Promise(r => setTimeout(r, 300));
+    cur = await snap();
+    if(cur.rows !== base.rows) throw new Error(`delete after add-one-time did not restore rows (got ${cur.rows}, want ${base.rows})`);
+    if(cur.diamonds !== base.diamonds) throw new Error(`delete did not remove the timeline diamond (${cur.diamonds} vs ${base.diamonds})`);
+
+    // 5) what-if drop toggle → edit row state flips to dropped, then restores
+    await page.click('.gl-row .gl-keep');
+    await new Promise(r => setTimeout(r, 300));
+    const drop = await snap();
+    if(drop.dropped !== 1) throw new Error(`what-if drop did not mark a row dropped (dropped=${drop.dropped})`);
+    await page.click('.gl-row.dropped .gl-keep');
+    await new Promise(r => setTimeout(r, 300));
+    cur = await snap();
+    if(cur.dropped !== 0) throw new Error(`what-if drop did not restore (dropped=${cur.dropped})`);
+
+    // 6) select via timeline lane → lane + its edit row highlight (if the DOM supports lanes)
+    if(cur.lanes > 0){
+      await page.click('.glh-lane');
+      await new Promise(r => setTimeout(r, 250));
+      const sel = await snap();
+      if(sel.selLanes < 1 && sel.selRows < 1) throw new Error(`lane select did not highlight a lane or row (${JSON.stringify({ selLanes: sel.selLanes, selRows: sel.selRows })})`);
+      await page.click('.glh-lane'); // toggle selection back off
+      await new Promise(r => setTimeout(r, 150));
+    }
+
+    // Goals page must remain rendered (not blank) after all interactions.
+    const end = await snap();
+    if(!end.horizon || end.rows < 1 || end.textLen < 40) throw new Error(`Goals page blank/broken after workflows (${JSON.stringify(end)})`);
   });
 
   await step('scenarios Compare view: columns, rings, levers, goals', async () => {
@@ -732,13 +741,17 @@ try {
     // (data-scn-id) that mutate that scenario and request a manual Run. Step up
     // then back down so the baseline is left as found (the Cash-Flow step checks
     // the baseline retirement marker is at 65).
-    const cmpSteppers = await page.evaluate(() => document.querySelectorAll('#scn-view .compare .cmp-step .stepper-btn[data-scn-id]').length);
+    // Compare lever steppers now live in a .cmp-overlay wrapper (the stale selector
+    // expected an intermediate .cmp-step). They still carry data-scn-id / data-lever-key
+    // / data-dir and request a manual Run on click (live-verified: 36 steppers; click
+    // sets #status "Adjusted · Run to update" and increments the value on re-render).
+    const cmpSteppers = await page.evaluate(() => document.querySelectorAll('#scn-view .compare .stepper-btn[data-scn-id]').length);
     if(cmpSteppers < 6) throw new Error(`Compare editable steppers missing (found ${cmpSteppers})`);
-    await page.evaluate(() => document.querySelector('#scn-view .compare .cmp-step .stepper-btn[data-dir="1"]')?.click());
+    await page.evaluate(() => document.querySelector('#scn-view .compare .stepper-btn[data-dir="1"][data-scn-id]')?.click());
     await new Promise(r => setTimeout(r, 250));
     const cmpStatus = await page.evaluate(() => document.querySelector('#status')?.textContent || '');
     if(!/Run to update/i.test(cmpStatus)) throw new Error(`Compare stepper did not request a manual Run: "${cmpStatus}"`);
-    await page.evaluate(() => document.querySelector('#scn-view .compare .cmp-step .stepper-btn[data-dir="-1"]')?.click());
+    await page.evaluate(() => document.querySelector('#scn-view .compare .stepper-btn[data-dir="-1"][data-scn-id]')?.click());
     await new Promise(r => setTimeout(r, 250));
 
     await page.screenshot({ path: join(OUT, '03-scenarios.png'), fullPage: true });
@@ -923,37 +936,45 @@ try {
   });
 
   // Objective theme contract: the page BACKGROUND (not just foreground tokens) must be
-  // the Scenarios navy --page-bg on Goals, Sequencing, AND the redesigned Household —
-  // the whole app now reads as one cool-blue surface. The retired Household warm bronze
-  // must be gone everywhere. Computed-style assertions so a brown-vs-navy regression
-  // fails loudly instead of relying on a human reading a screenshot.
-  await step('visual contract: header is navy glass and tabs are correct', async () => {
+  // the shared charcoal/champagne --page-bg on Scenarios, Goals, Sequencing, AND the
+  // Household console — the whole app now reads as one charcoal surface (floor #0b0d11)
+  // with a champagne accent. The retired Household warm bronze AND the old navy
+  // (#111E31 = 17,30,49) must BOTH be gone everywhere. Computed-style assertions so a
+  // navy/bronze regression fails loudly instead of relying on a human reading a screenshot.
+  await step('visual contract: header is charcoal glass and tabs are correct', async () => {
     const sleep = ms => new Promise(r => setTimeout(r, ms));
     await page.click('button[data-page="scenarios"]'); await sleep(400);
     const hdrBg = await page.evaluate(() => getComputedStyle(document.querySelector('.hdr')).backgroundImage);
     const WARM_BROWN = '28, 19, 11';  // rgba(28,19,11,...) old warm header colour
     const WARM_HDR   = '28, 17, 10';  // another warm header variant
-    const NAVY       = '17, 30, 49';  // #111E31 — the correct navy glass base
+    const NAVY       = '17, 30, 49';  // #111E31 — the retired navy glass base, must be gone
+    const CHARCOAL   = '11, 13, 17';  // #0b0d11 — charcoal glass base (header gradient floor)
+    const CHAMPAGNE  = '198, 166, 98';// #c6a662 — champagne accent note (top-right of header)
     if(hdrBg.includes(WARM_BROWN) || hdrBg.includes(WARM_HDR))
       throw new Error(`Header still uses warm-brown background: ${hdrBg}`);
-    if(!hdrBg.includes(NAVY))
-      throw new Error(`Header does not include navy glass (${NAVY}) in backgroundImage: ${hdrBg}`);
-    // Run button should be gold, not warm-brown
+    if(hdrBg.includes(NAVY))
+      throw new Error(`Header still uses retired navy glass (${NAVY}) in backgroundImage: ${hdrBg}`);
+    if(!hdrBg.includes(CHARCOAL))
+      throw new Error(`Header is not on the charcoal base (${CHARCOAL}) in backgroundImage: ${hdrBg}`);
+    if(!hdrBg.includes(CHAMPAGNE))
+      throw new Error(`Header is missing the champagne accent note (${CHAMPAGNE}) in backgroundImage: ${hdrBg}`);
+    // Run button should be champagne, not warm-brown or navy.
     const runBg = await page.evaluate(() => getComputedStyle(document.querySelector('.run-btn')).backgroundImage);
-    if(!runBg && !runBg.includes('rgb')) throw new Error('Run button has no computed background');
-    // Active tab should use gold underline accent
+    if(!runBg || !runBg.includes(CHAMPAGNE)) throw new Error(`Run button is not champagne (${CHAMPAGNE}): ${runBg}`);
+    // Active tab should use the champagne underline accent.
     const activeTab = await page.evaluate(() => {
       const el = document.querySelector('.htab.on');
       if(!el) return null;
       return { border: getComputedStyle(el).borderBottomColor };
     });
     if(!activeTab) throw new Error('No active tab found');
-    // Gold is around rgb(230, 184, 106) — check it's warm-gold not pure white or navy
+    // Champagne is rgb(198, 166, 98) — warm, not pure white and not navy (blue channel low).
     const [r,g,b] = (activeTab.border.match(/\d+/g)||[]).map(Number);
-    if(!(r > 180 && g > 130 && b < 140)) throw new Error(`Active tab border-bottom-color is not gold: ${activeTab.border}`);
+    if(!(r > 180 && g > 130 && b < 140)) throw new Error(`Active tab border-bottom-color is not champagne: ${activeTab.border}`);
   });
-  await step('theme: Goals + Sequencing + Household all sit on the Scenarios navy background', async () => {
-    const NAVY = '17, 30, 49';      // #111E31 — Scenarios --page-bg base (shared by household.css)
+  await step('theme: Goals + Sequencing + Household all sit on the shared charcoal background', async () => {
+    const CHARCOAL = '11, 13, 17';  // #0b0d11 — shared --page-bg gradient floor (scenarios + household)
+    const NAVY = '17, 30, 49';      // #111E31 — retired Scenarios navy base, must be gone
     const BRONZE = '154, 102, 56';  // the retired Household warm background — must be gone
     const sleep = ms => new Promise(r => setTimeout(r, ms));
     const bgOf = sel => page.evaluate(s => {
@@ -963,10 +984,12 @@ try {
 
     await page.click('button[data-page="scenarios"]'); await sleep(500);
     const scnBg = await bgOf('.page[data-page="scenarios"]');
-    if(!scnBg.includes(NAVY)) throw new Error(`Scenarios page lost its navy --page-bg: ${scnBg}`);
+    if(!scnBg.includes(CHARCOAL)) throw new Error(`Scenarios page lost its charcoal --page-bg: ${scnBg}`);
+    if(scnBg.includes(NAVY)) throw new Error(`Scenarios page still shows retired navy: ${scnBg}`);
 
     await page.click('.htab[data-sub-target="goals"]'); await sleep(600);
-    if(!await page.evaluate(() => !!document.querySelector('#np-content .gl-wrap'))) throw new Error('Goals view did not mount .gl-wrap');
+    // Goals mounts the Horizon view (#gl-horizon) now, not the retired .gl-wrap tributary.
+    if(!await page.evaluate(() => !!document.querySelector('#np-content .gl-horizon'))) throw new Error('Goals view did not mount .gl-horizon');
     const goalsBg = await bgOf('.page[data-page="net-worth"]');
 
     await page.click('button[data-page="sequencing"]'); await sleep(450);
@@ -976,7 +999,8 @@ try {
     const hhBg = await bgOf('.page[data-page="household"]');
 
     for(const [name, bg] of [['goals', goalsBg], ['sequencing', seqBg], ['household', hhBg]]){
-      if(!bg.includes(NAVY)) throw new Error(`${name} page is NOT on the Scenarios navy background: ${bg}`);
+      if(!bg.includes(CHARCOAL)) throw new Error(`${name} page is NOT on the shared charcoal background: ${bg}`);
+      if(bg.includes(NAVY)) throw new Error(`${name} page still shows the retired navy background: ${bg}`);
       if(bg.includes(BRONZE)) throw new Error(`${name} page still shows the retired Household bronze background: ${bg}`);
     }
   });

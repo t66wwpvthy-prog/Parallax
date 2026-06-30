@@ -1,0 +1,519 @@
+/* ================================================================
+   Goals Horizon — all rules scoped under .gl-horizon
+   No :root tokens, no global overrides, no body/page/nav styles.
+   ================================================================ */
+
+@keyframes glh-drift {
+  from { transform: rotate(18deg) translateY(0); }
+  to   { transform: rotate(18deg) translateY(-12px); }
+}
+
+/* ── Section shell ──────────────────────────────────────────── */
+
+.gl-horizon {
+  position: relative;
+  width: 100%;
+  max-width: 1480px;
+  margin: 0 auto;
+  padding: 38px 52px 30px;
+  overflow: hidden;
+  border-radius: 22px;
+  background:
+    radial-gradient(130% 90% at 12% -10%, rgba(74,58,34,0.16), transparent 50%),
+    radial-gradient(120% 100% at 92% 112%, rgba(22,33,50,0.5), transparent 55%),
+    linear-gradient(158deg, #15181d, #0f1216 48%, #0b0d11);
+  box-shadow:
+    0 50px 130px rgba(0,0,0,0.65),
+    inset 0 1px 0 rgba(255,255,255,0.045);
+  border: 1px solid rgba(255,255,255,0.05);
+  font-family: 'Hanken Grotesk', system-ui, sans-serif;
+  color: #9097a0;
+  box-sizing: border-box;
+}
+
+/* Atmospheric beam */
+.glh-beam {
+  position: absolute;
+  top: -12%; left: 46%;
+  width: 540px; height: 140%;
+  background: linear-gradient(180deg, rgba(224,212,178,0.10), rgba(224,212,178,0));
+  transform: rotate(18deg);
+  filter: blur(46px);
+  pointer-events: none;
+  animation: glh-drift 9s ease-in-out infinite alternate;
+  z-index: 0;
+}
+
+/* ── Filter pills ───────────────────────────────────────────── */
+
+.glh-filters {
+  position: relative;
+  z-index: 1;
+  margin-bottom: 0;
+}
+
+.glh-pills {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.glh-pill {
+  padding: 7px 15px;
+  border-radius: 30px;
+  font: 600 14px/1 'Hanken Grotesk', sans-serif;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  cursor: pointer;
+  border: 1px solid rgba(255,255,255,0.06);
+  background: rgba(255,255,255,0.03);
+  color: #8b9298;
+  transition: background 0.18s, border-color 0.18s, color 0.18s;
+}
+
+.glh-pill:hover {
+  color: #c0bbb0;
+  border-color: rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.05);
+}
+
+.glh-pill--active {
+  background: linear-gradient(180deg, rgba(198,166,98,0.22), rgba(198,166,98,0.08));
+  border-color: rgba(198,166,98,0.35);
+  color: #e6ddca;
+}
+
+/* ── Header ─────────────────────────────────────────────────── */
+
+.glh-header {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-top: 26px;
+  gap: 24px;
+}
+
+.glh-eyebrow {
+  font: 600 14px/1 'Hanken Grotesk', sans-serif;
+  letter-spacing: 0.30em;
+  color: #c6a662;
+  margin-bottom: 14px;
+  text-transform: uppercase;
+}
+
+.glh-h1 {
+  font-family: 'Spectral', Georgia, serif;
+  font-weight: 500;
+  font-size: 46px;
+  line-height: 1;
+  color: #e7dec9;
+  letter-spacing: 0.01em;
+  margin: 0;
+}
+
+/* Plan context card */
+.glh-card {
+  flex-shrink: 0;
+  padding: 18px 22px;
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.018));
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
+  min-width: 180px;
+}
+
+.glh-card-label {
+  font: 600 14px/1 'Hanken Grotesk', sans-serif;
+  letter-spacing: 0.22em;
+  color: #7d848c;
+  text-transform: uppercase;
+  margin-bottom: 9px;
+}
+
+.glh-card-value {
+  font-family: 'Spectral', Georgia, serif;
+  font-size: 28px;
+  font-weight: 500;
+  color: #e7dec9;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.glh-card-unit {
+  font-size: 16px;
+  color: #9097a0;
+}
+
+.glh-card-meta {
+  font: 500 14px/1.45 'Hanken Grotesk', sans-serif;
+  color: #8b9298;
+  margin-top: 8px;
+}
+
+.glh-card-sub { color: #7d848c; }
+
+/* ── Body: axis + lanes ─────────────────────────────────────── */
+
+.glh-body {
+  position: relative;
+  z-index: 1;
+  margin-top: 8px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Axis row: left spacer + right track */
+.glh-axis-row {
+  display: flex;
+  align-items: flex-start;
+  margin: 30px 0 4px;
+}
+
+.glh-axis-spacer {
+  width: 320px;
+  flex-shrink: 0;
+}
+
+.glh-axis-track {
+  flex: 1;
+  position: relative;
+  height: 22px;
+  overflow: visible;
+  min-width: 0;
+}
+
+.glh-axis-baseline {
+  position: absolute;
+  left: 0; right: 0;
+  top: 11px;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    rgba(255,255,255,0.04),
+    rgba(255,255,255,0.14),
+    rgba(255,255,255,0.04)
+  );
+}
+
+.glh-tick {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  font: 600 14px/1 'Hanken Grotesk', sans-serif;
+  color: #7d848c;
+  white-space: nowrap;
+  user-select: none;
+  pointer-events: none;
+}
+
+.glh-tick--ret { color: #c6a662; }
+
+/* Final axis tick sits at the track's right edge; right-anchor it so the label
+   stays inside the panel instead of being clipped by the scroll container. */
+.glh-tick--end { transform: translateX(-100%); }
+
+/* Retirement guide line — extends downward through all lanes */
+.glh-ret-guide {
+  position: absolute;
+  top: 18px;
+  width: 1px;
+  height: 9999px;
+  transform: translateX(-50%);
+  background: repeating-linear-gradient(
+    180deg,
+    rgba(198,166,98,0.28) 0 5px,
+    transparent 5px 11px
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Goal lanes ─────────────────────────────────────────────── */
+
+.glh-lanes { position: relative; }
+
+.glh-lane {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 62px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.glh-lane:hover { background: rgba(255,255,255,0.016); }
+.glh-lane--sel  { background: rgba(198,166,98,0.035); }
+
+/* Identity column — left 320px */
+.glh-identity {
+  width: 320px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding-right: 18px;
+}
+
+.glh-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border-width: 1px;
+  border-style: solid;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.glh-identity-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.glh-goal-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: 600 17px/1 'Hanken Grotesk', sans-serif;
+  color: #ddd5c4;
+}
+
+.glh-goal-meta {
+  margin-top: 5px;
+  font: 500 14px/1 'Hanken Grotesk', sans-serif;
+  color: #878e96;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.glh-amount {
+  color: #b8ad92;
+  font-variant-numeric: tabular-nums;
+}
+
+.glh-area-tag {
+  font: 600 14px/1 'Hanken Grotesk', sans-serif;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #7d848c;
+  border: 1px solid rgba(255,255,255,0.09);
+  border-radius: 4px;
+  padding: 3px 6px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* Timeline column — fills remaining width */
+.glh-timeline {
+  flex: 1;
+  position: relative;
+  height: 100%;
+  min-width: 0;
+}
+
+/* Recurring goal band */
+.glh-band {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 11px;
+  border-radius: 7px;
+  min-width: 4px;
+}
+
+.glh-band--unpriced {
+  opacity: 0.38;
+  background: rgba(139,149,196,0.18) !important;
+  box-shadow: none !important;
+  border: 1px dashed rgba(139,149,196,0.38) !important;
+}
+
+/* One-time goal diamond */
+.glh-diamond-wrap {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+.glh-diamond {
+  width: 18px;
+  height: 18px;
+  border-radius: 3px;
+  transform: rotate(45deg);
+  flex-shrink: 0;
+}
+
+.glh-diamond-label {
+  padding-left: 16px;
+  font: 500 14px/1 'Hanken Grotesk', sans-serif;
+  color: #9aa0a6;
+  white-space: nowrap;
+}
+
+/* Empty / filter-zero state */
+.glh-empty {
+  padding: 28px 0 28px 320px;
+  font: 400 14px/1 'Hanken Grotesk', sans-serif;
+  color: #6b727a;
+  font-style: italic;
+}
+
+/* ── Add row ─────────────────────────────────────────────────── */
+
+.glh-adds {
+  display: flex;
+  align-items: center;
+  margin: 18px 0 24px;
+}
+
+.glh-adds-spacer {
+  width: 320px;
+  flex-shrink: 0;
+}
+
+.glh-adds-track {
+  display: flex;
+  align-items: center;
+  gap: 26px;
+}
+
+.glh-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font: 600 14px/1 'Hanken Grotesk', sans-serif;
+  color: #b3a888;
+  transition: color 0.18s;
+  border: none;
+  background: none;
+  padding: 0;
+}
+
+.glh-add-btn:hover         { color: #e7dec9; }
+.glh-add-btn--once         { color: #9aa0a6; }
+.glh-add-btn--once:hover   { color: #c0bbb6; }
+
+.glh-add-icon {
+  font-size: 15px;
+  color: #c6a662;
+  line-height: 1;
+}
+
+.glh-add-icon--once {
+  font-size: 13px;
+  color: #9a8fc0;
+  display: inline-block;
+  transform: rotate(45deg);
+  line-height: 1;
+}
+
+.glh-adds-sep {
+  width: 1px;
+  height: 13px;
+  background: rgba(255,255,255,0.12);
+  flex-shrink: 0;
+}
+
+/* ── Footer summary band ────────────────────────────────────── */
+
+.glh-footer {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 18px 26px;
+  margin: 0 -52px -30px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), transparent);
+  font: 500 14px/1 'Hanken Grotesk', sans-serif;
+  color: #7d848c;
+  flex-wrap: wrap;
+}
+
+.glh-footer b {
+  font-weight: 600;
+  color: #b8ad92;
+  font-variant-numeric: tabular-nums;
+}
+
+.glh-foot-dot {
+  color: rgba(255,255,255,0.14);
+  padding: 0 4px;
+}
+
+/* ── Edit section: existing inline inputs below the canvas ──── */
+
+.glh-edit-section {
+  border-top: 1px solid rgba(255,255,255,0.06);
+  padding-top: 22px;
+  margin-top: 22px;
+}
+
+.glh-edit-head {
+  font: 600 14px/1 'Hanken Grotesk', sans-serif;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: #5d646c;
+  margin-bottom: 14px;
+}
+
+/* ── Responsive ──────────────────────────────────────────────── */
+
+@media (max-width: 900px) {
+  .gl-horizon {
+    padding: 26px 24px 22px;
+  }
+  .glh-axis-spacer,
+  .glh-adds-spacer,
+  .glh-identity {
+    width: 240px;
+  }
+  .glh-empty {
+    padding-left: 240px;
+  }
+  .glh-h1 {
+    font-size: 34px;
+  }
+  .glh-footer {
+    margin: 0 -24px -22px;
+    padding: 14px 20px;
+  }
+}
+
+@media (max-width: 600px) {
+  .gl-horizon {
+    padding: 20px 16px 18px;
+    border-radius: 14px;
+  }
+  .glh-axis-spacer,
+  .glh-adds-spacer,
+  .glh-identity {
+    width: 180px;
+  }
+  .glh-icon {
+    width: 28px;
+    height: 28px;
+  }
+  .glh-goal-name {
+    font-size: 14px;
+  }
+  .glh-h1 {
+    font-size: 26px;
+  }
+  .glh-empty {
+    padding-left: 180px;
+  }
+  .glh-footer {
+    margin: 0 -16px -18px;
+    padding: 12px 16px;
+  }
+}
