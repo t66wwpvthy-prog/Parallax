@@ -936,37 +936,45 @@ try {
   });
 
   // Objective theme contract: the page BACKGROUND (not just foreground tokens) must be
-  // the Scenarios navy --page-bg on Goals, Sequencing, AND the redesigned Household —
-  // the whole app now reads as one cool-blue surface. The retired Household warm bronze
-  // must be gone everywhere. Computed-style assertions so a brown-vs-navy regression
-  // fails loudly instead of relying on a human reading a screenshot.
-  await step('visual contract: header is navy glass and tabs are correct', async () => {
+  // the shared charcoal/champagne --page-bg on Scenarios, Goals, Sequencing, AND the
+  // Household console — the whole app now reads as one charcoal surface (floor #0b0d11)
+  // with a champagne accent. The retired Household warm bronze AND the old navy
+  // (#111E31 = 17,30,49) must BOTH be gone everywhere. Computed-style assertions so a
+  // navy/bronze regression fails loudly instead of relying on a human reading a screenshot.
+  await step('visual contract: header is charcoal glass and tabs are correct', async () => {
     const sleep = ms => new Promise(r => setTimeout(r, ms));
     await page.click('button[data-page="scenarios"]'); await sleep(400);
     const hdrBg = await page.evaluate(() => getComputedStyle(document.querySelector('.hdr')).backgroundImage);
     const WARM_BROWN = '28, 19, 11';  // rgba(28,19,11,...) old warm header colour
     const WARM_HDR   = '28, 17, 10';  // another warm header variant
-    const NAVY       = '17, 30, 49';  // #111E31 — the correct navy glass base
+    const NAVY       = '17, 30, 49';  // #111E31 — the retired navy glass base, must be gone
+    const CHARCOAL   = '11, 13, 17';  // #0b0d11 — charcoal glass base (header gradient floor)
+    const CHAMPAGNE  = '198, 166, 98';// #c6a662 — champagne accent note (top-right of header)
     if(hdrBg.includes(WARM_BROWN) || hdrBg.includes(WARM_HDR))
       throw new Error(`Header still uses warm-brown background: ${hdrBg}`);
-    if(!hdrBg.includes(NAVY))
-      throw new Error(`Header does not include navy glass (${NAVY}) in backgroundImage: ${hdrBg}`);
-    // Run button should be gold, not warm-brown
+    if(hdrBg.includes(NAVY))
+      throw new Error(`Header still uses retired navy glass (${NAVY}) in backgroundImage: ${hdrBg}`);
+    if(!hdrBg.includes(CHARCOAL))
+      throw new Error(`Header is not on the charcoal base (${CHARCOAL}) in backgroundImage: ${hdrBg}`);
+    if(!hdrBg.includes(CHAMPAGNE))
+      throw new Error(`Header is missing the champagne accent note (${CHAMPAGNE}) in backgroundImage: ${hdrBg}`);
+    // Run button should be champagne, not warm-brown or navy.
     const runBg = await page.evaluate(() => getComputedStyle(document.querySelector('.run-btn')).backgroundImage);
-    if(!runBg && !runBg.includes('rgb')) throw new Error('Run button has no computed background');
-    // Active tab should use gold underline accent
+    if(!runBg || !runBg.includes(CHAMPAGNE)) throw new Error(`Run button is not champagne (${CHAMPAGNE}): ${runBg}`);
+    // Active tab should use the champagne underline accent.
     const activeTab = await page.evaluate(() => {
       const el = document.querySelector('.htab.on');
       if(!el) return null;
       return { border: getComputedStyle(el).borderBottomColor };
     });
     if(!activeTab) throw new Error('No active tab found');
-    // Gold is around rgb(230, 184, 106) — check it's warm-gold not pure white or navy
+    // Champagne is rgb(198, 166, 98) — warm, not pure white and not navy (blue channel low).
     const [r,g,b] = (activeTab.border.match(/\d+/g)||[]).map(Number);
-    if(!(r > 180 && g > 130 && b < 140)) throw new Error(`Active tab border-bottom-color is not gold: ${activeTab.border}`);
+    if(!(r > 180 && g > 130 && b < 140)) throw new Error(`Active tab border-bottom-color is not champagne: ${activeTab.border}`);
   });
-  await step('theme: Goals + Sequencing + Household all sit on the Scenarios navy background', async () => {
-    const NAVY = '17, 30, 49';      // #111E31 — Scenarios --page-bg base (shared by household.css)
+  await step('theme: Goals + Sequencing + Household all sit on the shared charcoal background', async () => {
+    const CHARCOAL = '11, 13, 17';  // #0b0d11 — shared --page-bg gradient floor (scenarios + household)
+    const NAVY = '17, 30, 49';      // #111E31 — retired Scenarios navy base, must be gone
     const BRONZE = '154, 102, 56';  // the retired Household warm background — must be gone
     const sleep = ms => new Promise(r => setTimeout(r, ms));
     const bgOf = sel => page.evaluate(s => {
@@ -976,7 +984,8 @@ try {
 
     await page.click('button[data-page="scenarios"]'); await sleep(500);
     const scnBg = await bgOf('.page[data-page="scenarios"]');
-    if(!scnBg.includes(NAVY)) throw new Error(`Scenarios page lost its navy --page-bg: ${scnBg}`);
+    if(!scnBg.includes(CHARCOAL)) throw new Error(`Scenarios page lost its charcoal --page-bg: ${scnBg}`);
+    if(scnBg.includes(NAVY)) throw new Error(`Scenarios page still shows retired navy: ${scnBg}`);
 
     await page.click('.htab[data-sub-target="goals"]'); await sleep(600);
     // Goals mounts the Horizon view (#gl-horizon) now, not the retired .gl-wrap tributary.
@@ -990,7 +999,8 @@ try {
     const hhBg = await bgOf('.page[data-page="household"]');
 
     for(const [name, bg] of [['goals', goalsBg], ['sequencing', seqBg], ['household', hhBg]]){
-      if(!bg.includes(NAVY)) throw new Error(`${name} page is NOT on the Scenarios navy background: ${bg}`);
+      if(!bg.includes(CHARCOAL)) throw new Error(`${name} page is NOT on the shared charcoal background: ${bg}`);
+      if(bg.includes(NAVY)) throw new Error(`${name} page still shows the retired navy background: ${bg}`);
       if(bg.includes(BRONZE)) throw new Error(`${name} page still shows the retired Household bronze background: ${bg}`);
     }
   });
