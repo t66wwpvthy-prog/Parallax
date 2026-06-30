@@ -1247,7 +1247,8 @@ body .page[data-page="sequencing"]{
    Goals mounts .gl-wrap, so the :has() selector targets that sub-view only. */
 body .page[data-page="household"],
 body .page[data-page="sequencing"],
-body .page[data-page="net-worth"]:has(.gl-wrap){
+body .page[data-page="net-worth"]:has(.gl-wrap),
+body .page[data-page="net-worth"]:has(.gl-horizon){
   background:var(--app-page-bg);
   background-attachment:fixed;
 }

@@ -15,6 +15,7 @@
 <link rel="stylesheet" href="styles/main.css?v=6"/>
 <link rel="stylesheet" href="styles/household.css?v=8"/>
 <link rel="stylesheet" href="styles/scenarios.css?v=4"/>
+<link rel="stylesheet" href="styles/goals.css?v=1"/>
 </head>
 <body>
 <div class="wrap">
@@ -1965,6 +1966,28 @@ let goalSelected=null;
    stay the source of truth. */
 const GOAL_AREAS=[['travel','Travel'],['home','Home'],['family','Family'],['health','Health'],['purpose','Purpose'],['other','Other']];
 const GOAL_AREA_LBL=Object.fromEntries(GOAL_AREAS);
+
+/* ── Goals Horizon — icon + color palette ──────────────────────────────
+   Each area maps to an SVG path (16×16 viewBox) and a muted hue triple.
+   fi = fill alpha on band, gl = glow alpha on box-shadow, st = icon stroke. */
+const GOAL_ICONS_SVG = {
+  travel:  `<path d="M2 9.5l12-5-4.2 6.5-1.6-2.2L2 9.5ZM8.2 8.8 7 13l1.2-3"/>`,
+  home:    `<path d="M2.5 7.5 8 3l5.5 4.5M4.3 6.5V13h7.4V6.5"/>`,
+  family:  `<path d="M2.5 6.5h11V13h-11zM2.5 6.5h11M8 6.5V13M8 6.5C6 6.5 5 5.5 5 4.4 5 3.6 5.6 3 6.4 3 7.6 3 8 5 8 6.5ZM8 6.5C10 6.5 11 5.5 11 4.4 11 3.6 10.4 3 9.6 3 8.4 3 8 5 8 6.5Z"/>`,
+  health:  `<path d="M8 13.5C4 11 2 8.5 2 5.8 2 4 3.4 2.6 5.2 2.6c1.1 0 2.1.6 2.8 1.5.7-.9 1.7-1.5 2.8-1.5C12.6 2.6 14 4 14 5.8c0 2.7-2 5.2-6 7.7Z"/>`,
+  purpose: `<path d="M8 2l1.8 3.6 4 .6-2.9 2.8.7 4L8 11l-3.6 1.9.7-4L2.2 6.2l4-.6z"/>`,
+  other:   `<circle cx="8" cy="8" r="4.5"/>`,
+};
+// rgb = "R,G,B" string; fi = band fill alpha; gl = glow alpha; st = icon stroke hex
+const GOAL_COLOR_MAP = {
+  travel:  { rgb:'196,154,94',  fi:.55, gl:.30, st:'#d2ac72' },
+  home:    { rgb:'127,155,181', fi:.50, gl:.26, st:'#9bb6cc' },
+  family:  { rgb:'194,154,122', fi:.50, gl:.24, st:'#d2ac8c' },
+  health:  { rgb:'111,161,160', fi:.50, gl:.40, st:'#86b3b2' },
+  purpose: { rgb:'146,134,182', fi:.45, gl:.40, st:'#aaa0c8' },
+  other:   { rgb:'139,149,196', fi:.42, gl:.30, st:'#a3abd2' },
+};
+let glhFilter = 'all'; // persists across re-renders; reset by filter pill clicks
 let goalAreaOpen=null, goalAreaTiming='ongoing';
 function goalAreaAges(timing){
   const p=plan.household.primary, cur=p.currentAge, end=p.planEndAge;
@@ -2217,6 +2240,284 @@ function paintGoalCosts(c){
     <span>all goals off: <b>${c.allOff.success.toFixed(1)}%</b> · <b>${fmtM(c.allOff.median)}</b></span>`;
 }
 
+/* ── Goals Horizon renderer ────────────────────────────────────────────
+   Visual/editor layer over live plan.goals (1A-v2 Horizon Lanes concept).
+   Reads only existing schema fields: name, amount, startAge, endAge, area.
+   one-time = startAge===endAge. Old renderGoalsPage() preserved below. */
+function renderGoalsHorizon() {
+  const p   = plan.household.primary;
+  const a0  = p.currentAge;
+  const a1  = p.planEndAge;
+  const ret = p.retirementAge;
+  const span = Math.max(1, a1 - a0);
+
+  const clamp = v => Math.max(a0, Math.min(a1, +v || 0));
+  // percentage position within the timeline track
+  const lp = age => ((clamp(age) - a0) / span * 100).toFixed(3) + '%';
+  // percentage width from clamped startAge to clamped endAge
+  const wp = (sa, ea) => {
+    const cs = clamp(sa), ce = Math.max(cs, clamp(ea));
+    return ((ce - cs) / span * 100).toFixed(3) + '%';
+  };
+
+  const rawGoals = (Array.isArray(plan.goals) ? plan.goals : []).map((g, i) => {
+    const sa = g.startAge != null ? +g.startAge : a0;
+    const ea = g.endAge   != null ? +g.endAge   : a1;
+    return {
+      i,
+      name: g.name || 'Goal',
+      amount: g.amount || 0,
+      sa, ea,
+      once: sa === ea,
+      area: g.area || null,
+      unpriced: !(g.amount > 0),
+    };
+  });
+
+  // Apply filter
+  const visible = rawGoals.filter(g => {
+    if (glhFilter === 'all')       return true;
+    if (glhFilter === 'recurring') return !g.once;
+    if (glhFilter === 'once')      return g.once;
+    return g.area === glhFilter;
+  });
+
+  // Areas present in plan (in canonical order)
+  const areasPresent = GOAL_AREAS.map(([k]) => k).filter(k => rawGoals.some(g => g.area === k));
+
+  const recurring = rawGoals.filter(g => !g.once).reduce((s, g) => s + g.amount, 0);
+  const oneTime   = rawGoals.filter(g =>  g.once).reduce((s, g) => s + g.amount, 0);
+
+  // ── Filter pills ─────────────────────────────────────────────
+  const filterDefs = [
+    ['all', 'All'],
+    ...(rawGoals.some(g => !g.once) ? [['recurring', 'Recurring']] : []),
+    ...(rawGoals.some(g =>  g.once) ? [['once',      'One-time']]  : []),
+    ...areasPresent.map(k => [k, GOAL_AREA_LBL[k] || k]),
+  ];
+  const pillsHTML = filterDefs.map(([k, lbl]) =>
+    `<button class="glh-pill${glhFilter === k ? ' glh-pill--active' : ''}" data-filter="${escHtml(k)}">${escHtml(lbl)}</button>`
+  ).join('');
+
+  // ── Plan context card (totals only — no simulation analytics) ─
+  let cardHTML = '';
+  if (rawGoals.length > 0) {
+    const countLabel = `${rawGoals.length}\u00a0GOAL${rawGoals.length !== 1 ? 'S' : ''}\u00a0IN\u00a0PLAN`;
+    const mainValue  = recurring > 0
+      ? `${fmtMoney(recurring)}<span class="glh-card-unit">\u00a0/yr</span>`
+      : `${fmtMoney(oneTime)}<span class="glh-card-unit">\u00a0total</span>`;
+    const metaParts = [];
+    if (recurring > 0) metaParts.push('recurring');
+    if (oneTime   > 0) metaParts.push(`${fmtMoney(oneTime)} one-time`);
+    metaParts.push("today\u2019s dollars");
+    cardHTML = `
+      <div class="glh-card">
+        <div class="glh-card-label">${countLabel}</div>
+        <div class="glh-card-value">${mainValue}</div>
+        <div class="glh-card-meta">${metaParts.join(' \u00b7 ')}</div>
+      </div>`;
+  }
+
+  // ── Age axis ──────────────────────────────────────────────────
+  let ticksHTML = '';
+  for (let a = Math.ceil(a0 / 5) * 5; a <= a1; a += 5) {
+    ticksHTML += `<span class="glh-tick${a === ret ? ' glh-tick--ret' : ''}" style="left:${lp(a)}">${a}</span>`;
+  }
+  const retGuideHTML = (ret > a0 && ret < a1)
+    ? `<span class="glh-ret-guide" style="left:${lp(ret)}"></span>`
+    : '';
+
+  // ── Goal lanes ─────────────────────────────────────────────────
+  let lanesHTML = '';
+  if (visible.length === 0) {
+    const msg = rawGoals.length === 0 ? 'No goals entered \u2014 add one below.' : 'No goals match this filter.';
+    lanesHTML = `<div class="glh-empty">${msg}</div>`;
+  } else {
+    lanesHTML = visible.map(g => {
+      const col    = GOAL_COLOR_MAP[g.area] || GOAL_COLOR_MAP.other;
+      const iconSVG = GOAL_ICONS_SVG[g.area] || GOAL_ICONS_SVG.other;
+      const iconBg  = `radial-gradient(circle at 35% 30%, rgba(${col.rgb},${(col.fi * 0.6).toFixed(2)}), rgba(${col.rgb},0.08))`;
+
+      const metaAmt  = g.unpriced ? 'price later' : fmtMoney(g.amount);
+      const metaLine = g.once
+        ? `<span class="glh-amount">${metaAmt}</span> \u00b7 One-time \u00b7 age ${g.sa}`
+        : `<span class="glh-amount">${metaAmt}</span>/yr \u00b7 Recurring ${g.sa}\u2013${g.ea}`;
+
+      const areaTag = g.area
+        ? `<span class="glh-area-tag">${escHtml(GOAL_AREA_LBL[g.area] || g.area)}</span>`
+        : '';
+
+      let vizHTML = '';
+      if (g.once) {
+        const lbl = g.unpriced ? 'unpriced' : `${fmtM(g.amount)} \u00b7 age ${g.sa}`;
+        vizHTML = `
+          <div class="glh-diamond-wrap" style="left:${lp(g.sa)}">
+            <div class="glh-diamond" style="background:linear-gradient(135deg,rgba(${col.rgb},0.88),rgba(${col.rgb},0.55));box-shadow:0 0 18px rgba(${col.rgb},${col.gl})"></div>
+            <div class="glh-diamond-label">${escHtml(lbl)}</div>
+          </div>`;
+      } else {
+        vizHTML = `
+          <div class="glh-band${g.unpriced ? ' glh-band--unpriced' : ''}" style="left:${lp(g.sa)};width:${wp(g.sa, g.ea)};background:linear-gradient(90deg,rgba(${col.rgb},0.05),rgba(${col.rgb},${col.fi}) 18%,rgba(${col.rgb},0.92));box-shadow:0 0 18px rgba(${col.rgb},${col.gl})"></div>`;
+      }
+
+      return `
+        <div class="glh-lane${g.i === goalSelected ? ' glh-lane--sel' : ''}" data-goal-i="${g.i}">
+          <div class="glh-identity">
+            <div class="glh-icon" style="background:${iconBg};border-color:rgba(${col.rgb},0.5)">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="${col.st}" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">${iconSVG}</svg>
+            </div>
+            <div class="glh-identity-text">
+              <div class="glh-goal-name">${escHtml(g.name)}${areaTag}</div>
+              <div class="glh-goal-meta">${metaLine}</div>
+            </div>
+          </div>
+          <div class="glh-timeline">${vizHTML}</div>
+        </div>`;
+    }).join('');
+  }
+
+  // ── Add row ───────────────────────────────────────────────────
+  const addsHTML = `
+    <div class="glh-adds">
+      <div class="glh-adds-spacer"></div>
+      <div class="glh-adds-track">
+        <button class="glh-add-btn" data-add="goalRec"><span class="glh-add-icon">\uFF0B</span> Add a recurring goal</button>
+        <span class="glh-adds-sep"></span>
+        <button class="glh-add-btn glh-add-btn--once" data-add="goalOnce"><span class="glh-add-icon--once">\u25C7</span> Add a one-time goal</button>
+      </div>
+    </div>`;
+
+  // ── Footer band ───────────────────────────────────────────────
+  const footParts = [];
+  if (recurring > 0) footParts.push(`<b>${fmtMoney(recurring)}/yr</b> recurring`);
+  if (oneTime   > 0) footParts.push(`<b>${fmtMoney(oneTime)}</b> one-time`);
+  footParts.push("today\u2019s dollars");
+  const footerHTML = `
+    <div class="glh-footer">
+      ${footParts.map((fp, idx) => (idx ? '<span class="glh-foot-dot">\u00b7</span>' : '') + fp).join('')}
+    </div>`;
+
+  // ── Edit section: existing inline input rows for editing ──────
+  const view    = goalsView();
+  const dropped = droppedGoals();
+  const rows    = rawGoals.map(g => goalRowHTML(g, dropped.has(g.i))).join('');
+  const editHTML = `
+    <div class="glh-edit-section">
+      <div class="glh-edit-head">EDIT GOALS</div>
+      ${goalAreaChipsHTML()}
+      ${rows ? `<div class="gl-rows">${rows}</div>` : ''}
+      <div class="gl-adds">
+        <span class="hp-add" data-add="goalRec">+ add a recurring goal</span>
+        <span class="hp-add" data-add="goalOnce">+ add a one-time goal</span>
+      </div>
+      <div class="gl-runs" id="gl-runs"></div>
+    </div>`;
+
+  return `
+    <div class="gl-horizon" id="gl-horizon">
+      <div class="glh-beam"></div>
+
+      <div class="glh-filters">
+        <div class="glh-pills">${pillsHTML}</div>
+      </div>
+
+      <div class="glh-header">
+        <div class="glh-header-left">
+          <div class="glh-eyebrow">GOALS \u00b7 HORIZON VIEW</div>
+          <h2 class="glh-h1">Lifestyle Spending &amp; Goals</h2>
+        </div>
+        ${cardHTML}
+      </div>
+
+      <div class="glh-body">
+        <div class="glh-axis-row">
+          <div class="glh-axis-spacer"></div>
+          <div class="glh-axis-track">
+            <div class="glh-axis-baseline"></div>
+            ${ticksHTML}
+            ${retGuideHTML}
+          </div>
+        </div>
+        <div class="glh-lanes">${lanesHTML}</div>
+        ${addsHTML}
+      </div>
+
+      ${footerHTML}
+      ${editHTML}
+    </div>`;
+}
+
+function initGoalsHorizon() {
+  const wrap = document.getElementById('gl-horizon');
+  if (!wrap) return;
+
+  // Filter pills → update glhFilter and re-render
+  wrap.querySelectorAll('.glh-pill').forEach(b => b.onclick = () => {
+    glhFilter = b.dataset.filter;
+    renderInputs();
+  });
+
+  // Lane click → select/deselect goal (also highlights the edit row below)
+  wrap.querySelectorAll('.glh-lane').forEach(lane => {
+    lane.addEventListener('click', e => {
+      if (e.target.closest('input,button,a,.row-x')) return;
+      const i = +lane.dataset.goalI;
+      goalSelected = (goalSelected === i) ? null : i;
+      wrap.querySelectorAll('.glh-lane').forEach(l =>
+        l.classList.toggle('glh-lane--sel', +l.dataset.goalI === goalSelected)
+      );
+      wrap.querySelectorAll('[data-gl-row]').forEach(r =>
+        r.classList.toggle('sel', +r.dataset.glRow === goalSelected)
+      );
+    });
+  });
+
+  // Keep/drop toggles (existing what-if mechanism)
+  wrap.querySelectorAll('[data-drop]').forEach(b => b.onclick = () => {
+    const i = +b.dataset.drop, set = droppedGoals();
+    if (set.has(i)) set.delete(i); else set.add(i);
+    saveDroppedGoals(set);
+    renderInputs();
+  });
+
+  // Area chip open/close (inline goal intake)
+  wrap.querySelectorAll('.ga-chip').forEach(b => b.onclick = () => {
+    const k = b.dataset.area;
+    goalAreaOpen = (goalAreaOpen === k) ? null : k;
+    renderInputs();
+    const inp = document.getElementById('ga-name');
+    if (inp) inp.focus();
+  });
+
+  // Timing preset chips
+  wrap.querySelectorAll('.ga-preset').forEach(b => b.onclick = () => {
+    goalAreaTiming = b.dataset.preset;
+    wrap.querySelectorAll('.ga-preset').forEach(x => x.classList.toggle('sel', x === b));
+  });
+
+  // Add-goal via area intake (reuses existing goalAreaAges logic)
+  const addAreaGoal = () => {
+    const inp = document.getElementById('ga-name');
+    const nm = ((inp && inp.value) || '').trim();
+    if (!nm) { if (inp) inp.focus(); return; }
+    if (!Array.isArray(plan.goals)) plan.goals = [];
+    plan.goals.push({ name: nm, amount: 0, area: goalAreaOpen, ...goalAreaAges(goalAreaTiming) });
+    commitPlanEdit();
+    const again = document.getElementById('ga-name');
+    if (again) again.focus();
+  };
+  const go = document.getElementById('ga-go');
+  if (go) {
+    go.onclick = addAreaGoal;
+    const inp = document.getElementById('ga-name');
+    if (inp) inp.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); addAreaGoal(); }
+    });
+  }
+
+  scheduleGoalCosts();
+}
+
 /* ── Sub-page render + wiring ─────────────────────────────────────
    One renderInputs() drives whichever sub-page is active. Re-renders on
    sub-nav click, on field change, and on row delete — same wiring pattern
@@ -2230,10 +2531,10 @@ function renderInputs(){
   // Snapshot is its own diagnostic page again — embedding it on the Net Worth
   // page made that page too busy to read.
   const html = layout==='snapshot'  ? `<div class="np-snapshot-page">${renderSnapshot()}</div>`
-             : layout==='goals'     ? renderGoalsPage()
+             : layout==='goals'     ? renderGoalsHorizon()   // Horizon view (1A-v2); old renderGoalsPage() preserved below
              :                        renderHybrid(activeSub);
   np.innerHTML = html;
-  if(layout==='goals') initGoalsPage();
+  if(layout==='goals') initGoalsHorizon();
 }
 // ── Net Worth input bindings — delegated on the stable #np-content ────────────
 // Input listeners are set once here so re-renders via renderInputs() (which
