@@ -202,11 +202,13 @@
 
 .page[data-page="scenarios"] .lever { padding: 13px 14px; }
 .page[data-page="scenarios"] .lever__name { font-size: 14px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--text-4); }
-.page[data-page="scenarios"] .lever--head { padding: 22px 14px; align-self: end; }
+/* Gutter header aligns to the TOP of the header band, level with the scenario
+   column names — no bottom-pinned void above it. */
+.page[data-page="scenarios"] .lever--head { padding: 20px 14px; align-self: start; }
 .page[data-page="scenarios"] .lever--head .lever__name { color: var(--gold-eyebrow); letter-spacing: 0.18em; }
 .page[data-page="scenarios"] .lever__hint { font-size: 14px; color: var(--text-6); margin-top: 6px; }
 
-.page[data-page="scenarios"] .scol { padding: 20px 18px; }
+.page[data-page="scenarios"] .scol { padding: 20px 18px; align-self: start; }
 .page[data-page="scenarios"] .scol__head { display: flex; align-items: center; gap: 9px; }
 .page[data-page="scenarios"] .scol__head--menu { justify-content: space-between; }
 .page[data-page="scenarios"] .scol__dot { width: 7px; height: 7px; border-radius: 50%; background: var(--tone); box-shadow: 0 0 8px var(--tone-glow); }
@@ -235,50 +237,124 @@
 .page[data-page="scenarios"] .goal-note { font-size: 14px; color: var(--text-6); }
 .page[data-page="scenarios"] .goal-added { font-size: 14px; color: var(--gold-soft); }
 
-/* Compare lever cells — overlay edit model (click-first, no layout shift)
-   At rest: dim unchanged / gold chip when changed (exact design).
-   On click/focus: overlay steppers appear absolutely over the cell so
-   column width and row height never change. Touch-friendly (no hover-only). */
-.page[data-page="scenarios"] .cell--lev {
-  position: relative;
-  padding: 8px 18px;
-  cursor: pointer;
+/* Goals section header — visible, stable expand/collapse toggle (chevron). */
+.page[data-page="scenarios"] .goals-head {
+  display: flex; align-items: center; gap: 9px;
+  cursor: pointer; user-select: none; border-radius: var(--r-sm);
   transition: background .12s;
 }
-.page[data-page="scenarios"] .cell__rest { pointer-events: none; }
-.page[data-page="scenarios"] .cmp-overlay {
-  position: absolute;
-  inset: 3px 6px;
+.page[data-page="scenarios"] .goals-head:hover { background: rgba(255,255,255,0.03); }
+.page[data-page="scenarios"] .goals-head:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.page[data-page="scenarios"] .goals-chev { color: var(--text-4); transition: transform .15s; flex: none; }
+.page[data-page="scenarios"] .goals-head[aria-expanded="true"] .goals-chev { transform: rotate(180deg); }
+
+/* Expanded per-goal detail rows — editable per column (amount / start / end) */
+.page[data-page="scenarios"] .goal-detail { display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; }
+.page[data-page="scenarios"] .goal-detail__name { font-size: 14px; color: var(--text-3); }
+.page[data-page="scenarios"] .goal-detail__meta { font-size: 14px; color: var(--text-6); }
+.page[data-page="scenarios"] .cell--goal-detail { padding: 10px 18px; }
+.page[data-page="scenarios"] .cmp-goal-row { display: flex; align-items: center; gap: 5px; flex-wrap: nowrap; }
+.page[data-page="scenarios"] .cmp-goal-row .cmp-unit { font-size: 14px; color: var(--text-5); white-space: nowrap; }
+.page[data-page="scenarios"] .cmp-goal-in {
+  font-family: var(--font-serif);
+  font-size: 16px;
+  color: var(--text-1);
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--line-09);
+  padding: 1px 2px 2px;
+  outline: none;
+  width: 66px;
+  text-align: right;
+  border-radius: 3px 3px 0 0;
+  font-variant-numeric: tabular-nums;
+  transition: background .15s, border-color .15s;
+}
+.page[data-page="scenarios"] .cmp-goal-in--age { width: 34px; text-align: center; }
+.page[data-page="scenarios"] .cmp-goal-in:focus { background: rgba(198,166,98,0.07); border-bottom-color: var(--gold); }
+.page[data-page="scenarios"] .cmp-goal-in::-webkit-inner-spin-button,
+.page[data-page="scenarios"] .cmp-goal-in::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+/* "edited in this plan" marker */
+.page[data-page="scenarios"] .cmp-goal-edited { width: 6px; height: 6px; border-radius: 50%; background: var(--gold); flex: none; box-shadow: 0 0 6px rgba(198,166,98,0.5); }
+.page[data-page="scenarios"] .cell--goal-detail.is-overridden .cmp-goal-in { color: var(--gold-bright); }
+
+/* Compare lever cells — always-visible stable controls.
+   No hidden overlays, no click-to-reveal, no pop-out steppers. */
+.page[data-page="scenarios"] .cell--lev {
+  padding: 8px 14px;
+}
+
+/* Shared layout for the control row inside each cell */
+.page[data-page="scenarios"] .cmp-lev-row {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 11px;
-  border-radius: 8px;
-  background: rgba(10, 16, 28, 0.92);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255,255,255,0.09);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity .12s;
+  gap: 6px;
+  flex-wrap: nowrap;
 }
-.page[data-page="scenarios"] .cell--lev.is-editing .cmp-overlay {
-  opacity: 1;
-  pointer-events: auto;
+.page[data-page="scenarios"] .cmp-delta-row {
+  margin-top: 4px;
 }
-.page[data-page="scenarios"] .cmp-overlay .cmp-val {
+
+/* Dollar lever: always-visible type-in input */
+.page[data-page="scenarios"] .cmp-lev-in {
   font-family: var(--font-serif);
-  font-size: 23px;
+  font-size: 19px;
+  font-weight: 400;
   color: var(--text-1);
-  min-width: 96px;
-  text-align: center;
-  pointer-events: none;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--line-09);
+  padding: 1px 2px 2px;
+  outline: none;
+  width: 88px;
+  text-align: right;
+  -moz-appearance: textfield;
+  border-radius: 3px 3px 0 0;
+  transition: background .15s, border-color .15s;
+  font-variant-numeric: tabular-nums;
 }
-/* Desktop: faint hover hint (touch devices skip this via hover:hover) */
-@media (hover: hover) {
-  .page[data-page="scenarios"] .cell--lev:not(.is-editing):hover {
-    background: rgba(255,255,255,0.028);
-  }
+.page[data-page="scenarios"] .cmp-lev-in:focus {
+  background: rgba(198,166,98,0.07);
+  border-bottom-color: var(--gold);
+}
+.page[data-page="scenarios"] .cmp-lev-in--age { width: 34px; text-align: center; }
+.page[data-page="scenarios"] .cmp-lev-in::-webkit-inner-spin-button,
+.page[data-page="scenarios"] .cmp-lev-in::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.page[data-page="scenarios"] .cmp-lev-row .cmp-unit {
+  font-size: 14px;
+  color: var(--text-5);
+  white-space: nowrap;
+}
+
+/* Discrete lever: always-visible − / value / + */
+.page[data-page="scenarios"] .cmp-step-btn {
+  width: 24px;
+  height: 24px;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--r-md);
+  background: var(--fill-04);
+  border: 1px solid var(--line-09);
+  color: var(--text-2);
+  font-size: 16px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background .12s, border-color .12s, color .12s;
+}
+.page[data-page="scenarios"] .cmp-step-btn:hover {
+  background: var(--fill-08);
+  border-color: rgba(198,166,98,0.45);
+  color: var(--gold-bright);
+}
+.page[data-page="scenarios"] .cmp-lev-val {
+  font-family: var(--font-serif);
+  font-size: 19px;
+  color: var(--text-1);
+  min-width: 72px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
 }
 
 /* =============================================================================
