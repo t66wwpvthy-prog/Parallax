@@ -737,21 +737,17 @@ try {
     if(!m.segActive) throw new Error('Compare segment did not mark itself active');
     if(m.names.some(n => /sell\s*home/i.test(n))) throw new Error(`stale sale scenario visible: ${JSON.stringify(m.names)}`);
 
-    // Compare is editable: every lever cell carries per-column −/+ steppers
-    // (data-scn-id) that mutate that scenario and request a manual Run. Step up
-    // then back down so the baseline is left as found (the Cash-Flow step checks
-    // the baseline retirement marker is at 65).
-    // Compare lever steppers now live in a .cmp-overlay wrapper (the stale selector
-    // expected an intermediate .cmp-step). They still carry data-scn-id / data-lever-key
-    // / data-dir and request a manual Run on click (live-verified: 36 steppers; click
-    // sets #status "Adjusted · Run to update" and increments the value on re-render).
-    const cmpSteppers = await page.evaluate(() => document.querySelectorAll('#scn-view .compare .stepper-btn[data-scn-id]').length);
-    if(cmpSteppers < 6) throw new Error(`Compare editable steppers missing (found ${cmpSteppers})`);
-    await page.evaluate(() => document.querySelector('#scn-view .compare .stepper-btn[data-dir="1"][data-scn-id]')?.click());
+    // Compare is editable: discrete levers (ages, allocation) now show always-visible
+    // .cmp-step-btn[data-scn-id] buttons; dollar levers show .cmp-lev-in type-in inputs.
+    // Both carry data-scn-id. Step up then back so the baseline is left as found.
+    const cmpStepBtns = await page.evaluate(() => document.querySelectorAll('#scn-view .compare .cmp-step-btn[data-scn-id]').length);
+    const cmpInputs   = await page.evaluate(() => document.querySelectorAll('#scn-view .compare .cmp-lev-in[data-scn-id]').length);
+    if(cmpStepBtns < 2 && cmpInputs < 1) throw new Error(`Compare lever controls missing (stepBtns=${cmpStepBtns}, inputs=${cmpInputs})`);
+    await page.evaluate(() => document.querySelector('#scn-view .compare .cmp-step-btn[data-dir="1"][data-scn-id]')?.click());
     await new Promise(r => setTimeout(r, 250));
     const cmpStatus = await page.evaluate(() => document.querySelector('#status')?.textContent || '');
-    if(!/Run to update/i.test(cmpStatus)) throw new Error(`Compare stepper did not request a manual Run: "${cmpStatus}"`);
-    await page.evaluate(() => document.querySelector('#scn-view .compare .stepper-btn[data-dir="-1"][data-scn-id]')?.click());
+    if(!/Run to update/i.test(cmpStatus)) throw new Error(`Compare step button did not request a manual Run: "${cmpStatus}"`);
+    await page.evaluate(() => document.querySelector('#scn-view .compare .cmp-step-btn[data-dir="-1"][data-scn-id]')?.click());
     await new Promise(r => setTimeout(r, 250));
 
     await page.screenshot({ path: join(OUT, '03-scenarios.png'), fullPage: true });

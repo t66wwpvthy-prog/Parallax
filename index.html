@@ -13,7 +13,7 @@
      instead of serving a stale cached copy (GitHub Pages caches CSS hard). -->
 <link rel="stylesheet" href="styles/main.css?v=12"/>
 <link rel="stylesheet" href="styles/household.css?v=12"/>
-<link rel="stylesheet" href="styles/scenarios.css?v=7"/>
+<link rel="stylesheet" href="styles/scenarios.css?v=10"/>
 <link rel="stylesheet" href="styles/goals.css?v=3"/>
 </head>
 <body>
@@ -940,6 +940,21 @@ function leversToOverrides(L){
 function planForScenario(L){
   const p=JSON.parse(JSON.stringify(plan));
   p.portfolio.riskProfile = L.risk;
+  // Per-scenario goal overrides (Compare-editable): amount / startAge / endAge keyed
+  // by the goal's index in the base inventory. Applied to the CLONE only, so the base
+  // plan.goals (Goals-page source of truth) and every other scenario are untouched.
+  if(L.goalOv && Array.isArray(p.goals)){
+    p.goals = p.goals.map((g,i)=>{
+      const ov = L.goalOv[i];
+      if(!ov) return g;
+      return {
+        ...g,
+        amount:   (ov.amount   != null) ? ov.amount   : g.amount,
+        startAge: (ov.startAge != null) ? ov.startAge : g.startAge,
+        endAge:   (ov.endAge   != null) ? ov.endAge   : g.endAge,
+      };
+    });
+  }
   if(L.giftAmt > 0 && L.giftEndAge){
     p.liabilities = (p.liabilities || []).concat([{
       amount: L.giftAmt,
@@ -3831,7 +3846,7 @@ $('#path-seed').onchange=e=>{
     viability: (s) => viabilityString(s),
     isBaseline:(s) => !!s.base,
     levers:    (s) => leversFor(s),
-    goals:     (s) => goalsVM(),
+    goals:     (s) => goalsVM(s),
     stress:    (s) => (s.res && s.res.stress) || [],   // populated by computeHistoricalStress in runAll (engine-derived)
     pathRows:  (s) => buildPathRows(s),
     cashSummary: (s) => buildCashSummary(s),
@@ -3909,7 +3924,10 @@ $('#path-seed').onchange=e=>{
   // Lever keys shown, in a stable order across all scenarios (so Compare aligns).
   function activeLeverKeys() {
     const anyEvent = (scenarios || []).some((s) => s.lev && s.lev.eventAmt > 0);
-    return LEVCFG.map((c) => c.key).filter((k) => k !== 'eventAmt' || anyEvent);
+    // Pension is removed from the Scenarios lever rows (per product ruling). The
+    // engine still honors pension data from the plan; it is just not an editable
+    // Scenarios lever. The one-time event row only appears when an event is set.
+    return LEVCFG.map((c) => c.key).filter((k) => k !== 'pensionAge' && (k !== 'eventAmt' || anyEvent));
   }
   function leverDeltaText(cfg, lev, baseLev) {
     if (!baseLev || lev === baseLev || cfg.key === 'sellAge') return null;
@@ -3921,24 +3939,68 @@ $('#path-seed').onchange=e=>{
     if (cfg.key === 'risk')    return sign + a + ' lvl';
     return sign + a + ' yr';
   }
+  // Derive the prefilled input string for a dollar lever (no $ or unit).
+  function editInputVal(cfg, lev) {
+    if (cfg.edit === 'monthly') return Math.round((lev[cfg.key] || 0) / 12).toLocaleString('en-US');
+    if (cfg.edit === 'event')   return (lev.eventAmt || 0).toLocaleString('en-US');
+    if (cfg.edit === 'money')   return (lev[cfg.key] || 0).toLocaleString('en-US');
+    return null;
+  }
   function leversFor(s) {
     const base = (scenarios.find((x) => x.base) || {}).lev;
     return activeLeverKeys().map((k) => {
       const cfg = LEVCFG.find((c) => c.key === k); if (!cfg) return null;
       const fv = cfg.fmt(s.lev[k], s.lev), val = fv[0], unit = fv[1];
       const value = (val === '__needs__') ? ('— @ ' + unit) : (val + (unit ? (' ' + unit) : ''));
-      return { key: k, label: cfg.name, value: value, delta: leverDeltaText(cfg, s.lev, base) };
+      return {
+        key: k, label: cfg.name, value: value, delta: leverDeltaText(cfg, s.lev, base),
+        editType: cfg.edit || null,
+        inputVal: editInputVal(cfg, s.lev),
+        unitStr: unit || '',
+        eventAge: (cfg.edit === 'event') ? (s.lev.eventAge != null ? s.lev.eventAge : '') : null,
+      };
     }).filter(Boolean);
   }
-  // Goals mirror the base plan across every scenario (read-only), matching the
-  // production Goals page. Pure mapping of plan.goals — no math.
-  function goalsVM() {
-    return (Array.isArray(plan.goals) ? plan.goals : []).filter((g) => (g.amount || 0) > 0).map((g) => {
-      const once = (g.startAge === g.endAge);
+  // Effective goal (base value with this scenario's override applied) — the Goals
+  // page defines the base inventory; each scenario carries amount/startAge/endAge
+  // overrides only. `idx` is the goal's index in the base inventory (the override key).
+  function effGoal(baseGoal, ov) {
+    return {
+      amount:   (ov && ov.amount   != null) ? ov.amount   : (baseGoal.amount || 0),
+      startAge: (ov && ov.startAge != null) ? ov.startAge : baseGoal.startAge,
+      endAge:   (ov && ov.endAge   != null) ? ov.endAge   : baseGoal.endAge,
+    };
+  }
+  // Compare goal rows = base goals with a base amount > 0, keeping their original
+  // index so overrides and engine goals stay aligned.
+  function goalRowsBase() {
+    return (Array.isArray(plan.goals) ? plan.goals : [])
+      .map((g, i) => ({ g: g, i: i }))
+      .filter((r) => (r.g.amount || 0) > 0);
+  }
+  // Per-scenario goals view-model: effective values + override/baseline-delta info.
+  function goalsVM(s) {
+    const ovMap = (s && s.lev && s.lev.goalOv) || {};
+    const baseScn = scenarios.find((x) => x.base);
+    const baseOvMap = (baseScn && baseScn.lev && baseScn.lev.goalOv) || {};
+    return goalRowsBase().map(({ g, i }) => {
+      const e = effGoal(g, ovMap[i]);
+      const once = (e.startAge === e.endAge);
+      const ov = ovMap[i];
+      const overridden = !!(ov && (ov.amount != null || ov.startAge != null || ov.endAge != null));
+      // Δ vs the baseline scenario's effective values for this goal.
+      const be = effGoal(g, baseOvMap[i]);
+      const aDelta = (e.amount || 0) - (be.amount || 0);
+      const sameAsBase = (e.amount === be.amount && e.startAge === be.startAge && e.endAge === be.endAge);
       return {
+        idx: i,
         name: g.name || 'Goal',
-        meta: once ? ('at age ' + g.startAge) : ('age ' + g.startAge + '–' + g.endAge),
-        amount: g.amount || 0, cadence: once ? 'one-time' : '/yr', on: true, added: false,
+        meta: once ? ('at age ' + e.startAge) : ('age ' + e.startAge + '–' + e.endAge),
+        amount: e.amount || 0, startAge: e.startAge, endAge: e.endAge,
+        cadence: once ? 'one-time' : '/yr', once: once,
+        on: (e.amount || 0) > 0, added: false,
+        overridden: overridden,
+        amountDelta: aDelta, sameAsBase: sameAsBase,
       };
     });
   }
@@ -4009,6 +4071,74 @@ $('#path-seed').onchange=e=>{
     saveScenarios();
     const st = document.getElementById('status'); if (st) st.textContent = 'Adjusted · Run to update';
   }
+  // Commit a typed value from a .cmp-lev-in input in the Compare view.
+  // Mirrors the parse/clamp logic from the #scn-levers change handler.
+  function commitCmpInput(inp) {
+    const ci = parseInt(inp.dataset.scnId, 10);
+    const sc = scenarios[ci]; if (!sc || !sc.lev) return;
+    const L = sc.lev;
+    const edit = inp.dataset.edit;
+    const raw = parseFloat(String(inp.value).replace(/[^0-9.]/g, ''));
+    if (!isFinite(raw) || raw < 0) return;
+    if (edit === 'monthly') {
+      L.spend = Math.round(raw * 12);
+    } else if (edit === 'money') {
+      const cfg = LEVCFG.find((c) => c.key === inp.dataset.key);
+      const r = cfg ? levRange(cfg) : null;
+      const v = Math.round(raw);
+      L[inp.dataset.key] = r ? Math.max(r.min, Math.min(r.max, v)) : v;
+    } else if (edit === 'eventAmt') {
+      L.eventAmt = raw > 0 ? Math.round(raw) : 0;
+    } else if (edit === 'eventAge') {
+      const lo = plan.household.primary.currentAge, hi = plan.household.primary.planEndAge;
+      const a = Math.round(raw);
+      if (isFinite(a)) L.eventAge = Math.max(lo, Math.min(hi, a));
+    }
+    if (sc.base) buildLevers();
+    saveScenarios();
+    const st = document.getElementById('status'); if (st) st.textContent = 'Adjusted · Run to update';
+    syncScenariosView();
+  }
+  // Commit a typed per-scenario GOAL override (amount / startAge / endAge / onceAge).
+  // Writes into scenarios[ci].lev.goalOv[idx] — the base plan and other scenarios are
+  // never touched. Fields equal to the base value are dropped so overrides stay minimal
+  // and "same as Baseline" stays accurate.
+  function commitGoalInput(inp) {
+    const ci = parseInt(inp.dataset.scnId, 10);
+    const idx = parseInt(inp.dataset.goalIdx, 10);
+    const field = inp.dataset.goalField;
+    const sc = scenarios[ci]; if (!sc || !sc.lev) return;
+    const base = (Array.isArray(plan.goals) ? plan.goals : [])[idx]; if (!base) return;
+    const raw = parseFloat(String(inp.value).replace(/[^0-9.]/g, ''));
+    if (!isFinite(raw) || raw < 0) return;
+    const lo = plan.household.primary.currentAge, hi = plan.household.primary.planEndAge;
+    if (!sc.lev.goalOv) sc.lev.goalOv = {};
+    const ov = sc.lev.goalOv[idx] || (sc.lev.goalOv[idx] = {});
+    if (field === 'amount') {
+      ov.amount = Math.round(raw);
+    } else if (field === 'onceAge') {
+      const v = Math.max(lo, Math.min(hi, Math.round(raw)));
+      ov.startAge = v; ov.endAge = v;
+    } else if (field === 'startAge') {
+      let v = Math.max(lo, Math.min(hi, Math.round(raw)));
+      const curEnd = (ov.endAge != null) ? ov.endAge : base.endAge;
+      if (v > curEnd) v = curEnd;
+      ov.startAge = v;
+    } else if (field === 'endAge') {
+      let v = Math.max(lo, Math.min(hi, Math.round(raw)));
+      const curStart = (ov.startAge != null) ? ov.startAge : base.startAge;
+      if (v < curStart) v = curStart;
+      ov.endAge = v;
+    }
+    // Minimize the override: drop any field that matches the base, and drop the
+    // whole entry (and map) when nothing differs — keeps deltas/"same as base" honest.
+    ['amount', 'startAge', 'endAge'].forEach((f) => { if (ov[f] != null && ov[f] === base[f]) delete ov[f]; });
+    if (ov.amount == null && ov.startAge == null && ov.endAge == null) delete sc.lev.goalOv[idx];
+    if (sc.lev.goalOv && Object.keys(sc.lev.goalOv).length === 0) delete sc.lev.goalOv;
+    saveScenarios();
+    const st = document.getElementById('status'); if (st) st.textContent = 'Adjusted · Run to update';
+    syncScenariosView();
+  }
 
   /* ---- TAX MAPPING (selection over existing production data, not a tax engine) */
   function taxSidecarFor(scn) {
@@ -4075,34 +4205,49 @@ $('#path-seed').onchange=e=>{
       );
     }).join('');
 
-    // Compare cells: design-correct resting state (dim unchanged / gold chip when
-    // changed vs Baseline) plus overlay steppers revealed on click/tap. The overlay
-    // is absolutely positioned so column width and row height never shift. Stepper
-    // buttons carry data-scn-id so the same stepFocusLever path used by Focus works
-    // unchanged. Baseline column shows a plain value (it IS the reference).
+    // Compare cells: always-visible, stable edit controls in EVERY column including
+    // Baseline. No hidden overlays, no click-to-reveal, no pop-out steppers. Dollar
+    // levers get a direct type-in input; discrete levers (ages, allocation) get
+    // always-visible −/value/+ buttons. The baseline simply carries no delta chip
+    // (it is the reference) but is fully editable like the others.
     const baseLevers = (baseline ? baseline.levers : scns[0].levers);
     const leverRows = baseLevers.map((bl, li) => {
       const cells = scns.map((s) => {
         const lev = s.levers[li] || {};
         const value = esc(lev.value);
-        if (!lev.key) return '<div class="cell"><div class="cell__val"><span class="cell__num">' + value + '</span></div></div>';
-        const btn = (dir, sym, verb) =>
-          '<button class="stepper-btn" type="button" data-scn-id="' + esc(s.id) + '" data-lever-key="' + esc(lev.key) + '" data-dir="' + dir + '" aria-label="' + verb + ' ' + esc(lev.label) + ' for ' + esc(s.name) + '">' + sym + '</button>';
-        const isChanged = !s.isBaseline && !!lev.delta;
-        // Resting view: plain (baseline), gold chip (changed), dim (same as baseline)
-        const restHtml = s.isBaseline
-          ? '<div class="cell__val"><span class="cell__num">' + value + '</span></div>'
-          : isChanged
-            ? '<div class="cell--delta__box"><span class="cell__num">' + value + '</span><span class="cell__delta">' + esc(lev.delta) + '</span></div>'
-            : '<div class="cell--same"><div class="cell__val"><span class="cell__num">' + value + '</span></div></div>';
+        const delta = lev.delta ? '<span class="cell__delta">' + esc(lev.delta) + '</span>' : '';
+
+        // No lever key for this row → plain read-only value.
+        if (!lev.key) {
+          return '<div class="cell cell--lev"><div class="cell__val"><span class="cell__num">' + value + '</span></div></div>';
+        }
+
+        // Dollar lever: always-visible type-in input
+        if (lev.editType) {
+          let inputHtml;
+          if (lev.editType === 'event') {
+            inputHtml =
+              '$<input class="cmp-lev-in" type="text" inputmode="numeric" data-edit="eventAmt" data-key="eventAmt" data-scn-id="' + esc(s.id) + '" value="' + esc(lev.inputVal) + '">' +
+              '<span class="cmp-unit"> @ age </span>' +
+              '<input class="cmp-lev-in cmp-lev-in--age" type="text" inputmode="numeric" data-edit="eventAge" data-key="eventAge" data-scn-id="' + esc(s.id) + '" value="' + esc(String(lev.eventAge != null ? lev.eventAge : '')) + '">';
+          } else {
+            const unitSpan = lev.unitStr ? '<span class="cmp-unit">' + esc(lev.unitStr) + '</span>' : '';
+            inputHtml = '$<input class="cmp-lev-in" type="text" inputmode="numeric" data-edit="' + esc(lev.editType) + '" data-key="' + esc(lev.key) + '" data-scn-id="' + esc(s.id) + '" value="' + esc(lev.inputVal) + '">' + unitSpan;
+          }
+          return (
+            '<div class="cell cell--lev cell--lev-edit">' +
+              '<div class="cmp-lev-row">' + inputHtml + '</div>' +
+              (delta ? '<div class="cmp-delta-row">' + delta + '</div>' : '') +
+            '</div>'
+          );
+        }
+
+        // Discrete lever: always-visible − / value / + controls
+        const decBtn = '<button class="cmp-step-btn" type="button" data-scn-id="' + esc(s.id) + '" data-lever-key="' + esc(lev.key) + '" data-dir="-1" aria-label="Decrease ' + esc(lev.label) + '">−</button>';
+        const incBtn = '<button class="cmp-step-btn" type="button" data-scn-id="' + esc(s.id) + '" data-lever-key="' + esc(lev.key) + '" data-dir="1" aria-label="Increase ' + esc(lev.label) + '">+</button>';
         return (
-          '<div class="cell cell--lev">' +
-            '<div class="cell__rest">' + restHtml + '</div>' +
-            '<div class="cmp-overlay" aria-hidden="true">' +
-              btn('-1', '−', 'Decrease') +
-              '<span class="cmp-val">' + value + '</span>' +
-              btn('1', '+', 'Increase') +
-            '</div>' +
+          '<div class="cell cell--lev cell--lev-step">' +
+            '<div class="cmp-lev-row">' + decBtn + '<span class="cmp-lev-val">' + value + '</span>' + incBtn + (delta ? delta : '') + '</div>' +
           '</div>'
         );
       }).join('');
@@ -4110,23 +4255,63 @@ $('#path-seed').onchange=e=>{
     }).join('<div class="compare__rule" style="margin:0;"></div>');
 
     const baseGoals = (baseline ? baseline.goals : scns[0].goals);
-    const baseActive = baseGoals.filter((g) => g.on).length;
+    // Per-column summary (collapsed state). "active" = goals funded (effective
+    // amount > 0). Non-baseline columns that differ from the baseline scenario's
+    // effective goals are flagged "edited"; identical ones read "same as Baseline".
     const goalCells = scns.map((s) => {
       const active = s.goals.filter((g) => g.on).length;
-      const off    = s.goals.filter((g) => !g.on).length;
-      const added  = s.goals.filter((g) => g.added).length;
       if (s.isBaseline) {
         return '<div class="cell--goal"><span class="goal-pill" style="--tone:var(--tone-green);"><span class="goal-pill__dot"></span>' + active + ' active</span></div>';
       }
-      // Same count as Baseline and no added goals → dim note
-      if (active === baseActive && added === 0) {
+      const changed = s.goals.some((g) => !g.sameAsBase);
+      if (!changed) {
         return '<div class="cell--goal"><span class="goal-note">' + active + ' active · same as Baseline</span></div>';
       }
-      // Changed: show active count, off count if any, added count if any
-      const offPart   = off > 0 ? ' · ' + off + ' off' : '';
-      const addedPart = added > 0 ? '<span class="goal-added"> +' + added + ' added</span>' : '';
-      return '<div class="cell--goal"><span class="goal-pill" style="--tone:var(--gold);"><span class="goal-pill__dot"></span>' + active + ' active' + offPart + addedPart + '</span></div>';
+      return '<div class="cell--goal"><span class="goal-pill" style="--tone:var(--gold);"><span class="goal-pill__dot"></span>' + active + ' active · edited</span></div>';
     }).join('');
+
+    // Goals section: collapsible. The header row carries a visible chevron toggle
+    // (stable, discoverable — not a hover/pop-out). Collapsed shows the per-column
+    // summary; expanded reveals one editable row per goal — every column (Baseline
+    // included) can type amount / start age / end age. Edits are per-scenario
+    // overrides only (never mutate the base plan or other scenarios).
+    const hasGoals = baseGoals.length > 0;
+    const goalsExpanded = !!state.goalsExpanded && hasGoals;
+    const goalsChevron = '<svg class="goals-chev" width="13" height="13" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 4.5 L6 7.5 L9 4.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>';
+    const goalsHeadCell = hasGoals
+      ? '<div class="cell--goal lever goals-head" data-goals-toggle role="button" tabindex="0" aria-expanded="' + (goalsExpanded ? 'true' : 'false') + '"><span class="lever__name">Goals</span>' + goalsChevron + '<span class="lever__hint" style="margin:0 0 0 4px;">· edit per plan</span></div>'
+      : '<div class="cell--goal lever"><span class="lever__name">Goals</span></div>';
+    const rawGoals = (Array.isArray(plan.goals) ? plan.goals : []);
+    const goalDetailRows = goalsExpanded ? baseGoals.map((bg, gi) => {
+      const baseG = rawGoals[bg.idx] || {};
+      const baseOnce = baseG.startAge === baseG.endAge;
+      const baseWin = baseOnce ? ('at age ' + baseG.startAge) : ('age ' + baseG.startAge + '–' + baseG.endAge);
+      const gut = '<div class="lever goal-detail"><span class="goal-detail__name">' + esc(bg.name) + '</span><span class="goal-detail__meta">base: ' + esc(baseWin) + '</span></div>';
+      const cells = scns.map((s) => {
+        const g = s.goals[gi];
+        if (!g) return '<div class="cell cell--goal-detail"></div>';
+        const amtIn = '$<input class="cmp-goal-in" type="text" inputmode="numeric" data-scn-id="' + esc(s.id) + '" data-goal-idx="' + g.idx + '" data-goal-field="amount" value="' + esc((g.amount || 0).toLocaleString('en-US')) + '">';
+        let ageIn;
+        if (g.once) {
+          ageIn = '<span class="cmp-unit">one-time · age </span>' +
+            '<input class="cmp-goal-in cmp-goal-in--age" type="text" inputmode="numeric" data-scn-id="' + esc(s.id) + '" data-goal-idx="' + g.idx + '" data-goal-field="onceAge" value="' + esc(String(g.startAge)) + '">';
+        } else {
+          ageIn = '<span class="cmp-unit">/yr · age </span>' +
+            '<input class="cmp-goal-in cmp-goal-in--age" type="text" inputmode="numeric" data-scn-id="' + esc(s.id) + '" data-goal-idx="' + g.idx + '" data-goal-field="startAge" value="' + esc(String(g.startAge)) + '">' +
+            '<span class="cmp-unit">–</span>' +
+            '<input class="cmp-goal-in cmp-goal-in--age" type="text" inputmode="numeric" data-scn-id="' + esc(s.id) + '" data-goal-idx="' + g.idx + '" data-goal-field="endAge" value="' + esc(String(g.endAge)) + '">';
+        }
+        const editedDot = g.overridden ? '<span class="cmp-goal-edited" title="Edited in this plan" aria-label="Edited in this plan"></span>' : '';
+        const deltaChip = (!s.isBaseline && g.amountDelta) ? '<span class="cell__delta">' + (g.amountDelta > 0 ? '+' : '−') + '$' + Math.abs(g.amountDelta).toLocaleString('en-US') + '</span>' : '';
+        return (
+          '<div class="cell cell--goal-detail' + (g.overridden ? ' is-overridden' : '') + '">' +
+            '<div class="cmp-goal-row">' + editedDot + amtIn + ageIn + '</div>' +
+            (deltaChip ? '<div class="cmp-delta-row">' + deltaChip + '</div>' : '') +
+          '</div>'
+        );
+      }).join('');
+      return gut + cells;
+    }).join('') : '';
 
     return (
       '<div class="compare">' +
@@ -4136,8 +4321,9 @@ $('#path-seed').onchange=e=>{
           '<div class="compare__rule" style="margin:4px 0 6px;"></div>' +
           leverRows +
           '<div class="compare__rule" style="margin:8px 0 0;"></div>' +
-          '<div class="cell--goal lever" style="padding:18px 14px;"><div style="display:flex;align-items:center;gap:9px;"><span class="lever__name">Goals</span></div></div>' +
+          goalsHeadCell +
           goalCells +
+          goalDetailRows +
         '</div>' +
       '</div>'
     );
@@ -4382,7 +4568,7 @@ $('#path-seed').onchange=e=>{
   }
 
   /* ---- STATE + ONE AUTHORITATIVE SYNC ------------------------------------ */
-  const state = { view: 'compare', cashActive: false, focusedId: null, showRange: true };
+  const state = { view: 'compare', cashActive: false, focusedId: null, showRange: true, goalsExpanded: false };
   const $id = (id) => document.getElementById(id);
 
   function buildScenarios() {
@@ -4441,16 +4627,40 @@ $('#path-seed').onchange=e=>{
     view.querySelectorAll('[data-cash-pick]').forEach((el) => {
       el.addEventListener('click', () => { state.focusedId = el.dataset.cashPick; PROD.setSelectedId(state.focusedId); syncScenariosView(); });
     });
+    // Always-visible +/- buttons in Compare (discrete levers) and Focus (all levers).
+    // data-lever-key + data-dir + optional data-scn-id → stepFocusLever.
     view.querySelectorAll('[data-lever-key]').forEach((el) => {
       el.addEventListener('click', () => {
-        // Compare steppers carry the target column's scenario id; Focus steppers
-        // omit it and act on the focused scenario.
         const ci = (el.dataset.scnId != null && el.dataset.scnId !== '')
           ? parseInt(el.dataset.scnId, 10) : parseInt(state.focusedId, 10);
         stepFocusLever(ci, el.dataset.leverKey, +el.dataset.dir);
         syncScenariosView();
       });
     });
+    // Type-in inputs for dollar levers in Compare view.
+    view.querySelectorAll('.cmp-lev-in').forEach((inp) => {
+      inp.addEventListener('change', () => commitCmpInput(inp));
+      inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') inp.blur(); });
+      if (!inp.classList.contains('cmp-lev-in--age')) {
+        inp.addEventListener('input', () => liveCommas(inp));
+      }
+    });
+    // Per-scenario goal override inputs (amount / start / end) in expanded Compare.
+    view.querySelectorAll('.cmp-goal-in').forEach((inp) => {
+      inp.addEventListener('change', () => commitGoalInput(inp));
+      inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') inp.blur(); });
+      if (!inp.classList.contains('cmp-goal-in--age')) {
+        inp.addEventListener('input', () => liveCommas(inp));
+      }
+    });
+    // Goals section expand/collapse toggle (visible, stable chevron control).
+    const goalsToggle = view.querySelector('[data-goals-toggle]');
+    if (goalsToggle) {
+      goalsToggle.addEventListener('click', () => { state.goalsExpanded = !state.goalsExpanded; syncScenariosView(); });
+      goalsToggle.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); state.goalsExpanded = !state.goalsExpanded; syncScenariosView(); }
+      });
+    }
   }
 
   function bindToolbarOnce() {
@@ -4469,22 +4679,6 @@ $('#path-seed').onchange=e=>{
     const src = document.querySelector('#scn-path-src .cf-toggle');
     if (src) window.scnPathControlsEl = src;
     bindToolbarOnce();
-    // Compare overlay: one delegated click handler on the container survives
-    // every innerHTML re-render. Click on a cell rest area → open overlay;
-    // click on a stepper → let stepper handler run (syncScenariosView re-renders,
-    // clearing .is-editing naturally); click outside → close all.
-    const view = document.getElementById('scn-view');
-    view.addEventListener('click', (e) => {
-      const cell = e.target.closest('.cell--lev');
-      if (!cell) {
-        view.querySelectorAll('.cell--lev.is-editing').forEach((c) => c.classList.remove('is-editing'));
-        return;
-      }
-      if (e.target.closest('.stepper-btn')) return; // stepper handler takes over
-      const wasEditing = cell.classList.contains('is-editing');
-      view.querySelectorAll('.cell--lev.is-editing').forEach((c) => c.classList.remove('is-editing'));
-      if (!wasEditing) cell.classList.add('is-editing');
-    });
     syncScenariosView();
   }
 
