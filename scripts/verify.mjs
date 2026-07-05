@@ -80,15 +80,27 @@ function verifyHousehold(){
   const css  = read(join(ROOT, 'styles', 'household.css'));
   const main = read(join(ROOT, 'styles', 'main.css'));
 
-  // three chapters: rail seam + renderer (rendered inline from index.html)
-  ok(/hh-chap-demographics/.test(html) && /function renderHhDemographics\b/.test(html), 'Demographics chapter missing (hh-chap-demographics + renderHhDemographics)');
+  // Household Basics banner + two chapters: rail seam + renderer (inline in index.html).
+  // The retired Demographics chapter must be GONE (its data lives in the banner).
+  ok(!/hh-chap-demographics/.test(html) && !/function renderHhDemographics\b/.test(html), 'retired Demographics chapter still present (hh-chap-demographics / renderHhDemographics)');
+  ok(/function renderHhBanner\b/.test(html), 'Household Basics banner renderer (renderHhBanner) missing');
   ok(/hh-chap-networth/.test(html)     && /function renderHhNetWorth\b/.test(html),      'Net Worth chapter missing (hh-chap-networth + renderHhNetWorth)');
   ok(/hh-chap-cashflow/.test(html)     && /function renderHhCashflow\b/.test(html),      'Cash Flow chapter missing (hh-chap-cashflow + renderHhCashflow)');
   ok(/id=["']hh-view["']/.test(html), 'Household document mount (#hh-view) is missing');
   ok(/data-page=["']household["']/.test(html), 'Household container must carry data-page="household"');
+  // Account Type Bank present with the required types (529 intentionally excluded for now)
+  ok(/HH_ACCOUNT_TYPES/.test(html), 'Account Type Bank (HH_ACCOUNT_TYPES) missing');
+  ['Checking','Savings','Money Market','CD','Brokerage (taxable)','Joint brokerage','Trust brokerage',
+   'Traditional IRA','Rollover IRA','Roth IRA','401(k)','Roth 401(k)','403(b)','457','SEP IRA','SIMPLE IRA',
+   'Solo 401(k)','Qualified Plan'].forEach(t => {
+    ok(html.includes(`'${t}'`), `Account Type Bank missing type: ${t}`);
+  });
+  ok(!html.includes(`'529'`), 'retired 529 account type still present in the bank');
+  ok(!/meta\.inflationPct/.test(html), 'engine-inert Inflation field must not ship in the banner');
+  ok(/\['trust','Trust'\]/.test(html), 'Trust ownership option missing from HH_OWNERS');
 
   // exactly one renderer each, no reassignment
-  ['renderHhDemographics', 'renderHhNetWorth', 'renderHhCashflow'].forEach(fn => {
+  ['renderHhBanner', 'renderHhNetWorth', 'renderHhCashflow'].forEach(fn => {
     const defs = (html.match(new RegExp('function\\s+' + fn + '\\b', 'g')) || []).length;
     ok(defs === 1, 'Expected exactly one ' + fn + ' implementation; found ' + defs);
     ok(!new RegExp(fn + '\\s*=\\s*function').test(html), fn + ' function reassignment detected');
@@ -163,7 +175,7 @@ function verifyHousehold(){
     fails.forEach(f => console.error('  - ' + f));
     process.exit(1);
   }
-  console.log('  OK household contract (editable console: 3 chapters, data-path write-back, reseed-on-edit, scoped CSS)');
+  console.log('  OK household contract (editable console: basics banner + 2 chapters, account-type bank, data-path write-back, reseed-on-edit, scoped CSS)');
 }
 
 // Cash Flow is a view inside the ScenariosUI layer, toggled by #scn-cash-toggle
@@ -253,12 +265,11 @@ try {
     await new Promise(r => setTimeout(r, 1500));
   });
 
-  await step('household console: three editable Folio chapters render from plan', async () => {
+  await step('household console: basics banner + two editable chapters render from plan', async () => {
     // Household is the EDITABLE plan-input console: syncHousehold() renders the
-    // Demographics / Net Worth / Cash Flow chapters into #hh-view from `plan`, with
-    // every value an inline renderField() input. Here we assert the chapters render
-    // AND expose editable data-path controls; the two steps below prove edits write
-    // to `plan` and reach the engine.
+    // Household Basics banner + the Net Worth / Cash Flow chapters into #hh-view
+    // from `plan`, with every value an inline renderField() input. The retired
+    // Demographics chapter must NOT exist; its data lives in the banner.
     await page.click('.htab[data-page="household"]');
     await new Promise(r => setTimeout(r, 400));
     const m = await page.evaluate(() => ({
@@ -266,58 +277,124 @@ try {
       hasSubnav: !!document.querySelector('#np-subnav'),
       frame: !!document.querySelector('.page[data-page="household"] .hh-frame'),
       chapters: [...document.querySelectorAll('.hh-chapter .hh-chapter__label')].map(e => e.textContent.trim()),
+      demographicsBtn: !!document.querySelector('#hh-chap-demographics'),
       railName: document.querySelector('#hh-rail-name')?.textContent.trim() || '',
-      people: document.querySelectorAll('#hh-view .hh-person').length,
-      nameInputs: document.querySelectorAll('#hh-view input[data-path="meta.primaryName"], #hh-view input[data-path="meta.spouseName"]').length,
-      ageInputs: document.querySelectorAll('#hh-view input[data-path$=".currentAge"], #hh-view input[data-path$=".retirementAge"]').length,
+      banner: !!document.querySelector('#hh-view .hh-banner'),
+      bornInputs: document.querySelectorAll('#hh-view .hh-banner input[data-type="birthYear"]').length,
+      retireInputs: document.querySelectorAll('#hh-view .hh-banner input[data-path$=".retirementAge"]').length,
+      planToInputs: document.querySelectorAll('#hh-view .hh-banner input[data-path="household.primary.planEndAge"]').length,
+      filing: !!document.querySelector('#hh-view .hh-banner select[data-path="meta.filingStatus"]'),
+      stateSel: !!document.querySelector('#hh-view .hh-banner select[data-path="meta.state"]'),
+      coClientText: /Co-Client/.test(document.querySelector('#hh-view .hh-banner')?.textContent || ''),
+      spouseText: /Spouse/.test(document.querySelector('.page[data-page="household"]')?.textContent || ''),
     }));
     const expectedNav = ['Household', 'Goals', 'Scenarios', 'Sequencing'];
     if(JSON.stringify(m.nav) !== JSON.stringify(expectedNav)) throw new Error(`main nav mismatch: ${JSON.stringify(m.nav)}`);
     if(m.hasSubnav) throw new Error('old net-worth subnav is still rendered');
     if(!m.frame) throw new Error('household Folio app-frame (.hh-frame) missing');
-    if(JSON.stringify(m.chapters) !== JSON.stringify(['Demographics','Net Worth','Cash Flow'])) throw new Error(`chapter rail mismatch: ${JSON.stringify(m.chapters)}`);
+    if(m.demographicsBtn) throw new Error('retired Demographics chapter button still rendered');
+    if(JSON.stringify(m.chapters) !== JSON.stringify(['Net Worth','Cash Flow'])) throw new Error(`chapter rail mismatch: ${JSON.stringify(m.chapters)}`);
     if(!m.railName) throw new Error('rail household name not filled from plan');
-    if(m.people < 2) throw new Error(`Demographics expected 2 person columns, got ${m.people}`);
-    if(m.nameInputs < 2) throw new Error(`Demographics names must be editable inputs, got ${m.nameInputs}`);
-    if(m.ageInputs < 3) throw new Error(`Demographics ages/retirement must be editable inputs, got ${m.ageInputs}`);
+    if(!m.banner) throw new Error('Household Basics banner missing');
+    if(m.bornInputs < 2) throw new Error(`banner Born inputs missing, got ${m.bornInputs}`);
+    if(m.retireInputs < 2) throw new Error(`banner Retires inputs missing, got ${m.retireInputs}`);
+    if(m.planToInputs < 2) throw new Error(`banner Plan To inputs missing, got ${m.planToInputs}`);
+    if(!m.filing) throw new Error('banner Filing dropdown missing');
+    if(!m.stateSel) throw new Error('banner State dropdown missing');
+    if(!m.coClientText) throw new Error('banner does not say Co-Client');
+    if(m.spouseText) throw new Error('visible Household UI still says "Spouse"');
 
-    // Net Worth (Equilibrium): two pillars + fulcrum + ownership; accounts have
-    // editable balances + owner selects; the household-holdings editor is present.
+    // Net Worth (Equilibrium): two pillars + fulcrum + ownership; TYPED accounts
+    // (from the Account Type Bank) with editable balances + owner + type selects.
     await page.click('#hh-chap-networth');
     await new Promise(r => setTimeout(r, 400));
     const nw = await page.evaluate(() => ({
+      banner: !!document.querySelector('#hh-view .hh-banner'),
       pillars: document.querySelectorAll('#hh-view .hh-pillar').length,
       fulcrum: !!document.querySelector('#hh-view .hh-fulcrum'),
       total: document.querySelector('#hh-view .hh-fulcrum__total')?.textContent.trim() || '',
       own: !!document.querySelector('#hh-view .hh-own__bar'),
       acctInputs: document.querySelectorAll('#hh-view .hh-acct input[data-type="money"]').length,
       ownerSelects: document.querySelectorAll('#hh-view select[data-type="owner"]').length,
+      typeSelects: document.querySelectorAll('#hh-view select[data-type="acctType"]').length,
+      coreSleeveInputs: document.querySelectorAll('#hh-view input[data-path^="portfolio.accounts."][data-path$=".balance"]').length,
       holdings: !!document.querySelector('#hh-view .hh-holdings'),
+      addAccountBtn: !!document.querySelector('#hh-view [data-hh-action="open-account-form"]'),
       assume: document.querySelectorAll('#hh-view .hh-assume select, #hh-view .hh-assume input').length,
+      basis: !!document.querySelector('#hh-view .hh-basis-row input[data-path="portfolio.accounts.taxable.basisPct"]'),
+      tangible: /Tangible assets/i.test(document.querySelector('#hh-view .hh-holdings')?.textContent || ''),
+      mortgage: !!document.querySelector('#hh-view input[data-path="properties.0.mortgage.balance"]'),
     }));
+    if(!nw.banner) throw new Error('banner missing above Net Worth');
     if(nw.pillars !== 2) throw new Error(`Net Worth expected 2 pillars, got ${nw.pillars}`);
     if(!nw.fulcrum) throw new Error('Net Worth fulcrum missing');
     if(!/\$[\d,]/.test(nw.total)) throw new Error(`Net Worth total not formatted from plan: "${nw.total}"`);
     if(!nw.own) throw new Error('ownership bar missing');
-    if(nw.acctInputs < 3) throw new Error(`account balances must be editable, got ${nw.acctInputs}`);
+    if(nw.acctInputs < 3) throw new Error(`typed account balances must be editable, got ${nw.acctInputs}`);
     if(nw.ownerSelects < 3) throw new Error(`account owner selects missing, got ${nw.ownerSelects}`);
-    if(!nw.holdings) throw new Error('household holdings editor (joint/real/liabilities/assumptions) missing');
-    if(nw.assume < 3) throw new Error(`assumptions (allocation/withdrawal/paths) not editable, got ${nw.assume}`);
+    if(nw.typeSelects < 3) throw new Error(`account type-bank selects missing, got ${nw.typeSelects}`);
+    if(nw.coreSleeveInputs > 0) throw new Error(`static core-sleeve rows still rendered (${nw.coreSleeveInputs} inputs)`);
+    if(!nw.holdings) throw new Error('household holdings editor missing');
+    if(!nw.addAccountBtn) throw new Error('"+ Account" (Account Type Bank) button missing');
+    if(nw.assume > 0) throw new Error('retired Assumptions block still rendered on Net Worth');
+    if(!nw.basis) throw new Error('taxable cost-basis field missing from the Accounts group');
+    if(!nw.tangible) throw new Error('Tangible assets section missing');
+    if(!nw.mortgage) throw new Error('Mortgage liability row missing');
 
-    // Cash Flow: editable income + expense fields + a net-surplus headline.
+    // Account Type Bank flow: + Account → choose type → value → ownership → Add.
+    await page.click('#hh-view [data-hh-action="open-account-form"]');
+    await new Promise(r => setTimeout(r, 300));
+    const formUp = await page.evaluate(() => !!document.querySelector('#hh-acct-form'));
+    if(!formUp) throw new Error('account add-form did not open');
+    const before = await page.evaluate(() => ({
+      rows: document.querySelectorAll('#hh-view .hh-acct').length,
+      total: document.querySelector('#hh-view .hh-fulcrum__total')?.textContent.trim(),
+    }));
+    await page.evaluate(() => {
+      const form = document.querySelector('#hh-acct-form');
+      const typeSel = form.querySelector('.hh-form-type');
+      const savingsIdx = [...typeSel.options].findIndex(o => o.textContent.trim() === 'Savings');
+      typeSel.value = String(savingsIdx);
+      form.querySelector('.hh-form-val').value = '50,000';
+      form.querySelector('.hh-form-owner').value = 'joint';
+      form.querySelector('[data-hh-action="save-account"]').click();
+    });
+    await new Promise(r => setTimeout(r, 400));
+    const added = await page.evaluate(() => ({
+      rows: document.querySelectorAll('#hh-view .hh-acct').length,
+      total: document.querySelector('#hh-view .hh-fulcrum__total')?.textContent.trim(),
+    }));
+    if(added.rows !== before.rows + 1) throw new Error(`saving the account did not add a row (${before.rows} -> ${added.rows})`);
+    if(added.total === before.total) throw new Error('added account did not aggregate into the net-worth total');
+    // Delete the added account (last row's ×) and confirm the total restores.
+    await page.evaluate(() => {
+      const rows = [...document.querySelectorAll('#hh-view .hh-acct .row-x')];
+      rows[rows.length - 1].click();
+    });
+    await new Promise(r => setTimeout(r, 400));
+    const afterDel = await page.evaluate(() => ({
+      rows: document.querySelectorAll('#hh-view .hh-acct').length,
+      total: document.querySelector('#hh-view .hh-fulcrum__total')?.textContent.trim(),
+    }));
+    if(afterDel.rows !== before.rows) throw new Error(`deleting the added account did not remove its row (${afterDel.rows})`);
+    if(afterDel.total !== before.total) throw new Error(`deleting the added account did not restore the total (${before.total} vs ${afterDel.total})`);
+
+    // Cash Flow: banner above it + editable income/expense fields + net surplus.
     await page.click('#hh-chap-cashflow');
     await new Promise(r => setTimeout(r, 400));
     const cf = await page.evaluate(() => ({
+      banner: !!document.querySelector('#hh-view .hh-banner'),
       moneyInputs: document.querySelectorAll('#hh-view input[data-type="money"]').length,
       surplus: document.querySelector('#hh-view .hh-surplus__value')?.textContent.trim() || '',
       totals: document.querySelectorAll('#hh-view .hh-total__value').length,
     }));
+    if(!cf.banner) throw new Error('banner missing above Cash Flow');
     if(cf.moneyInputs < 5) throw new Error(`Cash Flow income/expenses must be editable, got ${cf.moneyInputs}`);
     if(!/\$[\d,]/.test(cf.surplus)) throw new Error(`net surplus not formatted: "${cf.surplus}"`);
     if(cf.totals < 2) throw new Error('Cash Flow totals missing');
 
-    // Back to Demographics for the canonical Household screenshot.
-    await page.click('#hh-chap-demographics');
+    // Back to Net Worth for the canonical Household screenshot.
+    await page.click('#hh-chap-networth');
     await new Promise(r => setTimeout(r, 300));
     await page.screenshot({ path: join(OUT, '01-household.png'), fullPage: true });
   });
@@ -327,38 +404,49 @@ try {
     await page.click('.htab[data-page="household"]'); await sleep(300);
     await page.click('#hh-chap-networth'); await sleep(300);
     const totalBefore = await page.evaluate(() => document.querySelector('#hh-view .hh-fulcrum__total')?.textContent.trim());
-    // Edit the client Traditional balance 1,600,000 → 1,700,000.
-    await page.evaluate(() => { const el = document.querySelector('#hh-view input[data-path="portfolio.accounts.traditional.balance"]'); el.value = '1,700,000'; el.dispatchEvent(new Event('change', { bubbles:true })); });
+    // Edit the Traditional IRA typed account 1,600,000 → 1,700,000 (extraAccounts.1).
+    await page.evaluate(() => { const el = document.querySelector('#hh-view input[data-path="portfolio.extraAccounts.1.balance"]'); el.value = '1,700,000'; el.dispatchEvent(new Event('change', { bubbles:true })); });
     await sleep(300);
     const after = await page.evaluate(() => ({ total: document.querySelector('#hh-view .hh-fulcrum__total')?.textContent.trim(), status: document.querySelector('#status')?.textContent }));
     if(after.total === totalBefore) throw new Error(`editing an account balance did not update the derived net-worth total (${totalBefore})`);
     if(!/Plan edited/.test(after.status||'')) throw new Error('account edit did not mark the plan dirty (status)');
-    // Change the Roth owner spouse → client; the ownership split must shift.
+    // Change the Roth IRA owner co-client → client; the ownership split must shift.
     const ownBefore = await page.evaluate(() => document.querySelector('#hh-view .hh-own__legend')?.textContent.replace(/\s+/g,' ').trim());
-    await page.evaluate(() => { const el = document.querySelector('#hh-view select[data-path="portfolio.accounts.roth.owner"]'); el.value = 'client'; el.dispatchEvent(new Event('change', { bubbles:true })); });
+    await page.evaluate(() => { const el = document.querySelector('#hh-view select[data-path="portfolio.extraAccounts.2.owner"]'); el.value = 'client'; el.dispatchEvent(new Event('change', { bubbles:true })); });
     await sleep(300);
     const ownAfter = await page.evaluate(() => document.querySelector('#hh-view .hh-own__legend')?.textContent.replace(/\s+/g,' ').trim());
     if(ownBefore === ownAfter) throw new Error(`changing an account owner did not shift the ownership split (${ownBefore})`);
-    // Restore the demo (balance + owner).
-    await page.evaluate(() => { const el = document.querySelector('#hh-view input[data-path="portfolio.accounts.traditional.balance"]'); el.value = '1,600,000'; el.dispatchEvent(new Event('change', { bubbles:true })); });
+    // Changing an account's TYPE re-derives its bucket (Savings → taxable).
+    const bucketShift = await page.evaluate(() => {
+      const el = document.querySelector('#hh-view select[data-path="portfolio.extraAccounts.2.type"]');
+      if(!el) return null;
+      el.value = 'Savings'; el.dispatchEvent(new Event('change', { bubbles:true }));
+      return true;
+    });
+    if(!bucketShift) throw new Error('typed account is missing its type-bank select');
+    await sleep(300);
+    // Restore the demo (balance + owner + type).
+    await page.evaluate(() => { const el = document.querySelector('#hh-view select[data-path="portfolio.extraAccounts.2.type"]'); el.value = 'Roth IRA'; el.dispatchEvent(new Event('change', { bubbles:true })); });
     await sleep(200);
-    await page.evaluate(() => { const el = document.querySelector('#hh-view select[data-path="portfolio.accounts.roth.owner"]'); el.value = 'spouse'; el.dispatchEvent(new Event('change', { bubbles:true })); });
+    await page.evaluate(() => { const el = document.querySelector('#hh-view input[data-path="portfolio.extraAccounts.1.balance"]'); el.value = '1,600,000'; el.dispatchEvent(new Event('change', { bubbles:true })); });
+    await sleep(200);
+    await page.evaluate(() => { const el = document.querySelector('#hh-view select[data-path="portfolio.extraAccounts.2.owner"]'); el.value = 'spouse'; el.dispatchEvent(new Event('change', { bubbles:true })); });
     await sleep(200);
   });
 
-  await step('household CP2 fields: filing status + cost basis + spouse toggle + extra screenshots', async () => {
+  await step('household CP2 fields: banner filing/born + co-client toggle + extra screenshots', async () => {
     const sleep = ms => new Promise(r => setTimeout(r, ms));
     const goHh = async (chapId) => {
       await page.click('.htab[data-page="household"]'); await sleep(300);
       await page.click('#'+chapId); await sleep(350);
     };
 
-    // 1. Filing status select writes to plan.meta.filingStatus
-    await goHh('hh-chap-demographics');
-    const fsEl = await page.$('#hh-view select[data-path="meta.filingStatus"]');
-    if(!fsEl) throw new Error('filing status <select> missing from Demographics chapter');
+    // 1. Filing status select (banner) writes to plan.meta.filingStatus
+    await goHh('hh-chap-networth');
+    const fsEl = await page.$('#hh-view .hh-banner select[data-path="meta.filingStatus"]');
+    if(!fsEl) throw new Error('filing status <select> missing from Household Basics banner');
     await page.evaluate(() => {
-      const el = document.querySelector('#hh-view select[data-path="meta.filingStatus"]');
+      const el = document.querySelector('#hh-view .hh-banner select[data-path="meta.filingStatus"]');
       el.value = 'single'; el.dispatchEvent(new Event('change', { bubbles:true }));
     });
     await sleep(300);
@@ -366,29 +454,45 @@ try {
     if(!/single/i.test(filingLine)) throw new Error(`rail filing line did not update after filingStatus change: "${filingLine}"`);
     // Restore married
     await page.evaluate(() => {
-      const el = document.querySelector('#hh-view select[data-path="meta.filingStatus"]');
+      const el = document.querySelector('#hh-view .hh-banner select[data-path="meta.filingStatus"]');
       el.value = 'marriedFilingJointly'; el.dispatchEvent(new Event('change', { bubbles:true }));
     });
     await sleep(200);
 
-    // 2. Taxable cost basis % writes to plan (basisPct = 0.9 → input shows 90)
-    await goHh('hh-chap-networth');
-    const basisEl = await page.$('#hh-view input[data-path="portfolio.accounts.taxable.basisPct"]');
-    if(!basisEl) throw new Error('taxable basisPct input missing from Net Worth assumptions');
+    // 2. Banner BORN year drives the person's current age (the engine input).
+    const ageBefore = await page.evaluate(() => document.querySelector('#hh-view .hh-banner .hh-derived')?.textContent.trim());
+    await page.evaluate(() => {
+      const el = document.querySelector('#hh-view .hh-banner input[data-path="household.primary.birthYear"]');
+      el.value = '1970'; el.dispatchEvent(new Event('change', { bubbles:true }));
+    });
+    await sleep(300);
+    const ageAfter = await page.evaluate(() => document.querySelector('#hh-view .hh-banner .hh-derived')?.textContent.trim());
+    if(ageBefore === ageAfter) throw new Error(`banner Born edit did not re-derive Age (${ageBefore} -> ${ageAfter})`);
+    if(!/Plan edited/.test(await page.evaluate(() => document.querySelector('#status')?.textContent || '')))
+      throw new Error('banner Born edit did not mark plan dirty');
+    // Restore demo birth year
+    await page.evaluate(() => {
+      const el = document.querySelector('#hh-view .hh-banner input[data-path="household.primary.birthYear"]');
+      el.value = '1968'; el.dispatchEvent(new Event('change', { bubbles:true }));
+    });
+    await sleep(200);
+
+    // 2b. Taxable cost basis % (Accounts group) writes to plan (0.9 → input shows 90)
+    const basisEl = await page.$('#hh-view .hh-basis-row input[data-path="portfolio.accounts.taxable.basisPct"]');
+    if(!basisEl) throw new Error('taxable basisPct input missing from the Accounts group');
     const basisBefore = await basisEl.evaluate(el => el.value);
     await page.evaluate(() => {
-      const el = document.querySelector('#hh-view input[data-path="portfolio.accounts.taxable.basisPct"]');
+      const el = document.querySelector('#hh-view .hh-basis-row input[data-path="portfolio.accounts.taxable.basisPct"]');
       el.value = '90'; el.dispatchEvent(new Event('change', { bubbles:true }));
     });
     await sleep(250);
-    const basisAfter = await basisEl.evaluate(el => el.value);
+    const basisAfter = await page.evaluate(() => document.querySelector('#hh-view .hh-basis-row input[data-path="portfolio.accounts.taxable.basisPct"]')?.value);
     if(basisAfter === basisBefore) throw new Error(`basisPct input did not reflect written value (before=${basisBefore}, after=${basisAfter})`);
-    // The input now shows 90; the plan now has basisPct=0.9 (confirmed by hhCommit writing via setPath)
     if(!/Plan edited/.test(await page.evaluate(() => document.querySelector('#status')?.textContent || '')))
       throw new Error('basisPct edit did not mark plan dirty');
     // Restore to original (55%)
     await page.evaluate(() => {
-      const el = document.querySelector('#hh-view input[data-path="portfolio.accounts.taxable.basisPct"]');
+      const el = document.querySelector('#hh-view .hh-basis-row input[data-path="portfolio.accounts.taxable.basisPct"]');
       el.value = '55'; el.dispatchEvent(new Event('change', { bubbles:true }));
     });
     await sleep(200);
@@ -404,29 +508,29 @@ try {
     if(!addLiabBtn) throw new Error('"+ Liability" button missing from Cash Flow chapter');
     await page.screenshot({ path: join(OUT, '01c-household-cashflow.png'), fullPage: true });
 
-    // 4. Spouse remove → 'Add spouse' placeholder appears; re-add → spouse column restores
-    await goHh('hh-chap-demographics');
-    const removeBtnBefore = await page.$('[data-hh-action="remove-spouse"]');
-    if(!removeBtnBefore) throw new Error('remove-spouse button missing from spouse column');
+    // 4. Co-client remove → '+ Add Co-Client' appears in the banner; re-add restores.
+    await goHh('hh-chap-networth');
+    const removeBtnBefore = await page.$('#hh-view .hh-banner [data-hh-action="remove-spouse"]');
+    if(!removeBtnBefore) throw new Error('Remove (co-client) action missing from banner');
     await page.evaluate(() => {
       // Bypass the confirm() dialog by temporarily replacing it
       const orig = window.confirm;
       window.confirm = () => true;
-      document.querySelector('[data-hh-action="remove-spouse"]').click();
+      document.querySelector('#hh-view .hh-banner [data-hh-action="remove-spouse"]').click();
       window.confirm = orig;
     });
     await sleep(350);
-    const addSpouseVisible = await page.$('[data-hh-action="add-spouse"]');
-    if(!addSpouseVisible) throw new Error('after removing spouse, "Add spouse" button did not appear');
+    const addSpouseVisible = await page.$('#hh-view .hh-banner [data-hh-action="add-spouse"]');
+    if(!addSpouseVisible) throw new Error('after removing co-client, "+ Add Co-Client" did not appear in banner');
     const railAfterRemove = await page.evaluate(() => document.querySelector('#hh-rail-name')?.textContent.trim() || '');
-    if(/&/.test(railAfterRemove)) throw new Error(`rail name still shows "&" after spouse removal: "${railAfterRemove}"`);
-    // Re-add spouse
-    await page.click('[data-hh-action="add-spouse"]');
+    if(/&/.test(railAfterRemove)) throw new Error(`rail name still shows "&" after co-client removal: "${railAfterRemove}"`);
+    // Re-add co-client
+    await page.click('#hh-view .hh-banner [data-hh-action="add-spouse"]');
     await sleep(350);
-    const addSpouseGone = await page.$('[data-hh-action="add-spouse"]');
-    if(addSpouseGone) throw new Error('"Add spouse" button should disappear after adding spouse');
+    const addSpouseGone = await page.$('#hh-view .hh-banner [data-hh-action="add-spouse"]');
+    if(addSpouseGone) throw new Error('"+ Add Co-Client" should disappear after adding co-client');
     const spouseInputs = await page.evaluate(() => document.querySelectorAll('#hh-view input[data-path^="household.spouse"]').length);
-    if(spouseInputs < 2) throw new Error(`spouse column after add should have age/retirement inputs, got ${spouseInputs}`);
+    if(spouseInputs < 2) throw new Error(`banner after add should have co-client born/retires inputs, got ${spouseInputs}`);
     // Restore retirement age to demo value
     await page.evaluate(() => {
       const el = document.querySelector('#hh-view input[data-path="household.spouse.retirementAge"]');
@@ -465,6 +569,64 @@ try {
     await page.evaluate(() => { window.confirm = window.__origConfirm; });
   });
 
+  await step('typed accounts feed the engine: cleared plan + $1M brokerage drives scenario results', async () => {
+    // The account bank must reach the ENGINE, not just the Household display:
+    // clear the household ($0 everywhere → Baseline median renders '—'), add a
+    // $1,000,000 Brokerage (taxable) via the form, Run, and the engine-computed
+    // Baseline median must become a $-figure of $1M scale (growth over a 30-year
+    // horizon with zero spending). Median comes from s.res.envelope — engine output.
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
+    await page.evaluate(() => { window.__origConfirm = window.confirm; window.confirm = () => true; });
+    await page.click('.htab[data-page="household"]'); await sleep(300);
+    await page.click('#hh-act-clear'); await sleep(600);
+
+    // Cleared plan → Scenarios Baseline median is '—' (no assets, fmtMoney(0)).
+    await page.click('button[data-page="scenarios"]'); await sleep(900);
+    const emptyMedian = await page.evaluate(() => document.querySelector('#scn-view .scol__median b')?.textContent.trim() || '');
+    if(!/^—$/.test(emptyMedian)) throw new Error(`cleared plan should show an empty Baseline median, got "${emptyMedian}"`);
+
+    // Add $1,000,000 Brokerage (taxable), owned by the client, via the bank form.
+    await page.click('.htab[data-page="household"]'); await sleep(300);
+    await page.click('#hh-chap-networth'); await sleep(300);
+    await page.click('#hh-view [data-hh-action="open-account-form"]'); await sleep(250);
+    await page.evaluate(() => {
+      const form = document.querySelector('#hh-acct-form');
+      const sel = form.querySelector('.hh-form-type');
+      sel.value = String([...sel.options].findIndex(o => o.textContent.trim() === 'Brokerage (taxable)'));
+      form.querySelector('.hh-form-val').value = '1,000,000';
+      form.querySelector('.hh-form-owner').value = 'client';
+      form.querySelector('[data-hh-action="save-account"]').click();
+    });
+    await sleep(400);
+    const nwTotal = await page.evaluate(() => document.querySelector('#hh-view .hh-fulcrum__total')?.textContent.trim() || '');
+    if(!/1,000,000/.test(nwTotal)) throw new Error(`added brokerage did not reach the net-worth display: "${nwTotal}"`);
+
+    // Run → engine recomputes from the dirty plan; Baseline median must now be $1M-scale.
+    await page.click('button[data-page="scenarios"]'); await sleep(600);
+    await page.click('#run-btn');
+    let status = '';
+    for(let i = 0; i < 60; i++){
+      await sleep(500);
+      status = await page.evaluate(() => document.querySelector('#status')?.textContent || '');
+      if(/Complete/i.test(status)) break;
+    }
+    if(!/Complete/i.test(status)) throw new Error(`Run did not complete after adding the account (status: "${status}")`);
+    const medianTxt = await page.evaluate(() => document.querySelector('#scn-view .scol__median b')?.textContent.trim() || '');
+    const parsed = (() => {
+      const m = medianTxt.match(/^\$([\d.,]+)\s*([MK]?)$/i);
+      if(!m) return null;
+      const n = parseFloat(m[1].replace(/,/g, ''));
+      return m[2].toUpperCase() === 'M' ? n * 1e6 : m[2].toUpperCase() === 'K' ? n * 1e3 : n;
+    })();
+    if(parsed == null) throw new Error(`Baseline median not a $-figure after Run: "${medianTxt}"`);
+    if(parsed < 500000) throw new Error(`engine starting assets do not reflect the $1M account (median ${medianTxt})`);
+
+    // Restore the demo household for the steps that follow.
+    await page.click('.htab[data-page="household"]'); await sleep(300);
+    await page.click('#hh-act-demo'); await sleep(800);
+    await page.evaluate(() => { window.confirm = window.__origConfirm; });
+  });
+
   await step('household edits reach the engine: Scenarios cash-flow responds after Run', async () => {
     // The non-negotiable: editing a Household input through the new inline UI must
     // write real plan data and change engine outputs. Edit on Household → open
@@ -492,17 +654,18 @@ try {
     if(!withSpouse || !withoutSpouse) throw new Error(`cash-flow income cell missing at age 72 (${withSpouse} vs ${withoutSpouse})`);
     if(withSpouse === withoutSpouse) throw new Error(`spouse SS edit via Household did not change engine income at 72 (${withSpouse} vs ${withoutSpouse})`);
 
-    // (2) Delaying the spouse's retirement pushes the first retirement-phase row later.
+    // (2) Delaying the co-client's retirement pushes the first retirement-phase row
+    // later. The Retires input lives in the Household Basics banner (any chapter).
     await goHh('hh-chap-cashflow'); await setHh('income.socialSecurity.spouse.pia', '30,000');
-    await goHh('hh-chap-demographics'); await setHh('household.spouse.retirementAge', '64');
+    await goHh('hh-chap-networth'); await setHh('household.spouse.retirementAge', '64');
     await openCashFlow(); const firstEarly = await firstAge();
-    await goHh('hh-chap-demographics'); await setHh('household.spouse.retirementAge', '67');
+    await goHh('hh-chap-networth'); await setHh('household.spouse.retirementAge', '67');
     await openCashFlow(); const firstLate = await firstAge();
     if(firstEarly == null || firstLate == null) throw new Error(`first cash-flow age missing (${firstEarly} vs ${firstLate})`);
-    if(!(firstLate > firstEarly)) throw new Error(`delaying spouse retirement via Household did not push retirement later (${firstEarly} -> ${firstLate})`);
+    if(!(firstLate > firstEarly)) throw new Error(`delaying co-client retirement via Household did not push retirement later (${firstEarly} -> ${firstLate})`);
 
     // Restore the demo household and leave Cash Flow closed.
-    await goHh('hh-chap-demographics'); await setHh('household.spouse.retirementAge', '64');
+    await goHh('hh-chap-networth'); await setHh('household.spouse.retirementAge', '64');
     await setCashFlow(page, false);
   });
 

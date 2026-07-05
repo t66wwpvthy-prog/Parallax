@@ -12,7 +12,7 @@
 <!-- ?v= cache-buster: bump on any CSS change so browsers fetch the new file
      instead of serving a stale cached copy (GitHub Pages caches CSS hard). -->
 <link rel="stylesheet" href="styles/main.css?v=12"/>
-<link rel="stylesheet" href="styles/household.css?v=12"/>
+<link rel="stylesheet" href="styles/household.css?v=15"/>
 <link rel="stylesheet" href="styles/scenarios.css?v=10"/>
 <link rel="stylesheet" href="styles/goals.css?v=3"/>
 </head>
@@ -117,22 +117,16 @@
           <!-- Chapter nav = the view switch. The view layer toggles .is-active and
                renders the matching chapter into #hh-view. Keep these IDs. -->
           <nav class="hh-chapters" role="tablist" aria-label="Household chapter">
-            <button class="hh-chapter is-active" id="hh-chap-demographics" type="button"
+            <button class="hh-chapter is-active" id="hh-chap-networth" type="button"
                     role="tab" aria-selected="true" aria-controls="hh-view">
               <span class="hh-chapter__mark" aria-hidden="true"></span>
               <span class="hh-chapter__num" aria-hidden="true">I</span>
-              <span class="hh-chapter__label">Demographics</span>
-            </button>
-            <button class="hh-chapter" id="hh-chap-networth" type="button"
-                    role="tab" aria-selected="false" aria-controls="hh-view">
-              <span class="hh-chapter__mark" aria-hidden="true"></span>
-              <span class="hh-chapter__num" aria-hidden="true">II</span>
               <span class="hh-chapter__label">Net Worth</span>
             </button>
             <button class="hh-chapter" id="hh-chap-cashflow" type="button"
                     role="tab" aria-selected="false" aria-controls="hh-view">
               <span class="hh-chapter__mark" aria-hidden="true"></span>
-              <span class="hh-chapter__num" aria-hidden="true">III</span>
+              <span class="hh-chapter__num" aria-hidden="true">II</span>
               <span class="hh-chapter__label">Cash Flow</span>
             </button>
           </nav>
@@ -280,21 +274,29 @@ const escHtml=s=>String(s).replace(/[&<>"']/g, c=>(
    raises the wealth line but leaves success BELOW the retire-later case (vol
    drag) — the risk/return truth the tool exists to show. */
 plan.meta.primaryName = 'Client';
-plan.meta.spouseName = 'Spouse';
+plan.meta.spouseName  = 'Co-Client';
+// Household-level basics shown in the Household Basics banner. `state` is
+// stored plan data (advisor-entered); it does not alter engine math.
+plan.meta.state = 'CA';
 plan.household.primary.currentAge    = 58;
-plan.household.spouse = { currentAge: 57, retirementAge: 64 };
+plan.household.primary.birthYear     = 1968;
+plan.household.spouse = { currentAge: 57, retirementAge: 64, birthYear: 1969 };
 plan.household.primary.retirementAge = 65;
 plan.household.primary.planEndAge    = 95;
-plan.portfolio.accounts.taxable.balance      = 800000;
-plan.portfolio.accounts.traditional.balance  = 1600000;
-plan.portfolio.accounts.roth.balance         = 400000;
-// Account OWNERSHIP is a LABEL on the data (not engine math): it places each
-// holding in the Client or Spouse pillar of the Net Worth equilibrium. Demo —
-// Client holds the Traditional sleeve; Spouse holds the Taxable + Roth.
-plan.portfolio.accounts.traditional.owner    = 'client';
-plan.portfolio.accounts.taxable.owner        = 'spouse';
-plan.portfolio.accounts.roth.owner           = 'spouse';
+// Accounts are TYPED rows added from the Account Type Bank (extraAccounts).
+// The three core sleeves stay at $0 and act purely as aggregation targets:
+// engine resolveInputs() folds extraAccounts into taxable/traditional/roth by
+// bucket, so the engine sees correct totals with no math changes. basisPct
+// still describes the taxable sleeve (engine input).
+plan.portfolio.accounts.taxable.balance      = 0;
+plan.portfolio.accounts.traditional.balance  = 0;
+plan.portfolio.accounts.roth.balance         = 0;
 plan.portfolio.accounts.taxable.basisPct     = 0.55;
+plan.portfolio.extraAccounts = [
+  { type:'Brokerage (taxable)', bucket:'taxable',     owner:'spouse', balance: 800000  },
+  { type:'Traditional IRA',     bucket:'traditional', owner:'client', balance: 1600000 },
+  { type:'Roth IRA',            bucket:'roth',        owner:'spouse', balance: 400000  },
+];
 plan.expenses.living                = 205000;
 plan.expenses.healthcare            = 12000;
 plan.expenses.healthcareRealGrowth  = 0.02;   // 2% above CPI (historical avg)
@@ -1042,7 +1044,7 @@ const HYBRID = {
     left:  { head:'Income', groups:[
       { head:'Fixed income', items:[
         {path:'income.socialSecurity.primary.pia', name:'Social Security · Primary', type:'money', meta:()=>`Claim at age ${plan.income.socialSecurity.primary.claimAge}`},
-        {path:'income.socialSecurity.spouse.pia',  name:'Social Security · Spouse',  type:'money', meta:()=>plan.income.socialSecurity.spouse?`Claim at age ${plan.income.socialSecurity.spouse.claimAge}`:''},
+        {path:'income.socialSecurity.spouse.pia',  name:'Social Security · Co-Client',  type:'money', meta:()=>plan.income.socialSecurity.spouse?`Claim at age ${plan.income.socialSecurity.spouse.claimAge}`:''},
       ], dynamic:'pension' },
       { head:'Variable', section:{ arr:'income.other', kind:'income', nameKey:'label', ph:'Source', add:'+ add a variable income source' } },
     ]},
@@ -1058,7 +1060,7 @@ const HYBRID = {
 
 /* Active sub-page for the net-worth page. The Goals sub-view lives here.
    Household is its own editable data-page="household" console (inline renderers
-   syncHousehold / renderHhDemographics / renderHhNetWorth / renderHhCashflow). */
+   syncHousehold / renderHhBanner / renderHhNetWorth / renderHhCashflow). */
 const SUB_KEY = 'parallax.netWorth.sub';
 let activeSub = 'goals';
 const getPath=(o,p)=>p.split('.').reduce((a,k)=>a&&a[k],o);
@@ -1152,26 +1154,56 @@ function realAssetsTotal(){ return (plan.properties||[]).reduce((s,a)=>s+(a.valu
    ownership %, beam) recompute read-only on every sync, never faked.
    ═══════════════════════════════════════════════════════════════════════════ */
 const HH_BUCKET_LABEL = { taxable:'Taxable', traditional:'Traditional', roth:'Roth' };
-const HH_OWNERS  = [['client','Client'],['spouse','Spouse'],['joint','Joint']];
+// Ownership is a UI label; data keys stay 'spouse' etc. Visible label is Co-Client.
+const HH_OWNERS  = [['client','Client'],['spouse','Co-Client'],['joint','Joint'],['trust','Trust']];
 const HH_BUCKETS = [['taxable','Taxable'],['traditional','Traditional'],['roth','Roth']];
-let hhChapter = 'demographics';   // 'demographics' | 'networth' | 'cashflow'
+/* Account Type Bank — every addable account type and the engine tax sleeve it
+   maps into. The engine consumes ONLY the three buckets (taxable / traditional /
+   roth); the type is advisor-facing detail. */
+const HH_ACCOUNT_TYPES = [
+  { label:'Checking',            bucket:'taxable' },
+  { label:'Savings',             bucket:'taxable' },
+  { label:'Money Market',        bucket:'taxable' },
+  { label:'CD',                  bucket:'taxable' },
+  { label:'Brokerage (taxable)', bucket:'taxable' },
+  { label:'Joint brokerage',     bucket:'taxable', owner:'joint' },
+  { label:'Trust brokerage',     bucket:'taxable', owner:'trust' },
+  { label:'Traditional IRA',     bucket:'traditional' },
+  { label:'Rollover IRA',        bucket:'traditional' },
+  { label:'Roth IRA',            bucket:'roth' },
+  { label:'401(k)',              bucket:'traditional' },
+  { label:'Roth 401(k)',         bucket:'roth' },
+  { label:'403(b)',              bucket:'traditional' },
+  { label:'457',                 bucket:'traditional' },
+  { label:'SEP IRA',             bucket:'traditional' },
+  { label:'SIMPLE IRA',          bucket:'traditional' },
+  { label:'Solo 401(k)',         bucket:'traditional' },
+  { label:'Qualified Plan',      bucket:'traditional' },
+];
+const hhBucketForType = t => (HH_ACCOUNT_TYPES.find(x => x.label === t) || {}).bucket || 'taxable';
+const HH_STATES = [
+  ['AL','Alabama'],['AK','Alaska'],['AZ','Arizona'],['AR','Arkansas'],['CA','California'],['CO','Colorado'],['CT','Connecticut'],['DE','Delaware'],['FL','Florida'],['GA','Georgia'],
+  ['HI','Hawaii'],['ID','Idaho'],['IL','Illinois'],['IN','Indiana'],['IA','Iowa'],['KS','Kansas'],['KY','Kentucky'],['LA','Louisiana'],['ME','Maine'],['MD','Maryland'],
+  ['MA','Massachusetts'],['MI','Michigan'],['MN','Minnesota'],['MS','Mississippi'],['MO','Missouri'],['MT','Montana'],['NE','Nebraska'],['NV','Nevada'],['NH','New Hampshire'],['NJ','New Jersey'],
+  ['NM','New Mexico'],['NY','New York'],['NC','North Carolina'],['ND','North Dakota'],['OH','Ohio'],['OK','Oklahoma'],['OR','Oregon'],['PA','Pennsylvania'],['RI','Rhode Island'],['SC','South Carolina'],
+  ['SD','South Dakota'],['TN','Tennessee'],['TX','Texas'],['UT','Utah'],['VT','Vermont'],['VA','Virginia'],['WA','Washington'],['WV','West Virginia'],['WI','Wisconsin'],['WY','Wyoming'],
+  ['DC','District of Columbia'],
+];
+let hhChapter = 'networth';   // 'networth' | 'cashflow'
+/* Transient add-account form state (null = closed). Holds nothing but the
+   prefill; the typed value lives in the form's DOM until Save writes the plan. */
+let hhAcctFormOpen = false;
 
-/* Every sleeve + extra account as an EDITABLE row (carries its data-paths). Core
-   sleeves are permanent; extras are add/removable with an editable type + bucket. */
+/* Every account is a TYPED row from the Account Type Bank, stored in
+   plan.portfolio.extraAccounts as { type, bucket, owner, balance }. The three
+   core sleeves are engine aggregation targets only (engine folds extraAccounts
+   into them by bucket) and no longer render as rows. */
 function hhAllAccounts(){
-  const acc = (plan.portfolio && plan.portfolio.accounts) || {};
   const rows = [];
-  ['taxable','traditional','roth'].forEach(k => {
-    const a = acc[k] || {};
-    rows.push({ label: HH_BUCKET_LABEL[k], balance: a.balance||0, owner: a.owner || 'joint',
-      balPath:`portfolio.accounts.${k}.balance`, ownerPath:`portfolio.accounts.${k}.owner`, core:true,
-      basisPath: k==='taxable' ? 'portfolio.accounts.taxable.basisPct' : null
-    });
-  });
   (plan.portfolio.extraAccounts || []).forEach((x,i) => {
     rows.push({ label: x.type || 'Account', balance: x.balance||0, owner: x.owner || 'joint', bucket: x.bucket || 'taxable',
-      typePath:`portfolio.extraAccounts.${i}.type`, bucketPath:`portfolio.extraAccounts.${i}.bucket`,
-      balPath:`portfolio.extraAccounts.${i}.balance`, ownerPath:`portfolio.extraAccounts.${i}.owner`, idx:i, core:false });
+      typePath:`portfolio.extraAccounts.${i}.type`,
+      balPath:`portfolio.extraAccounts.${i}.balance`, ownerPath:`portfolio.extraAccounts.${i}.owner`, idx:i });
   });
   return rows;
 }
@@ -1181,6 +1213,13 @@ function hhDebtTotal(){
   return mort + liab;
 }
 function hhNetWorthTotal(){ return investableTotal() + realAssetsTotal() - hhDebtTotal(); }
+// Age from a 4-digit birth year (banner BORN field). Whole-year arithmetic —
+// the engine plans in whole ages, so this is the same resolution it uses.
+function hhAgeFromYear(y){
+  const n = Number(y);
+  if(!Number.isFinite(n) || n < 1900) return null;
+  return Math.max(0, new Date().getFullYear() - Math.round(n));
+}
 function hhFilingLine(){
   const FS = { marriedFilingJointly:'Married filing jointly', single:'Single', headOfHousehold:'Head of household', marriedFilingSeparately:'Married filing separately' };
   const fs = plan.meta && plan.meta.filingStatus;
@@ -1204,48 +1243,44 @@ function hhSelect(path, value, opts, kind){
 const hhOwnerSelect  = (path, owner)  => hhSelect(path, owner,  HH_OWNERS,  'owner');
 const hhBucketSelect = (path, bucket) => hhSelect(path, bucket, HH_BUCKETS, 'bucket');
 
-/* ── I · DEMOGRAPHICS (editable) ─────────────────────────────────── */
-function renderHhPerson(role){
+/* ── HOUSEHOLD BASICS BANNER ─────────────────────────────────────────
+   Compact inline-editable strip rendered ABOVE every Household chapter
+   (Net Worth and Cash Flow). Replaces the retired Demographics chapter.
+   CLIENT / CO-CLIENT: Born (year, drives current age) · Age (derived) ·
+   Retires · Plan To. HOUSEHOLD: Filing · State · Inflation. */
+function hhBannerField(label, html){
+  return `<label class="hh-bf"><span class="hh-bf__k">${label}</span><span class="hh-bf__v">${html}</span></label>`;
+}
+function hhBannerPerson(role){
   const isC = role==='client';
+  const title = isC ? 'Client' : 'Co-Client';
 
-  // Spouse not present — show an "absent" column so the user can add one.
   if(!isC && !plan.household.spouse){
-    return `<div class="hh-person hh-person--spouse hh-person--absent">
-      <div class="hh-person__id">
-        <div class="hh-person__avatar hh-person--absent__avatar">+</div>
-        <div>
-          <div class="hh-person__name hh-person--absent__label">No spouse</div>
-          <div class="hh-person__role">Single household</div>
-        </div>
-      </div>
-      <div class="hh-facts">
-        <button class="hh-add" type="button" data-hh-action="add-spouse">+ Add spouse</button>
-      </div>
+    return `<div class="hh-bgrp hh-bgrp--coclient">
+      <div class="hh-bgrp__head"><span class="hh-bgrp__title">Co-Client</span></div>
+      <div class="hh-bgrp__fields"><button class="hh-add" type="button" data-hh-action="add-spouse">+ Add Co-Client</button></div>
     </div>`;
   }
 
   const p = (plan.household && plan.household[isC?'primary':'spouse']) || {};
   const base = isC ? 'household.primary' : 'household.spouse';
-  const namePath = isC ? 'meta.primaryName' : 'meta.spouseName';
-  const a = Number(p.currentAge), r = Number(p.retirementAge);
-  const years = (Number.isFinite(a) && Number.isFinite(r)) ? Math.max(0, r-a) : '—';
-  const fact = (k, html) => `<div class="hh-fact"><span class="hh-fact__k">${k}</span><span class="hh-fact__v">${html}</span></div>`;
-  let facts = '';
-  facts += fact('Current age',    hhField(`${base}.currentAge`, 'age'));
-  facts += fact('Retirement age', hhField(`${base}.retirementAge`, 'age'));
-  if(isC) facts += fact('Plan to age', hhField('household.primary.planEndAge', 'age'));
-  facts += fact('Years to retire', `<span class="hh-derived">${years}</span>`);
-  // Spouse column gets a remove action at the bottom.
-  if(!isC) facts += `<div class="hh-fact hh-fact--action"><span class="hh-fact__k"></span><span class="hh-fact__v"><button class="hh-add hh-add--muted" type="button" data-hh-action="remove-spouse">Remove spouse</button></span></div>`;
-  return `<div class="hh-person hh-person--${role}">
-    <div class="hh-person__id">
-      <div class="hh-person__avatar">${isC?'C':'S'}</div>
-      <div><div class="hh-person__name">${hhField(namePath,'text')}</div><div class="hh-person__role">${isC?'Primary':'Partner'}</div></div>
-    </div>
-    <div class="hh-facts">${facts}</div>
+  const born = p.birthYear || (p.currentAge != null ? new Date().getFullYear() - p.currentAge : '');
+  const tag = isC
+    ? `<span class="hh-bgrp__tag">Primary</span>`
+    : `<button class="hh-bgrp__act" type="button" data-hh-action="remove-spouse">Remove</button>`;
+  let f = '';
+  f += hhBannerField('Born', `<input type="number" data-path="${base}.birthYear" data-type="birthYear" value="${born}" step="1" class="hh-born-in">`);
+  f += hhBannerField('Age',  `<span class="hh-derived">${p.currentAge ?? '—'}</span>`);
+  f += hhBannerField('Retires', hhField(`${base}.retirementAge`, 'age'));
+  // One plan horizon (engine input household.primary.planEndAge); shown under
+  // both people — editing either edits the same household value.
+  f += hhBannerField('Plan To', hhField('household.primary.planEndAge', 'age'));
+  return `<div class="hh-bgrp">
+    <div class="hh-bgrp__head"><span class="hh-bgrp__title">${title}</span>${tag}</div>
+    <div class="hh-bgrp__fields">${f}</div>
   </div>`;
 }
-function renderHhDemographics(){
+function renderHhBanner(){
   const FS_OPTS = [
     ['marriedFilingJointly',     'Married filing jointly'],
     ['single',                   'Single'],
@@ -1254,28 +1289,45 @@ function renderHhDemographics(){
   ];
   const defaultFs = plan.household.spouse ? 'marriedFilingJointly' : 'single';
   const fsVal = (plan.meta && plan.meta.filingStatus) || defaultFs;
-  return `<div class="hh-doc">
-    <div class="hh-doc__head">
-      <div class="hh-eyebrow">Chapter I</div>
-      <div class="hh-doc__title">Demographics</div>
-      <label class="hh-assume hh-filing-row" style="flex-direction:row;align-items:center;gap:12px;margin-top:14px">
-        <span>Filing status</span>${hhSelect('meta.filingStatus', fsVal, FS_OPTS, 'text')}
-      </label>
+  let hh = '';
+  hh += hhBannerField('Filing', hhSelect('meta.filingStatus', fsVal, FS_OPTS, 'text'));
+  hh += hhBannerField('State',  hhSelect('meta.state', (plan.meta && plan.meta.state) || 'CA', HH_STATES, 'text'));
+  return `<div class="hh-banner">
+    ${hhBannerPerson('client')}
+    ${hhBannerPerson('spouse')}
+    <div class="hh-bgrp hh-bgrp--household">
+      <div class="hh-bgrp__head"><span class="hh-bgrp__title hh-bgrp__title--gold">Household</span></div>
+      <div class="hh-bgrp__fields">${hh}</div>
     </div>
-    <div class="hh-people">${renderHhPerson('client')}${renderHhPerson('spouse')}</div>
   </div>`;
 }
 
-/* ── II · NET WORTH (editable equilibrium + household holdings) ───── */
+/* ── NET WORTH (editable equilibrium + household holdings) ───────── */
+// Account-type select bound to the row; changing it also re-derives the row's
+// tax bucket (handled as data-type="acctType" in the #hh-view change delegate).
+function hhTypeSelect(path, value){
+  const o = HH_ACCOUNT_TYPES.map(t => `<option value="${escHtml(t.label)}" ${t.label===value?'selected':''}>${escHtml(t.label)}</option>`).join('');
+  return `<select data-path="${path}" data-type="acctType" class="hh-sel hh-sel--type">${o}</select>`;
+}
 function hhAcctRow(a){
-  const owner = hhOwnerSelect(a.ownerPath, a.owner);
-  const cat = a.core
-    ? `<span class="hh-acct__lbl">${a.label}</span>${owner}`
-    : `${hhField(a.typePath,'text')}${hhBucketSelect(a.bucketPath, a.bucket)}${owner}`;
-  const rm = a.core ? '' : `<button class="row-x" title="Remove account" data-rmpath="portfolio.extraAccounts.${a.idx}">×</button>`;
   return `<div class="hh-acct">
-    <span class="hh-acct__cat">${cat}</span>
-    <span class="hh-acct__amt">${hhField(a.balPath,'money')}${rm}</span>
+    <span class="hh-acct__cat">${hhTypeSelect(a.typePath, a.label)}${hhOwnerSelect(a.ownerPath, a.owner)}</span>
+    <span class="hh-acct__amt">${hhField(a.balPath,'money')}<button class="row-x" title="Remove account" data-rmpath="portfolio.extraAccounts.${a.idx}">×</button></span>
+  </div>`;
+}
+/* Inline add-account form (the Account Type Bank flow): choose type → enter
+   value → choose ownership → Add. Values live in the form until Add commits
+   them to plan.portfolio.extraAccounts. Always-visible controls, no popovers. */
+function hhAcctFormHtml(){
+  if(!hhAcctFormOpen) return '';
+  const typeOpts = HH_ACCOUNT_TYPES.map((t,i) => `<option value="${i}">${escHtml(t.label)}</option>`).join('');
+  const ownerOpts = HH_OWNERS.map(([v,l]) => `<option value="${v}">${l}</option>`).join('');
+  return `<div class="hh-acct-form" id="hh-acct-form">
+    <select class="hh-sel hh-form-type" aria-label="Account type">${typeOpts}</select>
+    <span class="hh-form-amt"><span class="pre">$</span><input class="hh-form-val" type="text" inputmode="numeric" data-type="money" placeholder="0" aria-label="Account value"></span>
+    <select class="hh-sel hh-form-owner" aria-label="Ownership">${ownerOpts}</select>
+    <button class="hh-add" type="button" data-hh-action="save-account">Add</button>
+    <button class="hh-add hh-add--muted" type="button" data-hh-action="cancel-account">Cancel</button>
   </div>`;
 }
 function renderHhPillar(role){
@@ -1288,7 +1340,7 @@ function renderHhPillar(role){
   return `<div class="hh-pillar hh-pillar--${role}">
     <div class="hh-pillar__id">
       <div class="hh-pillar__avatar">${isC?'C':'S'}</div>
-      <div class="hh-pillar__role">${isC?'Client':'Spouse'}</div>
+      <div class="hh-pillar__role">${isC?'Client':'Co-Client'}</div>
       <div class="hh-pillar__age">Age ${p.currentAge ?? '—'}</div>
     </div>
     <div class="hh-pillar__rule"></div>
@@ -1314,7 +1366,7 @@ function renderHhFulcrum(){
         <div class="hh-beam__pivot"></div>
         <div class="hh-beam__arm hh-beam__arm--r"><div class="hh-beam__bar-r" style="width:${sPx}px;"></div></div>
       </div>
-      <div class="hh-beam__legend"><span>Client ${hhShort(cInv)}</span><span>Spouse ${hhShort(sInv)}</span></div>
+      <div class="hh-beam__legend"><span>Client ${hhShort(cInv)}</span><span>Co-Client ${hhShort(sInv)}</span></div>
       <div class="hh-beam__stem"></div><div class="hh-beam__base"></div>
     </div>
     <div class="hh-chips">
@@ -1324,42 +1376,44 @@ function renderHhFulcrum(){
     <div class="hh-own">
       <div class="hh-own__label">Ownership</div>
       <div class="hh-own__bar"><div class="hh-own__c" style="width:${cPct}%;"></div><div class="hh-own__s" style="width:${sPct}%;"></div></div>
-      <div class="hh-own__legend"><span>Client ${cPct}%</span><span>Spouse ${sPct}%</span></div>
+      <div class="hh-own__legend"><span>Client ${cPct}%</span><span>Co-Client ${sPct}%</span></div>
     </div>
   </div>`;
 }
 function renderHhHoldings(){
-  const joint = hhAllAccounts().filter(x => x.owner === 'joint');
-  const jointRows = joint.length ? joint.map(hhAcctRow).join('') : `<div class="hh-hold-empty">No jointly-held accounts</div>`;
-  const props = (plan.properties||[]).map((p,i)=>`<div class="hh-hold-row">
-      <span class="hh-hold-name">${hhField(`properties.${i}.name`,'text')}</span>
-      <span class="hh-hold-fields"><label>Value ${hhField(`properties.${i}.value`,'money')}</label><label>Mortgage ${hhField(`properties.${i}.mortgage.balance`,'money')}</label><button class="row-x" title="Remove asset" data-rmpath="properties.${i}">×</button></span>
-    </div>`).join('') || `<div class="hh-hold-empty">No real assets entered</div>`;
-  const liabs = (plan.liabilities||[]).map((l,i)=>`<div class="hh-hold-row">
-      <span class="hh-hold-name">${hhField(`liabilities.${i}.label`,'text')}</span>
-      <span class="hh-hold-fields"><label>${hhField(`liabilities.${i}.amount`,'money')}<span class="hh-suffix">/yr</span></label><button class="row-x" title="Remove liability" data-rmpath="liabilities.${i}">×</button></span>
-    </div>`).join('') || `<div class="hh-hold-empty">No liabilities entered</div>`;
+  // Joint- and trust-owned accounts live here (client/co-client accounts render
+  // in their pillars). The "+ Account" button opens the Account Type Bank form.
+  const shared = hhAllAccounts().filter(x => x.owner === 'joint' || x.owner === 'trust');
+  const sharedRows = shared.length ? shared.map(hhAcctRow).join('') : `<div class="hh-hold-empty">No joint or trust accounts</div>`;
+  // Tangible assets, simple: primary home + other tangible property. Values map
+  // to plan.properties[0]/[1] (lazily created on first edit); the mortgage below
+  // maps to properties[0].mortgage.balance. All display math (net worth, debt)
+  // reads the same paths as before — no engine change.
+  const homeVal  = getPath(plan, 'properties.0.value') || 0;
+  const otherVal = getPath(plan, 'properties.1.value') || 0;
+  const mortVal  = getPath(plan, 'properties.0.mortgage.balance') || 0;
+  const moneyRow = (label, path, val) => `<div class="hh-hold-row">
+      <span class="hh-hold-name hh-hold-name--fixed">${label}</span>
+      <span class="hh-hold-fields"><label><span class="pre">$</span><input type="text" inputmode="numeric" data-path="${path}" data-type="money" value="${(val||0).toLocaleString('en-US')}"></label></span>
+    </div>`;
   return `<div class="hh-holdings">
     <div class="hh-hold-grp">
-      <div class="hh-hold-head"><span>Joint accounts</span><button class="hh-add" type="button" data-add="account">+ Account</button></div>
-      ${jointRows}
-    </div>
-    <div class="hh-hold-grp">
-      <div class="hh-hold-head"><span>Real assets</span><button class="hh-add" type="button" data-add="property">+ Real asset</button></div>
-      ${props}
-    </div>
-    <div class="hh-hold-grp">
-      <div class="hh-hold-head"><span>Liabilities</span><button class="hh-add" type="button" data-add="liability">+ Liability</button></div>
-      ${liabs}
-    </div>
-    <div class="hh-hold-grp">
-      <div class="hh-hold-head"><span>Assumptions</span></div>
-      <div class="hh-assume">
-        <label><span>Allocation</span>${hhField('portfolio.riskProfile','risk')}</label>
-        <label><span>Withdrawal</span>${hhField('portfolio.withdrawalStrategy','strategy')}</label>
-        <label><span>Simulation paths</span>${hhField('simulation.iterations','num',{min:100,step:100})}</label>
-        <label><span>Taxable cost basis</span><span class="hh-assume__pct">${hhField('portfolio.accounts.taxable.basisPct','pct')}%</span></label>
+      <div class="hh-hold-head"><span>Accounts · joint &amp; trust</span><button class="hh-add" type="button" data-hh-action="open-account-form">+ Account</button></div>
+      ${hhAcctFormHtml()}
+      ${sharedRows}
+      <div class="hh-basis-row">
+        <span class="hh-hold-name hh-hold-name--fixed">Taxable cost basis</span>
+        <span class="hh-hold-fields"><label>${hhField('portfolio.accounts.taxable.basisPct','pct')}</label></span>
       </div>
+    </div>
+    <div class="hh-hold-grp">
+      <div class="hh-hold-head"><span>Tangible assets</span></div>
+      ${moneyRow('Primary home value', 'properties.0.value', homeVal)}
+      ${moneyRow('Other tangible property', 'properties.1.value', otherVal)}
+    </div>
+    <div class="hh-hold-grp">
+      <div class="hh-hold-head"><span>Liabilities</span></div>
+      ${moneyRow('Mortgage', 'properties.0.mortgage.balance', mortVal)}
     </div>
   </div>`;
 }
@@ -1378,7 +1432,7 @@ function hhLine(dir, name, amtHtml, meta){
 }
 function renderHhCashflow(){
   const inc = plan.income||{}, exp = plan.expenses||{}, ss = inc.socialSecurity||{}, pen = inc.pension||{};
-  const c = plan.meta.primaryName||'Client', s = plan.meta.spouseName||'Spouse';
+  const c = plan.meta.primaryName||'Client', s = plan.meta.spouseName||'Co-Client';
   let inflows = '';
   inflows += hhLine('in', 'Working income', hhField('income.workingIncome','money'));
   // Social Security — always show primary; show spouse row only when spouse exists
@@ -1418,7 +1472,7 @@ function renderHhCashflow(){
   const net = totalIn - totalOut, neg = net < 0;
   return `<div class="hh-doc">
     <div class="hh-doc__head hh-doc__head--split">
-      <div><div class="hh-eyebrow">Chapter III</div><div class="hh-doc__title">Cash Flow</div></div>
+      <div><div class="hh-eyebrow">Chapter II</div><div class="hh-doc__title">Cash Flow</div></div>
       <div class="hh-surplus"><div class="hh-surplus__label">Net surplus</div><div class="hh-surplus__value ${neg?'hh-surplus__value--neg':'hh-surplus__value--pos'}">${hhSigned(net)}</div></div>
     </div>
     <div class="hh-flows">
@@ -1437,14 +1491,20 @@ function renderHhCashflow(){
 function hhResetToDemo(){
   if(!confirm('Reset to demo household? All unsaved edits will be lost.')) return;
   plan.meta.primaryName = 'Client';
-  plan.meta.spouseName  = 'Spouse';
+  plan.meta.spouseName  = 'Co-Client';
   plan.meta.filingStatus = 'marriedFilingJointly';
-  plan.household.primary  = { currentAge: 58, retirementAge: 65, planEndAge: 95 };
-  plan.household.spouse   = { currentAge: 57, retirementAge: 64 };
-  plan.portfolio.accounts.taxable     = { balance: 800000,  owner: 'spouse', basisPct: 0.55 };
-  plan.portfolio.accounts.traditional = { balance: 1600000, owner: 'client' };
-  plan.portfolio.accounts.roth        = { balance: 400000,  owner: 'spouse' };
-  plan.portfolio.extraAccounts = [];
+  plan.meta.state = 'CA';
+  plan.household.primary  = { currentAge: 58, retirementAge: 65, planEndAge: 95, birthYear: 1968 };
+  plan.household.spouse   = { currentAge: 57, retirementAge: 64, birthYear: 1969 };
+  // Sleeves are aggregation targets; the demo portfolio is typed accounts.
+  plan.portfolio.accounts.taxable     = { balance: 0, basisPct: 0.55 };
+  plan.portfolio.accounts.traditional = { balance: 0 };
+  plan.portfolio.accounts.roth        = { balance: 0 };
+  plan.portfolio.extraAccounts = [
+    { type:'Brokerage (taxable)', bucket:'taxable',     owner:'spouse', balance: 800000  },
+    { type:'Traditional IRA',     bucket:'traditional', owner:'client', balance: 1600000 },
+    { type:'Roth IRA',            bucket:'roth',        owner:'spouse', balance: 400000  },
+  ];
   plan.properties  = [];
   plan.liabilities = [];
   plan.income.workingIncome = 300000;
@@ -1464,7 +1524,7 @@ function hhResetToDemo(){
   ];
   try{ localStorage.removeItem(SCEN_KEY); }catch(e){}
   scenarios = demoScenarios(); baseSnapshot = defaultLevers();
-  hhChapter = 'demographics';
+  hhChapter = 'networth';
   buildLevers(); plansDirty = true; sharedPaths = null;
   syncHousehold();
   renderInputs();
@@ -1476,11 +1536,14 @@ function hhClearHousehold(){
   plan.meta.primaryName  = '';
   plan.meta.spouseName   = '';
   plan.meta.filingStatus = 'single';
-  plan.household.primary  = { currentAge: 60, retirementAge: 65, planEndAge: 90 };
+  plan.meta.state = 'CA';
+  plan.household.primary  = { currentAge: 60, retirementAge: 65, planEndAge: 90, birthYear: new Date().getFullYear() - 60 };
   plan.household.spouse   = null;
-  plan.portfolio.accounts.taxable     = { balance: 0, owner: 'client', basisPct: 1.0 };
-  plan.portfolio.accounts.traditional = { balance: 0, owner: 'client' };
-  plan.portfolio.accounts.roth        = { balance: 0, owner: 'client' };
+  // A cleared plan starts with NO accounts — the advisor adds what the
+  // household actually owns through the Account Type Bank.
+  plan.portfolio.accounts.taxable     = { balance: 0, basisPct: 1.0 };
+  plan.portfolio.accounts.traditional = { balance: 0 };
+  plan.portfolio.accounts.roth        = { balance: 0 };
   plan.portfolio.extraAccounts = [];
   plan.properties  = [];
   plan.liabilities = [];
@@ -1496,7 +1559,7 @@ function hhClearHousehold(){
   plan.goals = [];
   try{ localStorage.removeItem(SCEN_KEY); }catch(e){}
   scenarios = demoScenarios(); baseSnapshot = defaultLevers();
-  hhChapter = 'demographics';
+  hhChapter = 'networth';
   buildLevers(); plansDirty = true; sharedPaths = null;
   syncHousehold();
   renderInputs();
@@ -1512,23 +1575,26 @@ function syncHousehold(){
   const nm = $('#hh-rail-name'), fl = $('#hh-rail-filing');
   if(nm){
     const pn = plan.meta.primaryName||'Client';
-    const sn = plan.meta.spouseName||'Spouse';
+    const sn = plan.meta.spouseName||'Co-Client';
     nm.textContent = plan.household.spouse ? (pn + ' & ' + sn) : pn;
   }
   if(fl) fl.textContent = hhFilingLine();
   if($('#hh-avatar-c')) $('#hh-avatar-c').textContent = hhInitial(plan.meta.primaryName,'C');
-  if($('#hh-avatar-s')) $('#hh-avatar-s').textContent = hhInitial(plan.meta.spouseName,'S');
-  view.innerHTML = hhChapter==='networth' ? renderHhNetWorth()
-                 : hhChapter==='cashflow' ? renderHhCashflow()
-                 :                          renderHhDemographics();
-  [['demographics','hh-chap-demographics'],['networth','hh-chap-networth'],['cashflow','hh-chap-cashflow']].forEach(([k,id]) => {
+  // Default co-client avatar reads 'CC' so it stays distinct from the client's 'C'.
+  if($('#hh-avatar-s')) $('#hh-avatar-s').textContent =
+    (!plan.meta.spouseName || plan.meta.spouseName === 'Co-Client') ? 'CC' : hhInitial(plan.meta.spouseName,'CC');
+  // Household Basics banner renders ABOVE whichever chapter is active — it is
+  // part of the document mount, not a separate page or chapter.
+  const chapterHtml = hhChapter==='cashflow' ? renderHhCashflow() : renderHhNetWorth();
+  view.innerHTML = renderHhBanner() + chapterHtml;
+  [['networth','hh-chap-networth'],['cashflow','hh-chap-cashflow']].forEach(([k,id]) => {
     const el = $('#'+id); if(!el) return;
     const on = hhChapter===k; el.classList.toggle('is-active', on); el.setAttribute('aria-selected', on?'true':'false');
   });
 }
 /* Chapter rail = the view switch. Bound once at boot. */
 function bindHouseholdRailOnce(){
-  [['demographics','hh-chap-demographics'],['networth','hh-chap-networth'],['cashflow','hh-chap-cashflow']].forEach(([k,id]) => {
+  [['networth','hh-chap-networth'],['cashflow','hh-chap-cashflow']].forEach(([k,id]) => {
     const el = $('#'+id); if(el) el.addEventListener('click', () => { hhChapter = k; syncHousehold(); });
   });
   // Demo / Clear household action buttons in the rail footer.
@@ -1619,6 +1685,9 @@ function renderField(f, klass){
   }
   if(f.type==='text'){
     return `<input type="text" data-path="${f.path}" data-type="text" value="${escHtml(v||'')}" placeholder="${f.ph||''}">`;
+  }
+  if(f.type==='date'){
+    return `<input type="date" data-path="${f.path}" data-type="text" value="${escHtml(v||'')}">`;
   }
   if(f.type==='money'){
     const dv = (v||0).toLocaleString('en-US');
@@ -1725,9 +1794,9 @@ function flowSection(arr, nameKey, ph, kind, addLabel){
 }
 
 /* The old Balance-Sheet statement / Map editor (renderHouseholdStatement) was
-   retired. Household is now the EDITABLE plan-input console: the three chapters
-   (Demographics / Net Worth / Cash Flow) live inline in this file as
-   renderHhDemographics / renderHhNetWorth / renderHhCashflow, rendered by
+   retired. Household is now the EDITABLE plan-input console: the Household
+   Basics banner + two chapters (Net Worth / Cash Flow) live inline in this
+   file as renderHhBanner / renderHhNetWorth / renderHhCashflow, rendered by
    syncHousehold() and backed by the #hh-view delegated change handler. */
 
 /* ── Hybrid layout (Inflows / Outflows / Goals) ───────────────────
@@ -2688,11 +2757,28 @@ $('#hh-view').addEventListener('input', e => {
   if(e.target.dataset.type === 'money' || e.target.dataset.type === 'monthlyMoney') liveCommas(e.target);
 });
 $('#hh-view').addEventListener('change', e => {
+  // Add-account form controls carry no data-path (transient until Save).
+  if(!e.target.dataset.path && e.target.classList && e.target.classList.contains('hh-form-type')){
+    // Choosing a type prefills the form's ownership from the bank's default
+    // (Joint brokerage → Joint, Trust brokerage → Trust) without a re-render.
+    const t = HH_ACCOUNT_TYPES[+e.target.value];
+    const ownerSel = document.querySelector('#hh-acct-form .hh-form-owner');
+    if(t && t.owner && ownerSel) ownerSel.value = t.owner;
+    return;
+  }
   const path = e.target.dataset.path, type = e.target.dataset.type;
   if(!path) return;
   const raw = e.target.value;
   if(type==='text' || type==='strategy' || type==='owner' || type==='bucket'){   // string writes
     setPath(plan, path, raw);
+    hhCommit();
+    return;
+  }
+  // Changing an account's TYPE re-derives its tax bucket from the bank (the
+  // bucket is what the engine folds into taxable/traditional/roth).
+  if(type==='acctType'){
+    setPath(plan, path, raw);
+    setPath(plan, path.replace(/\.type$/, '.bucket'), hhBucketForType(raw));
     hhCommit();
     return;
   }
@@ -2705,6 +2791,27 @@ $('#hh-view').addEventListener('change', e => {
   if(type==='money'){ v = Math.max(0, Math.round(v)); e.target.value = v.toLocaleString('en-US'); }
   if(type==='monthlyMoney'){ const m = Math.max(0, Math.round(v)); v = m*12; e.target.value = m.toLocaleString('en-US'); }
   if(type==='num')  v = Math.max(1, Math.round(v));
+  // BORN (birth year): writes the year AND derives the person's current age —
+  // the engine's actual input. 4-digit sanity clamp; age recomputed whole-year.
+  if(type==='birthYear'){
+    v = Math.round(v);
+    if(v < 1900 || v > new Date().getFullYear()) return;
+    const age = hhAgeFromYear(v);
+    setPath(plan, path, v);
+    if(age != null) setPath(plan, path.replace(/\.birthYear$/, '.currentAge'), age);
+    hhCommit();
+    return;
+  }
+  // Tangible-asset / mortgage rows write into plan.properties[0|1]; create the
+  // slots on first edit so a cleared plan doesn't need preloaded property rows.
+  if(/^properties\.[01]\./.test(path)){
+    if(!Array.isArray(plan.properties)) plan.properties = [];
+    const idx = +path.split('.')[1];
+    while(plan.properties.length <= idx){
+      plan.properties.push({ name: plan.properties.length === 0 ? 'Primary home' : 'Other property',
+        value: 0, purchasePrice: 0, mortgage: { balance: 0, rate: 0, termYears: 0 } });
+    }
+  }
   setPath(plan, path, v);
   hhCommit();
 });
@@ -2737,21 +2844,45 @@ $('#hh-view').addEventListener('click', e => {
     }
     return;
   }
-  // Household-level actions (add-spouse, remove-spouse, add-pension-age)
+  // Household-level actions (co-client toggle, pension ages, account-bank form)
   const act = e.target.closest('[data-hh-action]');
   if(act){
     const action = act.dataset.hhAction;
     if(action === 'add-spouse'){
-      plan.household.spouse = { currentAge: 55, retirementAge: 62 };
+      plan.household.spouse = { currentAge: 55, retirementAge: 62, birthYear: new Date().getFullYear() - 55 };
       plan.meta.spouseName  = plan.meta.spouseName || '';
       if(!plan.income.socialSecurity.spouse) plan.income.socialSecurity.spouse = { pia: 0, claimAge: 67 };
       plan.meta.filingStatus = 'marriedFilingJointly';
       hhCommit();
     } else if(action === 'remove-spouse'){
-      if(!confirm('Remove spouse from this household?')) return;
+      if(!confirm('Remove co-client from this household?')) return;
       plan.household.spouse = null;
       plan.income.socialSecurity.spouse = null;
       plan.meta.filingStatus = 'single';
+      hhCommit();
+    } else if(action === 'open-account-form'){
+      hhAcctFormOpen = true;
+      syncHousehold();
+      const val = document.querySelector('#hh-acct-form .hh-form-val');
+      if(val) val.focus();
+    } else if(action === 'cancel-account'){
+      hhAcctFormOpen = false;
+      syncHousehold();
+    } else if(action === 'save-account'){
+      // Account Type Bank commit: type → bucket mapping, typed value, ownership.
+      const form = document.querySelector('#hh-acct-form');
+      if(!form) return;
+      const t = HH_ACCOUNT_TYPES[+form.querySelector('.hh-form-type').value] || HH_ACCOUNT_TYPES[0];
+      const valEl = form.querySelector('.hh-form-val');
+      const bal = parseFloat(String(valEl ? valEl.value : '').replace(/[^0-9.]/g, ''));
+      if(!isFinite(bal) || bal <= 0){
+        if(valEl){ valEl.focus(); valEl.style.outline = '2px solid var(--down)'; setTimeout(() => valEl.style.outline = '', 1500); }
+        return;
+      }
+      const owner = form.querySelector('.hh-form-owner').value || 'client';
+      if(!plan.portfolio.extraAccounts) plan.portfolio.extraAccounts = [];
+      plan.portfolio.extraAccounts.push({ type: t.label, bucket: t.bucket, owner, balance: Math.round(bal) });
+      hhAcctFormOpen = false;
       hhCommit();
     } else if(action === 'add-pension-age'){
       if(!plan.income.pension) plan.income.pension = { benefitByAge:{}, startAge:65, colaPct:0 };
