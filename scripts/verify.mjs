@@ -755,113 +755,187 @@ try {
     await sleep(200);
   });
 
-  await step('goals renders Horizon view (title, timeline, rows, editor)', async () => {
-    // Contract updated for the shipped Goals Horizon view: the Goals tab now renders
-    // renderGoalsHorizon() -> #gl-horizon, which replaced the old tributary thread
-    // (#goal-thread / .gt-spine). The retired renderGoalsPage()/goalsThreadSVG() are
-    // preserved in index.html as dead code; this asserts the CURRENT Horizon DOM.
+  await step('goals renders Life Chapters view (title, cards, rows, composer)', async () => {
+    // Contract updated for the shipped Life Chapters view: the Goals tab now
+    // renders renderGoalsChapters() -> #gl-chapters (three derived chapter
+    // cards + inline row editing + the two-mode goal composer), replacing the
+    // retired Horizon (#gl-horizon). renderGoalsHorizon()/initGoalsHorizon()
+    // are preserved in index.html as dead code; this asserts the CURRENT DOM.
+    // The what-if drop mechanism was retired by design decision (2026-07-06).
     await page.click('.htab[data-sub-target="goals"]');
     await new Promise(r => setTimeout(r, 400));
     const m = await page.evaluate(() => {
-      const hz = document.querySelector('#gl-horizon');
-      const host = document.querySelector('#np-content') || hz;
+      const ch = document.querySelector('#gl-chapters');
+      const host = document.querySelector('#np-content') || ch;
       const hostText = (host?.textContent || '').replace(/\s+/g, ' ').trim();
       return {
-        horizon: !!hz,
-        title: /Lifestyle Spending & Goals/.test(hostText),
-        svgs: document.querySelectorAll('#gl-horizon svg').length,
-        rows: document.querySelectorAll('.gl-row').length,
-        addControls: document.querySelectorAll('[data-add="goalRec"], [data-add="goalOnce"], .gl-add, .hp-add').length,
-        editChips: document.querySelectorAll('.ga-chip').length,
-        keeps: document.querySelectorAll('.gl-keep').length,
+        chapters: !!ch,
+        title: /Spending & Lifestyle Goals/.test(hostText),
+        cards: document.querySelectorAll('.glc-card').length,
+        romans: [...document.querySelectorAll('.glc-roman')].map(el => el.textContent.trim()).join(','),
+        rows: document.querySelectorAll('.glc-row').length,
+        totals: [...document.querySelectorAll('.glc-total')].map(el => el.textContent.trim()),
+        switchTabs: document.querySelectorAll('.glc-csw').length,
+        composerA: !!document.querySelector('#glc-composer-a'),
+        composerB: !!document.querySelector('#glc-composer-b'),
+        catChips: document.querySelectorAll('#glc-a-cats .glc-cchip').length,
         textLen: hostText.length,
       };
     });
-    if(!m.horizon) throw new Error('Goals Horizon (#gl-horizon) did not render');
-    if(!m.title) throw new Error('Goals title "Lifestyle Spending & Goals" missing from rendered view');
-    if(m.svgs < 1) throw new Error(`Goals timeline SVG missing (svgs=${m.svgs})`);
+    if(!m.chapters) throw new Error('Goals Life Chapters (#gl-chapters) did not render');
+    if(!m.title) throw new Error('Goals title "Spending & Lifestyle Goals" missing from rendered view');
+    if(m.cards !== 3) throw new Error(`expected 3 chapter cards, got ${m.cards}`);
+    if(m.romans !== 'I,II,III') throw new Error(`chapter numerals wrong (${m.romans})`);
     if(m.rows < 1) throw new Error(`expected >=1 goal row, got ${m.rows}`);
+    if(m.totals.some(t => !/^\$/.test(t))) throw new Error(`chapter totals malformed (${m.totals.join(' / ')})`);
+    if(m.switchTabs !== 2 || !m.composerA || !m.composerB)
+      throw new Error('composer (TIMELINE/QUICK-TAP switch + both panels) did not render');
+    if(m.catChips < 1) throw new Error('composer category chips did not render');
     if(m.textLen < 40) throw new Error(`Goals page appears blank (textLen=${m.textLen})`);
-    // recurring / one-time / add / edit controls — assert the editor surfaced at least one.
-    if((m.addControls + m.editChips + m.keeps) < 1) throw new Error('recurring/one-time/add/edit goal controls did not render');
     await page.screenshot({ path: join(OUT, '02-goals.png'), fullPage: true });
   });
 
-  await step('goals Horizon: add, delete, what-if drop, and select workflows', async () => {
-    // Contract updated for the Goals Horizon view. Add/delete drive both the edit
-    // rows (.gl-row) and the timeline (recurring -> .glh-band, one-time -> .glh-diamond);
-    // the what-if toggle (.gl-keep) flips the edit row to .gl-row.dropped; selecting a
-    // timeline lane (.glh-lane) highlights the lane (.glh-lane--sel) and its edit row
-    // (.gl-row.sel). Replaces the retired tributary (#goal-thread / .gt-* ) assertions.
+  await step('goals Life Chapters: composer add, inline edit, Escape, cadence, remove', async () => {
+    // Add via composer A writes ONE flat plan.goals record; its rows derive
+    // into every overlapped chapter (data-gi ties them) and flash gold.
+    // Pointerdown on a row opens the inline editor; closing commits to the
+    // flat store (whole-goal amount semantics); Escape cancels and restores
+    // the store-derived render. All assertions are DOM-level (the app script
+    // is a module — `plan` is not a window global).
     await page.click('.htab[data-sub-target="goals"]');
     await new Promise(r => setTimeout(r, 350));
-    const snap = () => page.evaluate(() => ({
-      rows: document.querySelectorAll('.gl-row').length,
-      lanes: document.querySelectorAll('.glh-lane').length,
-      bands: document.querySelectorAll('.glh-band').length,
-      diamonds: document.querySelectorAll('.glh-diamond').length,
-      dropped: document.querySelectorAll('.gl-row.dropped').length,
-      selLanes: document.querySelectorAll('.glh-lane--sel').length,
-      selRows: document.querySelectorAll('.gl-row.sel').length,
-      horizon: !!document.querySelector('#gl-horizon'),
-      textLen: (document.querySelector('#gl-horizon')?.textContent || '').replace(/\s+/g, ' ').trim().length,
+    const maxGi = () => page.evaluate(() =>
+      Math.max(-1, ...[...document.querySelectorAll('.glc-row')].map(r => +r.dataset.gi)));
+    const rowsFor = gi => page.evaluate(g =>
+      document.querySelectorAll(`.glc-row[data-gi="${g}"]`).length, gi);
+    const chapterTotals = () => page.evaluate(() =>
+      [...document.querySelectorAll('.glc-total')].map(el => el.textContent.trim()));
+    const openRow = (gi, band) => page.evaluate((g, b) => {
+      const row = document.querySelector(`.glc-row[data-gi="${g}"][data-band="${b}"]`) ||
+                  document.querySelector(`.glc-row[data-gi="${g}"]`);
+      row.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+    }, gi, band);
+    const closeOutside = () => page.evaluate(() => {
+      document.body.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, clientX: 4, clientY: 4 }));
+    });
+
+    const gi0 = await maxGi();
+    if(gi0 < 0) throw new Error('no seed goal rows rendered');
+
+    // 1) composer add (recurring, default full span) → one new goal index,
+    //    one flashing row in each of the 3 chapters, name field refocused
+    await page.click('#glc-a-name');
+    await page.type('#glc-a-name', 'Verify goal');
+    await page.click('#glc-a-add');
+    await new Promise(r => setTimeout(r, 400));
+    const newGi = await maxGi();
+    if(newGi !== gi0 + 1) throw new Error(`composer add did not append a goal (maxGi ${gi0} -> ${newGi})`);
+    let m = await page.evaluate(g => ({
+      rows: document.querySelectorAll(`.glc-row[data-gi="${g}"]`).length,
+      flash: document.querySelectorAll('.glc-row--flash').length,
+      named: [...document.querySelectorAll(`.glc-row[data-gi="${g}"] .glc-name`)].every(el => el.textContent === 'Verify goal'),
+      refocused: document.activeElement && document.activeElement.id === 'glc-a-name',
+    }), newGi);
+    if(m.rows !== 3) throw new Error(`full-span goal should render in all 3 chapters, got ${m.rows} rows`);
+    if(m.flash < 1) throw new Error('newly added rows did not flash');
+    if(!m.named) throw new Error('added rows do not carry the typed goal name');
+
+    // 2) inline edit: open the new goal's row, change the amount, click
+    //    outside → commits to the whole flat goal (all slices re-render)
+    const totalsSeed = await chapterTotals();
+    await openRow(newGi, 0);
+    await new Promise(r => setTimeout(r, 200));
+    if(!await page.evaluate(() => !!document.querySelector('.glc-ed')))
+      throw new Error('inline editor did not open on row pointerdown');
+    await page.evaluate(() => {
+      const amt = document.querySelector('.glc-ed-amt');
+      amt.value = '7000';
+      amt.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    await closeOutside();
+    await new Promise(r => setTimeout(r, 400));
+    m = await page.evaluate(g => ({
+      editorGone: !document.querySelector('.glc-ed'),
+      totals: [...document.querySelectorAll('.glc-total')].map(el => el.textContent.trim()),
+      subs: [...document.querySelectorAll(`.glc-row[data-gi="${g}"] .glc-sub`)].map(el => el.textContent),
+    }), newGi);
+    if(!m.editorGone) throw new Error('inline editor did not close on outside click');
+    if(JSON.stringify(m.totals) === JSON.stringify(totalsSeed))
+      throw new Error('inline amount edit did not commit (chapter totals unchanged)');
+    if(!m.subs.every(s => s.includes('$7,000')))
+      throw new Error(`whole-goal amount did not propagate to all slices (${m.subs.join(' | ')})`);
+
+    // 3) Escape cancels a dirty edit and restores the store-derived render
+    const beforeCancel = await page.evaluate(() => ({
+      totals: [...document.querySelectorAll('.glc-total')].map(el => el.textContent.trim()),
+      subs: [...document.querySelectorAll('.glc-sub')].map(el => el.textContent.trim()),
     }));
+    await openRow(newGi, 0);
+    await new Promise(r => setTimeout(r, 200));
+    const midTotals = await page.evaluate(() => {
+      const amt = document.querySelector('.glc-ed-amt');
+      amt.value = '99000';
+      amt.dispatchEvent(new Event('input', { bubbles: true }));
+      return [...document.querySelectorAll('.glc-total')].map(el => el.textContent.trim());
+    });
+    if(JSON.stringify(midTotals) === JSON.stringify(beforeCancel.totals))
+      throw new Error('live edit did not update chapter totals (test precondition failed)');
+    await page.evaluate(() => {
+      document.querySelector('.glc-ed').dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    });
+    await new Promise(r => setTimeout(r, 400));
+    m = await page.evaluate(() => ({
+      totals: [...document.querySelectorAll('.glc-total')].map(el => el.textContent.trim()),
+      subs: [...document.querySelectorAll('.glc-sub')].map(el => el.textContent.trim()),
+      editorGone: !document.querySelector('.glc-ed'),
+    }));
+    if(!m.editorGone) throw new Error('Escape did not close the editor');
+    if(JSON.stringify(m.totals) !== JSON.stringify(beforeCancel.totals))
+      throw new Error(`Escape did not restore chapter totals (${m.totals} vs ${beforeCancel.totals})`);
+    if(JSON.stringify(m.subs) !== JSON.stringify(beforeCancel.subs))
+      throw new Error('Escape did not restore row subtitles');
 
-    const base = await snap();
-    if(!base.horizon) throw new Error('Goals Horizon (#gl-horizon) did not render');
-    if(base.rows < 1) throw new Error(`expected seed goal rows, got ${base.rows}`);
+    // 4) cadence round-trip: recurring multi-chapter -> one-time collapses to
+    //    a single chapter row on commit; one-time -> recurring defaults to the
+    //    chapter's full band (a real span again)
+    await openRow(newGi, 0);
+    await new Promise(r => setTimeout(r, 200));
+    await page.evaluate(() => document.querySelector('.glc-ed-cad[data-cad="once"]').click());
+    await closeOutside();
+    await new Promise(r => setTimeout(r, 400));
+    if(await rowsFor(newGi) !== 1)
+      throw new Error('cadence -> one-time did not collapse the goal to a single chapter row');
+    m = await page.evaluate(g =>
+      document.querySelector(`.glc-row[data-gi="${g}"] .glc-sub`).textContent, newGi);
+    if(!/One-time/.test(m)) throw new Error(`collapsed row sub-line is not one-time ("${m}")`);
+    await openRow(newGi, 0);
+    await new Promise(r => setTimeout(r, 200));
+    await page.evaluate(() => document.querySelector('.glc-ed-cad[data-cad="yr"]').click());
+    await closeOutside();
+    await new Promise(r => setTimeout(r, 400));
+    m = await page.evaluate(g =>
+      document.querySelector(`.glc-row[data-gi="${g}"] .glc-sub`).textContent, newGi);
+    if(!/\/yr/.test(m)) throw new Error(`cadence -> recurring did not restore a /yr span ("${m}")`);
 
-    // 1) add recurring → a new edit row + a recurring band in the timeline
-    await page.click('[data-add="goalRec"]');
-    await new Promise(r => setTimeout(r, 300));
-    const addRec = await snap();
-    if(addRec.rows !== base.rows + 1) throw new Error(`add recurring did not append a row (${base.rows} -> ${addRec.rows})`);
-    if(addRec.bands < base.bands + 1) throw new Error(`add recurring did not add a timeline band (${base.bands} -> ${addRec.bands})`);
-
-    // 2) delete → row + band removed
-    await page.click('.gl-row:last-child .row-x');
-    await new Promise(r => setTimeout(r, 300));
-    let cur = await snap();
-    if(cur.rows !== base.rows) throw new Error(`delete after add-recurring did not restore rows (got ${cur.rows}, want ${base.rows})`);
-    if(cur.bands !== base.bands) throw new Error(`delete did not remove the timeline band (${cur.bands} vs ${base.bands})`);
-
-    // 3) add one-time → a new edit row + a one-time diamond marker
-    await page.click('[data-add="goalOnce"]');
-    await new Promise(r => setTimeout(r, 300));
-    const addOnce = await snap();
-    if(addOnce.rows !== base.rows + 1) throw new Error(`add one-time did not append a row (${base.rows} -> ${addOnce.rows})`);
-    if(addOnce.diamonds < base.diamonds + 1) throw new Error(`add one-time did not add a timeline diamond (${base.diamonds} -> ${addOnce.diamonds})`);
-
-    // 4) delete → row + marker removed
-    await page.click('.gl-row:last-child .row-x');
-    await new Promise(r => setTimeout(r, 300));
-    cur = await snap();
-    if(cur.rows !== base.rows) throw new Error(`delete after add-one-time did not restore rows (got ${cur.rows}, want ${base.rows})`);
-    if(cur.diamonds !== base.diamonds) throw new Error(`delete did not remove the timeline diamond (${cur.diamonds} vs ${base.diamonds})`);
-
-    // 5) what-if drop toggle → edit row state flips to dropped, then restores
-    await page.click('.gl-row .gl-keep');
-    await new Promise(r => setTimeout(r, 300));
-    const drop = await snap();
-    if(drop.dropped !== 1) throw new Error(`what-if drop did not mark a row dropped (dropped=${drop.dropped})`);
-    await page.click('.gl-row.dropped .gl-keep');
-    await new Promise(r => setTimeout(r, 300));
-    cur = await snap();
-    if(cur.dropped !== 0) throw new Error(`what-if drop did not restore (dropped=${cur.dropped})`);
-
-    // 6) select via timeline lane → lane + its edit row highlight (if the DOM supports lanes)
-    if(cur.lanes > 0){
-      await page.click('.glh-lane');
-      await new Promise(r => setTimeout(r, 250));
-      const sel = await snap();
-      if(sel.selLanes < 1 && sel.selRows < 1) throw new Error(`lane select did not highlight a lane or row (${JSON.stringify({ selLanes: sel.selLanes, selRows: sel.selRows })})`);
-      await page.click('.glh-lane'); // toggle selection back off
-      await new Promise(r => setTimeout(r, 150));
-    }
+    // 5) remove: reopen the row, click REMOVE → goal deleted from the store
+    await openRow(newGi, 0);
+    await new Promise(r => setTimeout(r, 200));
+    await page.click('.glc-ed-remove');
+    await new Promise(r => setTimeout(r, 400));
+    m = await page.evaluate(() => ({
+      maxGi: Math.max(-1, ...[...document.querySelectorAll('.glc-row')].map(r => +r.dataset.gi)),
+      verifyGone: ![...document.querySelectorAll('.glc-name')].some(el => el.textContent === 'Verify goal'),
+      chapters: !!document.querySelector('#gl-chapters'),
+      rows: document.querySelectorAll('.glc-row').length,
+      textLen: (document.querySelector('#gl-chapters')?.textContent || '').replace(/\s+/g, ' ').trim().length,
+    }));
+    if(m.maxGi !== gi0) throw new Error(`remove did not restore goal count (maxGi=${m.maxGi}, want ${gi0})`);
+    if(!m.verifyGone) throw new Error('removed goal still renders in a chapter');
 
     // Goals page must remain rendered (not blank) after all interactions.
-    const end = await snap();
-    if(!end.horizon || end.rows < 1 || end.textLen < 40) throw new Error(`Goals page blank/broken after workflows (${JSON.stringify(end)})`);
+    if(!m.chapters || m.rows < 1 || m.textLen < 40)
+      throw new Error(`Goals page blank/broken after workflows (${JSON.stringify(m)})`);
   });
 
   await step('scenarios Compare view: columns, rings, levers, goals', async () => {
@@ -1147,8 +1221,8 @@ try {
     if(scnBg.includes(NAVY)) throw new Error(`Scenarios page still shows retired navy: ${scnBg}`);
 
     await page.click('.htab[data-sub-target="goals"]'); await sleep(600);
-    // Goals mounts the Horizon view (#gl-horizon) now, not the retired .gl-wrap tributary.
-    if(!await page.evaluate(() => !!document.querySelector('#np-content .gl-horizon'))) throw new Error('Goals view did not mount .gl-horizon');
+    // Goals mounts the Life Chapters view (.gl-chapters) now, not the retired Horizon.
+    if(!await page.evaluate(() => !!document.querySelector('#np-content .gl-chapters'))) throw new Error('Goals view did not mount .gl-chapters');
     const goalsBg = await bgOf('.page[data-page="net-worth"]');
 
     await page.click('button[data-page="sequencing"]'); await sleep(450);
