@@ -213,7 +213,43 @@
 .page[data-page="scenarios"] .scol__head--menu { justify-content: space-between; }
 .page[data-page="scenarios"] .scol__dot { width: 7px; height: 7px; border-radius: 50%; background: var(--tone); box-shadow: 0 0 8px var(--tone-glow); }
 .page[data-page="scenarios"] .scol__name { font-family: var(--font-serif); font-weight: 300; font-size: 18px; white-space: nowrap; color: var(--text-1); }
-.page[data-page="scenarios"] .scol__menu { font-size: 16px; color: var(--text-nav); line-height: 0.5; background: transparent; border: 0; cursor: pointer; padding: 0; }
+.page[data-page="scenarios"] .scol__menu { font-size: 16px; color: var(--text-nav); line-height: 0.5; background: transparent; border: 0; cursor: pointer; padding: 4px 8px; margin: -4px -8px; border-radius: var(--r-sm); }
+.page[data-page="scenarios"] .scol__menu:hover { color: #d8cfb8; background: var(--fill-04); }
+
+/* ⋯ popover: Rename / Delete for non-baseline plans. One primary glass card,
+   scoped tokens, ≥14px text, warm two-tone ink — no white. */
+.page[data-page="scenarios"] .scol__head--menu { position: relative; }
+.page[data-page="scenarios"] .scol__pop {
+  position: absolute; top: calc(100% + 7px); right: 0; z-index: 40;
+  min-width: 156px; padding: 6px;
+  display: flex; flex-direction: column; gap: 2px;
+  background: var(--glass-card);
+  border: 1px solid var(--line-10);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-card);
+  backdrop-filter: var(--blur-rail);
+}
+.page[data-page="scenarios"] .scol__pop-item {
+  display: block; width: 100%; text-align: left;
+  padding: 9px 11px; border: 0; border-radius: var(--r-sm);
+  background: transparent; color: var(--text-2b);
+  font-size: 14px; font-weight: 500; letter-spacing: 0.02em;
+  font-family: inherit; cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.page[data-page="scenarios"] .scol__pop-item:hover { background: var(--fill-05); color: #d8cfb8; }
+.page[data-page="scenarios"] .scol__pop-item--danger { color: var(--down); }
+.page[data-page="scenarios"] .scol__pop-item--danger:hover { background: rgba(192,121,95,0.10); color: var(--down); }
+
+/* Inline rename input — replaces .scol__name in place */
+.page[data-page="scenarios"] .scol__rename {
+  font-family: var(--font-serif); font-weight: 300; font-size: 18px;
+  color: #d8cfb8; caret-color: var(--gold);
+  background: var(--fill-03);
+  border: 1px solid rgba(198,166,98,0.45); border-radius: var(--r-sm);
+  padding: 2px 8px; outline: none;
+  width: 148px; min-width: 0;
+}
 .page[data-page="scenarios"] .scol__metric { display: flex; align-items: center; gap: 13px; margin-top: 14px; }
 .page[data-page="scenarios"] .scol__prob { font-family: var(--font-serif); font-weight: 300; font-size: 30px; color: var(--text-hi); line-height: 1; }
 .page[data-page="scenarios"] .scol__prob .pct { font-size: 14px; color: var(--text-3); }

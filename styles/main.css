@@ -1252,6 +1252,39 @@ body .hdr-right{gap:30px}
 body .status{font-size:14px;letter-spacing:.20em;color:var(--ng-ink-muted)}
 body .run-btn{min-width:123px;min-height:40px;border-radius:10px;background:var(--btn);color:var(--btn-ink);box-shadow:inset 0 1px 0 rgba(255,255,255,.40),0 13px 30px -20px rgba(198,166,98,.55)}
 
+/* Manual SAVE — secondary sibling of RUN: flat charcoal-glass pill, champagne
+   accent when armed, dimmed when the working plan matches the saved snapshot.
+   States are driven by index.html's syncSaveBtn(): disabled "Saved" (clean),
+   armed "Save" (dirty), "Saved ✓" (brief confirmation), "Retry save" (failed
+   storage write — never a fake success). */
+body .save-btn{
+  min-height:40px;
+  padding:10px 18px;
+  border-radius:10px;
+  border:1px solid rgba(231,222,201,.10);
+  background:rgba(231,222,201,.03);
+  color:#b8ad92;
+  font-family:var(--font-sans);
+  font-weight:600;
+  font-size:14px;
+  letter-spacing:.22em;
+  text-transform:uppercase;
+  cursor:default;
+  transition:color .2s ease,border-color .2s ease,background .2s ease;
+}
+body .save-btn--dirty{
+  border-color:rgba(198,166,98,.38);
+  color:var(--accent);
+  cursor:pointer;
+}
+body .save-btn--dirty:hover{background:rgba(198,166,98,.08)}
+body .save-btn--dirty:active{transform:translateY(1px)}
+body .save-btn--failed{
+  border-color:rgba(205,154,82,.48);
+  color:var(--warn);
+  cursor:pointer;
+}
+
 body .page[data-page="net-worth"],
 body .page[data-page="sequencing"]{
   position:relative;
@@ -1264,7 +1297,8 @@ body .page[data-page="sequencing"]{
 body .page[data-page="household"],
 body .page[data-page="sequencing"],
 body .page[data-page="net-worth"]:has(.gl-wrap),
-body .page[data-page="net-worth"]:has(.gl-horizon){
+body .page[data-page="net-worth"]:has(.gl-horizon),
+body .page[data-page="net-worth"]:has(.gl-chapters){
   background:var(--app-page-bg);
   background-attachment:fixed;
 }
