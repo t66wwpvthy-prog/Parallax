@@ -3202,7 +3202,7 @@ function initGoalsChapters() {
             <span class="glc-ed-cad" data-cad="yr">/yr</span>
             <span class="glc-ed-cad" data-cad="once">one-time</span>
           </div>
-          <span class="glc-ed-remove" title="Remove this goal from the plan">REMOVE</span>
+          <span class="glc-ed-remove" title="Remove this goal from this chapter">REMOVE</span>
         </div>
         <div class="glc-ed-slider">
           <div class="glc-ed-track">
@@ -3256,7 +3256,35 @@ function initGoalsChapters() {
     ed.querySelector('.glc-ed-remove').addEventListener('click', () => {
       if (!open) return;
       const goals = GLC_PROD.goals();
-      goals.splice(open.gi, 1);
+      const g = goals[open.gi];
+      if (!g) { open = null; GLC_PROD.commit(); return; }
+      // Per-chapter removal: subtract ONLY this chapter's slice from the goal's
+      // span (mirrors applyEdit's segment math). A one-time goal, or a recurring
+      // goal that lives entirely inside this one chapter, is deleted outright;
+      // otherwise the goal is trimmed to the remaining chapter(s) — and split in
+      // two if the removed slice was interior (e.g. remove Ch. II from an I–III goal).
+      const wasOnce = +g.startAge === +g.endAge;
+      if (wasOnce) {
+        goals.splice(open.gi, 1);
+      } else {
+        const sa = +g.startAge, ea = +g.endAge;
+        const band = bands[open.band];
+        const effLo = open.band === 0 ? -Infinity : band.lo;
+        const effHi = open.band === 2 ?  Infinity : band.hi;
+        const sliceLo = Math.max(sa, effLo), sliceHi = Math.min(ea, effHi);
+        const segs = [];
+        if (sa <= sliceLo - 1) segs.push([sa, sliceLo - 1]);   // remainder before this slice
+        if (ea >= sliceHi + 1) segs.push([sliceHi + 1, ea]);   // remainder after this slice
+        if (segs.length === 0) {
+          goals.splice(open.gi, 1);                             // goal lived only in this chapter
+        } else {
+          g.startAge = segs[0][0]; g.endAge = segs[0][1];
+          for (let k = 1; k < segs.length; k++) {
+            goals.splice(open.gi + k, 0,
+              { name: g.name, amount: g.amount, area: g.area || null, startAge: segs[k][0], endAge: segs[k][1] });
+          }
+        }
+      }
       open = null;
       GLC_PROD.commit();
     });

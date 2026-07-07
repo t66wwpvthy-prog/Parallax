@@ -924,6 +924,61 @@ try {
       throw new Error(`Goals page blank/broken after workflows (${JSON.stringify(m)})`);
   });
 
+  await step('goals: removing a goal from one chapter leaves it in the others', async () => {
+    // Regression guard: a recurring goal is stored once but rendered as a slice
+    // per chapter. Removing it from ONE chapter must trim only that chapter's
+    // slice (splitting the goal if the slice was interior), NOT delete it plan-wide.
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
+    const bandsFor = name => page.evaluate(nm =>
+      [...document.querySelectorAll('.glc-row')]
+        .filter(r => (r.querySelector('.glc-name')?.textContent || '').trim() === nm)
+        .map(r => +r.dataset.band).sort(), name);
+
+    await page.click('.htab[data-sub-target="goals"]'); await sleep(400);
+    // Add a full-span recurring goal → renders in all three chapters.
+    await page.click('#glc-a-name');
+    await page.type('#glc-a-name', 'ChapterSplit');
+    await page.click('#glc-a-add');
+    await sleep(400);
+    let where = await bandsFor('ChapterSplit');
+    if(JSON.stringify(where) !== JSON.stringify([0,1,2]))
+      throw new Error(`full-span goal should span all 3 chapters, got ${JSON.stringify(where)}`);
+
+    // Open its Chapter II (band 1) row and REMOVE — only that chapter's slice.
+    await page.evaluate(() => {
+      const row = [...document.querySelectorAll('.glc-row')]
+        .find(r => (r.querySelector('.glc-name')?.textContent||'').trim()==='ChapterSplit' && r.dataset.band==='1');
+      row.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+    });
+    await sleep(200);
+    await page.click('.glc-ed-remove');
+    await sleep(400);
+
+    where = await bandsFor('ChapterSplit');
+    if(where.includes(1)) throw new Error(`goal still in Chapter II after per-chapter remove: ${JSON.stringify(where)}`);
+    if(!(where.includes(0) && where.includes(2)))
+      throw new Error(`per-chapter remove must keep the goal in Chapters I & III: ${JSON.stringify(where)}`);
+
+    // Clean up: remove the remaining single-chapter slices so later steps see
+    // only the seed goals. Each remaining slice lives in one chapter, so REMOVE
+    // deletes it outright.
+    for(let i = 0; i < 3; i++){
+      const opened = await page.evaluate(() => {
+        const r = [...document.querySelectorAll('.glc-row')]
+          .find(r => (r.querySelector('.glc-name')?.textContent||'').trim()==='ChapterSplit');
+        if(!r) return false;
+        r.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+        return true;
+      });
+      if(!opened) break;
+      await sleep(200);
+      await page.click('.glc-ed-remove');
+      await sleep(300);
+    }
+    const leftover = await bandsFor('ChapterSplit');
+    if(leftover.length) throw new Error(`cleanup failed, ChapterSplit slices remain: ${JSON.stringify(leftover)}`);
+  });
+
   await step('scenarios Compare view: columns, rings, levers, goals', async () => {
     await page.click('button[data-page="scenarios"]');
     await new Promise(r => setTimeout(r, 900));
