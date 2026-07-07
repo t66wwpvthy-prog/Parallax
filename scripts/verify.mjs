@@ -146,6 +146,31 @@ function verifyHousehold(){
   ok(/data-hh-action=.add-pension-age/.test(html),'add-pension-age action button missing');
   ok(/id=.hh-act-demo/.test(html),  'Demo rail button (hh-act-demo) missing');
   ok(/id=.hh-act-clear/.test(html), 'Clear rail button (hh-act-clear) missing');
+
+  // ── Multi-household state management: pure factories + records-by-id store ──
+  // The app boots with a demo household but supports creating/switching custom
+  // households, and demo values must never overwrite a custom household on reload.
+  ok(/function createDemoHousehold\b/.test(html),  'createDemoHousehold() factory missing');
+  ok(/function createBlankHousehold\b/.test(html), 'createBlankHousehold() factory missing');
+  ok(/function hydratePlan\b/.test(html),          'hydratePlan() (in-place plan hydrate) missing');
+  ok(/function bootstrapHouseholds\b/.test(html),  'bootstrapHouseholds() (first-load seed + reload hydrate) missing');
+  ok(/function newHousehold\b/.test(html),         'newHousehold() action missing');
+  ok(/function switchHousehold\b/.test(html),      'switchHousehold() action missing');
+  ok(/function hhAlreadyRetired\b/.test(html),     'hhAlreadyRetired() helper missing (retirement age must go inert once retired)');
+  ok(/meta\.householdId/.test(html), 'household record must carry meta.householdId');
+  ok(/meta\.isDemo/.test(html),      'household record must carry meta.isDemo');
+  ok(/meta\.name\s*=/.test(html),    'household record must carry meta.name');
+  ok(/['"]parallax\.households\.v1['"]/.test(html),       'households store key (parallax.households.v1) missing');
+  ok(/['"]parallax\.activeHouseholdId['"]/.test(html),    'active-household key (parallax.activeHouseholdId) missing');
+  // Scenarios must be scoped per household (parallax.scenarios.<id>.v1) so demo
+  // and custom scenario sets never collide; the old global key must be gone.
+  ok(/['"]parallax\.scenarios\.['"]/.test(html) || /SCEN_PREFIX/.test(html), 'scoped scenario key prefix (parallax.scenarios.) missing');
+  ok(!/['"]parallax\.scenarios\.v2['"]/.test(html), 'legacy global scenario key (parallax.scenarios.v2) must be gone');
+  // No standalone demo subtab / demo data page — this is state management only.
+  ok(!/data-page=["']demo["']/.test(html), 'a separate demo page/subtab must NOT exist (state management, not navigation)');
+  // Household selector + New Household controls.
+  ok(/id=.hh-switch/.test(html), 'household switcher (#hh-switch) missing');
+  ok(/id=.hh-new/.test(html),    'New Household button (#hh-new) missing');
   ok(/meta\.filingStatus/.test(html), 'Filing status field (meta.filingStatus) missing from Household');
   ok(/portfolio\.accounts\.taxable\.basisPct/.test(html), 'Taxable cost basis (basisPct) field missing from Household');
   ok(/income\.pension\.colaPct/.test(html), 'Pension COLA % field (income.pension.colaPct) missing from Household');
@@ -253,12 +278,11 @@ try {
   page.on('console', m => { if(m.type() === 'error') errs.push('CON: ' + m.text()); });
 
   await step('load index.html', async () => {
-    // Deterministic seed: scenarios persist to localStorage and boot via
-    // `loadScenarios() || demoScenarios()`, and reseedScenarios() re-derives each
-    // scenario from its delta to baseSnapshot — so a stale browser store would
-    // silently replace the demo seed (Baseline 65 / Scenario B 67 / Aggressive
-    // risk 5) and make the per-scenario assertions flaky. Clear it and reload so
-    // every run starts from demoScenarios().
+    // Deterministic seed: households + scenarios persist to localStorage, so a
+    // stale browser store would silently replace the demo seed (Baseline 66 /
+    // Scenario B 68 / Aggressive risk 5) and make the per-scenario assertions
+    // flaky. Clear ALL storage and reload so every run boots a fresh Demo
+    // Household via bootstrapHouseholds() → demoScenarios().
     await page.goto(`http://127.0.0.1:${PORT}/index.html`, { waitUntil: 'networkidle2', timeout: 20000 });
     await page.evaluate(() => { try { localStorage.clear(); } catch (e) {} });
     await page.reload({ waitUntil: 'networkidle2', timeout: 20000 });
@@ -404,33 +428,33 @@ try {
     await page.click('.htab[data-page="household"]'); await sleep(300);
     await page.click('#hh-chap-networth'); await sleep(300);
     const totalBefore = await page.evaluate(() => document.querySelector('#hh-view .hh-fulcrum__total')?.textContent.trim());
-    // Edit the Traditional IRA typed account 1,600,000 → 1,700,000 (extraAccounts.1).
-    await page.evaluate(() => { const el = document.querySelector('#hh-view input[data-path="portfolio.extraAccounts.1.balance"]'); el.value = '1,700,000'; el.dispatchEvent(new Event('change', { bubbles:true })); });
+    // Edit Client 1's Traditional IRA 1,213,686 → 1,313,686 (extraAccounts.3).
+    await page.evaluate(() => { const el = document.querySelector('#hh-view input[data-path="portfolio.extraAccounts.3.balance"]'); el.value = '1,313,686'; el.dispatchEvent(new Event('change', { bubbles:true })); });
     await sleep(300);
     const after = await page.evaluate(() => ({ total: document.querySelector('#hh-view .hh-fulcrum__total')?.textContent.trim(), status: document.querySelector('#status')?.textContent }));
     if(after.total === totalBefore) throw new Error(`editing an account balance did not update the derived net-worth total (${totalBefore})`);
     if(!/Plan edited/.test(after.status||'')) throw new Error('account edit did not mark the plan dirty (status)');
-    // Change the Roth IRA owner co-client → client; the ownership split must shift.
+    // Change Client 2's Roth IRA owner co-client → client; ownership split shifts.
     const ownBefore = await page.evaluate(() => document.querySelector('#hh-view .hh-own__legend')?.textContent.replace(/\s+/g,' ').trim());
-    await page.evaluate(() => { const el = document.querySelector('#hh-view select[data-path="portfolio.extraAccounts.2.owner"]'); el.value = 'client'; el.dispatchEvent(new Event('change', { bubbles:true })); });
+    await page.evaluate(() => { const el = document.querySelector('#hh-view select[data-path="portfolio.extraAccounts.5.owner"]'); el.value = 'client'; el.dispatchEvent(new Event('change', { bubbles:true })); });
     await sleep(300);
     const ownAfter = await page.evaluate(() => document.querySelector('#hh-view .hh-own__legend')?.textContent.replace(/\s+/g,' ').trim());
     if(ownBefore === ownAfter) throw new Error(`changing an account owner did not shift the ownership split (${ownBefore})`);
-    // Changing an account's TYPE re-derives its bucket (Savings → taxable).
+    // Changing an account's TYPE re-derives its bucket (Roth IRA → Savings/taxable).
     const bucketShift = await page.evaluate(() => {
-      const el = document.querySelector('#hh-view select[data-path="portfolio.extraAccounts.2.type"]');
+      const el = document.querySelector('#hh-view select[data-path="portfolio.extraAccounts.5.type"]');
       if(!el) return null;
       el.value = 'Savings'; el.dispatchEvent(new Event('change', { bubbles:true }));
       return true;
     });
     if(!bucketShift) throw new Error('typed account is missing its type-bank select');
     await sleep(300);
-    // Restore the demo (balance + owner + type).
-    await page.evaluate(() => { const el = document.querySelector('#hh-view select[data-path="portfolio.extraAccounts.2.type"]'); el.value = 'Roth IRA'; el.dispatchEvent(new Event('change', { bubbles:true })); });
+    // Restore the demo (type + balance + owner).
+    await page.evaluate(() => { const el = document.querySelector('#hh-view select[data-path="portfolio.extraAccounts.5.type"]'); el.value = 'Roth IRA'; el.dispatchEvent(new Event('change', { bubbles:true })); });
     await sleep(200);
-    await page.evaluate(() => { const el = document.querySelector('#hh-view input[data-path="portfolio.extraAccounts.1.balance"]'); el.value = '1,600,000'; el.dispatchEvent(new Event('change', { bubbles:true })); });
+    await page.evaluate(() => { const el = document.querySelector('#hh-view input[data-path="portfolio.extraAccounts.3.balance"]'); el.value = '1,213,686'; el.dispatchEvent(new Event('change', { bubbles:true })); });
     await sleep(200);
-    await page.evaluate(() => { const el = document.querySelector('#hh-view select[data-path="portfolio.extraAccounts.2.owner"]'); el.value = 'spouse'; el.dispatchEvent(new Event('change', { bubbles:true })); });
+    await page.evaluate(() => { const el = document.querySelector('#hh-view select[data-path="portfolio.extraAccounts.5.owner"]'); el.value = 'spouse'; el.dispatchEvent(new Event('change', { bubbles:true })); });
     await sleep(200);
   });
 
@@ -470,10 +494,10 @@ try {
     if(ageBefore === ageAfter) throw new Error(`banner Born edit did not re-derive Age (${ageBefore} -> ${ageAfter})`);
     if(!/Plan edited/.test(await page.evaluate(() => document.querySelector('#status')?.textContent || '')))
       throw new Error('banner Born edit did not mark plan dirty');
-    // Restore demo birth year
+    // Restore demo birth year (Client 1 born 1962 → age 64)
     await page.evaluate(() => {
       const el = document.querySelector('#hh-view .hh-banner input[data-path="household.primary.birthYear"]');
-      el.value = '1968'; el.dispatchEvent(new Event('change', { bubbles:true }));
+      el.value = '1962'; el.dispatchEvent(new Event('change', { bubbles:true }));
     });
     await sleep(200);
 
@@ -498,10 +522,10 @@ try {
     await sleep(200);
     await page.screenshot({ path: join(OUT, '01b-household-networth.png'), fullPage: true });
 
-    // 3. Cash Flow: pension COLA field present + add-pension-age button + liability add button
+    // 3. Cash Flow: add-pension-age button + liability add button. (The demo has
+    // NO pension, so the pension COLA field only appears once an age is quoted —
+    // the "+ Pension age" affordance is the contract here, not a live COLA input.)
     await goHh('hh-chap-cashflow');
-    const colaEl = await page.$('#hh-view input[data-path="income.pension.colaPct"]');
-    if(!colaEl) throw new Error('pension COLA % input missing from Cash Flow chapter');
     const addPensionBtn = await page.$('[data-hh-action="add-pension-age"]');
     if(!addPensionBtn) throw new Error('add-pension-age button missing from Cash Flow');
     const addLiabBtn = await page.$('#hh-view [data-add="liability"]');
@@ -531,10 +555,10 @@ try {
     if(addSpouseGone) throw new Error('"+ Add Co-Client" should disappear after adding co-client');
     const spouseInputs = await page.evaluate(() => document.querySelectorAll('#hh-view input[data-path^="household.spouse"]').length);
     if(spouseInputs < 2) throw new Error(`banner after add should have co-client born/retires inputs, got ${spouseInputs}`);
-    // Restore retirement age to demo value
+    // Restore co-client retirement age to demo value (Client 2 retires at 65)
     await page.evaluate(() => {
       const el = document.querySelector('#hh-view input[data-path="household.spouse.retirementAge"]');
-      if(el){ el.value = '64'; el.dispatchEvent(new Event('change', { bubbles:true })); }
+      if(el){ el.value = '65'; el.dispatchEvent(new Event('change', { bubbles:true })); }
     });
     await sleep(200);
   });
@@ -646,26 +670,30 @@ try {
     }, age);
     const firstAge = () => page.evaluate(() => { const a = [...document.querySelectorAll('#scn-view .cf-row .cf-cell--age')].map(e => parseInt(e.textContent.trim(),10)).filter(Number.isFinite); return a.length ? Math.min(...a) : null; });
 
-    // (1) Spouse SS on vs off changes baseline income at age 72 (past both claims).
-    await goHh('hh-chap-cashflow'); await setHh('income.socialSecurity.spouse.pia', '30,000');
+    // (1) Co-client SS on vs off changes baseline income at age 72 (past both claims).
+    await goHh('hh-chap-cashflow'); await setHh('income.socialSecurity.spouse.pia', '18,000');
     await openCashFlow(); const withSpouse = await incomeAtAge(72);
     await goHh('hh-chap-cashflow'); await setHh('income.socialSecurity.spouse.pia', '0');
     await openCashFlow(); const withoutSpouse = await incomeAtAge(72);
     if(!withSpouse || !withoutSpouse) throw new Error(`cash-flow income cell missing at age 72 (${withSpouse} vs ${withoutSpouse})`);
-    if(withSpouse === withoutSpouse) throw new Error(`spouse SS edit via Household did not change engine income at 72 (${withSpouse} vs ${withoutSpouse})`);
+    if(withSpouse === withoutSpouse) throw new Error(`co-client SS edit via Household did not change engine income at 72 (${withSpouse} vs ${withoutSpouse})`);
 
-    // (2) Delaying the co-client's retirement pushes the first retirement-phase row
-    // later. The Retires input lives in the Household Basics banner (any chapter).
-    await goHh('hh-chap-cashflow'); await setHh('income.socialSecurity.spouse.pia', '30,000');
-    await goHh('hh-chap-networth'); await setHh('household.spouse.retirementAge', '64');
+    // (2) Delaying the co-client's retirement pushes the first retirement-phase
+    // row later. The household retires when the LAST earner does, so raising the
+    // co-client's Retires age extends accumulation and moves the first
+    // retirement-phase row later. (Editing the co-client's age is a plan field,
+    // not a lever, so it does not disturb the scenario retire-age deltas — unlike
+    // editing the PRIMARY retire age, which the reseed re-derives.)
+    await goHh('hh-chap-cashflow'); await setHh('income.socialSecurity.spouse.pia', '18,000');
+    await goHh('hh-chap-networth'); await setHh('household.spouse.retirementAge', '65');
     await openCashFlow(); const firstEarly = await firstAge();
-    await goHh('hh-chap-networth'); await setHh('household.spouse.retirementAge', '67');
+    await goHh('hh-chap-networth'); await setHh('household.spouse.retirementAge', '70');
     await openCashFlow(); const firstLate = await firstAge();
     if(firstEarly == null || firstLate == null) throw new Error(`first cash-flow age missing (${firstEarly} vs ${firstLate})`);
     if(!(firstLate > firstEarly)) throw new Error(`delaying co-client retirement via Household did not push retirement later (${firstEarly} -> ${firstLate})`);
 
     // Restore the demo household and leave Cash Flow closed.
-    await goHh('hh-chap-networth'); await setHh('household.spouse.retirementAge', '64');
+    await goHh('hh-chap-networth'); await setHh('household.spouse.retirementAge', '65');
     await setCashFlow(page, false);
   });
 
@@ -681,13 +709,13 @@ try {
     });
     if(baseSuccess == null) throw new Error('Could not read baseline success rate for living-expense test');
 
-    // Double living expenses: from demo ~$205k to $420k — plan should suffer
+    // Quadruple living expenses: from demo $48k to $192k — plan should suffer
     await page.click('.htab[data-page="household"]'); await sleep(300);
     await page.click('#hh-chap-cashflow'); await sleep(350);
     await page.evaluate(() => {
       const el = document.querySelector('#hh-view input[data-path="expenses.living"]');
       if(!el) throw new Error('expenses.living input missing');
-      el.value = '420,000'; el.dispatchEvent(new Event('change', { bubbles:true }));
+      el.value = '192,000'; el.dispatchEvent(new Event('change', { bubbles:true }));
     });
     await sleep(300);
 
@@ -703,54 +731,12 @@ try {
     if(highExpSuccess >= baseSuccess) throw new Error(
       `High living expenses did not lower success rate: base=${baseSuccess}%, high-exp=${highExpSuccess}%`);
 
-    // Restore expenses to demo value
+    // Restore expenses to demo value ($48k)
     await page.click('.htab[data-page="household"]'); await sleep(300);
     await page.click('#hh-chap-cashflow'); await sleep(350);
     await page.evaluate(() => {
       const el = document.querySelector('#hh-view input[data-path="expenses.living"]');
-      el.value = '205,000'; el.dispatchEvent(new Event('change', { bubbles:true }));
-    });
-    await sleep(200);
-  });
-
-  await step('household pension COLA change updates Scenarios cash-flow income at late ages', async () => {
-    const sleep = ms => new Promise(r => setTimeout(r, ms));
-    // Read income at a late age with COLA = 0 (demo default)
-    await page.click('button[data-page="scenarios"]'); await sleep(900);
-    await setCashFlow(page, true); await waitCashRows(page, 10);
-    const incomeAtAge = async (age) => page.evaluate(a => {
-      const row = [...document.querySelectorAll('#scn-view .cf-row')]
-        .find(r => r.querySelector('.cf-cell--age')?.textContent.trim() === String(a));
-      return row ? parseFloat((row.children[2]?.textContent || '').replace(/[$,]/g,'')) : null;
-    }, age);
-    const income80base = await incomeAtAge(80);
-    if(income80base == null) throw new Error('income cell at age 80 not found in cash-flow view');
-    await setCashFlow(page, false);
-
-    // Set pension COLA to 5% (nominal): pension grows in real terms → higher income at 80
-    await page.click('.htab[data-page="household"]'); await sleep(300);
-    await page.click('#hh-chap-cashflow'); await sleep(350);
-    await page.evaluate(() => {
-      const el = document.querySelector('#hh-view input[data-path="income.pension.colaPct"]');
-      if(!el) throw new Error('pension colaPct input missing');
-      el.value = '5'; el.dispatchEvent(new Event('change', { bubbles:true }));
-    });
-    await sleep(300);
-
-    await page.click('button[data-page="scenarios"]'); await sleep(2000);
-    await setCashFlow(page, true); await waitCashRows(page, 10);
-    const income80cola = await incomeAtAge(80);
-    if(income80cola == null) throw new Error('income cell at age 80 not found after COLA change');
-    if(income80cola <= income80base) throw new Error(
-      `pension COLA=5% did not increase income at 80 (base=${income80base}, cola=${income80cola})`);
-    await setCashFlow(page, false);
-
-    // Restore COLA to 0
-    await page.click('.htab[data-page="household"]'); await sleep(300);
-    await page.click('#hh-chap-cashflow'); await sleep(350);
-    await page.evaluate(() => {
-      const el = document.querySelector('#hh-view input[data-path="income.pension.colaPct"]');
-      el.value = '0'; el.dispatchEvent(new Event('change', { bubbles:true }));
+      el.value = '48,000'; el.dispatchEvent(new Event('change', { bubbles:true }));
     });
     await sleep(200);
   });
@@ -1068,13 +1054,13 @@ try {
         .find(r => /Retirement begins/.test(r.querySelector('.cf-row__lifetag')?.textContent || ''));
       return row ? (row.querySelector('.cf-cell--age')?.textContent.trim() || '') : '';
     });
-    if(retireAge !== '65') throw new Error(`baseline retirement marker not at age 65 (got "${retireAge}")`);
+    if(retireAge !== '66') throw new Error(`baseline retirement marker not at age 66 (got "${retireAge}")`);
 
     // The scenario pills switch which plan's cash flow is shown, and each plan's
     // retirement marker reflects ITS OWN retire age. demoScenarios seeds Baseline
-    // at 65 (asserted just above) and Scenario B at 67 (s[1].lev.retireAge = 67),
-    // so selecting the Scenario B pill — the NEW mechanism; there is no longer a
-    // .cf-chip path — must move the "Retirement begins" marker from 65 to 67.
+    // at the household retire age (66 here, asserted just above) and Scenario B at
+    // +2 years (68), so selecting the Scenario B pill must move the
+    // "Retirement begins" marker from 66 to 68.
     const markerAge = () => page.evaluate(() => {
       const row = [...document.querySelectorAll('#scn-view .cf-row')]
         .find(r => /Retirement begins/.test(r.querySelector('.cf-row__lifetag')?.textContent || ''));
@@ -1092,7 +1078,7 @@ try {
     const bName = await page.evaluate(() => document.querySelector('#scn-view .cf-summary__name')?.textContent.trim() || '');
     if(bName !== 'Scenario B') throw new Error(`cash-flow pill did not switch to Scenario B (got "${bName}")`);
     const bMarker = await markerAge();
-    if(bMarker !== '67') throw new Error(`Scenario B retirement marker not at age 67 (got "${bMarker}")`);
+    if(bMarker !== '68') throw new Error(`Scenario B retirement marker not at age 68 (got "${bMarker}")`);
     // Restore Baseline for the path-replay checks below.
     await page.evaluate(() => [...document.querySelectorAll('#scn-view .cf-pill')].find(p => /Baseline/.test(p.textContent))?.click());
     await new Promise(r => setTimeout(r, 350));
@@ -1236,6 +1222,150 @@ try {
       if(bg.includes(NAVY)) throw new Error(`${name} page still shows the retired navy background: ${bg}`);
       if(bg.includes(BRONZE)) throw new Error(`${name} page still shows the retired Household bronze background: ${bg}`);
     }
+  });
+
+  await step('retirement age lever goes inert once the household is already retired', async () => {
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
+    await page.evaluate(() => { window.__origConfirm = window.confirm; window.confirm = () => true; });
+    const leverNames = () => page.evaluate(() =>
+      [...document.querySelectorAll('#scn-view .lever__name')].map(e => e.textContent.trim()));
+
+    // Pre-retirement demo (Client 1 64/retire 66, Client 2 63/retire 65):
+    // "Retirement Age" IS an active Scenarios lever.
+    await page.click('button[data-page="scenarios"]'); await sleep(700);
+    await page.click('#scn-seg-compare'); await sleep(400);
+    const beforeNames = await leverNames();
+    if(!beforeNames.includes('Retirement Age'))
+      throw new Error(`Retirement Age lever should be present while pre-retirement: ${JSON.stringify(beforeNames)}`);
+
+    // Make BOTH principals already retired (retire age below current age).
+    const setHh = (p, v) => page.evaluate(({p,v}) => {
+      const el = document.querySelector(`#hh-view input[data-path="${p}"]`);
+      if(!el) throw new Error('missing household input: ' + p);
+      el.value = v; el.dispatchEvent(new Event('change', { bubbles:true }));
+    }, {p, v});
+    await page.click('.htab[data-page="household"]'); await sleep(300);
+    await page.click('#hh-chap-networth'); await sleep(300);
+    await setHh('household.primary.retirementAge', '60');
+    await setHh('household.spouse.retirementAge', '60');
+    await sleep(200);
+
+    // Now "Retirement Age" must DROP OUT of the Scenarios levers (it is no longer
+    // a decision to pull), while the other levers remain.
+    await page.click('button[data-page="scenarios"]'); await sleep(900);
+    await page.click('#scn-seg-compare'); await sleep(400);
+    const afterNames = await leverNames();
+    if(afterNames.includes('Retirement Age'))
+      throw new Error(`Retirement Age lever must disappear once already retired: ${JSON.stringify(afterNames)}`);
+    if(!afterNames.includes('Allocation'))
+      throw new Error(`other levers (Allocation) must remain when retired: ${JSON.stringify(afterNames)}`);
+
+    // Restore the clean demo for the persistence steps that follow.
+    await page.click('.htab[data-page="household"]'); await sleep(300);
+    await page.click('#hh-act-demo'); await sleep(800);
+    await page.evaluate(() => { window.confirm = window.__origConfirm; });
+  });
+
+  // ── Multi-household persistence & bootstrapping ────────────────────────────
+  // These run LAST (they clear storage and reload) so they can't disturb the
+  // demo-coupled steps above. They prove the state-management contract:
+  // first-load seeds demo, a new household survives reload without the demo
+  // overwriting it, scenario storage is scoped by householdId, and resetting the
+  // demo restores ONLY the demo — never a custom household.
+  await step('persistence: first load seeds the Demo Household + exposes controls', async () => {
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
+    await page.evaluate(() => { try { localStorage.clear(); } catch (e) {} });
+    await page.reload({ waitUntil: 'networkidle2', timeout: 20000 });
+    await sleep(1500);
+    const s = await page.evaluate(() => ({
+      db: JSON.parse(localStorage.getItem('parallax.households.v1') || 'null'),
+      active: localStorage.getItem('parallax.activeHouseholdId'),
+    }));
+    if(!s.db || typeof s.db !== 'object') throw new Error('households store not created on first load');
+    if(!s.db.demo) throw new Error('first load did not seed a "demo" household record');
+    if(s.active !== 'demo') throw new Error(`active household not "demo" on first load (got "${s.active}")`);
+    if(!s.db.demo.meta || s.db.demo.meta.isDemo !== true) throw new Error('seeded demo record missing meta.isDemo=true');
+    if(s.db.demo.meta.name !== 'Demo Household') throw new Error(`seeded demo meta.name wrong: "${s.db.demo.meta?.name}"`);
+    // Controls present on the Household page.
+    await page.click('.htab[data-page="household"]'); await sleep(400);
+    const ctl = await page.evaluate(() => ({
+      switcher: !!document.querySelector('#hh-switch'),
+      opts: document.querySelectorAll('#hh-switch option').length,
+      newBtn: !!document.querySelector('#hh-new'),
+      demoEnabled: !document.querySelector('#hh-act-demo')?.disabled,
+    }));
+    if(!ctl.switcher) throw new Error('household switcher (#hh-switch) not rendered');
+    if(ctl.opts < 1) throw new Error('household switcher has no options');
+    if(!ctl.newBtn) throw new Error('New Household button (#hh-new) not rendered');
+    if(!ctl.demoEnabled) throw new Error('Demo reset button should be enabled while the demo is active');
+  });
+
+  await step('persistence: New Household survives reload; demo does not overwrite it', async () => {
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
+    // Persist the demo's scenarios first (so its scoped key exists), then create
+    // a new blank household from the rail control.
+    await page.click('#save-btn'); await sleep(400);
+    await page.click('#hh-new'); await sleep(700);
+    const created = await page.evaluate(() => ({
+      active: localStorage.getItem('parallax.activeHouseholdId'),
+      db: JSON.parse(localStorage.getItem('parallax.households.v1') || 'null'),
+    }));
+    if(!created.active || created.active === 'demo') throw new Error(`New Household did not become active (active="${created.active}")`);
+    if(Object.keys(created.db).length !== 2) throw new Error(`expected 2 households after New (got ${Object.keys(created.db).length})`);
+    const customId = created.active;
+    if(!created.db[customId] || created.db[customId].meta.isDemo !== false) throw new Error('new household record is not marked isDemo=false');
+    // Demo reset button must be DISABLED while a custom household is active.
+    const demoDisabled = await page.evaluate(() => !!document.querySelector('#hh-act-demo')?.disabled);
+    if(!demoDisabled) throw new Error('Demo reset must be disabled when the active household is not the demo');
+
+    // Reload: the custom household must remain active (demo must NOT overwrite it).
+    await page.reload({ waitUntil: 'networkidle2', timeout: 20000 });
+    await sleep(1500);
+    const afterReload = await page.evaluate(() => ({
+      active: localStorage.getItem('parallax.activeHouseholdId'),
+      db: JSON.parse(localStorage.getItem('parallax.households.v1') || 'null'),
+    }));
+    if(afterReload.active !== customId) throw new Error(`custom household did not survive reload (active="${afterReload.active}", want "${customId}")`);
+    if(!afterReload.db.demo) throw new Error('demo record vanished after reload');
+    if(afterReload.db[customId].meta.isDemo !== false) throw new Error('custom record overwritten by demo values on reload');
+    if(afterReload.db[customId].meta.name !== 'New Household') throw new Error(`custom household name changed on reload: "${afterReload.db[customId].meta.name}"`);
+  });
+
+  await step('persistence: scenario localStorage is scoped by householdId', async () => {
+    const customId = await page.evaluate(() => localStorage.getItem('parallax.activeHouseholdId'));
+    const keys = await page.evaluate(() => Object.keys(localStorage));
+    const demoKey   = 'parallax.scenarios.demo.v1';
+    const customKey = `parallax.scenarios.${customId}.v1`;
+    if(!keys.includes(demoKey)) throw new Error(`demo scenarios not scoped by id (missing ${demoKey}): ${JSON.stringify(keys)}`);
+    if(!keys.includes(customKey)) throw new Error(`custom scenarios not scoped by id (missing ${customKey}): ${JSON.stringify(keys)}`);
+    if(keys.includes('parallax.scenarios.v2')) throw new Error('legacy global scenario key parallax.scenarios.v2 must not be written');
+  });
+
+  await step('persistence: reset demo restores demo only, not custom households', async () => {
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
+    await page.evaluate(() => { window.__origConfirm = window.confirm; window.confirm = () => true; });
+    const customId = await page.evaluate(() => localStorage.getItem('parallax.activeHouseholdId'));
+    // Switch to the demo household via the selector.
+    await page.click('.htab[data-page="household"]'); await sleep(300);
+    await page.select('#hh-switch', 'demo'); await sleep(700);
+    const activeDemo = await page.evaluate(() => localStorage.getItem('parallax.activeHouseholdId'));
+    if(activeDemo !== 'demo') throw new Error(`switching to demo failed (active="${activeDemo}")`);
+    // Mutate the demo (living expense) then reset it.
+    await page.click('#hh-chap-cashflow'); await sleep(300);
+    await page.evaluate(() => { const el = document.querySelector('#hh-view input[data-path="expenses.living"]'); el.value = '999,999'; el.dispatchEvent(new Event('change', { bubbles:true })); });
+    await sleep(300);
+    await page.click('#hh-act-demo'); await sleep(800);
+    const after = await page.evaluate(() => ({
+      db: JSON.parse(localStorage.getItem('parallax.households.v1') || 'null'),
+      active: localStorage.getItem('parallax.activeHouseholdId'),
+    }));
+    // Demo restored to its factory living expense…
+    if(after.db.demo.expenses.living !== 48000) throw new Error(`reset demo did not restore living expense (got ${after.db.demo.expenses.living})`);
+    // …and the custom household is untouched and still present.
+    if(!after.db[customId]) throw new Error('reset demo destroyed the custom household record');
+    if(after.db[customId].meta.isDemo !== false) throw new Error('reset demo altered the custom household');
+    if(Object.keys(after.db).length !== 2) throw new Error(`reset demo changed household count (got ${Object.keys(after.db).length}, want 2)`);
+    await page.evaluate(() => { window.confirm = window.__origConfirm; });
   });
 
   if(errs.length){

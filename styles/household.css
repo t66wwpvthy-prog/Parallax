@@ -455,6 +455,27 @@
 }
 .page[data-page="household"] .hh-rail-act:hover { color: var(--gold-soft); border-color: rgba(198,166,98,0.28); }
 .page[data-page="household"] .hh-rail-act--clear:hover { color: var(--down); border-color: rgba(212,154,126,0.28); }
+.page[data-page="household"] .hh-rail-act.is-disabled,
+.page[data-page="household"] .hh-rail-act:disabled { opacity: 0.4; cursor: default; }
+.page[data-page="household"] .hh-rail-act.is-disabled:hover,
+.page[data-page="household"] .hh-rail-act:disabled:hover { color: var(--text-5); border-color: var(--line-08); }
+
+/* Household selector — switch between saved households + create a new one. */
+.page[data-page="household"] .hh-rail__switch {
+  display: flex; flex-direction: column; gap: 8px; padding: 0 22px 12px; flex-shrink: 0;
+}
+.page[data-page="household"] .hh-rail__switch-lbl {
+  font-family: var(--font-sans); font-size: 12px; letter-spacing: 0.16em;
+  font-weight: 600; text-transform: uppercase; color: var(--text-5);
+}
+.page[data-page="household"] .hh-rail__switch-sel {
+  width: 100%; font-family: var(--font-serif); font-size: 15px;
+  padding: 7px 10px; background: var(--fill-04); border: 1px solid var(--line-08);
+  border-radius: var(--r-sm); color: var(--text-2); cursor: pointer;
+}
+.page[data-page="household"] .hh-rail__switch-sel:hover { border-color: rgba(198,166,98,0.28); }
+.page[data-page="household"] .hh-rail-act--new { width: 100%; }
+.page[data-page="household"] .hh-rail-act--new:hover { color: var(--gold-soft); border-color: rgba(198,166,98,0.28); }
 
 /* Absent spouse placeholder in Demographics. */
 .page[data-page="household"] .hh-person--absent { opacity: 0.72; }

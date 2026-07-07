@@ -133,9 +133,16 @@
           </nav>
 
           <div class="hh-rail__spacer"></div>
+          <!-- Household selector + New — multi-household state (bound in
+               bindHouseholdRailOnce(); options filled by updateHouseholdControls()). -->
+          <div class="hh-rail__switch">
+            <label class="hh-rail__switch-lbl" for="hh-switch">Household</label>
+            <select class="hh-rail__switch-sel" id="hh-switch" title="Switch household"></select>
+            <button class="hh-rail-act hh-rail-act--new" id="hh-new" type="button" title="Create a new blank household">New Household</button>
+          </div>
           <!-- Household reset / clear — bound in bindHouseholdRailOnce() -->
           <div class="hh-rail__actions">
-            <button class="hh-rail-act" id="hh-act-demo" type="button" title="Reload the built-in demo household">Demo</button>
+            <button class="hh-rail-act" id="hh-act-demo" type="button" title="Reset this demo household to its original values">Demo</button>
             <button class="hh-rail-act hh-rail-act--clear" id="hh-act-clear" type="button" title="Clear all plan data and start fresh">Clear</button>
           </div>
         </aside>
@@ -267,73 +274,170 @@ const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const escHtml=s=>String(s).replace(/[&<>"']/g, c=>(
   {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
-/* Demo household — HNW, 58yo, retiring at 65. $2.8M total portfolio.
-   $205k living + $12k healthcare; two-earner SS ($48k + $30k at 67); $30k/yr
-   savings until retire. Spend set against realistic SS to keep real tension:
-   Baseline (Moderate, ret 65) ~76% — a plan that needs attention. Moving levers
-   shows it honestly: retiring 2yr later lifts success markedly; going aggressive
-   raises the wealth line but leaves success BELOW the retire-later case (vol
-   drag) — the risk/return truth the tool exists to show. */
-plan.meta.primaryName = 'Client';
-plan.meta.spouseName  = 'Co-Client';
-// Household-level basics shown in the Household Basics banner. `state` is
-// stored plan data (advisor-entered); it does not alter engine math.
-plan.meta.state = 'CA';
-plan.household.primary.currentAge    = 58;
-plan.household.primary.birthYear     = 1968;
-plan.household.spouse = { currentAge: 57, retirementAge: 64, birthYear: 1969 };
-plan.household.primary.retirementAge = 65;
-plan.household.primary.planEndAge    = 95;
-// Accounts are TYPED rows added from the Account Type Bank (extraAccounts).
-// The three core sleeves stay at $0 and act purely as aggregation targets:
-// engine resolveInputs() folds extraAccounts into taxable/traditional/roth by
-// bucket, so the engine sees correct totals with no math changes. basisPct
-// still describes the taxable sleeve (engine input).
-plan.portfolio.accounts.taxable.balance      = 0;
-plan.portfolio.accounts.traditional.balance  = 0;
-plan.portfolio.accounts.roth.balance         = 0;
-plan.portfolio.accounts.taxable.basisPct     = 0.55;
-plan.portfolio.extraAccounts = [
-  { type:'Brokerage (taxable)', bucket:'taxable',     owner:'spouse', balance: 800000  },
-  { type:'Traditional IRA',     bucket:'traditional', owner:'client', balance: 1600000 },
-  { type:'Roth IRA',            bucket:'roth',        owner:'spouse', balance: 400000  },
-];
-plan.expenses.living                = 205000;
-plan.expenses.healthcare            = 12000;
-plan.expenses.healthcareRealGrowth  = 0.02;   // 2% above CPI (historical avg)
-// Goals are now an ARRAY: recurring goals (lifelong window 0–999) live in the
-// left column; a one-time goal is a single-year window (startAge===endAge).
-plan.goals = [
-  { name:'Travel',            amount:12000, startAge:65, endAge:95 },
-  { name:'Home improvements', amount:5000,  startAge:65, endAge:95 },
-  { name:'Gifts',             amount:5000,  startAge:65, endAge:95 },
-  // A ONE-TIME goal (single-year window): shows as a spike in the Goals
-  // cash-flow column the year it lands, then gone.
-  { name:'New car',           amount:40000, startAge:72, endAge:72 },
-];
-// Real assets and sale workflows stay parked in the engine for now. The visible
-// prototype keeps Household focused on the planning inputs advisors need first.
-plan.properties = [];
-// Two earners: one maxed (~$48k PIA at FRA), spouse a strong earner (~$30k).
-// pia = benefit at FRA (67) in today's dollars, straight off the SSA statement.
-plan.income.socialSecurity.primary = { pia: 48000, claimAge: 67 };
-plan.income.socialSecurity.spouse  = { pia: 30000, claimAge: 67 };
-// Demo pension: only the two ages the statement actually quoted. The engine
-// pays exactly what's entered for the chosen age and nothing in between —
-// no interpolation, no invented numbers (see engine.test.js).
-plan.income.pension = { benefitByAge: { 62: 36000, 63: 38160, 64: 40320, 65: 42480 }, startAge: 65, colaPct: 0 };
-plan.savings.annual      = 30000;
-// Gross working income (pre-retirement, today's dollars). Used ONLY by the
-// Snapshot's replacement-ratio gauge — a static diagnostic, not an engine
-// input. The engine drives accumulation off savings.annual, never this.
-plan.income.workingIncome = 300000;
-// A variable income stream showing the new per-stream controls: real growth
-// (here +1%/yr, indexed slightly above inflation) and a taxable share (70% —
-// the rest sheltered by depreciation). startAge–endAge bound when it's active.
-plan.income.other = [
-  { label:'Rental income', amount:18000, startAge:65, endAge:95, realGrowth:0.01, taxablePct:0.70 },
-];
-plan.simulation.iterations = 1000;
+/* ── Household model: pure factories + multi-household persistence ──────────
+   The app boots with a Demo Household but the advisor can create and switch to
+   their own households; the ACTIVE household is hydrated into the engine's live
+   `plan` binding, and demo values never overwrite a custom household on reload.
+
+   `plan` is the engine's default plan object (imported live). It cannot be
+   reassigned (const import binding), so hydratePlan() mutates it in place —
+   preserving the object identity the engine reads internally. */
+
+// Pristine engine default, captured BEFORE any mutation. Both factories clone
+// this so they start from the exact engine schema (forward-compatible: new
+// engine fields flow through automatically).
+const PRISTINE_PLAN = JSON.parse(JSON.stringify(plan));
+const clonePristinePlan = () => JSON.parse(JSON.stringify(PRISTINE_PLAN));
+const newHouseholdId = () => 'hh_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+
+/* createDemoHousehold() — Client 1 (64) & Client 2 (63), 2026, VA, MFJ.
+   $2,527,620 liquid from the PDF statement; PRE-retirement (Client 1 retires at
+   66, Client 2 at 65) so retirement age is a live planning lever; SS at FRA
+   ($55,200 + $18,000). NO pension. $48k/yr living + $11,418 healthcare, with a
+   Glebe fee and a lifestyle-vacation goal. Pure: returns a fresh, self-contained
+   plan record. */
+function createDemoHousehold(){
+  const p = clonePristinePlan();
+  p.meta.householdId = 'demo';
+  p.meta.name        = 'Demo Household';
+  p.meta.isDemo      = true;
+  p.meta.primaryName = 'Client 1';
+  p.meta.spouseName  = 'Client 2';
+  p.meta.filingStatus = 'marriedFilingJointly';
+  p.meta.state       = 'VA';
+  p.household.primary = { currentAge: 64, retirementAge: 66, planEndAge: 95, birthYear: 1962 };
+  p.household.spouse  = { currentAge: 63, retirementAge: 65, birthYear: 1963 };
+  // Sleeves are aggregation targets (engine folds extraAccounts into them by
+  // bucket); the portfolio itself is TYPED accounts from the Account Type Bank.
+  p.portfolio.accounts.taxable     = { balance: 0, basisPct: 0.55 };
+  p.portfolio.accounts.traditional = { balance: 0 };
+  p.portfolio.accounts.roth        = { balance: 0 };
+  p.portfolio.extraAccounts = [
+    { type:'Joint brokerage', bucket:'taxable',     owner:'joint',  balance:  501377 },
+    { type:'Checking',        bucket:'taxable',     owner:'joint',  balance:   18727 },
+    { type:'401(k)',          bucket:'traditional', owner:'client', balance:  494606 },
+    { type:'Traditional IRA', bucket:'traditional', owner:'client', balance: 1213686 },
+    { type:'401(k)',          bucket:'traditional', owner:'spouse', balance:  159928 },
+    { type:'Roth IRA',        bucket:'roth',        owner:'spouse', balance:  139296 },
+  ];
+  p.properties  = [];
+  p.liabilities = [];
+  p.expenses.living              = 48000;   // $4,000/mo retirement living
+  p.expenses.healthcare          = 11418;   // $5,709/yr × 2
+  p.expenses.healthcareRealGrowth = 0.02;   // 2% above CPI (historical avg)
+  // SAVINGS RULE (explicit, intentionally simple — CURRENT model, NOT a permanent
+  // invariant): $30k/yr TOTAL household savings until the LAST working spouse
+  // retires — age 66 here (Client 1). One household stream today; per-spouse
+  // savings (each portion stopping at that person's own retirement age) is a
+  // planned backlog item and must stay easy to adopt. The engine ends accumulation
+  // when the later of the two retirement ages is reached (resolveInputs → retirementAge).
+  p.savings.annual        = 30000;
+  p.income.workingIncome  = 0;
+  // SS PIA at FRA (67) — PDF annual benefits, both claiming at FRA. No pension.
+  p.income.socialSecurity.primary = { pia: 55200, claimAge: 67 };
+  p.income.socialSecurity.spouse  = { pia: 18000, claimAge: 67 };
+  p.income.pension = { benefitByAge: {}, base: 0, startAge: 65, colaPct: 0 };
+  p.income.other   = [];
+  p.goals = [
+    { name:'Glebe Fee',                                amount: 100092, startAge: 71, endAge: 95 },
+    { name:'Lifestyle Vacation (Poland & California)', amount:  20000, startAge: 71, endAge: 95 },
+  ];
+  p.simulation.iterations = 1000;
+  return p;
+}
+
+/* createBlankHousehold() — an empty household the advisor fills in from scratch.
+   No accounts, no income, single filer by default. Pure. */
+function createBlankHousehold(){
+  const p = clonePristinePlan();
+  p.meta.householdId = newHouseholdId();
+  p.meta.name        = 'New Household';
+  p.meta.isDemo      = false;
+  p.meta.primaryName = '';
+  p.meta.spouseName  = '';
+  p.meta.filingStatus = 'single';
+  p.meta.state       = 'VA';
+  p.household.primary = { currentAge: 60, retirementAge: 65, planEndAge: 90, birthYear: new Date().getFullYear() - 60 };
+  p.household.spouse  = null;
+  p.portfolio.accounts.taxable     = { balance: 0, basisPct: 1.0 };
+  p.portfolio.accounts.traditional = { balance: 0 };
+  p.portfolio.accounts.roth        = { balance: 0 };
+  p.portfolio.extraAccounts = [];
+  p.properties  = [];
+  p.liabilities = [];
+  p.expenses.living              = 0;
+  p.expenses.healthcare          = 0;
+  p.expenses.healthcareRealGrowth = 0.02;
+  p.savings.annual        = 0;
+  p.income.workingIncome  = 0;
+  p.income.socialSecurity.primary = { pia: 0, claimAge: 67 };
+  p.income.socialSecurity.spouse  = null;
+  p.income.pension = { benefitByAge: {}, base: 0, startAge: 65, colaPct: 0 };
+  p.income.other   = [];
+  p.goals = [];
+  p.simulation.iterations = 1000;
+  return p;
+}
+
+/* Replace the live engine plan's contents with a household record. Mutates the
+   imported `plan` in place (it can't be reassigned) so the engine — which reads
+   the same object reference internally — sees the hydrated household. */
+function hydratePlan(src){
+  const clone = JSON.parse(JSON.stringify(src));
+  Object.keys(plan).forEach(k => { delete plan[k]; });
+  Object.assign(plan, clone);
+}
+
+/* ── Household persistence: records-by-id + an active pointer ────────────────
+   MVP/DEMO PERSISTENCE ONLY (localStorage — single-browser, unencrypted). A
+   real backend seam replaces these later. Households are stored by id under
+   HHDB_KEY; ACTIVE_KEY names the one currently loaded. Scenarios are scoped
+   per household (scenKey) so demo and custom scenario sets never collide. */
+const HHDB_KEY   = 'parallax.households.v1';
+const ACTIVE_KEY = 'parallax.activeHouseholdId';
+let householdsDb = {};
+let activeHouseholdId = null;
+
+function loadHouseholdsDb(){
+  try{
+    const o = JSON.parse(localStorage.getItem(HHDB_KEY));
+    if(o && typeof o === 'object' && !Array.isArray(o)) return o;
+  }catch(e){/* corrupt/blocked → caller reseeds demo */}
+  return null;
+}
+function persistHouseholdsDb(){ try{ localStorage.setItem(HHDB_KEY, JSON.stringify(householdsDb)); return true; }catch(e){ return false; } }
+function persistActiveId(){ try{ localStorage.setItem(ACTIVE_KEY, activeHouseholdId); }catch(e){} }
+// Snapshot the live plan back into its household record, then persist the store.
+function saveActiveHousehold(){
+  if(activeHouseholdId && plan && plan.meta){
+    householdsDb[activeHouseholdId] = JSON.parse(JSON.stringify(plan));
+    return persistHouseholdsDb();
+  }
+  return false;
+}
+// First-load seed + reload hydrate + corruption recovery, all in one pass.
+function bootstrapHouseholds(){
+  const valid = r => r && r.meta && r.household && r.household.primary
+    && isFinite(r.household.primary.currentAge) && r.portfolio && r.portfolio.accounts;
+  let db = loadHouseholdsDb();
+  let id = null; try{ id = localStorage.getItem(ACTIVE_KEY); }catch(e){}
+  // No store yet, or a corrupt one → recreate a fresh Demo Household.
+  if(!db || !Object.keys(db).length || !Object.values(db).every(valid)){
+    const demo = createDemoHousehold();
+    db = { [demo.meta.householdId]: demo };
+    id = demo.meta.householdId;
+  }
+  // Missing/dangling active pointer → fall back to any household (or a new demo).
+  if(!id || !db[id]){
+    id = Object.keys(db)[0] || null;
+    if(!id){ const demo = createDemoHousehold(); db[demo.meta.householdId] = demo; id = demo.meta.householdId; }
+  }
+  householdsDb = db;
+  activeHouseholdId = id;
+  persistHouseholdsDb();
+  persistActiveId();
+  hydratePlan(householdsDb[activeHouseholdId]);
+}
 
 // Scenario accent palette (SCEN_PALETTE / colorFor / BASE_ACCENT / scenAccent)
 // was removed with the old band + cash-flow grid renderers that consumed it. The
@@ -374,18 +478,21 @@ function syncPension(L){
   L.pensionAge = Math.max(lo, Math.min(hi, L.retireAge));
 }
 // ── Scenario persistence (browser localStorage) ──────────────────────────
-// We save only the durable parts (name/base/lev) — never res (recomputed on
-// Run). Wrapped in try/catch so a corrupt/blocked store never breaks the app.
-const SCEN_KEY='parallax.scenarios.v2';
+// Scenarios are SCOPED PER HOUSEHOLD (parallax.scenarios.<householdId>.v1) so a
+// custom household's scenarios never collide with the demo's. We save only the
+// durable parts (name/base/lev) — never res (recomputed on Run). Wrapped in
+// try/catch so a corrupt/blocked store never breaks the app.
+const SCEN_PREFIX='parallax.scenarios.';
+const scenKey=id=>SCEN_PREFIX + (id || activeHouseholdId || 'demo') + '.v1';
 function saveScenarios(){
   try{
     const slim=scenarios.map(s=>({name:s.name, base:!!s.base, lev:s.lev}));
-    localStorage.setItem(SCEN_KEY, JSON.stringify(slim));
+    localStorage.setItem(scenKey(), JSON.stringify(slim));
   }catch(e){/* storage full/blocked — stay in-memory, no crash */}
 }
-function loadScenarios(){
+function loadScenarios(id){
   try{
-    const raw=localStorage.getItem(SCEN_KEY);
+    const raw=localStorage.getItem(scenKey(id));
     if(!raw) return null;
     const arr=JSON.parse(raw);
     if(!Array.isArray(arr) || !arr.length || !arr[0].base) return null;  // sanity
@@ -404,9 +511,9 @@ function loadScenarios(){
     });
   }catch(e){ return null; }
 }
-// Wipe saved state and return to the first-run demo (escape hatch).
+// Wipe the ACTIVE household's saved scenarios and return to its first-run set.
 function resetScenarios(){
-  try{ localStorage.removeItem(SCEN_KEY); }catch(e){}
+  try{ localStorage.removeItem(scenKey()); }catch(e){}
   scenarios=demoScenarios(); baseSnapshot=defaultLevers();
   buildLevers(); plansDirty=true; runAll();
 }
@@ -415,10 +522,11 @@ function resetScenarios(){
    MVP/DEMO PERSISTENCE ONLY. localStorage is a single-browser, unencrypted
    store — fine for prototype/demo work, NOT long-term production persistence
    for client data (no sync, no auth, ~5MB quota, cleared with site data).
-   A real backend seam replaces savePlan()/loadPlanSnapshot() later.
+   A real backend seam replaces this later.
 
-   Manual-save model: every edit still auto-commits to the in-memory `plan`
-   exactly as before; SAVE writes a durable snapshot of the full plan.
+   The plan is persisted THROUGH the household store: SAVE snapshots the live
+   plan into its household record (saveActiveHousehold). Every edit still
+   auto-commits to the in-memory `plan`; SAVE writes the durable record.
    planSaveDirty = "working plan differs from the last saved snapshot".
    (Distinct from plansDirty, which means "scenario RESULTS are stale".)
 
@@ -426,42 +534,10 @@ function resetScenarios(){
    auto-save eagerly via saveScenarios() on every scenario action — they do
    NOT wait for SAVE and do NOT arm the SAVE button. SAVE also rewrites them
    so a manual save always captures the full current input state. */
-const PLAN_KEY='parallax.plan.v1';
 let planSaveDirty=false;
 let saveFailed=false;
-function savePlan(){
-  try{
-    localStorage.setItem(PLAN_KEY, JSON.stringify(plan));
-    return true;
-  }catch(e){ return false; }   // quota/blocked — surface a retry state, never fake success
-}
-/* Deep-merge a saved snapshot over the seeded demo plan: saved values win,
-   arrays replace wholesale, fields missing from an older save keep their
-   seed defaults (same stale-save posture as the RISK_PROFILES guard). */
-function mergePlanSnapshot(dst, src){
-  Object.keys(src).forEach(k=>{
-    const v=src[k];
-    if(Array.isArray(v)) dst[k]=v;
-    else if(v && typeof v==='object'){
-      if(!dst[k] || typeof dst[k]!=='object' || Array.isArray(dst[k])) dst[k]={};
-      mergePlanSnapshot(dst[k], v);
-    }
-    else dst[k]=v;
-  });
-}
-function loadPlanSnapshot(){
-  try{
-    const raw=localStorage.getItem(PLAN_KEY);
-    if(!raw) return false;
-    const saved=JSON.parse(raw);
-    // sanity: a usable snapshot has a numeric primary age and a portfolio
-    if(!saved || typeof saved!=='object') return false;
-    if(!saved.household || !saved.household.primary || !isFinite(saved.household.primary.currentAge)) return false;
-    if(!saved.portfolio || !saved.portfolio.accounts) return false;
-    mergePlanSnapshot(plan, saved);
-    return true;
-  }catch(e){ return false; }   // corrupt/blocked store → boot on the demo seed
-}
+// SAVE writes the live plan into its household record (see saveActiveHousehold).
+function savePlan(){ return saveActiveHousehold(); }
 function syncSaveBtn(state){
   const b=$('#save-btn'); if(!b) return;
   if(state==='confirm'){ b.disabled=true; b.textContent='Saved \u2713'; b.classList.remove('save-btn--dirty','save-btn--failed'); return; }
@@ -954,32 +1030,64 @@ function renderComboField(C){
 // Scenarios are NAMED, SAVEABLE objects (the household-centric data root). They
 // start identical; the advisor moves levers to show each decision's effect, and
 // can rename / add / remove them. Both tabs read this shared set.
-// The first-run demo set tells a story: B retires 2yr later (security improves),
-// C goes aggressive (wealth line jumps, success does NOT — volatility drag).
+// The first-run scenario set tells a story: B delays the plan's retirement
+// (drawdown) age 2 years, C goes aggressive (wealth line jumps, success does
+// NOT — volatility drag). Deltas are relative to the ACTIVE household's base
+// levers so the set is meaningful for any household, not just the demo.
 function demoScenarios(){
   const s=[
     {name:'Baseline',   base:true,  lev:defaultLevers(), res:null},
     {name:'Scenario B', base:false, lev:defaultLevers(), res:null},
     {name:'Aggressive', base:false, lev:defaultLevers(), res:null},
   ];
-  s[1].lev.retireAge = 67;
+  // Scenario B contrast. Pre-retirement: "retire 2 years later" (the core lever
+  // when we're solving for a feasible retirement date). Already retired: that
+  // lever is inert, so contrast on allocation instead (de-risk one notch).
+  if(hhAlreadyRetired()){
+    s[1].lev.risk = Math.max(1, ((plan.portfolio && plan.portfolio.riskProfile) || 3) - 1);
+  } else {
+    const baseRetire = (plan.household && plan.household.primary && plan.household.primary.retirementAge) || 65;
+    s[1].lev.retireAge = baseRetire + 2;
+  }
   s[2].lev.risk = 5;
   return s;
 }
-// Restore the last saved plan snapshot (if any) BEFORE scenarios seed, so
-// lever defaults and reseeding see the advisor's saved inputs.
-loadPlanSnapshot();
+// Seed/hydrate the active household BEFORE scenarios seed, so lever defaults and
+// reseeding see the active household's inputs (never the demo, unless it IS the
+// active household). First load seeds a Demo Household; reloads hydrate whatever
+// household was active; a corrupt store safely recreates the demo.
+bootstrapHouseholds();
 let scenarios = loadScenarios() || demoScenarios();
 // Solver UI state. solverFormOpen toggles the inline "Solve…" form in the band
 // gutter; solving guards against re-entry while a solve is in flight.
 let solverFormOpen = false, solving = false;
+
+/* A household is ALREADY RETIRED when every principal is at or past their own
+   retirement age — there is no future retirement transition to plan for. In that
+   state retirement age is a satisfied input: it may still show in the banner, but
+   it must not drive any lever or engine result (like a one-time goal that has
+   already happened). Retirement age stays a LIVE lever whenever anyone is still
+   pre-retirement (the household retires when the LAST earner does). */
+function hhAlreadyRetired(){
+  const pr = plan.household && plan.household.primary;
+  if(!pr || pr.currentAge == null || pr.retirementAge == null) return false;
+  if(pr.currentAge < pr.retirementAge) return false;      // primary still working
+  const sp = plan.household && plan.household.spouse;
+  if(sp){
+    if(sp.currentAge == null || sp.retirementAge == null) return false;
+    if(sp.currentAge < sp.retirementAge) return false;    // co-client still working
+  }
+  return true;
+}
 
 /* Map a scenario's levers -> engine override object. */
 function leversToOverrides(L){
   const ov={};
   const baseRetire = plan.household.primary.retirementAge;
   const baseSs     = plan.income.socialSecurity.primary.claimAge;
-  if(L.retireAge !== baseRetire) ov.retireDelay = L.retireAge - baseRetire;
+  // Retirement age is inert once the household is already retired — never emit a
+  // retire delay in that case (a positive delay would wrongly re-open accumulation).
+  if(!hhAlreadyRetired() && L.retireAge !== baseRetire) ov.retireDelay = L.retireAge - baseRetire;
   if(L.ssAge !== baseSs)         ov.ssDelayYears = L.ssAge - baseSs;
   // spend vs plan.expenses.living. The engine takes INCREASES via spendBump and
   // CUTS via spendCut — a negative spendBump is ignored (engine clamps it to 0).
@@ -1551,96 +1659,104 @@ function renderHhCashflow(){
   </div>`;
 }
 
-/* ── Household reset helpers ───────────────────────────────────────────────
-   hhResetToDemo()     → re-applies the built-in demo household and scenarios.
-   hhClearHousehold()  → blanks all plan data so the advisor can start fresh.
-   Both call the full reseed/dirty/run flow and re-render Household. */
-function hhResetToDemo(){
-  if(!confirm('Reset to demo household? All unsaved edits will be lost.')) return;
-  plan.meta.primaryName = 'Client';
-  plan.meta.spouseName  = 'Co-Client';
-  plan.meta.filingStatus = 'marriedFilingJointly';
-  plan.meta.state = 'CA';
-  plan.household.primary  = { currentAge: 58, retirementAge: 65, planEndAge: 95, birthYear: 1968 };
-  plan.household.spouse   = { currentAge: 57, retirementAge: 64, birthYear: 1969 };
-  // Sleeves are aggregation targets; the demo portfolio is typed accounts.
-  plan.portfolio.accounts.taxable     = { balance: 0, basisPct: 0.55 };
-  plan.portfolio.accounts.traditional = { balance: 0 };
-  plan.portfolio.accounts.roth        = { balance: 0 };
-  plan.portfolio.extraAccounts = [
-    { type:'Brokerage (taxable)', bucket:'taxable',     owner:'spouse', balance: 800000  },
-    { type:'Traditional IRA',     bucket:'traditional', owner:'client', balance: 1600000 },
-    { type:'Roth IRA',            bucket:'roth',        owner:'spouse', balance: 400000  },
-  ];
-  plan.properties  = [];
-  plan.liabilities = [];
-  plan.income.workingIncome = 300000;
-  plan.income.socialSecurity.primary = { pia: 48000, claimAge: 67 };
-  plan.income.socialSecurity.spouse  = { pia: 30000, claimAge: 67 };
-  plan.income.pension = { benefitByAge: { 62:36000, 63:38160, 64:40320, 65:42480 }, startAge:65, colaPct:0 };
-  plan.income.other   = [{ label:'Rental income', amount:18000, startAge:65, endAge:95, realGrowth:0.01, taxablePct:0.70 }];
-  plan.expenses.living              = 205000;
-  plan.expenses.healthcare          = 12000;
-  plan.expenses.healthcareRealGrowth = 0.02;
-  plan.savings.annual = 30000;
-  plan.goals = [
-    { name:'Travel',            amount:12000, startAge:65, endAge:95 },
-    { name:'Home improvements', amount:5000,  startAge:65, endAge:95 },
-    { name:'Gifts',             amount:5000,  startAge:65, endAge:95 },
-    { name:'New car',           amount:40000, startAge:72, endAge:72 },
-  ];
-  try{ localStorage.removeItem(SCEN_KEY); }catch(e){}
-  // A fresh demo must not be resurrected-over by an old saved snapshot on
-  // the next reload; the loaded state is unsaved until the advisor saves it.
-  try{ localStorage.removeItem(PLAN_KEY); }catch(e){}
-  planSaveDirty = true; saveFailed = false; syncSaveBtn();
+/* ── Household lifecycle helpers ───────────────────────────────────────────
+   All of these hydrate the live `plan`, re-scope scenarios to the active
+   household, persist, and re-render through the full reseed/dirty/run flow.
+     hhLoadRecord(rec, status)  → shared tail: hydrate + scenarios + render.
+     hhResetToDemo()   → restores the demo household (only when active IS demo).
+     hhClearHousehold()→ blanks the active household in place (keeps its slot).
+     newHousehold()    → creates a blank household, makes it active.
+     switchHousehold() → loads another saved household by id. */
+function hhLoadRecord(status){
+  planSaveDirty = false; saveFailed = false; syncSaveBtn();
   glcDraft = null;   // Goals composer draft reinitializes from the fresh plan
-  scenarios = demoScenarios(); baseSnapshot = defaultLevers();
+  baseSnapshot = defaultLevers();
   hhChapter = 'networth';
   buildLevers(); plansDirty = true; sharedPaths = null;
   syncHousehold();
+  updateHouseholdControls();
   renderInputs();
   runAll();
-  $('#status').textContent = 'Demo household loaded';
+  if(status) $('#status').textContent = status;
 }
+// Restore the demo household. Guarded to the demo record so a custom household
+// can never be clobbered by the demo; keeps the same store slot + id.
+function hhResetToDemo(){
+  if(!(plan.meta && plan.meta.isDemo)) return;   // only the demo can be reset
+  if(!confirm('Reset the demo household? All unsaved edits to it will be lost.')) return;
+  const demo = createDemoHousehold();
+  demo.meta.householdId = activeHouseholdId;      // reuse the active (demo) slot
+  hydratePlan(demo);
+  saveActiveHousehold();
+  scenarios = demoScenarios();
+  try{ localStorage.removeItem(scenKey()); }catch(e){}
+  saveScenarios();
+  hhLoadRecord('Demo household loaded');
+}
+// Blank the ACTIVE household in place — same id/slot, same demo-ness/name — so
+// the advisor can start over without creating a new record.
 function hhClearHousehold(){
   if(!confirm('Clear all plan data? This cannot be undone.')) return;
-  plan.meta.primaryName  = '';
-  plan.meta.spouseName   = '';
-  plan.meta.filingStatus = 'single';
-  plan.meta.state = 'CA';
-  plan.household.primary  = { currentAge: 60, retirementAge: 65, planEndAge: 90, birthYear: new Date().getFullYear() - 60 };
-  plan.household.spouse   = null;
-  // A cleared plan starts with NO accounts — the advisor adds what the
-  // household actually owns through the Account Type Bank.
-  plan.portfolio.accounts.taxable     = { balance: 0, basisPct: 1.0 };
-  plan.portfolio.accounts.traditional = { balance: 0 };
-  plan.portfolio.accounts.roth        = { balance: 0 };
-  plan.portfolio.extraAccounts = [];
-  plan.properties  = [];
-  plan.liabilities = [];
-  plan.income.workingIncome = 0;
-  plan.income.socialSecurity.primary = { pia: 0, claimAge: 67 };
-  plan.income.socialSecurity.spouse  = null;
-  plan.income.pension = { benefitByAge: {}, startAge: 65, colaPct: 0 };
-  plan.income.other   = [];
-  plan.expenses.living              = 0;
-  plan.expenses.healthcare          = 0;
-  plan.expenses.healthcareRealGrowth = 0.02;
-  plan.savings.annual = 0;
-  plan.goals = [];
-  try{ localStorage.removeItem(SCEN_KEY); }catch(e){}
-  // Clearing must not leave a stale snapshot to resurrect on reload.
-  try{ localStorage.removeItem(PLAN_KEY); }catch(e){}
-  planSaveDirty = true; saveFailed = false; syncSaveBtn();
-  glcDraft = null;   // Goals composer draft reinitializes from the cleared plan
-  scenarios = demoScenarios(); baseSnapshot = defaultLevers();
-  hhChapter = 'networth';
-  buildLevers(); plansDirty = true; sharedPaths = null;
-  syncHousehold();
-  renderInputs();
-  runAll();
-  $('#status').textContent = 'New household · fill in details';
+  const blank = createBlankHousehold();
+  blank.meta.householdId = activeHouseholdId;
+  blank.meta.isDemo      = !!(plan.meta && plan.meta.isDemo);
+  blank.meta.name        = (plan.meta && plan.meta.name) || 'New Household';
+  hydratePlan(blank);
+  saveActiveHousehold();
+  scenarios = demoScenarios();
+  try{ localStorage.removeItem(scenKey()); }catch(e){}
+  saveScenarios();
+  hhLoadRecord('New household · fill in details');
+}
+// Create a brand-new blank household, persist it, and make it active with its
+// own fresh scenario set.
+function newHousehold(){
+  saveActiveHousehold();                 // snapshot the outgoing household first
+  saveScenarios();                       // …and persist its scoped scenarios
+  const blank = createBlankHousehold();
+  householdsDb[blank.meta.householdId] = blank;
+  activeHouseholdId = blank.meta.householdId;
+  persistHouseholdsDb(); persistActiveId();
+  hydratePlan(blank);
+  scenarios = demoScenarios();
+  saveScenarios();
+  hhLoadRecord('New household created');
+}
+// Switch to another saved household by id (persists the outgoing one first, and
+// loads the incoming household's own scoped scenarios).
+function switchHousehold(id){
+  if(!householdsDb[id] || id === activeHouseholdId) return;
+  saveActiveHousehold();
+  saveScenarios();                       // persist the outgoing household's scenarios
+  activeHouseholdId = id;
+  persistActiveId();
+  hydratePlan(householdsDb[id]);
+  scenarios = loadScenarios(id) || demoScenarios();
+  saveScenarios();
+  hhLoadRecord('Loaded ' + ((plan.meta && plan.meta.name) || 'household'));
+}
+// Populate the switcher <select> and enable the Demo (reset) button only when
+// the active household is the demo.
+function updateHouseholdControls(){
+  const sel = $('#hh-switch');
+  if(sel){
+    const ids = Object.keys(householdsDb);
+    sel.innerHTML = ids.map(id => {
+      const h = householdsDb[id] || {};
+      const m = h.meta || {};
+      const nm = m.name || m.primaryName || 'Household';
+      return `<option value="${escHtml(id)}" ${id===activeHouseholdId?'selected':''}>${escHtml(nm)}</option>`;
+    }).join('');
+    sel.value = activeHouseholdId;
+  }
+  const demoBtn = $('#hh-act-demo');
+  if(demoBtn){
+    const isDemo = !!(plan.meta && plan.meta.isDemo);
+    demoBtn.disabled = !isDemo;
+    demoBtn.classList.toggle('is-disabled', !isDemo);
+    demoBtn.title = isDemo ? 'Reset this demo household to its original values'
+                          : 'Only the demo household can be reset';
+  }
 }
 
 /* One authoritative Household sync: fill rail identity, render the active chapter
@@ -1678,6 +1794,12 @@ function bindHouseholdRailOnce(){
   const clearBtn = $('#hh-act-clear');
   if(demoBtn)  demoBtn.addEventListener('click',  () => hhResetToDemo());
   if(clearBtn) clearBtn.addEventListener('click', () => hhClearHousehold());
+  // Household selector + New Household (multi-household state management).
+  const switchSel = $('#hh-switch');
+  const newBtn    = $('#hh-new');
+  if(switchSel) switchSel.addEventListener('change', e => switchHousehold(e.target.value));
+  if(newBtn)    newBtn.addEventListener('click', () => newHousehold());
+  updateHouseholdControls();
 }
 
 // Column subtotals — sums every group in HYBRID[page].left / .right (a column may
@@ -4937,7 +5059,13 @@ $('#path-seed').onchange=e=>{
     // Pension is removed from the Scenarios lever rows (per product ruling). The
     // engine still honors pension data from the plan; it is just not an editable
     // Scenarios lever. The one-time event row only appears when an event is set.
-    return LEVCFG.map((c) => c.key).filter((k) => k !== 'pensionAge' && (k !== 'eventAmt' || anyEvent));
+    // Retirement age drops out once the household is already retired — it is no
+    // longer a lever we can pull (the retirement decision is behind them).
+    const retired = hhAlreadyRetired();
+    return LEVCFG.map((c) => c.key).filter((k) =>
+      k !== 'pensionAge'
+      && (k !== 'eventAmt' || anyEvent)
+      && (k !== 'retireAge' || !retired));
   }
   function leverDeltaText(cfg, lev, baseLev) {
     if (!baseLev || lev === baseLev || cfg.key === 'sellAge') return null;
