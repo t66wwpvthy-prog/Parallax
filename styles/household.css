@@ -363,9 +363,12 @@
 
 .page[data-page="household"] select {
   font-family: var(--font-sans); font-size: 14px; color: var(--text-3);
-  background: var(--fill-04); border: 1px solid var(--line-08); border-radius: var(--r-sm);
-  padding: 2px 7px; cursor: pointer; outline: none;
+  background-color: var(--fill-04); border: 1px solid var(--line-08); border-radius: var(--r-sm);
+  padding: 3px 26px 3px 9px; cursor: pointer; outline: none;
   -webkit-appearance: none; appearance: none; max-width: 100%;
+  color-scheme: dark;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none' stroke='%23c6a662' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><path d='M3 4.5 L6 7.5 L9 4.5'/></svg>");
+  background-repeat: no-repeat; background-position: right 8px center;
   transition: border-color .15s, color .15s;
 }
 .page[data-page="household"] select:hover { border-color: var(--line-10); color: var(--text-2); }
