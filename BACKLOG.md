@@ -14,6 +14,38 @@ Format: `- [YYYY-MM-DD] short description (why / context)`
   while the horizon stays at the survivor's plan-end age. Today plan-end age only
   shortens the horizon; it does NOT model a death (and misleadingly improves success).
 
+## Per-spouse modeling (planned — keep the path easy)
+- [2026-07-07] Per-spouse retirement ages as independent scenario levers. Input +
+  engine already store/use each person's own retirement age; what's still single is
+  the Scenarios `retireAge` lever (shifts both via `retireDelay`). Split it into two
+  levers so each spouse can retire at a different age within a scenario. Do NOT add
+  rules that assume one household retirement age.
+- [2026-07-07] Per-spouse savings. Today savings is ONE household stream
+  (`plan.savings.annual`, $30k/yr) that stops when the LAST spouse retires. Move to
+  per-person contributions where each portion stops at that person's own retirement
+  age. Keep the current single-stream comment in createDemoHousehold from hardening
+  into an invariant.
+
+## Tech debt / structure
+- [2026-07-07] Dead-code audit of index.html (test-guarded). Confirmed retired code
+  still shipping: `renderGoalsHorizon()` (~line 3317) + `initGoalsHorizon()` (~line
+  3522) — replaced by `renderGoalsChapters()`, comment says "preserved below" (~280
+  lines); and the "PRESERVED richer lever editor" grid (~line 4218, `buildLevers`
+  slider/type-in grid) that is unmounted in the Scenarios redesign. Before deleting:
+  grep each symbol for LIVE callers (buildLevers is still invoked and no-ops when
+  #scn-levers is absent, so it needs care), remove in small commits, run full verify
+  after each. Goal: cut genuine bloat, not relocate it.
+- [2026-07-07] Modularize index.html (currently ~5,790 lines; a single
+  <script type="module">). Split into native ES modules (NO bundler needed — the app
+  already imports engine.js as ESM and is served statically). Proposed layout: state
+  (household store + scenarios), config (LEVCFG/levRange), engine-bridge
+  (leversToOverrides/planForScenario/runAll), views (household / goals / scenarios /
+  sequencing / notes), main.js boot. KEY CAVEAT: verify.mjs static checks regex the
+  index.html string for symbols (e.g. /function createDemoHousehold/) — those must be
+  repointed to scan the module files, or they'll fail even though behavior is intact.
+  Do dead-code audit FIRST, then extract leaf/pure modules, then shared-state module,
+  then big views — one phase per commit, full verify between phases.
+
 ## Flexibility / "don't trap the input"
 - [2026-07-07] Spending lever range is a fixed $80k–$360k window (LEVCFG `spend`).
   Low-spend households (e.g. a $48k/yr retiree) get clamped, so a "−10%" scenario

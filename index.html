@@ -325,10 +325,12 @@ function createDemoHousehold(){
   p.expenses.living              = 48000;   // $4,000/mo retirement living
   p.expenses.healthcare          = 11418;   // $5,709/yr × 2
   p.expenses.healthcareRealGrowth = 0.02;   // 2% above CPI (historical avg)
-  // SAVINGS RULE (explicit, intentionally simple): $30k/yr TOTAL household savings
-  // until the LAST working spouse retires — age 66 here (Client 1). It is ONE
-  // household stream, not split per person; the engine ends accumulation when the
-  // later of the two retirement ages is reached (see resolveInputs → retirementAge).
+  // SAVINGS RULE (explicit, intentionally simple — CURRENT model, NOT a permanent
+  // invariant): $30k/yr TOTAL household savings until the LAST working spouse
+  // retires — age 66 here (Client 1). One household stream today; per-spouse
+  // savings (each portion stopping at that person's own retirement age) is a
+  // planned backlog item and must stay easy to adopt. The engine ends accumulation
+  // when the later of the two retirement ages is reached (resolveInputs → retirementAge).
   p.savings.annual        = 30000;
   p.income.workingIncome  = 0;
   // SS PIA at FRA (67) — PDF annual benefits, both claiming at FRA. No pension.
