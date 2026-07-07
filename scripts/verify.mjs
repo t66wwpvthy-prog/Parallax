@@ -745,9 +745,9 @@ try {
     // Contract updated for the shipped Life Chapters view: the Goals tab now
     // renders renderGoalsChapters() -> #gl-chapters (three derived chapter
     // cards + inline row editing + the two-mode goal composer), replacing the
-    // retired Horizon (#gl-horizon). renderGoalsHorizon()/initGoalsHorizon()
-    // are preserved in index.html as dead code; this asserts the CURRENT DOM.
-    // The what-if drop mechanism was retired by design decision (2026-07-06).
+    // retired Horizon (#gl-horizon), whose renderer (renderGoalsHorizon/
+    // initGoalsHorizon) has since been removed as dead code; this asserts the
+    // CURRENT DOM. The what-if drop mechanism was retired (2026-07-06).
     await page.click('.htab[data-sub-target="goals"]');
     await new Promise(r => setTimeout(r, 400));
     const m = await page.evaluate(() => {

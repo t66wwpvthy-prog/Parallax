@@ -35,6 +35,13 @@ Format: `- [YYYY-MM-DD] short description (why / context)`
   grep each symbol for LIVE callers (buildLevers is still invoked and no-ops when
   #scn-levers is absent, so it needs care), remove in small commits, run full verify
   after each. Goal: cut genuine bloat, not relocate it.
+- [2026-07-07] buildLevers() lever-editor grid is a CALLED NO-OP, not simple dead
+  code: the `#scn-levers` markup was removed in the Scenarios redesign so buildLevers
+  renders nothing, but it's still invoked from ~15 live sites (scenario add/remove,
+  reseedScenarios, household load, solver, boot). Don't pure-delete. During the
+  Scenarios modularization, either stub it or drop the call sites, and remove its
+  now-unused helpers (renderLevValue, stepper, updateCell, barFillPct, isDollarLever
+  + the #scn-levers delegate) after confirming none are used by the live views.
 - [2026-07-07] Modularize index.html (currently ~5,790 lines; a single
   <script type="module">). Split into native ES modules (NO bundler needed — the app
   already imports engine.js as ESM and is served statically). Proposed layout: state
