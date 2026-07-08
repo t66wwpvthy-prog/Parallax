@@ -364,6 +364,29 @@
 .page[data-page="household"] .hh-wdash { color: var(--text-6); }
 .page[data-page="household"] .hh-suffix { color: var(--text-6); font-size: 16px; margin-left: 4px; }
 
+/* Compact rows — one hairline line per person/fact group (Retirement timing,
+   etc.) instead of a full section + two stacked ledger rows per person. */
+.page[data-page="household"] .hh-wcomp {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline; gap: 16px;
+  padding: 12px var(--ctrl-w) 12px 0;
+  border-bottom: 1px solid var(--line-08);
+}
+.page[data-page="household"] .hh-wsec > .hh-wcomp:last-of-type { border-bottom: 0; }
+.page[data-page="household"] .hh-wcomp__id { display: inline-flex; align-items: center; gap: 12px; min-width: 0; }
+.page[data-page="household"] .hh-wcomp__name { font-family: var(--font-sans); font-size: 16px; color: var(--text-2); }
+.page[data-page="household"] .hh-wcomp__name--k { letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-4); }
+.page[data-page="household"] .hh-wcomp__facts {
+  display: inline-flex; align-items: baseline; flex-wrap: wrap; justify-content: flex-end;
+  gap: 8px; font-family: var(--font-serif); font-size: 17px; color: var(--text-1);
+}
+.page[data-page="household"] .hh-wcomp__fact { display: inline-flex; align-items: baseline; gap: 6px; }
+.page[data-page="household"] .hh-wcomp__k {
+  font-family: var(--font-sans); font-size: 16px; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--text-6);
+}
+.page[data-page="household"] .hh-wcomp__sep { color: var(--text-6); font-family: var(--font-sans); font-size: 16px; }
+
 /* Nested mortgage block inside the Primary home section. */
 .page[data-page="household"] .hh-wmort {
   margin: 16px 0 0; padding: 4px 0 4px 24px;

@@ -1686,34 +1686,34 @@ function renderWizIncome(){
 /* ── Step 4 · Retirement — when work ends, what life costs ─────────
    Per-person retirement ages + the single plan horizon, then ESSENTIAL
    expenses only (living + healthcare). Goals stay on their own page. */
-function wizRetirePerson(role){
-  const isC = role==='client';
+/* Compact timing row: avatar + name on the left, age facts inline on the right
+   (one hairline row per person — not a whole section each). */
+function wizRetireTimingRow(role){
+  const isC = role === 'client';
   if(!isC && !plan.household.spouse) return '';
-  const p = plan.household[isC?'primary':'spouse'] || {};
+  const p = plan.household[isC ? 'primary' : 'spouse'] || {};
   const base = isC ? 'household.primary' : 'household.spouse';
-  const nm = isC ? (plan.meta.primaryName||'Client') : (plan.meta.spouseName||'Co-Client');
-  return `<div class="hh-wsec">
-    <div class="hh-wsec__head">
-      <span class="hh-wsec__avatar ${isC?'hh-wsec__avatar--c':'hh-wsec__avatar--s'}">${hhInitial(nm, isC?'C':'CC')}</span>
-      <span class="hh-wsec__title ${isC?'':'hh-wsec__title--slate'}">${escHtml(nm)}</span>
-    </div>
-    <div class="hh-wrow">
-      <span class="hh-wrow__name hh-wrow__name--fixed">Age now</span>
-      <span class="hh-wrow__fields"><span class="hh-derived">${p.currentAge ?? '—'}</span></span>
-    </div>
-    <div class="hh-wrow">
-      <span class="hh-wrow__name hh-wrow__name--fixed">Retires at</span>
-      <span class="hh-wrow__fields">${hhField(base+'.retirementAge','age')}</span>
-    </div>
+  const nm = isC ? (plan.meta.primaryName || 'Client') : (plan.meta.spouseName || 'Co-Client');
+  return `<div class="hh-wcomp">
+    <span class="hh-wcomp__id">
+      <span class="hh-wsec__avatar ${isC ? 'hh-wsec__avatar--c' : 'hh-wsec__avatar--s'}">${hhInitial(nm, isC ? 'C' : 'CC')}</span>
+      <span class="hh-wcomp__name">${escHtml(nm)}</span>
+    </span>
+    <span class="hh-wcomp__facts">
+      <span class="hh-wcomp__fact"><span class="hh-wcomp__k">Age now</span><span class="hh-derived">${p.currentAge ?? '—'}</span></span>
+      <span class="hh-wcomp__sep" aria-hidden="true">·</span>
+      <span class="hh-wcomp__fact"><span class="hh-wcomp__k">Retires at</span>${hhField(base + '.retirementAge', 'age')}</span>
+    </span>
   </div>`;
 }
 function renderWizRetirement(){
-  const monthly = Math.round(((plan.expenses.living||0))/12).toLocaleString('en-US');
-  return wizRetirePerson('client') + wizRetirePerson('spouse') + `<div class="hh-wsec">
-    <div class="hh-wsec__head"><span class="hh-wsec__title hh-wsec__title--gold">Plan horizon</span></div>
-    <div class="hh-wrow">
-      <span class="hh-wrow__name hh-wrow__name--fixed">Plan to age</span>
-      <span class="hh-wrow__fields">${hhField('household.primary.planEndAge','age')}</span>
+  const monthly = Math.round(((plan.expenses.living || 0)) / 12).toLocaleString('en-US');
+  return `<div class="hh-wsec">
+    <div class="hh-wsec__head"><span class="hh-wsec__title hh-wsec__title--gold">Retirement timing</span></div>
+    ${wizRetireTimingRow('client')}${wizRetireTimingRow('spouse')}
+    <div class="hh-wcomp hh-wcomp--horizon">
+      <span class="hh-wcomp__id"><span class="hh-wcomp__name hh-wcomp__name--k">Plan to age</span></span>
+      <span class="hh-wcomp__facts">${hhField('household.primary.planEndAge', 'age')}</span>
     </div>
   </div>
   <div class="hh-wsec">
