@@ -10,7 +10,7 @@
    • Tokens live on .page[data-page="household"] (NOT :root) so nothing leaks.
    • EVERY selector is scoped beneath .page[data-page="household"].
    • No global html/body resets, no !important, no specificity escalation.
-   • Type floor: nothing below 14px — labels 14, body 14.5–16, serif money up.
+   • Type floor: nothing below 16px — labels 16, body 16–18, serif money up.
 
    4K-QUALITY GLASS (see INTEGRATION.md): the wizard paints ONE primary glass
    surface (.hh-wizard) floating on the page background. Keep the three layers
@@ -158,9 +158,9 @@
   background: radial-gradient(120% 120% at 30% 25%, rgba(139,148,168,0.24), rgba(255,255,255,0.02));
   color: #aeb4c2; margin-left: -11px;
 }
-.page[data-page="household"] .hh-wiz-id__eyebrow { font-size: 14px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--text-6); font-weight: 600; }
+.page[data-page="household"] .hh-wiz-id__eyebrow { font-size: 16px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--text-6); font-weight: 600; }
 .page[data-page="household"] .hh-wiz-id__name { font-family: var(--font-serif); font-size: 22px; color: var(--text-1); font-weight: 400; line-height: 1.2; }
-.page[data-page="household"] .hh-wiz-id__filing { font-family: var(--font-serif); font-size: 14px; color: var(--text-5); font-style: italic; margin-top: 2px; }
+.page[data-page="household"] .hh-wiz-id__filing { font-family: var(--font-serif); font-size: 16px; color: var(--text-5); font-style: italic; margin-top: 2px; }
 
 /* Tucked household menu (⋯): Switch / New / Demo / Clear live in the popover. */
 .page[data-page="household"] .hh-menu { position: relative; flex: none; }
@@ -187,17 +187,17 @@
 
 /* Household selector + action buttons (inside the menu popover). */
 .page[data-page="household"] .hh-rail__switch-lbl {
-  font-family: var(--font-sans); font-size: 14px; letter-spacing: 0.16em;
+  font-family: var(--font-sans); font-size: 16px; letter-spacing: 0.16em;
   font-weight: 600; text-transform: uppercase; color: var(--text-5);
 }
 .page[data-page="household"] .hh-rail__switch-sel {
-  width: 100%; font-family: var(--font-serif); font-size: 15px;
+  width: 100%; font-family: var(--font-serif); font-size: 16px;
   padding: 7px 10px; background: var(--fill-04); border: 1px solid var(--line-08);
   border-radius: var(--r-sm); color: var(--text-2); cursor: pointer;
 }
 .page[data-page="household"] .hh-rail__switch-sel:hover { border-color: var(--gold-dim); }
 .page[data-page="household"] .hh-rail-act {
-  flex: 1; font-family: var(--font-sans); font-size: 14px; letter-spacing: 0.14em;
+  flex: 1; font-family: var(--font-sans); font-size: 16px; letter-spacing: 0.14em;
   font-weight: 600; text-transform: uppercase; padding: 7px 4px;
   background: var(--fill-04); border: 1px solid var(--line-08);
   border-radius: var(--r-sm); color: var(--text-5); cursor: pointer;
@@ -226,12 +226,12 @@
 .page[data-page="household"] .hh-step__num {
   width: 30px; height: 30px; border-radius: 50%; flex: none;
   display: inline-flex; align-items: center; justify-content: center;
-  font-family: var(--font-serif); font-size: 15px;
+  font-family: var(--font-serif); font-size: 16px;
   color: var(--text-5); border: 1px solid var(--line-16);
   transition: color .15s, border-color .15s, background .15s;
 }
 .page[data-page="household"] .hh-step__label {
-  font-size: 14px; letter-spacing: 0.14em; text-transform: uppercase;
+  font-size: 16px; letter-spacing: 0.14em; text-transform: uppercase;
   font-weight: 600; color: var(--text-5); transition: color .15s;
 }
 .page[data-page="household"] .hh-step:hover .hh-step__label { color: var(--text-2); }
@@ -269,7 +269,7 @@
 .page[data-page="household"] .hh-wsec__avatar {
   width: 28px; height: 28px; border-radius: 50%; flex: none;
   display: inline-flex; align-items: center; justify-content: center;
-  font-family: var(--font-serif); font-size: 14px;
+  font-family: var(--font-serif); font-size: 16px;
 }
 .page[data-page="household"] .hh-wsec__avatar--c {
   border: 1px solid rgba(198,166,98,0.40);
@@ -282,15 +282,15 @@
   color: #aeb4c2;
 }
 .page[data-page="household"] .hh-wsec__title {
-  font-size: 14px; letter-spacing: 0.18em; text-transform: uppercase;
+  font-size: 16px; letter-spacing: 0.18em; text-transform: uppercase;
   color: var(--gold-eyebrow); font-weight: 600;
 }
 .page[data-page="household"] .hh-wsec__title--slate { color: var(--blue-dim); }
 .page[data-page="household"] .hh-wsec__title--gold { color: var(--gold-eyebrow); }
 .page[data-page="household"] .hh-wsec__total { margin-left: auto; font-family: var(--font-serif); font-size: 19px; color: var(--gold-bright); }
-.page[data-page="household"] .hh-wsec__tag { margin-left: auto; font-size: 14px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-6); }
+.page[data-page="household"] .hh-wsec__tag { margin-left: auto; font-size: 16px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-6); }
 .page[data-page="household"] .hh-wsec__act {
-  margin-left: auto; font-family: var(--font-sans); font-size: 14px; color: var(--text-5);
+  margin-left: auto; font-family: var(--font-sans); font-size: 16px; color: var(--text-5);
   background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 3px;
 }
 .page[data-page="household"] .hh-wsec__act:hover { color: var(--down); }
@@ -299,11 +299,11 @@
 /* Field grid: uppercase key over a serif value slot. */
 .page[data-page="household"] .hh-wgrid { display: flex; flex-wrap: wrap; gap: 14px 26px; padding: 10px 2px 4px; }
 .page[data-page="household"] .hh-wf { display: flex; flex-direction: column; gap: 4px; }
-.page[data-page="household"] .hh-wf__k { font-size: 14px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-6); }
+.page[data-page="household"] .hh-wf__k { font-size: 16px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-6); }
 .page[data-page="household"] .hh-wf__v { font-family: var(--font-serif); font-size: 18px; color: var(--text-1); display: inline-flex; align-items: baseline; gap: 3px; }
 .page[data-page="household"] .hh-derived { font-family: var(--font-serif); color: var(--text-1); }
-.page[data-page="household"] .hh-wmeta { font-size: 14px; color: var(--text-6); font-style: italic; padding: 6px 2px 0; }
-.page[data-page="household"] .hh-wempty { padding: 13px 2px; font-family: var(--font-serif); font-style: italic; font-size: 15px; color: var(--text-5); border-bottom: 1px solid var(--line-06); }
+.page[data-page="household"] .hh-wmeta { font-size: 16px; color: var(--text-6); font-style: italic; padding: 6px 2px 0; }
+.page[data-page="household"] .hh-wempty { padding: 13px 2px; font-family: var(--font-serif); font-style: italic; font-size: 16px; color: var(--text-5); border-bottom: 1px solid var(--line-06); }
 .page[data-page="household"] .hh-wadd { padding: 12px 2px 0; display: flex; gap: 8px; }
 
 /* List rows (children / pension quotes / other income). */
@@ -311,19 +311,19 @@
   display: flex; align-items: baseline; gap: 14px;
   padding: 13px 2px; border-bottom: 1px solid var(--line-08);
 }
-.page[data-page="household"] .hh-wrow__name { flex: 1 1 auto; min-width: 8ch; font-family: var(--font-sans); font-size: 15px; color: var(--text-2); }
-.page[data-page="household"] .hh-wrow__name--fixed { font-size: 14.5px; color: var(--text-4); }
+.page[data-page="household"] .hh-wrow__name { flex: 1 1 auto; min-width: 8ch; font-family: var(--font-sans); font-size: 16px; color: var(--text-2); }
+.page[data-page="household"] .hh-wrow__name--fixed { font-size: 16px; color: var(--text-4); }
 .page[data-page="household"] .hh-wrow__fields { display: inline-flex; align-items: baseline; gap: 8px; font-family: var(--font-serif); font-size: 17px; color: var(--text-1); }
-.page[data-page="household"] .hh-wrow__age { font-size: 14px; color: var(--text-5); min-width: 6ch; }
+.page[data-page="household"] .hh-wrow__age { font-size: 16px; color: var(--text-5); min-width: 6ch; }
 .page[data-page="household"] .hh-wrow--stack { flex-direction: column; align-items: stretch; gap: 6px; }
 .page[data-page="household"] .hh-wrow__main { display: flex; align-items: baseline; gap: 14px; }
 .page[data-page="household"] .hh-wrow__main .hh-wrow__name { flex: 1; }
-.page[data-page="household"] .hh-wrow__meta { font-size: 14px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-6); display: flex; align-items: baseline; gap: 5px; flex-wrap: wrap; }
+.page[data-page="household"] .hh-wrow__meta { font-size: 16px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-6); display: flex; align-items: baseline; gap: 5px; flex-wrap: wrap; }
 .page[data-page="household"] .hh-wrow__meta input,
-.page[data-page="household"] .hh-gw-in { width: 4ch; font-family: var(--font-serif); font-size: 14px; color: var(--text-3); text-transform: none; letter-spacing: 0; text-align: right; }
+.page[data-page="household"] .hh-gw-in { width: 4ch; font-family: var(--font-serif); font-size: 16px; color: var(--text-3); text-transform: none; letter-spacing: 0; text-align: right; }
 .page[data-page="household"] .hh-wpen-meta { padding: 10px 2px 0; }
 .page[data-page="household"] .hh-wdash { color: var(--text-6); }
-.page[data-page="household"] .hh-suffix { color: var(--text-6); font-size: 0.72em; }
+.page[data-page="household"] .hh-suffix { color: var(--text-6); font-size: 16px; }
 
 /* Nested mortgage block inside the Primary home section. */
 .page[data-page="household"] .hh-wmort {
@@ -334,7 +334,7 @@
 
 /* Account ledger rows (typed bank rows reused across owner groups). */
 .page[data-page="household"] .hh-acct { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding: 11px 2px; border-bottom: 1px solid var(--line-06); }
-.page[data-page="household"] .hh-acct__cat { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; min-width: 0; font-size: 14px; color: var(--text-4); }
+.page[data-page="household"] .hh-acct__cat { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; min-width: 0; font-size: 16px; color: var(--text-4); }
 .page[data-page="household"] .hh-acct__amt { display: flex; align-items: center; justify-content: flex-end; gap: 6px; font-family: var(--font-serif); font-size: 17px; color: var(--text-2); }
 
 /* Account Type Bank add-form — opens INSIDE the owner group that spawned it. */
@@ -352,7 +352,7 @@
 /* Footer nav (Back / Continue) inside the form column. */
 .page[data-page="household"] .hh-wiz-nav { display: flex; justify-content: space-between; align-items: center; margin-top: 30px; }
 .page[data-page="household"] .hh-nav-btn {
-  font-family: var(--font-sans); font-size: 14px; letter-spacing: 0.12em;
+  font-family: var(--font-sans); font-size: 16px; letter-spacing: 0.12em;
   font-weight: 600; text-transform: uppercase;
   padding: 10px 22px; border-radius: var(--r-sm); cursor: pointer;
   transition: color .15s, border-color .15s, background .15s;
@@ -365,21 +365,21 @@
 /* =============================================================================
    PLAN-SO-FAR RAIL (live, derived on every sync)
    ============================================================================= */
-.page[data-page="household"] .hh-prail__eyebrow { font-size: 14px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--gold-eyebrow); font-weight: 600; margin-bottom: 16px; }
-.page[data-page="household"] .hh-prail__label { font-size: 14px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-5); margin-bottom: 4px; }
+.page[data-page="household"] .hh-prail__eyebrow { font-size: 16px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--gold-eyebrow); font-weight: 600; margin-bottom: 16px; }
+.page[data-page="household"] .hh-prail__label { font-size: 16px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-5); margin-bottom: 4px; }
 .page[data-page="household"] .hh-prail__total { font-family: var(--font-serif); font-size: 36px; color: var(--gold-bright); line-height: 1.1; margin-bottom: 16px; }
 .page[data-page="household"] .hh-prail__row { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--line-06); }
-.page[data-page="household"] .hh-prail__k { font-size: 14px; color: var(--text-5); }
+.page[data-page="household"] .hh-prail__k { font-size: 16px; color: var(--text-5); }
 .page[data-page="household"] .hh-prail__v { font-family: var(--font-serif); font-size: 16px; color: var(--text-2); font-weight: 400; }
 .page[data-page="household"] .hh-prail__v--debt { color: var(--down); }
 
 /* Ownership bar (rail + Blueprint hero). */
 .page[data-page="household"] .hh-own { width: 100%; margin: 4px 0 18px; }
-.page[data-page="household"] .hh-own__label { font-size: 14px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-6); margin-bottom: 8px; }
+.page[data-page="household"] .hh-own__label { font-size: 16px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-6); margin-bottom: 8px; }
 .page[data-page="household"] .hh-own__bar { display: flex; height: 6px; border-radius: 4px; overflow: hidden; margin-bottom: 8px; background: rgba(63,88,120,0.45); }
 .page[data-page="household"] .hh-own__c { background: var(--gold); }
 .page[data-page="household"] .hh-own__s { background: var(--blue-soft); }
-.page[data-page="household"] .hh-own__legend { display: flex; justify-content: space-between; font-size: 14px; color: var(--text-5); }
+.page[data-page="household"] .hh-own__legend { display: flex; justify-content: space-between; font-size: 16px; color: var(--text-5); }
 
 /* =============================================================================
    STEP 5 · BLUEPRINT (read-only overview)
@@ -392,13 +392,13 @@
   box-shadow: var(--shadow-card);
   backdrop-filter: var(--blur-card); -webkit-backdrop-filter: var(--blur-card);
 }
-.page[data-page="household"] .hh-bp__label { font-size: 14px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-5); margin-bottom: 6px; }
+.page[data-page="household"] .hh-bp__label { font-size: 16px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-5); margin-bottom: 6px; }
 .page[data-page="household"] .hh-bp__total { font-family: var(--font-serif); font-size: 42px; color: var(--gold-bright); line-height: 1.1; margin-bottom: 14px; }
 .page[data-page="household"] .hh-bp__hero .hh-own { max-width: 420px; margin: 0 auto 12px; }
 .page[data-page="household"] .hh-bp__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px 36px; }
-.page[data-page="household"] .hh-bp__head { font-size: 14px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--gold-eyebrow); font-weight: 600; padding-bottom: 8px; margin-bottom: 4px; border-bottom: 1px solid var(--line-08); }
+.page[data-page="household"] .hh-bp__head { font-size: 16px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--gold-eyebrow); font-weight: 600; padding-bottom: 8px; margin-bottom: 4px; border-bottom: 1px solid var(--line-08); }
 .page[data-page="household"] .hh-bp__row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--line-06); }
-.page[data-page="household"] .hh-bp__k { font-size: 14.5px; color: var(--text-4); }
+.page[data-page="household"] .hh-bp__k { font-size: 16px; color: var(--text-4); }
 .page[data-page="household"] .hh-bp__v { font-family: var(--font-serif); font-size: 16px; color: var(--text-1); font-weight: 400; text-align: right; }
 .page[data-page="household"] .hh-bp__v--debt { color: var(--down); }
 
@@ -428,10 +428,12 @@
 .page[data-page="household"] input[data-type="pct"]   { width: 3.5ch; text-align: right; }
 .page[data-page="household"] input[data-type="rate"]  { width: 5ch;   text-align: right; }
 .page[data-page="household"] input.hh-born-in { width: 5.5ch; }
-.page[data-page="household"] .pre { font-family: var(--font-sans); font-size: 0.62em; color: var(--text-5); margin-right: 1px; vertical-align: 0.1em; }
+/* Money prefix ($) — 16px keeps the type floor while staying subordinate to
+   the serif figure beside it (muted colour carries the hierarchy). */
+.page[data-page="household"] .pre { font-family: var(--font-sans); font-size: 16px; color: var(--text-5); margin-right: 1px; vertical-align: 0.05em; }
 
 .page[data-page="household"] select {
-  font-family: var(--font-sans); font-size: 14px; color: var(--text-3);
+  font-family: var(--font-sans); font-size: 16px; color: var(--text-3);
   background-color: var(--fill-04); border: 1px solid var(--line-08); border-radius: var(--r-sm);
   padding: 3px 26px 3px 9px; cursor: pointer; outline: none;
   -webkit-appearance: none; appearance: none; max-width: 100%;
@@ -446,12 +448,12 @@
 
 .page[data-page="household"] .row-x {
   width: 18px; height: 18px; flex: none; border: 0; border-radius: var(--r-sm);
-  background: transparent; color: var(--text-6); font-size: 15px; line-height: 1; cursor: pointer; padding: 0;
+  background: transparent; color: var(--text-6); font-size: 16px; line-height: 1; cursor: pointer; padding: 0;
 }
 .page[data-page="household"] .row-x:hover { color: var(--down); background: var(--fill-05); }
 .page[data-page="household"] .hh-add {
   display: inline-flex; align-items: center;
-  font-family: var(--font-sans); font-size: 14px; letter-spacing: 0.06em; font-weight: 600;
+  font-family: var(--font-sans); font-size: 16px; letter-spacing: 0.06em; font-weight: 600;
   color: var(--gold-soft); background: transparent; border: 1px dashed var(--gold-dim);
   border-radius: var(--r-sm); padding: 6px 14px; cursor: pointer; transition: border-color .15s, color .15s, background .15s;
 }

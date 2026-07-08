@@ -553,6 +553,43 @@ try {
     if(s4.goals > 0) throw new Error('goals must not render inside the wizard');
   });
 
+  await step('type floor: no household wizard text renders below 16px', async () => {
+    // The wizard's design contract: every piece of text and every number on
+    // the Household page is >= 16px computed. Scans all five steps, including
+    // the add-account form (opened on step 2), covering text nodes AND inputs.
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
+    await page.click('.htab[data-page="household"]'); await sleep(400);
+    const offenders = [];
+    for(const n of [1,2,3,4,5]){
+      await page.click('#hh-step-'+n); await sleep(350);
+      if(n === 2){
+        await page.click('#hh-view [data-hh-action="open-account-form"][data-owner="client"]');
+        await sleep(250);
+      }
+      const found = await page.evaluate(() => {
+        const bad = [];
+        document.querySelectorAll('.page[data-page="household"] *').forEach(el => {
+          if(el.tagName === 'OPTION') return;               // popup list, not page text
+          if(!el.offsetParent) return;                      // hidden (e.g. closed menu)
+          const hasText = [...el.childNodes].some(nd => nd.nodeType === 3 && nd.textContent.trim());
+          if(!hasText && el.tagName !== 'INPUT') return;    // inputs render their value/placeholder
+          const fs = parseFloat(getComputedStyle(el).fontSize);
+          if(fs < 15.9){
+            const cls = (el.className || '').toString().split(' ')[0];
+            bad.push(`${el.tagName.toLowerCase()}${cls ? '.'+cls : ''} ${fs.toFixed(1)}px "${(el.value || el.textContent || '').trim().slice(0, 24)}"`);
+          }
+        });
+        return bad;
+      });
+      found.forEach(f => offenders.push(`step ${n}: ${f}`));
+      if(n === 2){
+        await page.evaluate(() => document.querySelector('[data-hh-action="cancel-account"]')?.click());
+        await sleep(200);
+      }
+    }
+    if(offenders.length) throw new Error('text below the 16px floor:\n  ' + [...new Set(offenders)].slice(0, 15).join('\n  '));
+  });
+
   await step('household inline edits write back to plan + live plan-rail updates', async () => {
     const sleep = ms => new Promise(r => setTimeout(r, ms));
     await goStep(2);
