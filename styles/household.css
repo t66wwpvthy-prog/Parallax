@@ -12,10 +12,8 @@
    • No global html/body resets, no !important, no specificity escalation.
    • Type floor: nothing below 16px — labels 16, body 16–18, serif money up.
 
-   4K-QUALITY GLASS (see INTEGRATION.md): the wizard paints ONE primary glass
-   surface (.hh-wizard) floating on the page background. Keep the three layers
-   intact at 3840×2160: layered gradient fills, real backdrop blur+saturate,
-   and the deep ambient shadow PLUS the 1px inner top highlight.
+   • Page background (--app-page-bg) lives in main.css on body .page[data-page="household"];
+     this file owns wizard tokens and layout only.
    ============================================================================= */
 
 /* ---- Tokens + page base (household route only) ---------------------------- */
@@ -23,16 +21,6 @@
   /* Type */
   --font-sans: 'Hanken Grotesk', system-ui, -apple-system, sans-serif;
   --font-serif: 'Spectral', Georgia, serif;
-
-  /* Page background (fixed, behind the floating glass) */
-  --bg-deep:   #0f1216;
-  --bg-top:    #15181d;
-  --bg-bottom: #0b0d11;
-  --page-bg:
-    radial-gradient(56% 52% at 85% -10%, rgba(74,58,34,0.16), rgba(74,58,34,0) 58%),
-    radial-gradient(58% 60% at 2% 106%, rgba(22,33,50,0.5), rgba(0,0,0,0) 62%),
-    radial-gradient(50% 48% at 50% 48%, rgba(224,212,178,0.10), rgba(0,0,0,0) 72%),
-    linear-gradient(158deg, var(--bg-top) 0%, var(--bg-deep) 50%, var(--bg-bottom) 100%);
 
   /* Gold accent */
   --gold:         #c6a662;
@@ -109,8 +97,6 @@
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   color: var(--text-2);
-  background: var(--page-bg);
-  background-attachment: fixed;
   overflow-x: hidden;
   overflow-y: auto;
 }

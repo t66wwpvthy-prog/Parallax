@@ -58,5 +58,5 @@ const server = createServer((req, res) => {
 server.listen(port, host, () => {
   console.log(`Parallax preview running at http://${host}:${port}/`);
   console.log(`Serving ${root}`);
-  console.log(`Wizard layout rev: 2 (household.css?v=16 — Blueprint drops rail, compact Retirement timing)`);
+  console.log(`Wizard layout rev: 3 (household.css?v=19 — compact steps, scroll when needed, Blueprint → Scenarios CTA)`);
 });
