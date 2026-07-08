@@ -103,7 +103,7 @@
   --gutter: 56px;
   --ctrl-w: 32px;
 
-  /* Page surface — fit the wizard in the viewport; scroll only on small screens. */
+  /* Page surface — compact layout; scroll when content exceeds the viewport. */
   font-family: var(--font-sans);
   font-feature-settings: 'tnum' 1;            /* tabular figures for ledgers */
   -webkit-font-smoothing: antialiased;
@@ -111,8 +111,8 @@
   color: var(--text-2);
   background: var(--page-bg);
   background-attachment: fixed;
-  overflow: hidden;
-  justify-content: center;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .page[data-page="household"] *,
@@ -121,10 +121,14 @@
 
 .page[data-page="household"] :focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; border-radius: var(--r-sm); }
 
-/* Inner stage: centers + pads the content. Premium floating glass — at every
-   width it sits centered; --max-w caps the card so the canvas never outgrows
-   its content. That is the one knob. */
-.page[data-page="household"] .hh-stage { width: 100%; max-width: var(--max-w); margin: 12px auto; padding: 0 24px 12px; }
+/* Inner stage: centers in the viewport when the card is short; when the step
+   is taller than the viewport the page scrolls and nothing is clipped. */
+.page[data-page="household"] .hh-stage {
+  width: 100%; max-width: var(--max-w);
+  margin: auto;
+  padding: 0 24px 24px;
+  flex: 0 0 auto;
+}
 
 /* =============================================================================
    WIZARD FRAME — the single primary glass surface
@@ -556,17 +560,9 @@
   .page[data-page="household"] .hh-wizard { padding: 18px 28px 22px; }
 }
 @media (max-width: 1080px) {
-  .page[data-page="household"] { overflow-y: auto; justify-content: flex-start; }
   .page[data-page="household"] .hh-wiz-body { grid-template-columns: minmax(0, 1fr); }
   .page[data-page="household"] .hh-plan-rail { border-left: 0; padding-left: 0; border-top: 1px solid var(--line-08); padding-top: 24px; margin-top: 32px; }
   .page[data-page="household"] .hh-prail { position: static; }
   .page[data-page="household"] .hh-acct { grid-template-columns: minmax(160px, 260px) minmax(0, 1fr) minmax(110px, 150px) var(--ctrl-w); }
   .page[data-page="household"] .hh-step__conn { min-width: 8px; margin: 0 8px; }
-}
-
-/* ---- Large displays -------------------------------------------------------
-   The card keeps its ~1120px cap (a balanced canvas beats a stretched one);
-   at 4K it sits vertically centred instead of stuck at the top. */
-@media (min-width: 3200px) {
-  .page[data-page="household"] .hh-stage { margin-top: auto; margin-bottom: auto; }
 }
