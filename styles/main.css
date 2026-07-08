@@ -44,7 +44,25 @@
     linear-gradient(158deg, #15181d 0%, #0f1216 50%, #0b0d11 100%);
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%;background:var(--bg);font-family:var(--font-sans);color:var(--ink);font-size:14px;-webkit-font-smoothing:antialiased;overflow:hidden}
+html,body{height:100%;background:var(--bg);font-family:var(--font-sans);color:var(--ink);font-size:14px;-webkit-font-smoothing:antialiased;overflow:hidden;color-scheme:dark}
+/* Dark, intentional <select> controls app-wide. color-scheme:dark makes the
+   NATIVE option popup render dark (was white — the "looks like a mistake" box);
+   the rest gives every select a themed control + custom chevron so it reads as
+   designed rather than a raw browser widget. Per-page rules may refine this. */
+select{
+  color-scheme:dark;
+  -webkit-appearance:none;appearance:none;
+  background-color:var(--fill-04,rgba(255,255,255,.04));
+  color:var(--text-2,#d9d4c9);
+  border:1px solid var(--line-08,rgba(255,255,255,.10));
+  border-radius:var(--r-sm,8px);
+  padding:6px 30px 6px 11px;cursor:pointer;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none' stroke='%23c6a662' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><path d='M3 4.5 L6 7.5 L9 4.5'/></svg>");
+  background-repeat:no-repeat;background-position:right 10px center;
+}
+select:hover{border-color:rgba(198,166,98,.32)}
+select:focus{outline:none;border-color:var(--gold,#c6a662)}
+select option{background:#14161b;color:var(--text-2,#d9d4c9)}
 .wrap{height:100vh;display:flex;flex-direction:column;overflow:hidden}
 
 /* The former .hh-shell token-pin and all retired .hh-bar/.hh-f/.acct-* rules have
