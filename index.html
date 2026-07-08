@@ -1777,10 +1777,6 @@ function wizFooter(){
   return `<div class="hh-wiz-nav">${back}${next}</div>`;
 }
 function renderWizRail(){
-  const all = hhAllAccounts();
-  const sum = o => all.filter(x=>x.owner===o).reduce((s,x)=>s+(x.balance||0),0);
-  const cInv = sum('client'), sInv = sum('spouse'), base = cInv + sInv;
-  const cPct = base ? Math.round(cInv/base*100) : 0, sPct = base ? 100-cPct : 0;
   const ss = plan.income.socialSecurity || {};
   const ssTotal = ((ss.primary&&ss.primary.pia)||0) + ((ss.spouse&&ss.spouse.pia)||0);
   const ess = (plan.expenses.living||0) + (plan.expenses.healthcare||0);
@@ -1788,11 +1784,6 @@ function renderWizRail(){
   return `<div class="hh-prail__eyebrow">Plan so far</div>
     <div class="hh-prail__label">Net worth</div>
     <div class="hh-prail__total">${hhMoney(hhNetWorthTotal())}</div>
-    <div class="hh-own">
-      <div class="hh-own__label">Ownership</div>
-      <div class="hh-own__bar"><div class="hh-own__c" style="width:${cPct}%;"></div><div class="hh-own__s" style="width:${sPct}%;"></div></div>
-      <div class="hh-own__legend"><span>C ${cPct}%</span><span>CC ${sPct}%</span></div>
-    </div>
     ${row('Investable', hhShort(investableTotal()))}
     ${row('Real assets', hhShort(realAssetsTotal()))}
     ${row('Debt', hhShort(-hhDebtTotal()), 'hh-prail__v--debt')}

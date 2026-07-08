@@ -563,12 +563,15 @@ try {
     const after = await page.evaluate(() => ({ total: document.querySelector('#hh-plan-rail .hh-prail__total')?.textContent.trim(), status: document.querySelector('#status')?.textContent }));
     if(after.total === totalBefore) throw new Error(`editing an account balance did not update the plan-rail net worth (${totalBefore})`);
     if(!/Plan edited/.test(after.status||'')) throw new Error('account edit did not mark the plan dirty (status)');
-    // Change Client 2's Roth IRA owner co-client → client; rail ownership shifts.
-    const ownBefore = await page.evaluate(() => document.querySelector('#hh-plan-rail .hh-own__legend')?.textContent.replace(/\s+/g,' ').trim());
+    // Change Client 2's Roth IRA owner co-client → client; the row moves into
+    // the Client group, so that group's investable total shifts (the Client
+    // group is the first .hh-wsec on the Accounts step).
+    const clientGroupTotal = () => page.evaluate(() => document.querySelector('#hh-view .hh-wsec .hh-wsec__total')?.textContent.trim());
+    const ownBefore = await clientGroupTotal();
     await page.evaluate(() => { const el = document.querySelector('#hh-view select[data-path="portfolio.extraAccounts.5.owner"]'); el.value = 'client'; el.dispatchEvent(new Event('change', { bubbles:true })); });
     await sleep(300);
-    const ownAfter = await page.evaluate(() => document.querySelector('#hh-plan-rail .hh-own__legend')?.textContent.replace(/\s+/g,' ').trim());
-    if(ownBefore === ownAfter) throw new Error(`changing an account owner did not shift the rail ownership split (${ownBefore})`);
+    const ownAfter = await clientGroupTotal();
+    if(ownBefore === ownAfter) throw new Error(`changing an account owner did not move it between owner groups (${ownBefore})`);
     // Changing an account's TYPE re-derives its bucket (Roth IRA → Savings/taxable).
     const bucketShift = await page.evaluate(() => {
       const el = document.querySelector('#hh-view select[data-path="portfolio.extraAccounts.5.type"]');
