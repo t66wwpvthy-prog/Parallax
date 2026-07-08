@@ -533,6 +533,7 @@
   .page[data-page="household"] .hh-plan-rail { border-left: 0; padding-left: 0; border-top: 1px solid var(--line-08); padding-top: 24px; margin-top: 32px; }
   .page[data-page="household"] .hh-prail { position: static; }
   .page[data-page="household"] .hh-acct { grid-template-columns: minmax(160px, 260px) minmax(0, 1fr) minmax(110px, 150px) var(--ctrl-w); }
+  .page[data-page="household"] .hh-step__conn { min-width: 8px; margin: 0 8px; }
 }
 
 /* ---- Large displays -------------------------------------------------------
