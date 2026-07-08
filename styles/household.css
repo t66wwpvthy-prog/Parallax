@@ -258,12 +258,6 @@
   border-left: 1px solid var(--line-08); padding-left: 30px;
 }
 
-/* ---- Step shell ------------------------------------------------------------ */
-.page[data-page="household"] .hh-wlead {
-  font-family: var(--font-serif); font-style: italic; font-size: 21px;
-  color: var(--text-2); margin-bottom: 28px;
-}
-
 /* One section = header + hairline rows. The ONLY boxes are input fields. */
 .page[data-page="household"] .hh-wsec { margin: 26px 0 6px; }
 .page[data-page="household"] .hh-wsec:first-of-type { margin-top: 0; }

@@ -382,7 +382,6 @@ try {
     // Step 1 · Household: names, Born (drives age), filing, state, addable children.
     await page.click('#hh-step-1'); await new Promise(r => setTimeout(r, 350));
     const s1 = await page.evaluate(() => ({
-      lead: document.querySelector('#hh-view .hh-wlead')?.textContent.trim() || '',
       nameInputs: document.querySelectorAll('#hh-view input[data-path="meta.primaryName"], #hh-view input[data-path="meta.spouseName"]').length,
       bornInputs: document.querySelectorAll('#hh-view input[data-type="birthYear"]').length,
       filing: !!document.querySelector('#hh-view select[data-path="meta.filingStatus"]'),
@@ -392,7 +391,6 @@ try {
       back: !!document.querySelector('#hh-view [data-hh-action="step-back"]'),
       next: !!document.querySelector('#hh-view [data-hh-action="step-next"]'),
     }));
-    if(!s1.lead) throw new Error('step 1 instruction line missing');
     if(s1.nameInputs !== 2) throw new Error(`step 1 name inputs: want 2, got ${s1.nameInputs}`);
     if(s1.bornInputs < 2) throw new Error(`step 1 Born inputs missing, got ${s1.bornInputs}`);
     if(!s1.filing) throw new Error('Filing dropdown missing');

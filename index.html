@@ -1765,11 +1765,11 @@ function renderWizBlueprint(){
 
 /* ── Wizard chrome: step table, footer nav, live "Plan so far" rail ─ */
 const HH_STEPS = {
-  1: { lead:'Who is this plan for?',                          render: renderWizHousehold },
-  2: { lead:'What have they saved?',                          render: renderWizAccounts },
-  3: { lead:'What arrives in retirement?',                    render: renderWizIncome },
-  4: { lead:'When does work end — and what does life cost?',  render: renderWizRetirement },
-  5: { lead:'The plan on one page.',                          render: renderWizBlueprint },
+  1: renderWizHousehold,
+  2: renderWizAccounts,
+  3: renderWizIncome,
+  4: renderWizRetirement,
+  5: renderWizBlueprint,
 };
 function wizFooter(){
   const back = hhStep > 1 ? `<button class="hh-nav-btn hh-nav-btn--ghost" type="button" data-hh-action="step-back">← Back</button>` : `<span></span>`;
@@ -1919,8 +1919,8 @@ function syncHousehold(){
   // Default co-client avatar reads 'CC' so it stays distinct from the client's 'C'.
   if($('#hh-avatar-s')) $('#hh-avatar-s').textContent =
     (!plan.meta.spouseName || plan.meta.spouseName === 'Co-Client') ? 'CC' : hhInitial(plan.meta.spouseName,'CC');
-  const st = HH_STEPS[hhStep] || HH_STEPS[1];
-  view.innerHTML = `<div class="hh-wstep"><div class="hh-wlead">${st.lead}</div>${st.render()}${wizFooter()}</div>`;
+  const renderStep = HH_STEPS[hhStep] || HH_STEPS[1];
+  view.innerHTML = `<div class="hh-wstep">${renderStep()}${wizFooter()}</div>`;
   const rail = $('#hh-plan-rail');
   if(rail) rail.innerHTML = renderWizRail();
   for(let i = 1; i <= 5; i++){
