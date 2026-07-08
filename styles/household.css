@@ -93,9 +93,15 @@
   --r-frame: 18px;
   --r-pill:  999px;
 
-  /* Layout */
-  --max-w: 1580px;
-  --prail-w: 288px;
+  /* Layout — one spacing scale everywhere: 4 / 8 / 12 / 16 / 24 / 32 / 48.
+     The card caps at ~1120px so the two-column canvas (form + rail) always
+     fills it: no stranded content, no dead zones. --ctrl-w reserves one
+     right-hand slot for row controls (×) so every amount on the page shares
+     a single right rule at (form right edge − --ctrl-w). */
+  --max-w: 1120px;
+  --prail-w: 300px;
+  --gutter: 56px;
+  --ctrl-w: 32px;
   --frame-min-h: 700px;
 
   /* Page surface */
@@ -116,17 +122,17 @@
 
 .page[data-page="household"] :focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; border-radius: var(--r-sm); }
 
-/* Inner stage: centers + pads the content. Premium floating glass — at 4K it
-   sits centered with wide margins (intended). Raise --max-w to occupy more
-   width; that is the one knob. */
-.page[data-page="household"] .hh-stage { width: 100%; max-width: var(--max-w); margin: 28px auto; padding: 0 22px 64px; }
+/* Inner stage: centers + pads the content. Premium floating glass — at every
+   width it sits centered; --max-w caps the card so the canvas never outgrows
+   its content. That is the one knob. */
+.page[data-page="household"] .hh-stage { width: 100%; max-width: var(--max-w); margin: 32px auto; padding: 0 24px 64px; }
 
 /* =============================================================================
    WIZARD FRAME — the single primary glass surface
    ============================================================================= */
 .page[data-page="household"] .hh-wizard {
   min-height: var(--frame-min-h);
-  padding: 30px 40px 40px;
+  padding: 32px 48px 48px;
   border-radius: var(--r-frame);
   background: var(--glass-panel);
   border: 1px solid var(--line-09);
@@ -137,8 +143,8 @@
 
 /* ---- Wizard header: identity left, tucked controls menu right ------------- */
 .page[data-page="household"] .hh-wiz-top {
-  display: flex; align-items: flex-start; justify-content: space-between; gap: 20px;
-  padding-bottom: 20px; margin-bottom: 24px;
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 24px;
+  padding-bottom: 16px; margin-bottom: 24px;
   border-bottom: 1px solid var(--line-08);
 }
 .page[data-page="household"] .hh-wiz-id { display: flex; align-items: center; gap: 16px; min-width: 0; }
@@ -214,12 +220,18 @@
 /* =============================================================================
    GOLD PROGRESS STEPPER
    ============================================================================= */
+/* Grid, not flex: the five steps sit in auto tracks and the four connectors
+   each take one equal 1fr track — equal-length hairlines and even visual
+   spacing between steps no matter how wide each label is. Spans the same
+   content width as the two-pane body below it. */
 .page[data-page="household"] .hh-stepper {
-  display: flex; align-items: center;
-  max-width: 1216px; margin: 0 auto 34px;
+  display: grid;
+  grid-template-columns: auto 1fr auto 1fr auto 1fr auto 1fr auto;
+  align-items: center;
+  margin: 0 0 32px;
 }
 .page[data-page="household"] .hh-step {
-  display: inline-flex; align-items: center; gap: 10px; flex: none;
+  display: inline-flex; align-items: center; gap: 8px;
   background: transparent; border: 0; padding: 4px 2px; cursor: pointer;
   font-family: inherit;
 }
@@ -240,32 +252,49 @@
 .page[data-page="household"] .hh-step.is-done .hh-step__num { color: var(--gold); border-color: var(--gold-dim); background: rgba(198,166,98,0.14); }
 .page[data-page="household"] .hh-step.is-done .hh-step__label { color: var(--gold-soft); }
 .page[data-page="household"] .hh-step__conn {
-  flex: 1 1 auto; min-width: 24px; height: 1px; margin: 0 16px;
+  height: 1px; min-width: 24px; margin: 0 16px;
   background: var(--line-08);
 }
 .page[data-page="household"] .hh-step__conn.is-done { background: var(--gold-dim); }
 
 /* =============================================================================
    TWO-PANE BODY — step form column + live "Plan so far" rail
+   -----------------------------------------------------------------------------
+   One centered grid: the form column flexes between 560–720px, the rail is a
+   fixed 300px, and a real 56px gutter separates them. The rail STRETCHES so
+   its border-left hairline anchors the full canvas height (no bottom-right
+   dead zone); the rail's content sticks inside it. On the Blueprint step the
+   rail is dropped and the body collapses to one full-width column (--solo).
    ============================================================================= */
 .page[data-page="household"] .hh-wiz-body {
-  display: flex; flex-wrap: wrap; gap: 28px; justify-content: center;
+  display: grid;
+  grid-template-columns: minmax(560px, 720px) var(--prail-w);
+  column-gap: var(--gutter);
+  justify-content: center;
 }
-.page[data-page="household"] .hh-content { flex: 1 1 560px; max-width: 900px; min-width: 0; }
+.page[data-page="household"] .hh-wiz-body--solo { grid-template-columns: minmax(0, 1fr); }
+.page[data-page="household"] .hh-wiz-body--solo .hh-plan-rail,
+.page[data-page="household"] .hh-plan-rail--off { display: none; }
+.page[data-page="household"] .hh-content { min-width: 0; }
 .page[data-page="household"] .hh-plan-rail {
-  flex: 0 0 var(--prail-w); min-width: 264px;
-  align-self: flex-start; position: sticky; top: 20px;
-  border-left: 1px solid var(--line-08); padding-left: 30px;
+  border-left: 1px solid var(--line-08); padding-left: 32px;
 }
+.page[data-page="household"] .hh-plan-rail[hidden] { display: none; }
+.page[data-page="household"] .hh-prail { position: sticky; top: 24px; }
 
-/* One section = header + hairline rows. The ONLY boxes are input fields. */
-.page[data-page="household"] .hh-wsec { margin: 26px 0 6px; }
+/* One section = header + hairline rows. The ONLY boxes are input fields.
+   Rhythm: 32px above every section header; header → 16px → its rows; rows
+   separated by hairline dividers only. */
+.page[data-page="household"] .hh-wsec { margin: 32px 0 0; }
 .page[data-page="household"] .hh-wsec:first-of-type { margin-top: 0; }
 .page[data-page="household"] .hh-wsec__head {
   display: flex; align-items: center; gap: 12px;
-  padding-bottom: 8px; margin-bottom: 6px;
+  padding: 0 var(--ctrl-w) 12px 0; margin-bottom: 4px;
   border-bottom: 1px solid var(--line-08);
 }
+/* Header-level remove (×) sits in the reserved control slot beyond the right
+   rule, exactly where row ×s live. */
+.page[data-page="household"] .hh-wsec__head .row-x { margin-left: auto; margin-right: calc(-1 * var(--ctrl-w)); }
 .page[data-page="household"] .hh-wsec__avatar {
   width: 28px; height: 28px; border-radius: 50%; flex: none;
   display: inline-flex; align-items: center; justify-content: center;
@@ -296,51 +325,94 @@
 .page[data-page="household"] .hh-wsec__act:hover { color: var(--down); }
 .page[data-page="household"] .hh-wsec--absent { opacity: 0.85; }
 
-/* Field grid: uppercase key over a serif value slot. */
-.page[data-page="household"] .hh-wgrid { display: flex; flex-wrap: wrap; gap: 14px 26px; padding: 10px 2px 4px; }
+/* Field grid: uppercase key over a serif value slot (entry fields only —
+   ledger amounts live in .hh-wrow rows so they share the right rule). */
+.page[data-page="household"] .hh-wgrid { display: flex; flex-wrap: wrap; gap: 16px 24px; padding: 12px 0 0; }
 .page[data-page="household"] .hh-wf { display: flex; flex-direction: column; gap: 4px; }
 .page[data-page="household"] .hh-wf__k { font-size: 16px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-6); }
 .page[data-page="household"] .hh-wf__v { font-family: var(--font-serif); font-size: 18px; color: var(--text-1); display: inline-flex; align-items: baseline; gap: 3px; }
 .page[data-page="household"] .hh-derived { font-family: var(--font-serif); color: var(--text-1); }
-.page[data-page="household"] .hh-wmeta { font-size: 16px; color: var(--text-6); font-style: italic; padding: 6px 2px 0; }
-.page[data-page="household"] .hh-wempty { padding: 13px 2px; font-family: var(--font-serif); font-style: italic; font-size: 16px; color: var(--text-5); border-bottom: 1px solid var(--line-06); }
-.page[data-page="household"] .hh-wadd { padding: 12px 2px 0; display: flex; gap: 8px; }
+.page[data-page="household"] .hh-wmeta { font-size: 16px; color: var(--text-6); font-style: italic; padding: 8px 0 0; }
+.page[data-page="household"] .hh-wempty { padding: 12px 0; font-family: var(--font-serif); font-style: italic; font-size: 16px; color: var(--text-5); border-bottom: 1px solid var(--line-06); }
+.page[data-page="household"] .hh-wadd { padding: 16px 0 0; display: flex; gap: 8px; }
 
-/* List rows (children / pension quotes / other income). */
+/* List rows (children / SS / pension / other income / savings / home value).
+   Three-part grid on one baseline: [label 1fr] — [value at the right rule] —
+   [--ctrl-w control slot]. The value column's right edge is THE shared right
+   rule for every amount on the page; the trailing slot holds the row × (or
+   stays empty) so amounts never shift when a row is removable. */
 .page[data-page="household"] .hh-wrow {
-  display: flex; align-items: baseline; gap: 14px;
-  padding: 13px 2px; border-bottom: 1px solid var(--line-08);
+  display: grid; grid-template-columns: minmax(0, 1fr) auto var(--ctrl-w);
+  align-items: baseline;
+  padding: 12px 0; border-bottom: 1px solid var(--line-08);
 }
-.page[data-page="household"] .hh-wrow__name { flex: 1 1 auto; min-width: 8ch; font-family: var(--font-sans); font-size: 16px; color: var(--text-2); }
+.page[data-page="household"] .hh-wrow .row-x { grid-column: 3; justify-self: end; align-self: center; }
+.page[data-page="household"] .hh-wrow__name { grid-column: 1; min-width: 0; width: 100%; font-family: var(--font-sans); font-size: 16px; color: var(--text-2); }
 .page[data-page="household"] .hh-wrow__name--fixed { font-size: 16px; color: var(--text-4); }
-.page[data-page="household"] .hh-wrow__fields { display: inline-flex; align-items: baseline; gap: 8px; font-family: var(--font-serif); font-size: 17px; color: var(--text-1); }
-.page[data-page="household"] .hh-wrow__age { font-size: 16px; color: var(--text-5); min-width: 6ch; }
-.page[data-page="household"] .hh-wrow--stack { flex-direction: column; align-items: stretch; gap: 6px; }
-.page[data-page="household"] .hh-wrow__main { display: flex; align-items: baseline; gap: 14px; }
-.page[data-page="household"] .hh-wrow__main .hh-wrow__name { flex: 1; }
-.page[data-page="household"] .hh-wrow__meta { font-size: 16px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-6); display: flex; align-items: baseline; gap: 5px; flex-wrap: wrap; }
+/* Zero flex gap so $ / % prefixes and unit suffixes hug their figure; the few
+   worded pieces (Born, derived ages) space themselves with margins. */
+.page[data-page="household"] .hh-wrow__fields { grid-column: 2; justify-self: end; display: inline-flex; align-items: baseline; font-family: var(--font-serif); font-size: 17px; color: var(--text-1); }
+.page[data-page="household"] .hh-wrow__fields .hh-wf__k { margin-right: 8px; }
+.page[data-page="household"] .hh-wrow__age { font-size: 16px; color: var(--text-5); margin-left: 8px; }
+.page[data-page="household"] .hh-wrow--stack { display: block; }
+.page[data-page="household"] .hh-wrow__main { display: grid; grid-template-columns: minmax(0, 1fr) auto var(--ctrl-w); align-items: baseline; }
+.page[data-page="household"] .hh-wrow__main .row-x { grid-column: 3; justify-self: end; align-self: center; }
+.page[data-page="household"] .hh-wrow__main .hh-wrow__fields { grid-column: 2; }
+.page[data-page="household"] .hh-wrow__meta { font-size: 16px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-6); display: flex; align-items: baseline; gap: 5px; flex-wrap: wrap; padding-top: 8px; }
 .page[data-page="household"] .hh-wrow__meta input,
 .page[data-page="household"] .hh-gw-in { width: 4ch; font-family: var(--font-serif); font-size: 16px; color: var(--text-3); text-transform: none; letter-spacing: 0; text-align: right; }
-.page[data-page="household"] .hh-wpen-meta { padding: 10px 2px 0; }
+.page[data-page="household"] .hh-wpen-meta { padding: 12px 0 0; }
 .page[data-page="household"] .hh-wdash { color: var(--text-6); }
-.page[data-page="household"] .hh-suffix { color: var(--text-6); font-size: 16px; }
+.page[data-page="household"] .hh-suffix { color: var(--text-6); font-size: 16px; margin-left: 4px; }
+
+/* Compact rows — one hairline line per person/fact group (Retirement timing,
+   etc.) instead of a full section + two stacked ledger rows per person. */
+.page[data-page="household"] .hh-wcomp {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline; gap: 16px;
+  padding: 12px var(--ctrl-w) 12px 0;
+  border-bottom: 1px solid var(--line-08);
+}
+.page[data-page="household"] .hh-wsec > .hh-wcomp:last-of-type { border-bottom: 0; }
+.page[data-page="household"] .hh-wcomp__id { display: inline-flex; align-items: center; gap: 12px; min-width: 0; }
+.page[data-page="household"] .hh-wcomp__name { font-family: var(--font-sans); font-size: 16px; color: var(--text-2); }
+.page[data-page="household"] .hh-wcomp__name--k { letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-4); }
+.page[data-page="household"] .hh-wcomp__facts {
+  display: inline-flex; align-items: baseline; flex-wrap: wrap; justify-content: flex-end;
+  gap: 8px; font-family: var(--font-serif); font-size: 17px; color: var(--text-1);
+}
+.page[data-page="household"] .hh-wcomp__fact { display: inline-flex; align-items: baseline; gap: 6px; }
+.page[data-page="household"] .hh-wcomp__k {
+  font-family: var(--font-sans); font-size: 16px; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--text-6);
+}
+.page[data-page="household"] .hh-wcomp__sep { color: var(--text-6); font-family: var(--font-sans); font-size: 16px; }
 
 /* Nested mortgage block inside the Primary home section. */
 .page[data-page="household"] .hh-wmort {
-  margin: 12px 0 4px; padding: 6px 0 6px 20px;
+  margin: 16px 0 0; padding: 4px 0 4px 24px;
   border-left: 2px solid var(--gold-dim);
 }
-.page[data-page="household"] .hh-wmort__head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.page[data-page="household"] .hh-wmort__head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 
-/* Account ledger rows (typed bank rows reused across owner groups). */
-.page[data-page="household"] .hh-acct { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding: 11px 2px; border-bottom: 1px solid var(--line-06); }
-.page[data-page="household"] .hh-acct__cat { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; min-width: 0; font-size: 16px; color: var(--text-4); }
-.page[data-page="household"] .hh-acct__amt { display: flex; align-items: center; justify-content: flex-end; gap: 6px; font-family: var(--font-serif); font-size: 17px; color: var(--text-2); }
+/* Account ledger rows (typed bank rows reused across owner groups).
+   Clean 3-part grid on one baseline: [type ▾ 260px] — flexible spacer —
+   [$ amount, right-aligned 150px] — [× in the control slot]. Ownership is
+   implied by the CLIENT / CO-CLIENT / JOINT & TRUST group the row lives
+   under — no per-row owner dropdown. */
+.page[data-page="household"] .hh-acct {
+  display: grid; grid-template-columns: 260px minmax(24px, 1fr) 150px var(--ctrl-w);
+  align-items: baseline;
+  padding: 12px 0; border-bottom: 1px solid var(--line-06);
+}
+.page[data-page="household"] .hh-acct .hh-sel--type { grid-column: 1; width: 100%; max-width: none; }
+.page[data-page="household"] .hh-acct__amt { grid-column: 3; display: inline-flex; align-items: baseline; justify-content: flex-end; font-family: var(--font-serif); font-size: 17px; color: var(--text-2); }
+.page[data-page="household"] .hh-acct .row-x { grid-column: 4; justify-self: end; align-self: center; }
 
 /* Account Type Bank add-form — opens INSIDE the owner group that spawned it. */
 .page[data-page="household"] .hh-acct-form {
-  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
-  padding: 10px 12px; margin: 10px 0 4px;
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  padding: 12px; margin: 16px 0 0;
   border: 1px dashed var(--gold-dim); border-left: 2px solid var(--gold-dim);
   border-radius: var(--r-md);
   background: rgba(198,166,98,0.05);
@@ -349,8 +421,8 @@
 .page[data-page="household"] .hh-acct-form .hh-form-val { width: 12ch; text-align: right; font-family: var(--font-serif); font-size: 16px; }
 .page[data-page="household"] .hh-sel--type { max-width: 190px; }
 
-/* Footer nav (Back / Continue) inside the form column. */
-.page[data-page="household"] .hh-wiz-nav { display: flex; justify-content: space-between; align-items: center; margin-top: 30px; }
+/* Footer nav (Back / Continue): content block → 48px → footer. */
+.page[data-page="household"] .hh-wiz-nav { display: flex; justify-content: space-between; align-items: center; margin-top: 48px; }
 .page[data-page="household"] .hh-nav-btn {
   font-family: var(--font-sans); font-size: 16px; letter-spacing: 0.12em;
   font-weight: 600; text-transform: uppercase;
@@ -364,17 +436,21 @@
 
 /* =============================================================================
    PLAN-SO-FAR RAIL (live, derived on every sync)
+   -----------------------------------------------------------------------------
+   The rail shows only figures the current step does NOT already present (no
+   figure ever appears twice side by side); it disappears entirely on the
+   Blueprint step. Its top aligns with the form's first section header.
    ============================================================================= */
-.page[data-page="household"] .hh-prail__eyebrow { font-size: 16px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--gold-eyebrow); font-weight: 600; margin-bottom: 16px; }
-.page[data-page="household"] .hh-prail__label { font-size: 16px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-5); margin-bottom: 4px; }
+.page[data-page="household"] .hh-prail__eyebrow { font-size: 16px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--gold-eyebrow); font-weight: 600; padding: 0 0 12px; margin-bottom: 4px; border-bottom: 1px solid transparent; }
+.page[data-page="household"] .hh-prail__label { font-size: 16px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-5); padding-top: 12px; margin-bottom: 4px; }
 .page[data-page="household"] .hh-prail__total { font-family: var(--font-serif); font-size: 36px; color: var(--gold-bright); line-height: 1.1; margin-bottom: 16px; }
-.page[data-page="household"] .hh-prail__row { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--line-06); }
+.page[data-page="household"] .hh-prail__row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--line-06); }
 .page[data-page="household"] .hh-prail__k { font-size: 16px; color: var(--text-5); }
 .page[data-page="household"] .hh-prail__v { font-family: var(--font-serif); font-size: 16px; color: var(--text-2); font-weight: 400; }
 .page[data-page="household"] .hh-prail__v--debt { color: var(--down); }
 
 /* Ownership bar (rail + Blueprint hero). */
-.page[data-page="household"] .hh-own { width: 100%; margin: 4px 0 18px; }
+.page[data-page="household"] .hh-own { width: 100%; margin: 4px 0 16px; }
 .page[data-page="household"] .hh-own__label { font-size: 16px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-6); margin-bottom: 8px; }
 .page[data-page="household"] .hh-own__bar { display: flex; height: 6px; border-radius: 4px; overflow: hidden; margin-bottom: 8px; background: rgba(63,88,120,0.45); }
 .page[data-page="household"] .hh-own__c { background: var(--gold); }
@@ -382,22 +458,27 @@
 .page[data-page="household"] .hh-own__legend { display: flex; justify-content: space-between; font-size: 16px; color: var(--text-5); }
 
 /* =============================================================================
-   STEP 5 · BLUEPRINT (read-only overview)
+   STEP 5 · BLUEPRINT (read-only overview — the rail is dropped on this step,
+   so the overview owns the full canvas width)
    ============================================================================= */
 .page[data-page="household"] .hh-bp__hero {
-  text-align: center; padding: 18px 20px 6px; margin-bottom: 22px;
+  text-align: center; padding: 24px 24px 8px; margin-bottom: 32px;
   border-radius: var(--r-card);
   background: var(--glass-card);
   border: 1px solid var(--line-08);
   box-shadow: var(--shadow-card);
   backdrop-filter: var(--blur-card); -webkit-backdrop-filter: var(--blur-card);
 }
-.page[data-page="household"] .hh-bp__label { font-size: 16px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-5); margin-bottom: 6px; }
-.page[data-page="household"] .hh-bp__total { font-family: var(--font-serif); font-size: 42px; color: var(--gold-bright); line-height: 1.1; margin-bottom: 14px; }
-.page[data-page="household"] .hh-bp__hero .hh-own { max-width: 420px; margin: 0 auto 12px; }
-.page[data-page="household"] .hh-bp__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px 36px; }
-.page[data-page="household"] .hh-bp__head { font-size: 16px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--gold-eyebrow); font-weight: 600; padding-bottom: 8px; margin-bottom: 4px; border-bottom: 1px solid var(--line-08); }
-.page[data-page="household"] .hh-bp__row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--line-06); }
+.page[data-page="household"] .hh-bp__label { font-size: 16px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-5); margin-bottom: 8px; }
+.page[data-page="household"] .hh-bp__total { font-family: var(--font-serif); font-size: 42px; color: var(--gold-bright); line-height: 1.1; margin-bottom: 16px; }
+.page[data-page="household"] .hh-bp__hero .hh-own { max-width: 420px; margin: 0 auto 16px; }
+/* Blueprint owns the full canvas — no rail, three equal columns across the card. */
+.page[data-page="household"] .hh-wstep--bp .hh-bp__grid {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 48px;
+}
+.page[data-page="household"] .hh-bp__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px 48px; }
+.page[data-page="household"] .hh-bp__head { font-size: 16px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--gold-eyebrow); font-weight: 600; padding-bottom: 12px; margin-bottom: 4px; border-bottom: 1px solid var(--line-08); }
+.page[data-page="household"] .hh-bp__row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line-06); }
 .page[data-page="household"] .hh-bp__k { font-size: 16px; color: var(--text-4); }
 .page[data-page="household"] .hh-bp__v { font-family: var(--font-serif); font-size: 16px; color: var(--text-1); font-weight: 400; text-align: right; }
 .page[data-page="household"] .hh-bp__v--debt { color: var(--down); }
@@ -428,6 +509,12 @@
 .page[data-page="household"] input[data-type="pct"]   { width: 3.5ch; text-align: right; }
 .page[data-page="household"] input[data-type="rate"]  { width: 5ch;   text-align: right; }
 .page[data-page="household"] input.hh-born-in { width: 5.5ch; }
+/* Money inputs shrink-wrap their value where supported, so the $ prefix sits
+   immediately left of the figure and the figure's right edge lands exactly on
+   the shared right rule (no gap-void inside a fixed 10ch box). */
+@supports (field-sizing: content) {
+  .page[data-page="household"] input[data-type="money"] { field-sizing: content; width: auto; min-width: 2ch; max-width: 14ch; }
+}
 /* Money prefix ($) — 16px keeps the type floor while staying subordinate to
    the serif figure beside it (muted colour carries the hierarchy). */
 .page[data-page="household"] .pre { font-family: var(--font-sans); font-size: 16px; color: var(--text-5); margin-right: 1px; vertical-align: 0.05em; }
@@ -444,7 +531,6 @@
 }
 .page[data-page="household"] select:hover { border-color: var(--line-10); color: var(--text-2); }
 .page[data-page="household"] select:focus { border-color: var(--gold); }
-.page[data-page="household"] .hh-sel--owner { color: var(--gold-soft); }
 
 .page[data-page="household"] .row-x {
   width: 18px; height: 18px; flex: none; border: 0; border-radius: var(--r-sm);
@@ -463,25 +549,25 @@
 .page[data-page="household"] .hh-add--muted:hover { opacity: 1; }
 
 /* ---- 4K / 1920 safety ----------------------------------------------------
-   No global shrink. The wizard caps at --max-w and floats centered (premium at
-   3840×2160). Below 1640px the frame tightens its gutters; below ~950px the
-   plan rail wraps beneath the form column. */
-@media (max-width: 1640px) {
-  .page[data-page="household"] .hh-stage { padding-left: 18px; padding-right: 18px; }
-  .page[data-page="household"] .hh-wizard { padding: 26px 28px 34px; }
+   No global shrink. The wizard caps at --max-w (~1120px) and floats centered —
+   at 4K the glass sits centered with wide margins (intended). Below ~1180px
+   the frame tightens its gutters; below ~1080px the plan rail wraps beneath
+   the form column and the account grid relaxes. */
+@media (max-width: 1180px) {
+  .page[data-page="household"] .hh-stage { padding-left: 16px; padding-right: 16px; }
+  .page[data-page="household"] .hh-wizard { padding: 24px 32px 40px; }
 }
-@media (max-width: 950px) {
-  .page[data-page="household"] .hh-plan-rail { flex: 1 1 100%; border-left: 0; padding-left: 0; position: static; border-top: 1px solid var(--line-08); padding-top: 20px; }
+@media (max-width: 1080px) {
+  .page[data-page="household"] .hh-wiz-body { grid-template-columns: minmax(0, 1fr); }
+  .page[data-page="household"] .hh-plan-rail { border-left: 0; padding-left: 0; border-top: 1px solid var(--line-08); padding-top: 24px; margin-top: 32px; }
+  .page[data-page="household"] .hh-prail { position: static; }
+  .page[data-page="household"] .hh-acct { grid-template-columns: minmax(160px, 260px) minmax(0, 1fr) minmax(110px, 150px) var(--ctrl-w); }
+  .page[data-page="household"] .hh-step__conn { min-width: 8px; margin: 0 8px; }
 }
 
-/* ---- Large displays: the glass occupies a premium share of the screen --------
-   "--max-w is the one knob" (INTEGRATION.md). On 2.5K / 4K panels the frame
-   widens and (at 4K) sits vertically centred instead of stuck at the top. */
-@media (min-width: 2400px) {
-  .page[data-page="household"] { --max-w: 1980px; --prail-w: 320px; }
-}
+/* ---- Large displays -------------------------------------------------------
+   The card keeps its ~1120px cap (a balanced canvas beats a stretched one);
+   at 4K it sits vertically centred instead of stuck at the top. */
 @media (min-width: 3200px) {
-  .page[data-page="household"] { --max-w: 2520px; --prail-w: 360px; --frame-min-h: 900px; }
   .page[data-page="household"] .hh-stage { margin-top: auto; margin-bottom: auto; }
-  .page[data-page="household"] .hh-wizard { padding: 40px 56px 52px; }
 }

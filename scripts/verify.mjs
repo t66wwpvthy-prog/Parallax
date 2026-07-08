@@ -338,7 +338,7 @@ try {
       current: document.querySelector('.hh-stepper .hh-step.is-current')?.dataset.step || '',
       chapButtons: !!document.querySelector('#hh-chap-networth, #hh-chap-cashflow'),
       railName: document.querySelector('#hh-rail-name')?.textContent.trim() || '',
-      planRail: document.querySelector('#hh-plan-rail .hh-prail__total')?.textContent.trim() || '',
+      bpRailDropped: document.querySelector('#hh-plan-rail')?.hidden === true,
       menuBtn: !!document.querySelector('#hh-menu-btn'),
       spouseText: /Spouse/.test(document.querySelector('.page[data-page="household"]')?.textContent || ''),
     }));
@@ -350,7 +350,9 @@ try {
     if(m.current !== '5') throw new Error(`filled demo household must land on Blueprint (step 5), got "${m.current}"`);
     if(m.chapButtons) throw new Error('retired chapter rail buttons still rendered');
     if(!m.railName) throw new Error('household name not filled from plan');
-    if(!/\$[\d,]/.test(m.planRail)) throw new Error(`"Plan so far" rail net worth not formatted: "${m.planRail}"`);
+    // The Blueprint presents everything, so the "Plan so far" rail must NOT
+    // render beside it (no figure appears twice side by side).
+    if(!m.bpRailDropped) throw new Error('"Plan so far" rail must be dropped on the Blueprint step');
     if(!m.menuBtn) throw new Error('household controls menu button missing');
     if(m.spouseText) throw new Error('visible Household UI still says "Spouse"');
 
@@ -390,9 +392,11 @@ try {
       addChild: !!document.querySelector('#hh-view [data-add="child"]'),
       back: !!document.querySelector('#hh-view [data-hh-action="step-back"]'),
       next: !!document.querySelector('#hh-view [data-hh-action="step-next"]'),
+      planRail: document.querySelector('#hh-plan-rail .hh-prail__total')?.textContent.trim() || '',
     }));
     if(s1.nameInputs !== 2) throw new Error(`step 1 name inputs: want 2, got ${s1.nameInputs}`);
     if(s1.bornInputs < 2) throw new Error(`step 1 Born inputs missing, got ${s1.bornInputs}`);
+    if(!/\$[\d,]/.test(s1.planRail)) throw new Error(`"Plan so far" rail net worth not formatted on step 1: "${s1.planRail}"`);
     if(!s1.filing) throw new Error('Filing dropdown missing');
     if(!s1.stateSel) throw new Error('State dropdown missing');
     if(!s1.coClientText) throw new Error('step 1 does not say Co-Client');
@@ -418,6 +422,8 @@ try {
     if(onStep2 !== '2') throw new Error(`Continue did not advance to step 2 (got ${onStep2})`);
 
     // Step 2 · Accounts: owner groups of TYPED rows; addable home; annual savings.
+    // Ownership is implied by the CLIENT / CO-CLIENT / JOINT & TRUST group a
+    // row renders under — rows must NOT carry a per-row owner dropdown.
     const s2 = await page.evaluate(() => ({
       acctInputs: document.querySelectorAll('#hh-view .hh-acct input[data-type="money"]').length,
       ownerSelects: document.querySelectorAll('#hh-view select[data-type="owner"]').length,
@@ -429,7 +435,7 @@ try {
       savings: !!document.querySelector('#hh-view input[data-path="savings.annual"]'),
     }));
     if(s2.acctInputs < 3) throw new Error(`typed account balances must be editable, got ${s2.acctInputs}`);
-    if(s2.ownerSelects < 3) throw new Error(`account owner selects missing, got ${s2.ownerSelects}`);
+    if(s2.ownerSelects !== 0) throw new Error(`per-row owner dropdowns must not render (owner is the group), got ${s2.ownerSelects}`);
     if(s2.typeSelects < 3) throw new Error(`account type-bank selects missing, got ${s2.typeSelects}`);
     if(s2.coreSleeveInputs > 0) throw new Error(`static core-sleeve rows still rendered (${s2.coreSleeveInputs} inputs)`);
     if(s2.addAccountBtns < 3) throw new Error(`per-group "+ Account" buttons missing, got ${s2.addAccountBtns}`);
@@ -600,15 +606,14 @@ try {
     const after = await page.evaluate(() => ({ total: document.querySelector('#hh-plan-rail .hh-prail__total')?.textContent.trim(), status: document.querySelector('#status')?.textContent }));
     if(after.total === totalBefore) throw new Error(`editing an account balance did not update the plan-rail net worth (${totalBefore})`);
     if(!/Plan edited/.test(after.status||'')) throw new Error('account edit did not mark the plan dirty (status)');
-    // Change Client 2's Roth IRA owner co-client → client; the row moves into
-    // the Client group, so that group's investable total shifts (the Client
-    // group is the first .hh-wsec on the Accounts step).
-    const clientGroupTotal = () => page.evaluate(() => document.querySelector('#hh-view .hh-wsec .hh-wsec__total')?.textContent.trim());
-    const ownBefore = await clientGroupTotal();
-    await page.evaluate(() => { const el = document.querySelector('#hh-view select[data-path="portfolio.extraAccounts.5.owner"]'); el.value = 'client'; el.dispatchEvent(new Event('change', { bubbles:true })); });
-    await sleep(300);
-    const ownAfter = await clientGroupTotal();
-    if(ownBefore === ownAfter) throw new Error(`changing an account owner did not move it between owner groups (${ownBefore})`);
+    // Ownership is implied by the group a row renders under (the per-row owner
+    // dropdown was retired): Client 2's Roth IRA must render inside the
+    // Co-Client owner group.
+    const rothGroup = await page.evaluate(() => {
+      const sel = document.querySelector('#hh-view select[data-path="portfolio.extraAccounts.5.type"]');
+      return sel?.closest('.hh-wsec')?.querySelector('.hh-wsec__title')?.textContent.trim() || '';
+    });
+    if(rothGroup !== 'Co-Client') throw new Error(`owner-grouped rows broken: Roth IRA rendered under "${rothGroup}"`);
     // Changing an account's TYPE re-derives its bucket (Roth IRA → Savings/taxable).
     const bucketShift = await page.evaluate(() => {
       const el = document.querySelector('#hh-view select[data-path="portfolio.extraAccounts.5.type"]');
@@ -618,12 +623,10 @@ try {
     });
     if(!bucketShift) throw new Error('typed account is missing its type-bank select');
     await sleep(300);
-    // Restore the demo (type + balance + owner).
+    // Restore the demo (type + balance).
     await page.evaluate(() => { const el = document.querySelector('#hh-view select[data-path="portfolio.extraAccounts.5.type"]'); el.value = 'Roth IRA'; el.dispatchEvent(new Event('change', { bubbles:true })); });
     await sleep(200);
     await page.evaluate(() => { const el = document.querySelector('#hh-view input[data-path="portfolio.extraAccounts.3.balance"]'); el.value = '1,213,686'; el.dispatchEvent(new Event('change', { bubbles:true })); });
-    await sleep(200);
-    await page.evaluate(() => { const el = document.querySelector('#hh-view select[data-path="portfolio.extraAccounts.5.owner"]'); el.value = 'spouse'; el.dispatchEvent(new Event('change', { bubbles:true })); });
     await sleep(200);
   });
 

@@ -12,7 +12,7 @@
 <!-- ?v= cache-buster: bump on any CSS change so browsers fetch the new file
      instead of serving a stale cached copy (GitHub Pages caches CSS hard). -->
 <link rel="stylesheet" href="styles/main.css?v=13"/>
-<link rel="stylesheet" href="styles/household.css?v=15"/>
+<link rel="stylesheet" href="styles/household.css?v=16"/>
 <link rel="stylesheet" href="styles/scenarios.css?v=11"/>
 <link rel="stylesheet" href="styles/goals.css?v=5"/>
 </head>
@@ -97,7 +97,7 @@
        ===================================================================== -->
   <section class="page on" data-page="household">
     <div class="hh-stage">
-      <div class="hh-wizard">
+      <div class="hh-wizard" data-wizard-rev="2">
 
         <!-- Wizard header: household identity (filled on every sync) + the
              tucked household controls menu (Switch / New / Demo / Clear). The
@@ -1371,6 +1371,7 @@ const HH_STATES = [
    5 Blueprint. A filled household lands on the Blueprint; a blank one starts
    at step 1. All steps stay freely clickable (advisor tool — no gating). */
 let hhStep = 1;
+const WIZARD_LAYOUT_REV = 2;   // bump when layout/CSS changes — inspect .hh-wizard[data-wizard-rev]
 function hhDefaultStep(){
   const hasAccounts = (plan.portfolio.extraAccounts || []).length > 0;
   const hasIncome = !!((plan.income.socialSecurity.primary && plan.income.socialSecurity.primary.pia) ||
@@ -1427,7 +1428,6 @@ function hhSelect(path, value, opts, kind){
   const o = opts.map(([v,l]) => `<option value="${v}" ${v===value?'selected':''}>${l}</option>`).join('');
   return `<select data-path="${path}" data-type="${kind}" class="hh-sel hh-sel--${kind}">${o}</select>`;
 }
-const hhOwnerSelect = (path, owner) => hhSelect(path, owner, HH_OWNERS, 'owner');
 
 /* ── WIZARD STEP RENDERERS ───────────────────────────────────────────
    Five steps, each a plain form column of hairline-divided sections. Every
@@ -1513,10 +1513,14 @@ function hhTypeSelect(path, value){
   const o = HH_ACCOUNT_TYPES.map(t => `<option value="${escHtml(t.label)}" ${t.label===value?'selected':''}>${escHtml(t.label)}</option>`).join('');
   return `<select data-path="${path}" data-type="acctType" class="hh-sel hh-sel--type">${o}</select>`;
 }
+// One account row: [type ▾] — spacer — [$ amount at the right rule] — [×].
+// Ownership is implied by the owner group the row renders under (the account
+// still stores its owner in the plan; the add-form sets it).
 function hhAcctRow(a){
   return `<div class="hh-acct">
-    <span class="hh-acct__cat">${hhTypeSelect(a.typePath, a.label)}${hhOwnerSelect(a.ownerPath, a.owner)}</span>
-    <span class="hh-acct__amt">${hhField(a.balPath,'money')}<button class="row-x" title="Remove account" data-rmpath="portfolio.extraAccounts.${a.idx}">×</button></span>
+    ${hhTypeSelect(a.typePath, a.label)}
+    <span class="hh-acct__amt">${hhField(a.balPath,'money')}</span>
+    <button class="row-x" title="Remove account" data-rmpath="portfolio.extraAccounts.${a.idx}">×</button>
   </div>`;
 }
 /* Inline add-account form (the Account Type Bank flow): choose type → enter
@@ -1585,20 +1589,27 @@ function wizHome(){
   }
   return `<div class="hh-wsec">
     <div class="hh-wsec__head"><span class="hh-wsec__title">Primary home</span><button class="row-x" data-rmpath="properties.0" title="Remove home">×</button></div>
-    <div class="hh-wgrid">${wizField('Value', hhField('properties.0.value','money'))}</div>
+    <div class="hh-wrow">
+      <span class="hh-wrow__name hh-wrow__name--fixed">Value</span>
+      <span class="hh-wrow__fields">${hhField('properties.0.value','money')}</span>
+    </div>
     ${mort}
   </div>`;
 }
 function renderWizAccounts(){
   // Annual savings lives HERE (accounts = balances + what feeds them). One
   // household number today; per-account contributions are the backlog path.
+  // No header subtotal — it would duplicate the section's single figure.
   return wizAcctGroup('client')
     + (plan.household.spouse ? wizAcctGroup('spouse') : '')
     + wizAcctGroup('joint')
     + wizHome()
     + `<div class="hh-wsec">
-    <div class="hh-wsec__head"><span class="hh-wsec__title hh-wsec__title--gold">Annual savings</span><span class="hh-wsec__total">${hhMoney((plan.savings&&plan.savings.annual)||0)}</span></div>
-    <div class="hh-wgrid">${wizField('Saved per year until retirement', hhField('savings.annual','money'))}</div>
+    <div class="hh-wsec__head"><span class="hh-wsec__title hh-wsec__title--gold">Annual savings</span></div>
+    <div class="hh-wrow">
+      <span class="hh-wrow__name hh-wrow__name--fixed">Saved per year until retirement</span>
+      <span class="hh-wrow__fields">${hhField('savings.annual','money')}</span>
+    </div>
     <div class="hh-wmeta">One household total — accumulation stops when the last working spouse retires.</div>
   </div>`;
 }
@@ -1616,12 +1627,10 @@ function wizIncomeRow(i){
   return `<div class="hh-wrow hh-wrow--stack">
     <div class="hh-wrow__main">
       <input type="text" class="hh-wrow__name" data-path="${base}.label" data-type="text" placeholder="Source" value="${escHtml(o.label||'')}">
-      <span class="hh-wrow__fields">
-        ${hhField(base+'.amount','money')}<span class="hh-suffix">/yr</span>
-        <span class="hh-wf__k">age</span>${hhField(base+'.startAge','age')}<span class="hh-wdash">–</span>${hhField(base+'.endAge','age')}
-      </span>${rmX(base)}
+      <span class="hh-wrow__fields">${hhField(base+'.amount','money')}<span class="hh-suffix">/yr</span></span>
+      ${rmX(base)}
     </div>
-    <div class="hh-wrow__meta">grows <input type="number" step="1" data-path="${base}.realGrowth" data-type="signedPct" value="${g}" class="hh-gw-in">%/yr real · <input type="number" step="1" data-path="${base}.taxablePct" data-type="pct" value="${t}" class="hh-gw-in">% taxable</div>
+    <div class="hh-wrow__meta">age ${hhField(base+'.startAge','age')}<span class="hh-wdash">–</span>${hhField(base+'.endAge','age')} · grows <input type="number" step="1" data-path="${base}.realGrowth" data-type="signedPct" value="${g}" class="hh-gw-in">%/yr real · <input type="number" step="1" data-path="${base}.taxablePct" data-type="pct" value="${t}" class="hh-gw-in">% taxable</div>
   </div>`;
 }
 function wizPension(){
@@ -1651,9 +1660,13 @@ function wizSsSection(role){
       <span class="hh-wsec__avatar ${isC?'hh-wsec__avatar--c':'hh-wsec__avatar--s'}">${hhInitial(nm, isC?'C':'CC')}</span>
       <span class="hh-wsec__title ${isC?'':'hh-wsec__title--slate'}">Social Security · ${escHtml(nm)}</span>
     </div>
-    <div class="hh-wgrid">
-      ${wizField('Annual benefit (PIA)', hhField(base+'.pia','money'))}
-      ${wizField('Claim age', hhField(base+'.claimAge','age'))}
+    <div class="hh-wrow">
+      <span class="hh-wrow__name hh-wrow__name--fixed">Annual benefit (PIA)</span>
+      <span class="hh-wrow__fields">${hhField(base+'.pia','money')}</span>
+    </div>
+    <div class="hh-wrow">
+      <span class="hh-wrow__name hh-wrow__name--fixed">Claim age</span>
+      <span class="hh-wrow__fields">${hhField(base+'.claimAge','age')}</span>
     </div>
   </div>`;
 }
@@ -1674,35 +1687,49 @@ function renderWizIncome(){
 /* ── Step 4 · Retirement — when work ends, what life costs ─────────
    Per-person retirement ages + the single plan horizon, then ESSENTIAL
    expenses only (living + healthcare). Goals stay on their own page. */
-function wizRetirePerson(role){
-  const isC = role==='client';
+/* Compact timing row: avatar + name on the left, age facts inline on the right
+   (one hairline row per person — not a whole section each). */
+function wizRetireTimingRow(role){
+  const isC = role === 'client';
   if(!isC && !plan.household.spouse) return '';
-  const p = plan.household[isC?'primary':'spouse'] || {};
+  const p = plan.household[isC ? 'primary' : 'spouse'] || {};
   const base = isC ? 'household.primary' : 'household.spouse';
-  const nm = isC ? (plan.meta.primaryName||'Client') : (plan.meta.spouseName||'Co-Client');
-  return `<div class="hh-wsec">
-    <div class="hh-wsec__head">
-      <span class="hh-wsec__avatar ${isC?'hh-wsec__avatar--c':'hh-wsec__avatar--s'}">${hhInitial(nm, isC?'C':'CC')}</span>
-      <span class="hh-wsec__title ${isC?'':'hh-wsec__title--slate'}">${escHtml(nm)}</span>
-    </div>
-    <div class="hh-wgrid">
-      ${wizField('Age now', `<span class="hh-derived">${p.currentAge ?? '—'}</span>`)}
-      ${wizField('Retires at', hhField(base+'.retirementAge','age'))}
-    </div>
+  const nm = isC ? (plan.meta.primaryName || 'Client') : (plan.meta.spouseName || 'Co-Client');
+  return `<div class="hh-wcomp">
+    <span class="hh-wcomp__id">
+      <span class="hh-wsec__avatar ${isC ? 'hh-wsec__avatar--c' : 'hh-wsec__avatar--s'}">${hhInitial(nm, isC ? 'C' : 'CC')}</span>
+      <span class="hh-wcomp__name">${escHtml(nm)}</span>
+    </span>
+    <span class="hh-wcomp__facts">
+      <span class="hh-wcomp__fact"><span class="hh-wcomp__k">Age now</span><span class="hh-derived">${p.currentAge ?? '—'}</span></span>
+      <span class="hh-wcomp__sep" aria-hidden="true">·</span>
+      <span class="hh-wcomp__fact"><span class="hh-wcomp__k">Retires at</span>${hhField(base + '.retirementAge', 'age')}</span>
+    </span>
   </div>`;
 }
 function renderWizRetirement(){
-  const monthly = Math.round(((plan.expenses.living||0))/12).toLocaleString('en-US');
-  return wizRetirePerson('client') + wizRetirePerson('spouse') + `<div class="hh-wsec">
-    <div class="hh-wsec__head"><span class="hh-wsec__title hh-wsec__title--gold">Plan horizon</span></div>
-    <div class="hh-wgrid">${wizField('Plan to age', hhField('household.primary.planEndAge','age'))}</div>
+  const monthly = Math.round(((plan.expenses.living || 0)) / 12).toLocaleString('en-US');
+  return `<div class="hh-wsec">
+    <div class="hh-wsec__head"><span class="hh-wsec__title hh-wsec__title--gold">Retirement timing</span></div>
+    ${wizRetireTimingRow('client')}${wizRetireTimingRow('spouse')}
+    <div class="hh-wcomp hh-wcomp--horizon">
+      <span class="hh-wcomp__id"><span class="hh-wcomp__name hh-wcomp__name--k">Plan to age</span></span>
+      <span class="hh-wcomp__facts">${hhField('household.primary.planEndAge', 'age')}</span>
+    </div>
   </div>
   <div class="hh-wsec">
     <div class="hh-wsec__head"><span class="hh-wsec__title hh-wsec__title--gold">Essential expenses</span><span class="hh-wsec__total">${hhMoney((plan.expenses.living||0)+(plan.expenses.healthcare||0))}</span></div>
-    <div class="hh-wgrid">
-      ${wizField('Living / yr', hhField('expenses.living','money'))}
-      ${wizField('Healthcare / yr', hhField('expenses.healthcare','money'))}
-      ${wizField('Healthcare inflation', hhField('expenses.healthcareRealGrowth','pct')+'<span class="hh-suffix">% real</span>')}
+    <div class="hh-wrow">
+      <span class="hh-wrow__name hh-wrow__name--fixed">Living / yr</span>
+      <span class="hh-wrow__fields">${hhField('expenses.living','money')}</span>
+    </div>
+    <div class="hh-wrow">
+      <span class="hh-wrow__name hh-wrow__name--fixed">Healthcare / yr</span>
+      <span class="hh-wrow__fields">${hhField('expenses.healthcare','money')}</span>
+    </div>
+    <div class="hh-wrow">
+      <span class="hh-wrow__name hh-wrow__name--fixed">Healthcare inflation</span>
+      <span class="hh-wrow__fields">${hhField('expenses.healthcareRealGrowth','pct')}<span class="hh-suffix">% real</span></span>
     </div>
     <div class="hh-wmeta">Living ≈ $${monthly}/mo · discretionary goals live on the Goals page.</div>
   </div>`;
@@ -1776,20 +1803,31 @@ function wizFooter(){
   const next = hhStep < 5 ? `<button class="hh-nav-btn hh-nav-btn--primary" type="button" data-hh-action="step-next">Continue →</button>` : `<span></span>`;
   return `<div class="hh-wiz-nav">${back}${next}</div>`;
 }
+/* The rail carries only figures the CURRENT step's form does not already
+   show — a number never appears twice side by side. Step 2 owns balances +
+   savings, step 3 owns Social Security, step 4 owns essential spend; the
+   Blueprint (step 5) presents everything, so the rail disappears entirely. */
 function renderWizRail(){
+  if(hhStep === 5) return '';
   const ss = plan.income.socialSecurity || {};
   const ssTotal = ((ss.primary&&ss.primary.pia)||0) + ((ss.spouse&&ss.spouse.pia)||0);
   const ess = (plan.expenses.living||0) + (plan.expenses.healthcare||0);
   const row = (k,v,cls) => `<div class="hh-prail__row"><span class="hh-prail__k">${k}</span><b class="hh-prail__v ${cls||''}">${v}</b></div>`;
-  return `<div class="hh-prail__eyebrow">Plan so far</div>
+  const rows = [];
+  if(hhStep !== 2){
+    rows.push(row('Investable', hhShort(investableTotal())));
+    rows.push(row('Real assets', hhShort(realAssetsTotal())));
+    rows.push(row('Debt', hhShort(-hhDebtTotal()), 'hh-prail__v--debt'));
+  }
+  if(hhStep !== 3) rows.push(row('Social Security', hhShort(ssTotal)+'/yr'));
+  if(hhStep !== 4) rows.push(row('Essential spend', hhShort(ess)+'/yr'));
+  if(hhStep !== 2) rows.push(row('Annual savings', hhShort((plan.savings&&plan.savings.annual)||0)+'/yr'));
+  return `<div class="hh-prail">
+    <div class="hh-prail__eyebrow">Plan so far</div>
     <div class="hh-prail__label">Net worth</div>
     <div class="hh-prail__total">${hhMoney(hhNetWorthTotal())}</div>
-    ${row('Investable', hhShort(investableTotal()))}
-    ${row('Real assets', hhShort(realAssetsTotal()))}
-    ${row('Debt', hhShort(-hhDebtTotal()), 'hh-prail__v--debt')}
-    ${row('Social Security', hhShort(ssTotal)+'/yr')}
-    ${row('Essential spend', hhShort(ess)+'/yr')}
-    ${row('Annual savings', hhShort((plan.savings&&plan.savings.annual)||0)+'/yr')}`;
+    ${rows.join('')}
+  </div>`;
 }
 
 /* ── Household lifecycle helpers ───────────────────────────────────────────
@@ -1911,9 +1949,27 @@ function syncHousehold(){
   if($('#hh-avatar-s')) $('#hh-avatar-s').textContent =
     (!plan.meta.spouseName || plan.meta.spouseName === 'Co-Client') ? 'CC' : hhInitial(plan.meta.spouseName,'CC');
   const renderStep = HH_STEPS[hhStep] || HH_STEPS[1];
-  view.innerHTML = `<div class="hh-wstep">${renderStep()}${wizFooter()}</div>`;
+  const onBlueprint = hhStep === 5;
+  const wiz = document.querySelector('.hh-wizard');
+  if(wiz) wiz.dataset.wizardRev = String(WIZARD_LAYOUT_REV);
+  view.innerHTML = `<div class="hh-wstep${onBlueprint ? ' hh-wstep--bp' : ''}">${renderStep()}${wizFooter()}</div>`;
+  // Blueprint: drop the rail entirely — the overview already presents
+  // everything; the body collapses to one full-width column.
+  const body = document.querySelector('.hh-wiz-body');
+  if(body) body.classList.toggle('hh-wiz-body--solo', onBlueprint);
   const rail = $('#hh-plan-rail');
-  if(rail) rail.innerHTML = renderWizRail();
+  if(rail){
+    rail.classList.toggle('hh-plan-rail--off', onBlueprint);
+    if(onBlueprint){
+      rail.innerHTML = '';
+      rail.hidden = true;
+      rail.setAttribute('aria-hidden', 'true');
+    } else {
+      rail.innerHTML = renderWizRail();
+      rail.hidden = false;
+      rail.removeAttribute('aria-hidden');
+    }
+  }
   for(let i = 1; i <= 5; i++){
     const el = $('#hh-step-'+i); if(!el) continue;
     el.classList.toggle('is-current', i === hhStep);
