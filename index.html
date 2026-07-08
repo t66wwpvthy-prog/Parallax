@@ -1948,16 +1948,23 @@ function syncHousehold(){
   if($('#hh-avatar-s')) $('#hh-avatar-s').textContent =
     (!plan.meta.spouseName || plan.meta.spouseName === 'Co-Client') ? 'CC' : hhInitial(plan.meta.spouseName,'CC');
   const renderStep = HH_STEPS[hhStep] || HH_STEPS[1];
-  view.innerHTML = `<div class="hh-wstep">${renderStep()}${wizFooter()}</div>`;
-  // Rail: hidden on the Blueprint (its overview already presents everything);
-  // the body collapses to one full-width column there.
+  const onBlueprint = hhStep === 5;
+  view.innerHTML = `<div class="hh-wstep${onBlueprint ? ' hh-wstep--bp' : ''}">${renderStep()}${wizFooter()}</div>`;
+  // Blueprint: drop the rail entirely — the overview already presents
+  // everything; the body collapses to one full-width column.
+  const body = document.querySelector('.hh-wiz-body');
+  if(body) body.classList.toggle('hh-wiz-body--solo', onBlueprint);
   const rail = $('#hh-plan-rail');
   if(rail){
-    const railHtml = renderWizRail();
-    rail.innerHTML = railHtml;
-    rail.hidden = !railHtml;
-    const body = rail.closest('.hh-wiz-body');
-    if(body) body.classList.toggle('hh-wiz-body--solo', !railHtml);
+    if(onBlueprint){
+      rail.innerHTML = '';
+      rail.hidden = true;
+      rail.setAttribute('aria-hidden', 'true');
+    } else {
+      rail.innerHTML = renderWizRail();
+      rail.hidden = false;
+      rail.removeAttribute('aria-hidden');
+    }
   }
   for(let i = 1; i <= 5; i++){
     const el = $('#hh-step-'+i); if(!el) continue;
