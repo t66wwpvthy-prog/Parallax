@@ -102,9 +102,8 @@
   --prail-w: 300px;
   --gutter: 56px;
   --ctrl-w: 32px;
-  --frame-min-h: 700px;
 
-  /* Page surface */
+  /* Page surface — fit the wizard in the viewport; scroll only on small screens. */
   font-family: var(--font-sans);
   font-feature-settings: 'tnum' 1;            /* tabular figures for ledgers */
   -webkit-font-smoothing: antialiased;
@@ -112,8 +111,8 @@
   color: var(--text-2);
   background: var(--page-bg);
   background-attachment: fixed;
-  overflow-y: auto;            /* tall steps scroll; body is overflow:hidden */
-  overflow-x: hidden;
+  overflow: hidden;
+  justify-content: center;
 }
 
 .page[data-page="household"] *,
@@ -125,14 +124,13 @@
 /* Inner stage: centers + pads the content. Premium floating glass — at every
    width it sits centered; --max-w caps the card so the canvas never outgrows
    its content. That is the one knob. */
-.page[data-page="household"] .hh-stage { width: 100%; max-width: var(--max-w); margin: 32px auto; padding: 0 24px 64px; }
+.page[data-page="household"] .hh-stage { width: 100%; max-width: var(--max-w); margin: 12px auto; padding: 0 24px 12px; }
 
 /* =============================================================================
    WIZARD FRAME — the single primary glass surface
    ============================================================================= */
 .page[data-page="household"] .hh-wizard {
-  min-height: var(--frame-min-h);
-  padding: 32px 48px 48px;
+  padding: 20px 40px 24px;
   border-radius: var(--r-frame);
   background: var(--glass-panel);
   border: 1px solid var(--line-09);
@@ -143,8 +141,8 @@
 
 /* ---- Wizard header: identity left, tucked controls menu right ------------- */
 .page[data-page="household"] .hh-wiz-top {
-  display: flex; align-items: flex-start; justify-content: space-between; gap: 24px;
-  padding-bottom: 16px; margin-bottom: 24px;
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;
+  padding-bottom: 12px; margin-bottom: 16px;
   border-bottom: 1px solid var(--line-08);
 }
 .page[data-page="household"] .hh-wiz-id { display: flex; align-items: center; gap: 16px; min-width: 0; }
@@ -228,7 +226,7 @@
   display: grid;
   grid-template-columns: auto 1fr auto 1fr auto 1fr auto 1fr auto;
   align-items: center;
-  margin: 0 0 32px;
+  margin: 0 0 20px;
 }
 .page[data-page="household"] .hh-step {
   display: inline-flex; align-items: center; gap: 8px;
@@ -285,11 +283,11 @@
 /* One section = header + hairline rows. The ONLY boxes are input fields.
    Rhythm: 32px above every section header; header → 16px → its rows; rows
    separated by hairline dividers only. */
-.page[data-page="household"] .hh-wsec { margin: 32px 0 0; }
+.page[data-page="household"] .hh-wsec { margin: 20px 0 0; }
 .page[data-page="household"] .hh-wsec:first-of-type { margin-top: 0; }
 .page[data-page="household"] .hh-wsec__head {
   display: flex; align-items: center; gap: 12px;
-  padding: 0 var(--ctrl-w) 12px 0; margin-bottom: 4px;
+  padding: 0 var(--ctrl-w) 8px 0; margin-bottom: 2px;
   border-bottom: 1px solid var(--line-08);
 }
 /* Header-level remove (×) sits in the reserved control slot beyond the right
@@ -327,14 +325,14 @@
 
 /* Field grid: uppercase key over a serif value slot (entry fields only —
    ledger amounts live in .hh-wrow rows so they share the right rule). */
-.page[data-page="household"] .hh-wgrid { display: flex; flex-wrap: wrap; gap: 16px 24px; padding: 12px 0 0; }
+.page[data-page="household"] .hh-wgrid { display: flex; flex-wrap: wrap; gap: 12px 24px; padding: 8px 0 0; }
 .page[data-page="household"] .hh-wf { display: flex; flex-direction: column; gap: 4px; }
 .page[data-page="household"] .hh-wf__k { font-size: 16px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-6); }
 .page[data-page="household"] .hh-wf__v { font-family: var(--font-serif); font-size: 18px; color: var(--text-1); display: inline-flex; align-items: baseline; gap: 3px; }
 .page[data-page="household"] .hh-derived { font-family: var(--font-serif); color: var(--text-1); }
 .page[data-page="household"] .hh-wmeta { font-size: 16px; color: var(--text-6); font-style: italic; padding: 8px 0 0; }
 .page[data-page="household"] .hh-wempty { padding: 12px 0; font-family: var(--font-serif); font-style: italic; font-size: 16px; color: var(--text-5); border-bottom: 1px solid var(--line-06); }
-.page[data-page="household"] .hh-wadd { padding: 16px 0 0; display: flex; gap: 8px; }
+.page[data-page="household"] .hh-wadd { padding: 10px 0 0; display: flex; gap: 8px; }
 
 /* List rows (children / SS / pension / other income / savings / home value).
    Three-part grid on one baseline: [label 1fr] — [value at the right rule] —
@@ -344,7 +342,7 @@
 .page[data-page="household"] .hh-wrow {
   display: grid; grid-template-columns: minmax(0, 1fr) auto var(--ctrl-w);
   align-items: baseline;
-  padding: 12px 0; border-bottom: 1px solid var(--line-08);
+  padding: 8px 0; border-bottom: 1px solid var(--line-08);
 }
 .page[data-page="household"] .hh-wrow .row-x { grid-column: 3; justify-self: end; align-self: center; }
 .page[data-page="household"] .hh-wrow__name { grid-column: 1; min-width: 0; width: 100%; font-family: var(--font-sans); font-size: 16px; color: var(--text-2); }
@@ -370,7 +368,7 @@
 .page[data-page="household"] .hh-wcomp {
   display: grid; grid-template-columns: minmax(0, 1fr) auto;
   align-items: baseline; gap: 16px;
-  padding: 12px var(--ctrl-w) 12px 0;
+  padding: 8px var(--ctrl-w) 8px 0;
   border-bottom: 1px solid var(--line-08);
 }
 .page[data-page="household"] .hh-wsec > .hh-wcomp:last-of-type { border-bottom: 0; }
@@ -403,7 +401,7 @@
 .page[data-page="household"] .hh-acct {
   display: grid; grid-template-columns: 260px minmax(24px, 1fr) 150px var(--ctrl-w);
   align-items: baseline;
-  padding: 12px 0; border-bottom: 1px solid var(--line-06);
+  padding: 8px 0; border-bottom: 1px solid var(--line-06);
 }
 .page[data-page="household"] .hh-acct .hh-sel--type { grid-column: 1; width: 100%; max-width: none; }
 .page[data-page="household"] .hh-acct__amt { grid-column: 3; display: inline-flex; align-items: baseline; justify-content: flex-end; font-family: var(--font-serif); font-size: 17px; color: var(--text-2); }
@@ -421,8 +419,8 @@
 .page[data-page="household"] .hh-acct-form .hh-form-val { width: 12ch; text-align: right; font-family: var(--font-serif); font-size: 16px; }
 .page[data-page="household"] .hh-sel--type { max-width: 190px; }
 
-/* Footer nav (Back / Continue): content block → 48px → footer. */
-.page[data-page="household"] .hh-wiz-nav { display: flex; justify-content: space-between; align-items: center; margin-top: 48px; }
+/* Footer nav (Back / Continue): content block → 24px → footer. */
+.page[data-page="household"] .hh-wiz-nav { display: flex; justify-content: space-between; align-items: center; margin-top: 24px; }
 .page[data-page="household"] .hh-nav-btn {
   font-family: var(--font-sans); font-size: 16px; letter-spacing: 0.12em;
   font-weight: 600; text-transform: uppercase;
@@ -462,23 +460,23 @@
    so the overview owns the full canvas width)
    ============================================================================= */
 .page[data-page="household"] .hh-bp__hero {
-  text-align: center; padding: 24px 24px 8px; margin-bottom: 32px;
+  text-align: center; padding: 16px 20px 6px; margin-bottom: 20px;
   border-radius: var(--r-card);
   background: var(--glass-card);
   border: 1px solid var(--line-08);
   box-shadow: var(--shadow-card);
   backdrop-filter: var(--blur-card); -webkit-backdrop-filter: var(--blur-card);
 }
-.page[data-page="household"] .hh-bp__label { font-size: 16px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-5); margin-bottom: 8px; }
-.page[data-page="household"] .hh-bp__total { font-family: var(--font-serif); font-size: 42px; color: var(--gold-bright); line-height: 1.1; margin-bottom: 16px; }
-.page[data-page="household"] .hh-bp__hero .hh-own { max-width: 420px; margin: 0 auto 16px; }
+.page[data-page="household"] .hh-bp__label { font-size: 16px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-5); margin-bottom: 6px; }
+.page[data-page="household"] .hh-bp__total { font-family: var(--font-serif); font-size: 36px; color: var(--gold-bright); line-height: 1.1; margin-bottom: 10px; }
+.page[data-page="household"] .hh-bp__hero .hh-own { max-width: 420px; margin: 0 auto 10px; }
 /* Blueprint owns the full canvas — no rail, three equal columns across the card. */
 .page[data-page="household"] .hh-wstep--bp .hh-bp__grid {
   display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 48px;
 }
 .page[data-page="household"] .hh-bp__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px 48px; }
-.page[data-page="household"] .hh-bp__head { font-size: 16px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--gold-eyebrow); font-weight: 600; padding-bottom: 12px; margin-bottom: 4px; border-bottom: 1px solid var(--line-08); }
-.page[data-page="household"] .hh-bp__row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line-06); }
+.page[data-page="household"] .hh-bp__head { font-size: 16px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--gold-eyebrow); font-weight: 600; padding-bottom: 8px; margin-bottom: 2px; border-bottom: 1px solid var(--line-08); }
+.page[data-page="household"] .hh-bp__row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--line-06); }
 .page[data-page="household"] .hh-bp__k { font-size: 16px; color: var(--text-4); }
 .page[data-page="household"] .hh-bp__v { font-family: var(--font-serif); font-size: 16px; color: var(--text-1); font-weight: 400; text-align: right; }
 .page[data-page="household"] .hh-bp__v--debt { color: var(--down); }
@@ -555,9 +553,10 @@
    the form column and the account grid relaxes. */
 @media (max-width: 1180px) {
   .page[data-page="household"] .hh-stage { padding-left: 16px; padding-right: 16px; }
-  .page[data-page="household"] .hh-wizard { padding: 24px 32px 40px; }
+  .page[data-page="household"] .hh-wizard { padding: 18px 28px 22px; }
 }
 @media (max-width: 1080px) {
+  .page[data-page="household"] { overflow-y: auto; justify-content: flex-start; }
   .page[data-page="household"] .hh-wiz-body { grid-template-columns: minmax(0, 1fr); }
   .page[data-page="household"] .hh-plan-rail { border-left: 0; padding-left: 0; border-top: 1px solid var(--line-08); padding-top: 24px; margin-top: 32px; }
   .page[data-page="household"] .hh-prail { position: static; }

@@ -88,7 +88,7 @@ function verifyHousehold(){
   ok(/id="hh-plan-rail"/.test(html), 'live "Plan so far" rail (#hh-plan-rail) missing');
   ok(/function renderWizRail\b/.test(html), 'plan-rail renderer (renderWizRail) missing');
   ok(/function hhDefaultStep\b/.test(html), 'hhDefaultStep() landing heuristic missing');
-  ok(/data-hh-action="step-back"/.test(html) && /data-hh-action="step-next"/.test(html), 'wizard Back/Continue footer actions missing');
+  ok(/data-hh-action="step-back"/.test(html) && /data-hh-action="step-next"/.test(html) && /data-hh-action="goto-planning"/.test(html), 'wizard footer actions missing');
   // Tucked household controls menu (Switch / New / Demo / Clear).
   ok(/id="hh-menu-btn"/.test(html) && /id="hh-menu-pop"/.test(html), 'household controls menu (#hh-menu-btn / #hh-menu-pop) missing');
 
@@ -379,6 +379,12 @@ try {
     if(bp.controls !== 0) throw new Error(`Blueprint must be read-only, found ${bp.controls} controls`);
     if(!/\$[\d,]/.test(bp.total)) throw new Error(`Blueprint net worth not formatted from plan: "${bp.total}"`);
     if(!bp.own) throw new Error('Blueprint ownership bar missing');
+    const bpNav = await page.evaluate(() => ({
+      back: !!document.querySelector('#hh-view [data-hh-action="step-back"]'),
+      planning: !!document.querySelector('#hh-view [data-hh-action="goto-planning"]'),
+    }));
+    if(!bpNav.back) throw new Error('Back button missing on Blueprint');
+    if(!bpNav.planning) throw new Error('"Continue to planning" button missing on Blueprint');
     await page.screenshot({ path: join(OUT, '01-household.png'), fullPage: true });
 
     // Step 1 · Household: names, Born (drives age), filing, state, addable children.
