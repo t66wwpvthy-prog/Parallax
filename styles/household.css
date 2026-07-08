@@ -273,7 +273,8 @@
   justify-content: center;
 }
 .page[data-page="household"] .hh-wiz-body--solo { grid-template-columns: minmax(0, 1fr); }
-.page[data-page="household"] .hh-wiz-body--solo .hh-plan-rail { display: none; }
+.page[data-page="household"] .hh-wiz-body--solo .hh-plan-rail,
+.page[data-page="household"] .hh-plan-rail--off { display: none; }
 .page[data-page="household"] .hh-content { min-width: 0; }
 .page[data-page="household"] .hh-plan-rail {
   border-left: 1px solid var(--line-08); padding-left: 32px;

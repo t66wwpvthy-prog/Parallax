@@ -12,7 +12,7 @@
 <!-- ?v= cache-buster: bump on any CSS change so browsers fetch the new file
      instead of serving a stale cached copy (GitHub Pages caches CSS hard). -->
 <link rel="stylesheet" href="styles/main.css?v=13"/>
-<link rel="stylesheet" href="styles/household.css?v=15"/>
+<link rel="stylesheet" href="styles/household.css?v=16"/>
 <link rel="stylesheet" href="styles/scenarios.css?v=11"/>
 <link rel="stylesheet" href="styles/goals.css?v=5"/>
 </head>
@@ -97,7 +97,7 @@
        ===================================================================== -->
   <section class="page on" data-page="household">
     <div class="hh-stage">
-      <div class="hh-wizard">
+      <div class="hh-wizard" data-wizard-rev="2">
 
         <!-- Wizard header: household identity (filled on every sync) + the
              tucked household controls menu (Switch / New / Demo / Clear). The
@@ -1371,6 +1371,7 @@ const HH_STATES = [
    5 Blueprint. A filled household lands on the Blueprint; a blank one starts
    at step 1. All steps stay freely clickable (advisor tool — no gating). */
 let hhStep = 1;
+const WIZARD_LAYOUT_REV = 2;   // bump when layout/CSS changes — inspect .hh-wizard[data-wizard-rev]
 function hhDefaultStep(){
   const hasAccounts = (plan.portfolio.extraAccounts || []).length > 0;
   const hasIncome = !!((plan.income.socialSecurity.primary && plan.income.socialSecurity.primary.pia) ||
@@ -1949,6 +1950,8 @@ function syncHousehold(){
     (!plan.meta.spouseName || plan.meta.spouseName === 'Co-Client') ? 'CC' : hhInitial(plan.meta.spouseName,'CC');
   const renderStep = HH_STEPS[hhStep] || HH_STEPS[1];
   const onBlueprint = hhStep === 5;
+  const wiz = document.querySelector('.hh-wizard');
+  if(wiz) wiz.dataset.wizardRev = String(WIZARD_LAYOUT_REV);
   view.innerHTML = `<div class="hh-wstep${onBlueprint ? ' hh-wstep--bp' : ''}">${renderStep()}${wizFooter()}</div>`;
   // Blueprint: drop the rail entirely — the overview already presents
   // everything; the body collapses to one full-width column.
@@ -1956,6 +1959,7 @@ function syncHousehold(){
   if(body) body.classList.toggle('hh-wiz-body--solo', onBlueprint);
   const rail = $('#hh-plan-rail');
   if(rail){
+    rail.classList.toggle('hh-plan-rail--off', onBlueprint);
     if(onBlueprint){
       rail.innerHTML = '';
       rail.hidden = true;
