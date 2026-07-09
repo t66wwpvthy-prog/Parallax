@@ -11,10 +11,10 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3E%3Crect%20width='64'%20height='64'%20rx='12'%20fill='%231e3d2b'/%3E%3Cpath%20d='M16%2038c8-20%2024-20%2032%200'%20fill='none'%20stroke='%23d9a07e'%20stroke-width='6'%20stroke-linecap='round'/%3E%3Ccircle%20cx='32'%20cy='32'%20r='7'%20fill='%23e5d9c4'/%3E%3C/svg%3E"/>
 <!-- ?v= cache-buster: bump on any CSS change so browsers fetch the new file
      instead of serving a stale cached copy (GitHub Pages caches CSS hard). -->
-<link rel="stylesheet" href="styles/main.css?v=13"/>
+<link rel="stylesheet" href="styles/main.css?v=14"/>
 <link rel="stylesheet" href="styles/household.css?v=19"/>
 <link rel="stylesheet" href="styles/scenarios.css?v=11"/>
-<link rel="stylesheet" href="styles/goals.css?v=5"/>
+<link rel="stylesheet" href="styles/goals.css?v=6"/>
 </head>
 <body>
 <div class="wrap">
@@ -1842,7 +1842,6 @@ function renderWizRail(){
      switchHousehold() → loads another saved household by id. */
 function hhLoadRecord(status){
   planSaveDirty = false; saveFailed = false; syncSaveBtn();
-  glcDraft = null;   // Goals composer draft reinitializes from the fresh plan
   baseSnapshot = defaultLevers();
   hhStep = hhDefaultStep();   // filled household → Blueprint; blank → step 1
   hhAcctFormOwner = null;
@@ -2740,819 +2739,319 @@ function paintGoalCosts(c){
 }
 
 /* ================================================================
-   Goals · Life Chapters view — the live Goals sub-page
+   Goals · Ledger view — the live Goals sub-page
    ----------------------------------------------------------------
-   The Goals sub-page (layout==='goals' in renderInputs()). Replaced the
-   retired Horizon renderer, which has since been removed.
+   One always-editable sheet over the flat plan.goals store
+   ({ name, amount, startAge, endAge }) — one goal = one row, every
+   field permanently visible and directly editable. No edit modes,
+   no popovers, no composers. Replaces the Life Chapters view
+   (chapter cards + two composers + inline row editors), removed.
 
-   Chapters are a pure VIEW over the flat plan.goals store:
-   - a recurring goal renders one row in every chapter its age span
-     overlaps (the slice), with per-chapter years × amount totals;
-   - a one-time goal renders in the single chapter containing its age;
-   - nothing about chapters is persisted.
-
-   Edit semantics (per 2026-07-06 decisions):
-   - amount / frequency edits apply to the WHOLE underlying goal;
-   - age-slider edits move the goal's real edge when the slice edge
-     IS the goal edge, and split the goal into separate records only
-     when an interior slice is narrowed;
-   - REMOVE deletes the whole goal;
-   - empty amount = unpriced ("price later"), engine-inert at $0.
+   - ONE-TIME = startAge === endAge (the engine's own convention);
+     the Every year / One-time toggle is UI sugar over the ages —
+     no cadence field is ever stored.
+   - CHAPTERS are a UI-only derivation (floor-thirds over the
+     resolved [retirement, planEnd] span). Row chips are coarse
+     presets over the exact age boxes; the footer sums entered
+     inputs per chapter — labelled "sum of entered goals", never an
+     engine output, never an invented confidence number.
+   - WRITE-THROUGH: every edit mutates plan.goals[i], arms SAVE
+     (planSaveDirty via reseedScenarios) and marks scenario results
+     stale (plansDirty). Typing never re-renders the row — focus
+     survives the keystroke; footer sums repaint in place.
    ================================================================ */
 
 /* ── PROD seam — every production symbol the view touches ─────── */
-const GLC_PROD = {
-  goals:   () => { if (!Array.isArray(plan.goals)) plan.goals = []; return plan.goals; },
-  ages:    () => plan.household.primary,        // { currentAge, retirementAge, planEndAge }
-  areas:   () => GOAL_AREAS,                    // [['travel','Travel'], …] (6 areas)
-  areaLbl: (k) => GOAL_AREA_LBL[k] || k,
-  icon:    (k) => GOAL_ICONS_SVG[k] || GOAL_ICONS_SVG.other,
-  color:   (k) => GOAL_COLOR_MAP[k] || GOAL_COLOR_MAP.other,
-  commit:  () => commitPlanEdit(),              // reseed + re-render + status
-  rerender: () => renderInputs(),               // view-only refresh from the store (cancel path)
+const GL_PROD = {
+  goals:     () => { if (!Array.isArray(plan.goals)) plan.goals = []; return plan.goals; },
+  household: () => plan.household,
+  commit:    () => commitPlanEdit(),            // reseed + re-render + status
+  // Write-through for typing: everything commitPlanEdit does EXCEPT the
+  // re-render (renderInputs) — the focused field must survive the keystroke.
+  arm: () => {
+    reseedScenarios(); buildLevers(); sharedPaths = null; plansDirty = true;
+    $('#status').textContent = 'Plan edited \u00b7 open Scenarios';
+  },
   esc:     (s) => escHtml(s),
-  money:   (n) => fmtMoney(n),                  // $12,000
   compact: (n) => fmtM(n),                      // $120K / $1.2M
 };
 
-/* View flags (design handoff props; per-chapter confidence has no real
-   metric yet — no invented numbers, so it ships dark). */
-const GLC_SHOW_CONFIDENCE = false;
-const GLC_SHOW_ATMOSPHERE = true;
+/* View state that survives the commit re-render */
+let glFlashGi = null;   // goal index whose new row flashes gold after an add
+let glFocusGi = null;   // goal index whose name field takes focus after an add
 
-/* View state that persists across re-renders */
-let glcMode    = 'A';    // 'A' timeline entry · 'B' quick-tap entry
-let glcDraft   = null;   // composer draft {cat,name,amount,cadence,start,end,age}
-let glcFlashGi = null;   // goal index whose new rows flash gold after Add
-let glcRefocus = false;  // refocus composer name field after commit re-render
-let glcDocDown = null;   // document-level pointerdown (editor close), rebound per init
+/* ── Resolved span + derived chapters — never hardcoded ─────────
+   lo = resolved retirement age: the LATER working spouse mapped
+   onto the primary timeline (mirrors engine resolveInputs);
+   hi = planEndAge. The demo household resolves 66→95, so the
+   derived chapters are 66–75 / 76–85 / 86–95. */
+function glSpan() {
+  const hh = GL_PROD.household(), pr = hh.primary || {};
+  let ret = +pr.retirementAge;
+  if (!isFinite(ret)) ret = isFinite(+pr.currentAge) ? +pr.currentAge : 65;
+  const sp = hh.spouse;
+  if (sp && sp.retirementAge != null && sp.currentAge != null && pr.currentAge != null) {
+    ret = Math.max(ret, +pr.currentAge + (+sp.retirementAge - +sp.currentAge));
+  }
+  const end = isFinite(+pr.planEndAge) ? +pr.planEndAge : 95;
+  const lo = Math.min(ret, end);
+  return { lo, hi: Math.max(lo + 2, end) };
+}
 
-/* ── Chapter bands — derived, not hardcoded ───────────────────────
-   Three near-equal bands over [retirementAge, planEndAge].
-   Demo household (65→95, 31y) yields 65–74 / 75–84 / 85–95 = the
-   handoff's exact bands. */
-function glcBands() {
-  const p  = GLC_PROD.ages();
-  const lo = Math.min(+p.retirementAge || 65, +p.planEndAge || 95);
-  const hi = Math.max(lo + 2, +p.planEndAge || 95);
-  const n  = hi - lo + 1;
-  const b  = Math.max(1, Math.floor(n / 3));
+/* Floor-thirds split; Chapter III absorbs the remainder years. */
+function glChapters() {
+  const { lo, hi } = glSpan();
+  const a = Math.max(1, Math.floor((hi - lo + 1) / 3));
   return [
-    { i: 0, roman: 'I',   lo,          hi: lo + b - 1 },
-    { i: 1, roman: 'II',  lo: lo + b,  hi: lo + 2 * b - 1 },
-    { i: 2, roman: 'III', lo: lo + 2 * b, hi },
+    { i: 0, roman: 'I',   lo,             hi: lo + a - 1 },
+    { i: 1, roman: 'II',  lo: lo + a,     hi: lo + 2 * a - 1 },
+    { i: 2, roman: 'III', lo: lo + 2 * a, hi },
   ];
 }
 
-/* Slice a goal across the bands. Edge bands extend outward so spending
-   outside [retirement, plan end] is still attributed (Chapter I picks
-   up pre-retirement years, Chapter III anything beyond plan end) —
-   chapter totals always sum to the plan's true lifetime goal spend. */
-function glcSlices(bands) {
-  const per = [[], [], []];
-  GLC_PROD.goals().forEach((g, gi) => {
-    const sa = g.startAge != null ? +g.startAge : bands[0].lo;
-    const ea = g.endAge   != null ? +g.endAge   : bands[2].hi;
-    const amt = g.amount || 0;
-    const unpriced = !(amt > 0);
-    if (sa === ea) {                                   // one-time
-      const bi = sa < bands[0].lo ? 0 : sa > bands[2].hi ? 2
-               : bands.findIndex(b => sa >= b.lo && sa <= b.hi);
-      per[bi].push({
-        gi, band: bi, once: true, unpriced, name: g.name || 'Goal',
-        area: g.area || null, amt, age: sa, years: 1,
-        total: amt,
-        sub: (unpriced ? 'Price later \u00b7 one-time' : 'One-time purchase') + ' \u00b7 age ' + sa,
-      });
-      return;
-    }
-    bands.forEach(b => {
-      const effLo = b.i === 0 ? -Infinity : b.lo;
-      const effHi = b.i === 2 ?  Infinity : b.hi;
-      const slo = Math.max(sa, effLo), shi = Math.min(ea, effHi);
-      if (shi < slo) return;
-      const years = shi - slo + 1;
-      const full  = slo <= b.lo && shi >= b.hi;
-      const span  = full ? 'all ' + years + ' years' : 'ages ' + slo + '\u2013' + shi;
-      per[b.i].push({
-        gi, band: b.i, once: false, unpriced, name: g.name || 'Goal',
-        area: g.area || null, amt, slo, shi, years,
-        total: amt * years,
-        sub: (unpriced ? 'Price later' : GLC_PROD.money(amt) + ' /yr') + ' \u00b7 ' + span,
-      });
+/* Row dot color — presentation only, never stored. Area-keyed when the
+   goal carries one; otherwise a stable palette cycle by row index. */
+const GL_DOT_KEYS = ['travel', 'home', 'family', 'health', 'purpose', 'other'];
+function glDotRGB(g, gi) {
+  const k = g.area && GOAL_COLOR_MAP[g.area] ? g.area : GL_DOT_KEYS[gi % GL_DOT_KEYS.length];
+  return GOAL_COLOR_MAP[k].rgb;   // "R,G,B"
+}
+
+/* Quick-add seeds — ages derived from the resolved plan at click time,
+   never constants. Ordinary rows once added: fully editable, deletable. */
+function glQuickAdds() {
+  const { lo, hi } = glSpan();
+  const ch = glChapters();
+  const onceAt = Math.min(lo + 2, hi);
+  return [
+    { name: 'Travel',            amount: 12000,  area: 'travel', startAge: lo,     endAge: hi },
+    { name: 'Home improvements', amount: 5000,   area: 'home',   startAge: lo,     endAge: ch[1].hi },
+    { name: 'Gifts',             amount: 5000,   area: 'family', startAge: lo,     endAge: hi },
+    { name: 'Second home',       amount: 150000, area: 'other',  startAge: onceAt, endAge: onceAt },
+  ];
+}
+
+/* Per-chapter input sums (amount × overlap years). Edge chapters extend
+   outward so spending entered outside [retirement, planEnd] is still
+   attributed — Lifetime always equals the true sum of entered goals. */
+function glChapterSums(ch) {
+  const sums = [0, 0, 0];
+  GL_PROD.goals().forEach(g => {
+    const sa = +g.startAge, ea = +g.endAge, amt = +g.amount || 0;
+    ch.forEach(c => {
+      const lo = c.i === 0 ? -Infinity : c.lo;
+      const hi = c.i === 2 ?  Infinity : c.hi;
+      const years = Math.min(ea, hi) - Math.max(sa, lo) + 1;
+      if (years > 0) sums[c.i] += amt * years;
     });
   });
-  return per;
+  return sums;
 }
 
 /* ── Render ───────────────────────────────────────────────────── */
 
-function glcCatChipsHTML(sel, size) {
-  return GLC_PROD.areas().map(([k, lbl]) => {
-    const c = GLC_PROD.color(k), on = k === sel;
-    const icon = Math.round(size * 0.46);
-    return `<div class="glc-cchip" data-cat="${k}" title="${GLC_PROD.esc(lbl)}" style="width:${size}px;height:${size}px;` +
-      `background:radial-gradient(circle at 35% 30%,rgba(${c.rgb},0.30),rgba(${c.rgb},0.07));` +
-      `border:1px solid rgba(${c.rgb},${on ? 1 : 0.42});` +
-      `box-shadow:${on ? `0 0 0 2px rgba(${c.rgb},0.4)` : 'none'}">` +
-      `<svg width="${icon}" height="${icon}" viewBox="0 0 16 16" fill="none" stroke="${c.st}" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">${GLC_PROD.icon(k)}</svg></div>`;
+function glRowHTML(g, gi, ch) {
+  const once = +g.startAge === +g.endAge;
+  const rgb  = glDotRGB(g, gi);
+  const amt  = +g.amount || 0;
+  const chips = ch.map(c => {
+    const full = +g.startAge <= c.lo && +g.endAge >= c.hi;
+    const part = !full && Math.min(+g.endAge, c.hi) >= Math.max(+g.startAge, c.lo);
+    const cls  = full ? ' glx-chip--on' : part ? ' glx-chip--part' : '';
+    return `<span class="glx-chip${cls}" data-act="chip" data-i="${gi}" data-ch="${c.i}">${c.roman} \u00b7 ${c.lo}\u2013${c.hi}</span>`;
   }).join('');
-}
-
-function glcRowHTML(s, flash) {
-  const marker = s.once ? '<span class="glc-once-marker"></span>' : '';
-  const total  = s.unpriced ? '\u2014' : GLC_PROD.compact(s.total);
-  return `
-    <div class="glc-row${flash ? ' glc-row--flash' : ''}" data-gi="${s.gi}" data-band="${s.band}"
-         data-cad="${s.once ? 'once' : 'yr'}" data-amt="${s.amt}" data-years="${s.years}"
-         data-start="${s.once ? s.age : s.slo}" data-end="${s.once ? s.age : s.shi}" data-total="${s.total}">
-      <div class="glc-row-main">
-        <div class="glc-name-line"><span class="glc-name">${GLC_PROD.esc(s.name)}</span>${marker}</div>
-        <div class="glc-sub">${s.sub}</div>
-      </div>
-      <div class="glc-row-total">${total}</div>
-    </div>`;
-}
-
-function renderGoalsChapters() {
-  const bands  = glcBands();
-  const slices = glcSlices(bands);
-  const totals = slices.map(rows => rows.reduce((s, r) => s + r.total, 0));
-  const lifetime = totals.reduce((a, b) => a + b, 0);
-
-  // The composer draft is sticky across re-renders, but never across a plan
-  // it no longer reflects: if the chapter bands changed (age edits), the
-  // draft reinitializes from the current plan seed. Demo/Clear/reset flows
-  // additionally null it outright (glcDraft = null) so no typed name/amount
-  // or timing survives a reset even when the bands happen to match.
-  const bandsKey = bands[0].lo + '-' + bands[2].hi;
-  if (!glcDraft || glcDraft.bandsKey !== bandsKey) {
-    glcDraft = { bandsKey, cat: 'travel', name: '', amount: 12000, cadence: 'yr',
-                 start: bands[0].lo, end: bands[2].hi, age: bands[1].lo };
-  }
-
-  const cardsHTML = bands.map(b => {
-    const n = b.hi - b.lo + 1;
-    const pct = lifetime > 0 ? Math.round(totals[b.i] / lifetime * 100) : 0;
-    const cls = b.i === 0 ? ' glc-card--warm' : b.i === 2 ? ' glc-card--cool' : '';
-    const rows = slices[b.i];
-    const conf = GLC_SHOW_CONFIDENCE ? `
-        <div class="glc-conf">
-          <div class="glc-conf-head">
-            <div class="glc-conf-lbl">FUNDING CONFIDENCE</div>
-            <div class="glc-conf-val">\u2014</div>
-          </div>
-          <div class="glc-conf-track"><div class="glc-conf-fill" style="width:0%"></div></div>
-        </div>` : '';
-    return `
-      <div class="glc-card${cls}">
-        <div class="glc-card-head">
-          <div class="glc-roman">${b.roman}</div>
-          <div class="glc-band-meta">
-            <div class="glc-ages">AGES ${b.lo}\u2013${b.hi}</div>
-            <div class="glc-years">${n} years</div>
-          </div>
-        </div>
-        <div class="glc-total-row">
-          <div class="glc-total" data-band="${b.i}">${GLC_PROD.compact(totals[b.i])}</div>
-          <div class="glc-total-lbl">goal spending</div>
-        </div>
-        ${b.i > 0 ? `<div class="glc-pct" data-band="${b.i}">${pct}% of lifetime goal spending</div>` : ''}
-        ${conf}
-        <div class="glc-div"></div>
-        <div class="glc-list" data-band="${b.i}" data-lo="${b.lo}" data-hi="${b.hi}">
-          ${rows.length ? rows.map(s => glcRowHTML(s, s.gi === glcFlashGi)).join('')
-                        : '<div class="glc-empty">No goals in this chapter yet.</div>'}
-        </div>
+  const whenYr = `
+      <div class="glx-when"${once ? ' hidden' : ''}>${chips}
+        <span class="glx-agepair">
+          <input class="glx-ain" data-t="s" data-i="${gi}" inputmode="numeric" value="${+g.startAge}">
+          <span class="glx-dash">\u2013</span>
+          <input class="glx-ain" data-t="e" data-i="${gi}" inputmode="numeric" value="${+g.endAge}">
+        </span>
       </div>`;
-  }).join('');
-  glcFlashGi = null;
-
-  const d = glcDraft;
-  const ticks = [bands[0].lo, bands[1].lo, bands[2].lo, bands[2].hi];
-  const bandChips =
-    `<div class="glc-bband" data-bband="all">ALL</div>` +
-    bands.map(b => `<div class="glc-bband" data-bband="${b.i}">${b.roman} \u00b7 ${b.lo}\u2013${b.hi}</div>`).join('');
-
-  const composerA = `
-    <div class="glc-panel" id="glc-composer-a" style="display:${glcMode === 'A' ? 'block' : 'none'}">
-      <div class="glc-fields">
-        <div class="glc-field">
-          <div class="glc-cats" id="glc-a-cats">${glcCatChipsHTML(d.cat, 30)}</div>
-        </div>
-        <div class="glc-vdiv"></div>
-        <div class="glc-field glc-field--name">
-          <div class="glc-cap">GOAL</div>
-          <div class="glc-in-wrap"><input class="glc-in-name" id="glc-a-name" placeholder="Name this goal"></div>
-        </div>
-        <div class="glc-vdiv"></div>
-        <div class="glc-field">
-          <div class="glc-cap">AMOUNT</div>
-          <div class="glc-amt-group">
-            <div class="glc-amt-wrap"><span class="glc-dollar">$</span><input class="glc-in-amt" id="glc-a-amount"></div>
-            <div class="glc-seg-group">
-              <div class="glc-seg" data-cad="yr">/ yr</div>
-              <div class="glc-seg" data-cad="once">one-time</div>
-            </div>
-          </div>
-        </div>
-        <div class="glc-vdiv"></div>
-        <div class="glc-field glc-field--when">
-          <div class="glc-when-head">
-            <span class="glc-cap">WHEN</span>
-            <span class="glc-when-label" id="glc-a-when"></span>
-          </div>
-          <div class="glc-track-wrap">
-            <div class="glc-track" id="glc-a-track">
-              <div class="glc-rail"></div>
-              <div class="glc-fill" id="glc-a-fill"></div>
-              <div class="glc-h" id="glc-a-h1"></div>
-              <div class="glc-h" id="glc-a-h2"></div>
-            </div>
-            <div class="glc-ticks">${ticks.map(t => `<span>${t}</span>`).join('')}</div>
-          </div>
-        </div>
-        <div class="glc-vdiv"></div>
-        <div class="glc-field glc-field--add">
-          <button class="glc-add-btn" id="glc-a-add" type="button">Add goal</button>
-          <div class="glc-total-line">= <span class="glc-total-val" id="glc-a-total"></span> total</div>
-        </div>
-      </div>
-      <div class="glc-prev">
-        <span class="glc-prev-cap">PREVIEW</span>
-        <span class="glc-prev-name" id="glc-a-prev-name"></span>
-        <span class="glc-prev-sub" id="glc-a-prev-sub"></span>
-        <span class="glc-prev-chapters" id="glc-a-prev-chapters"></span>
-      </div>
-    </div>`;
-
-  const composerB = `
-    <div class="glc-panel" id="glc-composer-b" style="display:${glcMode === 'B' ? 'block' : 'none'}">
-      <div class="glc-fields">
-        <div class="glc-field">
-          <div class="glc-cap">TYPE</div>
-          <div class="glc-ctl"><div class="glc-cats glc-cats--b" id="glc-b-cats">${glcCatChipsHTML(d.cat, 34)}</div></div>
-        </div>
-        <div class="glc-vdiv"></div>
-        <div class="glc-field glc-field--name">
-          <div class="glc-cap">GOAL</div>
-          <div class="glc-in-wrap"><input class="glc-in-name" id="glc-b-name" placeholder="Name this goal"></div>
-        </div>
-        <div class="glc-vdiv"></div>
-        <div class="glc-field">
-          <div class="glc-cap">AMOUNT</div>
-          <div class="glc-ctl glc-ctl--col">
-            <div class="glc-stepper-row">
-              <button class="glc-step-btn" id="glc-b-minus" type="button">\u2212</button>
-              <div class="glc-b-amt-wrap"><span class="glc-dollar">$</span><span class="glc-b-amt" id="glc-b-amount"></span></div>
-              <button class="glc-step-btn" id="glc-b-plus" type="button">+</button>
-            </div>
-            <div class="glc-presets">
-              <div class="glc-preset" data-v="5000">$5K</div>
-              <div class="glc-preset" data-v="10000">$10K</div>
-              <div class="glc-preset" data-v="12000">$12K</div>
-              <div class="glc-preset" data-v="25000">$25K</div>
-            </div>
-          </div>
-        </div>
-        <div class="glc-vdiv"></div>
-        <div class="glc-field glc-field--bwhen">
-          <div class="glc-when-head">
-            <span class="glc-cap">WHEN</span>
-            <div class="glc-seg-group glc-seg-group--sm">
-              <div class="glc-seg glc-seg--sm" data-cad="yr">RECURRING</div>
-              <div class="glc-seg glc-seg--sm" data-cad="once">ONE-TIME</div>
-            </div>
-          </div>
-          <div class="glc-ctl">
-            <div class="glc-bands" id="glc-b-bands">${bandChips}</div>
-            <div class="glc-age-row" id="glc-b-age-row" style="display:none">
-              <span class="glc-age-lbl">At age</span>
-              <button class="glc-step-btn glc-step-btn--sm" id="glc-b-age-minus" type="button">\u2212</button>
-              <span class="glc-b-age" id="glc-b-age"></span>
-              <button class="glc-step-btn glc-step-btn--sm" id="glc-b-age-plus" type="button">+</button>
-            </div>
-          </div>
-        </div>
-        <div class="glc-vdiv"></div>
-        <div class="glc-field glc-field--add">
-          <button class="glc-add-btn" id="glc-b-add" type="button">Add goal</button>
-          <div class="glc-total-line">= <span class="glc-total-val" id="glc-b-total"></span> total</div>
-        </div>
-      </div>
-    </div>`;
-
+  const whenOnce = `
+      <div class="glx-agewrap"${once ? '' : ' hidden'}>
+        <span class="glx-agelbl">at age</span>
+        <span class="glx-step glx-step--sm" data-act="age-minus" data-i="${gi}">\u2212</span>
+        <span class="glx-ageval">${+g.startAge}</span>
+        <span class="glx-step glx-step--sm" data-act="age-plus" data-i="${gi}">+</span>
+      </div>`;
   return `
-    <div class="gl-chapters" id="gl-chapters">
-      ${GLC_SHOW_ATMOSPHERE ? '<div class="glc-beam-wrap"><div class="glc-beam"></div></div>' : ''}
-      <div class="glc-body">
-        <h1 class="glc-h1">Spending &amp; Lifestyle Goals</h1>
-        <div class="glc-grid">${cardsHTML}</div>
-        <div class="glc-composer-wrap">
-          <div class="glc-cswitch-row">
-            <div class="glc-cswitch">
-              <div class="glc-csw${glcMode === 'A' ? ' glc-csw--on' : ''}" data-mode="A">TIMELINE ENTRY</div>
-              <div class="glc-csw${glcMode === 'B' ? ' glc-csw--on' : ''}" data-mode="B">QUICK-TAP ENTRY</div>
-            </div>
-          </div>
-          ${composerA}
-          ${composerB}
+    <div class="glx-row${gi === glFlashGi ? ' glx-row--flash' : ''}" data-row="${gi}">
+      <span class="glx-dot" style="background:rgb(${rgb});box-shadow:0 0 10px rgba(${rgb},0.5)"></span>
+      <input class="glx-name" data-i="${gi}" value="${GL_PROD.esc(g.name || '')}">
+      <div class="glx-amtcell">
+        <span class="glx-step" data-act="minus" data-i="${gi}">\u2212</span>
+        <span class="glx-amtwrap"><span class="glx-dollar">$</span><input class="glx-amt" data-i="${gi}" inputmode="numeric" value="${amt ? amt.toLocaleString('en-US') : ''}"></span>
+        <span class="glx-step" data-act="plus" data-i="${gi}">+</span>
+      </div>
+      <div class="glx-seggroup">
+        <span class="glx-seg${once ? '' : ' glx-seg--on'}" data-act="cad-yr" data-i="${gi}">Every year</span>
+        <span class="glx-seg${once ? ' glx-seg--on' : ''}" data-act="cad-once" data-i="${gi}">One-time</span>
+      </div>
+      <div>${whenYr}${whenOnce}</div>
+      <span class="glx-del" data-act="del" data-i="${gi}" title="Delete this goal">\u00d7</span>
+    </div>`;
+}
+
+function glFooterHTML(ch, sums) {
+  const life = sums[0] + sums[1] + sums[2];
+  return `<span class="glx-f-cap">CHAPTERS</span>` +
+    ch.map((c, i) =>
+      (i ? '<span class="glx-f-dot">\u00b7</span>' : '') +
+      `<span class="glx-f-lbl">${c.roman} \u00b7 ${c.lo}\u2013${c.hi}</span>` +
+      `<span class="glx-f-val" data-fsum="${c.i}">${GL_PROD.compact(sums[c.i])}</span>`
+    ).join('') +
+    `<span class="glx-f-space"></span>` +
+    `<span class="glx-f-lbl">Lifetime</span><span class="glx-f-life" id="glx-life">${GL_PROD.compact(life)}</span>` +
+    `<span class="glx-f-note">\u2014 sum of entered goals</span>`;
+}
+
+function renderGoalsLedger() {
+  const ch = glChapters();
+  const goals = GL_PROD.goals();
+  const sums = glChapterSums(ch);
+  const rows = goals.map((g, gi) => glRowHTML(g, gi, ch)).join('');
+  glFlashGi = null;
+  const quicks = glQuickAdds().map((q, qi) => {
+    const rgb = GOAL_COLOR_MAP[q.area].rgb;
+    return `<button class="glx-qa" type="button" data-q="${qi}">` +
+      `<span class="glx-qa-dot" style="background:rgb(${rgb});box-shadow:0 0 8px rgba(${rgb},0.5)"></span>` +
+      `<span class="glx-qa-name">${q.name}</span></button>`;
+  }).join('');
+  return `
+    <div class="gl-ledger" id="gl-ledger">
+      <h1 class="glx-h1">Lifestyle Goals</h1>
+      <div class="glx-sheet">
+        <div class="glx-cols"${goals.length ? '' : ' style="display:none"'}>
+          <div></div>
+          <div class="glx-cap">GOAL</div>
+          <div class="glx-cap">AMOUNT</div>
+          <div class="glx-cap">HOW OFTEN</div>
+          <div class="glx-cap">WHICH YEARS</div>
+          <div></div>
         </div>
+        <div class="glx-rows" id="glx-rows">${rows}</div>
+        <div class="glx-adds">
+          <button class="glx-add-btn" id="glx-add" type="button"><span class="glx-add-plus">+</span>Add a goal</button>
+          <div class="glx-adds-sep"></div>
+          <div class="glx-f-cap">QUICK ADD</div>
+          ${quicks}
+        </div>
+        <div class="glx-footer" id="glx-footer">${glFooterHTML(ch, sums)}</div>
       </div>
     </div>`;
 }
 
 /* ── Init (bindings; runs after every render) ─────────────────── */
 
-function initGoalsChapters() {
-  const wrap = document.getElementById('gl-chapters');
+function initGoalsLedger() {
+  const wrap = document.getElementById('gl-ledger');
   if (!wrap) return;
-  const $id = (id) => document.getElementById(id);
-  const bands = glcBands();
-  const LO = bands[0].lo, HI = bands[2].hi, SPAN = Math.max(1, HI - LO);
-  const d = glcDraft;
+  const ch = glChapters();
+  const { lo: LO, hi: HI } = glSpan();
+  const clampAge = v => Math.max(LO, Math.min(HI, v));
+  const goals = GL_PROD.goals();
 
-  /* ════ Composer ════ */
-
-  const draftYears = () => Math.max(1, d.end - d.start + 1);
-  const draftTotal = () => d.cadence === 'once' ? d.amount : d.amount * draftYears();
-  const draftBands = () => d.cadence === 'once'
-    ? [d.age < bands[0].lo ? 0 : d.age > bands[2].hi ? 2
-       : bands.findIndex(b => d.age >= b.lo && d.age <= b.hi)]
-    : bands.filter(b => Math.min(d.end, b.hi) >= Math.max(d.start, b.lo)).map(b => b.i);
-
-  const bindCatChips = () => {
-    wrap.querySelectorAll('.glc-cchip').forEach(el => el.onclick = () => { d.cat = el.dataset.cat; sync(); });
+  // Footer repaint in place — used by amount typing (no row re-render).
+  const repaintFooter = () => {
+    const sums = glChapterSums(ch);
+    wrap.querySelectorAll('[data-fsum]').forEach(el =>
+      el.textContent = GL_PROD.compact(sums[+el.dataset.fsum]));
+    const life = document.getElementById('glx-life');
+    if (life) life.textContent = GL_PROD.compact(sums[0] + sums[1] + sums[2]);
   };
 
-  const sync = () => {
-    // category chips (re-render both mounts, they carry per-cat inline styles)
-    const ac = $id('glc-a-cats'), bc = $id('glc-b-cats');
-    if (ac) ac.innerHTML = glcCatChipsHTML(d.cat, 30);
-    if (bc) bc.innerHTML = glcCatChipsHTML(d.cat, 34);
-    bindCatChips();
-    // names + amounts (never clobber the focused field)
-    const amtStr = d.amount > 0 ? d.amount.toLocaleString('en-US') : '';
-    [['glc-a-name', d.name], ['glc-b-name', d.name]].forEach(([id, v]) => {
-      const el = $id(id); if (el && document.activeElement !== el) el.value = v;
-    });
-    const aAmt = $id('glc-a-amount');
-    if (aAmt && document.activeElement !== aAmt) aAmt.value = amtStr;
-    const bAmt = $id('glc-b-amount'); if (bAmt) bAmt.textContent = amtStr || '0';
-    // cadence segments (both composers)
-    wrap.querySelectorAll('.glc-seg').forEach(el =>
-      el.classList.toggle('glc-seg--on', el.dataset.cad === d.cadence));
-    // A slider
-    const h1 = $id('glc-a-h1'), h2 = $id('glc-a-h2'), fill = $id('glc-a-fill'), wl = $id('glc-a-when');
-    if (h1) {
-      if (d.cadence === 'once') {
-        const p = (d.age - LO) / SPAN * 100;
-        h1.style.left = p + '%'; h2.style.display = 'none';
-        fill.style.left = p + '%'; fill.style.width = '0%';
-        wl.textContent = 'Age ' + d.age;
-      } else {
-        const ps = (d.start - LO) / SPAN * 100, pe = (d.end - LO) / SPAN * 100;
-        h1.style.left = ps + '%'; h2.style.display = 'block'; h2.style.left = pe + '%';
-        fill.style.left = ps + '%'; fill.style.width = (pe - ps) + '%';
-        wl.textContent = 'Ages ' + d.start + ' \u2013 ' + d.end;
-      }
-    }
-    // totals
-    const totalTxt = GLC_PROD.compact(draftTotal());
-    const at = $id('glc-a-total'); if (at) at.textContent = totalTxt;
-    const bt = $id('glc-b-total'); if (bt) bt.textContent = totalTxt;
-    // A preview strip
-    const pn = $id('glc-a-prev-name'); if (pn) pn.textContent = d.name.trim() || 'New goal';
-    const ps2 = $id('glc-a-prev-sub');
-    if (ps2) ps2.textContent = d.amount > 0
-      ? (d.cadence === 'once'
-          ? GLC_PROD.money(d.amount) + ' \u00b7 one-time \u00b7 age ' + d.age
-          : GLC_PROD.money(d.amount) + ' /yr \u00b7 ages ' + d.start + '\u2013' + d.end)
-      : (d.cadence === 'once' ? 'price later \u00b7 one-time \u00b7 age ' + d.age
-                              : 'price later \u00b7 ages ' + d.start + '\u2013' + d.end);
-    const ob = draftBands();
-    const pc = $id('glc-a-prev-chapters');
-    if (pc) pc.textContent = 'lands in Chapter' + (ob.length > 1 ? 's ' : ' ') +
-      ob.map(i => bands[i].roman).join(' \u00b7 ');
-    // B band chips / age stepper
-    wrap.querySelectorAll('.glc-bband').forEach(el => {
-      const on = el.dataset.bband === 'all'
-        ? (d.cadence === 'yr' && d.start === LO && d.end === HI)
-        : (d.cadence === 'yr' && ob.includes(+el.dataset.bband));
-      el.classList.toggle('glc-bband--on', on);
-    });
-    const bandRow = $id('glc-b-bands'), ageRow = $id('glc-b-age-row');
-    if (bandRow) bandRow.style.display = d.cadence === 'once' ? 'none' : 'flex';
-    if (ageRow)  ageRow.style.display  = d.cadence === 'once' ? 'flex' : 'none';
-    const ba = $id('glc-b-age'); if (ba) ba.textContent = d.age;
-    // presets
-    wrap.querySelectorAll('.glc-preset').forEach(el =>
-      el.classList.toggle('glc-preset--on', +el.dataset.v === d.amount));
-  };
-
-  // mode switch
-  wrap.querySelectorAll('.glc-csw').forEach(el => el.onclick = () => {
-    glcMode = el.dataset.mode;
-    wrap.querySelectorAll('.glc-csw').forEach(s => s.classList.toggle('glc-csw--on', s === el));
-    const a = $id('glc-composer-a'), b = $id('glc-composer-b');
-    if (a) a.style.display = glcMode === 'A' ? 'block' : 'none';
-    if (b) b.style.display = glcMode === 'B' ? 'block' : 'none';
-    sync();
-  });
-
-  // name / amount inputs
-  ['glc-a-name', 'glc-b-name'].forEach(id => {
-    const el = $id(id); if (!el) return;
-    el.addEventListener('input', () => { d.name = el.value; sync(); });
-  });
-  const aAmt = $id('glc-a-amount');
-  if (aAmt) {
-    aAmt.addEventListener('input', () => {
-      d.amount = parseInt(aAmt.value.replace(/[^0-9]/g, ''), 10) || 0; sync();
-    });
-    aAmt.addEventListener('blur', () => {
-      aAmt.value = d.amount > 0 ? d.amount.toLocaleString('en-US') : '';
-    });
-  }
-  // cadence segments
-  wrap.querySelectorAll('.glc-seg').forEach(el => el.onclick = () => { d.cadence = el.dataset.cad; sync(); });
-  // B amount stepper + presets
-  const bMinus = $id('glc-b-minus'); if (bMinus) bMinus.onclick = () => { d.amount = Math.max(0, d.amount - 1000); sync(); };
-  const bPlus  = $id('glc-b-plus');  if (bPlus)  bPlus.onclick  = () => { d.amount += 1000; sync(); };
-  wrap.querySelectorAll('.glc-preset').forEach(el => el.onclick = () => { d.amount = +el.dataset.v; sync(); });
-  // B band chips + age stepper
-  wrap.querySelectorAll('.glc-bband').forEach(el => el.onclick = () => {
-    d.cadence = 'yr';
-    if (el.dataset.bband === 'all') { d.start = LO; d.end = HI; }
-    else { const b = bands[+el.dataset.bband]; d.start = b.lo; d.end = b.hi; }
-    sync();
-  });
-  const bAgeM = $id('glc-b-age-minus'); if (bAgeM) bAgeM.onclick = () => { d.age = Math.max(LO, d.age - 1); sync(); };
-  const bAgeP = $id('glc-b-age-plus');  if (bAgeP) bAgeP.onclick = () => { d.age = Math.min(HI, d.age + 1); sync(); };
-
-  // A range track
-  const track = $id('glc-a-track');
-  if (track) {
-    const ageAt = x => {
-      const r = track.getBoundingClientRect();
-      const p = Math.max(0, Math.min(1, (x - r.left) / r.width));
-      return Math.round(LO + p * SPAN);
-    };
-    let dragging = null;
-    const move = e => {
-      if (!dragging) return;
-      const a = ageAt(e.clientX);
-      if (d.cadence === 'once') d.age = a;
-      else if (dragging === 'h1') d.start = Math.min(a, d.end);
-      else d.end = Math.max(a, d.start);
-      sync();
-    };
-    const up = () => { dragging = null; window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); };
-    const grab = which => e => { e.preventDefault(); dragging = which; window.addEventListener('pointermove', move); window.addEventListener('pointerup', up); };
-    $id('glc-a-h1').addEventListener('pointerdown', grab('h1'));
-    $id('glc-a-h2').addEventListener('pointerdown', grab('h2'));
-    track.addEventListener('pointerdown', e => {
-      if (e.target.classList.contains('glc-h')) return;
-      const a = ageAt(e.clientX);
-      if (d.cadence === 'once') d.age = a;
-      else if (Math.abs(a - d.start) <= Math.abs(a - d.end)) d.start = Math.min(a, d.end);
-      else d.end = Math.max(a, d.start);
-      sync();
-    });
-  }
-
-  // Add goal — one flat record; chapter rows derive on re-render
-  const addGoal = () => {
-    const goals = GLC_PROD.goals();
-    const name  = d.name.trim() || 'New goal';
-    const amt   = Math.max(0, Math.round(d.amount) || 0);
-    const g = d.cadence === 'once'
-      ? { name, amount: amt, area: d.cat, startAge: d.age,  endAge: d.age }
-      : { name, amount: amt, area: d.cat, startAge: d.start, endAge: d.end };
+  const addGoal = g => {
     goals.push(g);
-    glcFlashGi = goals.length - 1;
-    glcRefocus = true;
-    d.name = '';
-    GLC_PROD.commit();
-  };
-  const aAdd = $id('glc-a-add'); if (aAdd) aAdd.onclick = addGoal;
-  const bAdd = $id('glc-b-add'); if (bAdd) bAdd.onclick = addGoal;
-
-  sync();
-  if (glcRefocus) {
-    glcRefocus = false;
-    const el = $id(glcMode === 'A' ? 'glc-a-name' : 'glc-b-name');
-    if (el) el.focus();
-  }
-
-  /* ════ Rows: hover isolation + inline editor ════ */
-
-  // Hover isolates the hovered GOAL — all its slices across chapters stay
-  // lit, every other goal's rows dim (per-goal, not per-category: rows of
-  // the same flat goal highlight together).
-  wrap.querySelectorAll('.glc-row').forEach(row => {
-    row.addEventListener('mouseenter', () => {
-      const gi = row.dataset.gi;
-      wrap.querySelectorAll('.glc-row').forEach(o =>
-        o.classList.toggle('glc-row--dim', o.dataset.gi !== gi));
-    });
-    row.addEventListener('mouseleave', () => {
-      wrap.querySelectorAll('.glc-row').forEach(o => o.classList.remove('glc-row--dim'));
-    });
-  });
-
-  let open = null;   // { row, gi, band, ed:{amt,cad,start,end,age}, dirty }
-
-  const listBounds = row => {
-    const l = row.closest('.glc-list');
-    return { lo: +l.dataset.lo, hi: +l.dataset.hi };
+    glFlashGi = glFocusGi = goals.length - 1;
+    GL_PROD.commit();
   };
 
-  // Live DOM recompute while editing (plan is written only on close)
-  const liveRecompute = () => {
-    if (!open) return;
-    const gi = open.gi;
-    wrap.querySelectorAll('.glc-row[data-gi="' + gi + '"]').forEach(r => {
-      const isOpen = r === open.row;
-      const once = (isOpen ? open.ed.cad : r.dataset.cad) === 'once';
-      const years = isOpen
-        ? (once ? 1 : Math.max(1, open.ed.end - open.ed.start + 1))
-        : +r.dataset.years;
-      const t = once ? open.ed.amt : open.ed.amt * years;
-      r.dataset.liveTotal = String(t);
-      const totEl = r.querySelector('.glc-row-total');
-      if (totEl) totEl.textContent = open.ed.amt > 0 ? GLC_PROD.compact(t) : '\u2014';
-      if (!isOpen) {
-        const sub = r.querySelector('.glc-sub');
-        if (sub) {
-          const spanTxt = sub.textContent.split('\u00b7').slice(1).join('\u00b7').trim();
-          sub.textContent = (open.ed.amt > 0 ? GLC_PROD.money(open.ed.amt) + ' /yr' : 'Price later') +
-            (spanTxt ? ' \u00b7 ' + spanTxt : '');
-        }
-        // Collapse cue: switching this goal to one-time will consolidate it
-        // into a single chapter on commit — dim its sibling slices meanwhile.
-        r.classList.toggle('glc-row--dim', open.ed.cad === 'once');
-      }
-    });
-    // chapter totals + lifetime percentages from row data
-    const totals = [0, 0, 0];
-    wrap.querySelectorAll('.glc-row').forEach(r => {
-      const t = r.dataset.gi === String(gi)
-        ? +(r.dataset.liveTotal || r.dataset.total)
-        : +r.dataset.total;
-      totals[+r.dataset.band] += t;
-    });
-    const lifetime = totals[0] + totals[1] + totals[2];
-    wrap.querySelectorAll('.glc-total').forEach(el =>
-      el.textContent = GLC_PROD.compact(totals[+el.dataset.band]));
-    wrap.querySelectorAll('.glc-pct').forEach(el =>
-      el.textContent = (lifetime ? Math.round(totals[+el.dataset.band] / lifetime * 100) : 0) +
-        '% of lifetime goal spending');
-  };
-
-  const edLayout = () => {
-    if (!open) return;
-    const { lo, hi } = listBounds(open.row);
-    const span = Math.max(1, hi - lo);
-    const ed = open.row.querySelector('.glc-ed'); if (!ed) return;
-    ed.querySelectorAll('.glc-ed-cad').forEach(el =>
-      el.classList.toggle('glc-ed-cad--on', el.dataset.cad === open.ed.cad));
-    const h1 = ed.querySelector('.glc-ed-h1'), h2 = ed.querySelector('.glc-ed-h2');
-    const fill = ed.querySelector('.glc-ed-fill'), lbl = ed.querySelector('.glc-ed-when');
-    if (open.ed.cad === 'once') {
-      const a = open.ed.age;
-      const p = (Math.max(lo, Math.min(hi, a)) - lo) / span * 100;
-      h1.style.left = p + '%'; h2.style.display = 'none';
-      fill.style.left = p + '%'; fill.style.width = '0%';
-      lbl.textContent = 'age ' + a;
-    } else {
-      const s = open.ed.start, e = open.ed.end;
-      const ps = (Math.max(lo, Math.min(hi, s)) - lo) / span * 100;
-      const pe = (Math.max(lo, Math.min(hi, e)) - lo) / span * 100;
-      h1.style.left = ps + '%'; h2.style.display = 'block'; h2.style.left = pe + '%';
-      fill.style.left = ps + '%'; fill.style.width = Math.max(0, pe - ps) + '%';
-      const n = e - s + 1;
-      lbl.textContent = (s <= lo && e >= hi)
-        ? 'ages ' + lo + '\u2013' + hi + ' \u00b7 all ' + n + ' years'
-        : 'ages ' + s + '\u2013' + e + ' \u00b7 ' + n + ' years';
-    }
-  };
-
-  /* Write the closed editor's draft back into the flat store.
-     Amount + cadence apply to the whole goal; age edits move the goal's
-     real edges where the slice edge IS the goal edge, and split the goal
-     when an interior slice was narrowed. */
-  const applyEdit = () => {
-    const goals = GLC_PROD.goals();
-    const g = goals[open.gi]; if (!g) return;
-    const ed = open.ed;
-    const amt = Math.max(0, Math.round(ed.amt) || 0);
-    const band = bands[open.band];
-    const wasOnce = +g.startAge === +g.endAge;
-
-    if (ed.cad === 'once') {
-      g.amount = amt; g.startAge = ed.age; g.endAge = ed.age;
-    } else if (wasOnce) {
-      g.amount = amt; g.startAge = ed.start; g.endAge = ed.end;
-    } else {
-      const sa = +g.startAge, ea = +g.endAge;
-      const effLo = open.band === 0 ? -Infinity : band.lo;
-      const effHi = open.band === 2 ?  Infinity : band.hi;
-      const sliceLo = Math.max(sa, effLo), sliceHi = Math.min(ea, effHi);
-      const segs = [];
-      if (sa <= sliceLo - 1) segs.push([sa, sliceLo - 1]);
-      segs.push([ed.start, ed.end]);
-      if (ea >= sliceHi + 1) segs.push([sliceHi + 1, ea]);
-      const merged = [];
-      segs.forEach(sg => {
-        const last = merged[merged.length - 1];
-        if (last && last[1] + 1 >= sg[0]) last[1] = Math.max(last[1], sg[1]);
-        else merged.push([sg[0], sg[1]]);
-      });
-      g.amount = amt; g.startAge = merged[0][0]; g.endAge = merged[0][1];
-      for (let k = 1; k < merged.length; k++) {
-        goals.splice(open.gi + k, 0,
-          { name: g.name, amount: amt, area: g.area || null, startAge: merged[k][0], endAge: merged[k][1] });
-      }
-    }
-    GLC_PROD.commit();   // full re-render; editor is gone with it
-  };
-
-  const closeEditor = (commit = true) => {
-    if (!open) return;
-    if (open.dirty) {
-      if (commit) { applyEdit(); open = null; return; }
-      // Cancel after live edits: the DOM has draft totals/subs/percentages
-      // baked in — re-render from the (unchanged) store restores everything.
-      open = null;
-      GLC_PROD.rerender();
+  // Clicks: adds, steppers, cadence, chips, one-time age, delete.
+  wrap.addEventListener('click', e => {
+    const qa = e.target.closest('.glx-qa');
+    if (qa) {
+      const q = glQuickAdds()[+qa.dataset.q];
+      if (q) addGoal({ name: q.name, amount: q.amount, area: q.area, startAge: q.startAge, endAge: q.endAge });
       return;
     }
-    const ed = open.row.querySelector('.glc-ed'); if (ed) ed.remove();
-    const sub = open.row.querySelector('.glc-sub'); if (sub) sub.style.display = '';
-    open.row.classList.remove('glc-row--open');
-    open = null;
-  };
+    if (e.target.closest('#glx-add')) {
+      addGoal({ name: 'New goal', amount: 5000, startAge: ch[0].lo, endAge: ch[0].hi });
+      return;
+    }
+    const el = e.target.closest('[data-act]');
+    if (!el) return;
+    const i = +el.dataset.i, g = goals[i];
+    if (!g) return;
+    const once = +g.startAge === +g.endAge;
+    const act = el.dataset.act;
+    if (act === 'minus' || act === 'plus') {
+      const step = once ? 5000 : 1000;               // ±$5K one-time · ±$1K recurring
+      g.amount = Math.max(0, (+g.amount || 0) + (act === 'plus' ? step : -step));
+      GL_PROD.commit();
+    } else if (act === 'cad-once') {
+      if (!once) { g.endAge = g.startAge; GL_PROD.commit(); }
+    } else if (act === 'cad-yr') {
+      if (once) { g.endAge = Math.min(+g.startAge + 9, HI); GL_PROD.commit(); }
+    } else if (act === 'chip') {
+      // Chips are coarse presets over the age boxes. New range = min..max of
+      // the lit set (engine model is a single contiguous range); clicking a
+      // partial chip lights it fully; the set can never be emptied.
+      const ci = +el.dataset.ch;
+      const lit = ch.filter(c => +g.startAge <= c.lo && +g.endAge >= c.hi).map(c => c.i);
+      let set;
+      if (lit.includes(ci)) { set = lit.filter(j => j !== ci); if (!set.length) return; }
+      else set = lit.concat([ci]);
+      g.startAge = ch[Math.min(...set)].lo;
+      g.endAge   = ch[Math.max(...set)].hi;
+      GL_PROD.commit();
+    } else if (act === 'age-minus' || act === 'age-plus') {
+      const a = clampAge(+g.startAge + (act === 'age-plus' ? 1 : -1));
+      g.startAge = a; g.endAge = a;
+      GL_PROD.commit();
+    } else if (act === 'del') {
+      goals.splice(i, 1);
+      GL_PROD.commit();
+    }
+  });
 
-  const openEditor = row => {
-    if (open && open.row === row) { closeEditor(); return; }
-    closeEditor();
-    const { lo, hi } = listBounds(row);
-    const cad = row.dataset.cad;
-    open = {
-      row, gi: +row.dataset.gi, band: +row.dataset.band, dirty: false,
-      ed: {
-        amt: +row.dataset.amt, cad,
-        start: +row.dataset.start, end: +row.dataset.end,
-        age: +row.dataset.start,
-      },
-    };
-    row.classList.add('glc-row--open');
-    const sub = row.querySelector('.glc-sub');
-    if (sub) sub.style.display = 'none';
-    const amtVal = open.ed.amt > 0 ? open.ed.amt.toLocaleString('en-US') : '';
-    row.querySelector('.glc-row-main').insertAdjacentHTML('beforeend', `
-      <div class="glc-ed">
-        <div class="glc-ed-row1">
-          <div class="glc-ed-amt-wrap"><span class="glc-ed-dollar">$</span><input class="glc-ed-amt" value="${amtVal}" placeholder="price later"></div>
-          <div class="glc-ed-cads">
-            <span class="glc-ed-cad" data-cad="yr">/yr</span>
-            <span class="glc-ed-cad" data-cad="once">one-time</span>
-          </div>
-          <span class="glc-ed-remove" title="Remove this goal from this chapter">REMOVE</span>
-        </div>
-        <div class="glc-ed-slider">
-          <div class="glc-ed-track">
-            <div class="glc-ed-rail"></div>
-            <div class="glc-ed-fill"></div>
-            <div class="glc-ed-h glc-ed-h1"></div>
-            <div class="glc-ed-h glc-ed-h2"></div>
-          </div>
-          <div class="glc-ed-when"></div>
-        </div>
-      </div>`);
-    const ed = row.querySelector('.glc-ed');
-    ed.addEventListener('pointerdown', e => e.stopPropagation());
-    ed.addEventListener('click', e => e.stopPropagation());
+  // Typing writes through WITHOUT a re-render — focus never leaves the field.
+  // Amount keystrokes reformat commas in place and repaint the footer sums.
+  wrap.addEventListener('input', e => {
+    const t = e.target, i = +t.dataset.i, g = goals[i];
+    if (!g) return;
+    if (t.classList.contains('glx-name')) {
+      g.name = t.value;
+      GL_PROD.arm();
+    } else if (t.classList.contains('glx-amt')) {
+      liveCommas(t);
+      g.amount = parseInt(t.value.replace(/[^0-9]/g, ''), 10) || 0;   // blank = unpriced ($0, engine-inert)
+      GL_PROD.arm();
+      repaintFooter();
+    }
+  });
 
-    const amtIn = ed.querySelector('.glc-ed-amt');
-    amtIn.addEventListener('input', () => {
-      if (!open) return;
-      open.ed.amt = parseInt(amtIn.value.replace(/[^0-9]/g, ''), 10) || 0;
-      open.dirty = true; liveRecompute();
-    });
-    // blur can fire AFTER a commit re-render detached this editor — guard.
-    amtIn.addEventListener('blur', () => {
-      if (!open) return;
-      amtIn.value = open.ed.amt > 0 ? open.ed.amt.toLocaleString('en-US') : '';
-    });
-    // Enter commits, Escape cancels — bound on the editor container so it
-    // works from any focused child, not only the amount input.
-    ed.addEventListener('keydown', e => {
-      if (e.key === 'Enter') { e.preventDefault(); closeEditor(); }
-      if (e.key === 'Escape') { e.preventDefault(); closeEditor(false); }
-    });
+  // Exact age boxes commit on change (blur/Enter): clamp to the resolved
+  // span and keep start ≤ end, dragging the other bound along.
+  wrap.addEventListener('change', e => {
+    const t = e.target;
+    if (!t.classList.contains('glx-ain')) return;
+    const g = goals[+t.dataset.i];
+    if (!g) return;
+    let v = parseInt(t.value.replace(/[^0-9]/g, ''), 10);
+    if (!isFinite(v)) v = t.dataset.t === 's' ? +g.startAge : +g.endAge;
+    v = clampAge(v);
+    if (t.dataset.t === 's') { g.startAge = v; if (+g.endAge < v) g.endAge = v; }
+    else                     { g.endAge = v;   if (+g.startAge > v) g.startAge = v; }
+    GL_PROD.commit();
+  });
 
-    ed.querySelectorAll('.glc-ed-cad').forEach(el => el.addEventListener('click', () => {
-      if (!open || open.ed.cad === el.dataset.cad) return;
-      open.ed.cad = el.dataset.cad;
-      if (el.dataset.cad === 'once') {
-        // land the pin inside this chapter's band
-        open.ed.age = Math.max(lo, Math.min(hi, open.ed.age || open.ed.start || lo));
-      }
-      if (el.dataset.cad === 'yr') {
-        // converting a one-time (or a collapsed span) to recurring defaults
-        // to this chapter's full band — a real span, never start===end
-        if (!open.ed.start || !open.ed.end || open.ed.start === open.ed.end) {
-          open.ed.start = lo; open.ed.end = hi;
-        }
-      }
-      open.dirty = true; edLayout(); liveRecompute();
-    }));
-
-    ed.querySelector('.glc-ed-remove').addEventListener('click', () => {
-      if (!open) return;
-      const goals = GLC_PROD.goals();
-      const g = goals[open.gi];
-      if (!g) { open = null; GLC_PROD.commit(); return; }
-      // Per-chapter removal: subtract ONLY this chapter's slice from the goal's
-      // span (mirrors applyEdit's segment math). A one-time goal, or a recurring
-      // goal that lives entirely inside this one chapter, is deleted outright;
-      // otherwise the goal is trimmed to the remaining chapter(s) — and split in
-      // two if the removed slice was interior (e.g. remove Ch. II from an I–III goal).
-      const wasOnce = +g.startAge === +g.endAge;
-      if (wasOnce) {
-        goals.splice(open.gi, 1);
-      } else {
-        const sa = +g.startAge, ea = +g.endAge;
-        const band = bands[open.band];
-        const effLo = open.band === 0 ? -Infinity : band.lo;
-        const effHi = open.band === 2 ?  Infinity : band.hi;
-        const sliceLo = Math.max(sa, effLo), sliceHi = Math.min(ea, effHi);
-        const segs = [];
-        if (sa <= sliceLo - 1) segs.push([sa, sliceLo - 1]);   // remainder before this slice
-        if (ea >= sliceHi + 1) segs.push([sliceHi + 1, ea]);   // remainder after this slice
-        if (segs.length === 0) {
-          goals.splice(open.gi, 1);                             // goal lived only in this chapter
-        } else {
-          g.startAge = segs[0][0]; g.endAge = segs[0][1];
-          for (let k = 1; k < segs.length; k++) {
-            goals.splice(open.gi + k, 0,
-              { name: g.name, amount: g.amount, area: g.area || null, startAge: segs[k][0], endAge: segs[k][1] });
-          }
-        }
-      }
-      open = null;
-      GLC_PROD.commit();
-    });
-
-    // band-clamped slider
-    const trackEl = ed.querySelector('.glc-ed-track');
-    const span = Math.max(1, hi - lo);
-    const ageAt = x => {
-      const r = trackEl.getBoundingClientRect();
-      const p = Math.max(0, Math.min(1, (x - r.left) / r.width));
-      return Math.round(lo + p * span);
-    };
-    let drag = null;
-    const move = e => {
-      if (!drag || !open) return;
-      const a = ageAt(e.clientX);
-      if (open.ed.cad === 'once') open.ed.age = a;
-      else if (drag === 'h1') open.ed.start = Math.min(a, open.ed.end);
-      else open.ed.end = Math.max(a, open.ed.start);
-      open.dirty = true; edLayout(); liveRecompute();
-    };
-    const up = () => { drag = null; window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); };
-    const grab = which => e => { e.preventDefault(); e.stopPropagation(); drag = which; window.addEventListener('pointermove', move); window.addEventListener('pointerup', up); };
-    ed.querySelector('.glc-ed-h1').addEventListener('pointerdown', grab('h1'));
-    ed.querySelector('.glc-ed-h2').addEventListener('pointerdown', grab('h2'));
-    trackEl.addEventListener('pointerdown', e => {
-      if (!open || e.target.classList.contains('glc-ed-h')) return;
-      e.preventDefault();   // keep focus inside the editor so Escape still cancels
-      const a = ageAt(e.clientX);
-      if (open.ed.cad === 'once') open.ed.age = a;
-      else if (Math.abs(a - open.ed.start) <= Math.abs(a - open.ed.end)) open.ed.start = Math.min(a, open.ed.end);
-      else open.ed.end = Math.max(a, open.ed.start);
-      open.dirty = true; edLayout(); liveRecompute();
-    });
-
-    edLayout();
-    amtIn.focus();
-  };
-
-  // One document-level handler (rebound each render so re-renders never stack listeners)
-  if (glcDocDown) document.removeEventListener('pointerdown', glcDocDown);
-  glcDocDown = e => {
-    const w = document.getElementById('gl-chapters');
-    if (!w) { document.removeEventListener('pointerdown', glcDocDown); glcDocDown = null; return; }
-    if (!e.target.closest) return;
-    if (e.target.closest('.glc-ed')) return;
-    const row = e.target.closest('.glc-row');
-    if (row && w.contains(row)) { openEditor(row); return; }
-    closeEditor();
-  };
-  document.addEventListener('pointerdown', glcDocDown);
+  // A just-added row takes focus on its name, selected so typing replaces it.
+  if (glFocusGi != null) {
+    const el = wrap.querySelector(`.glx-name[data-i="${glFocusGi}"]`);
+    glFocusGi = null;
+    if (el) { el.focus(); el.select(); }
+  }
 }
 
 /* ── Sub-page render + wiring ─────────────────────────────────────
@@ -3568,10 +3067,10 @@ function renderInputs(){
   // Snapshot is its own diagnostic page again — embedding it on the Net Worth
   // page made that page too busy to read.
   const html = layout==='snapshot'  ? `<div class="np-snapshot-page">${renderSnapshot()}</div>`
-             : layout==='goals'     ? renderGoalsChapters()  // Life Chapters view
+             : layout==='goals'     ? renderGoalsLedger()   // Goals Ledger view
              :                        renderHybrid(activeSub);
   np.innerHTML = html;
-  if(layout==='goals') initGoalsChapters();
+  if(layout==='goals') initGoalsLedger();
 }
 // ── Net Worth input bindings — delegated on the stable #np-content ────────────
 // Input listeners are set once here so re-renders via renderInputs() (which

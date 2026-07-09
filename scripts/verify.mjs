@@ -896,242 +896,284 @@ try {
     await sleep(200);
   });
 
-  await step('goals renders Life Chapters view (title, cards, rows, composer)', async () => {
-    // Contract updated for the shipped Life Chapters view: the Goals tab now
-    // renders renderGoalsChapters() -> #gl-chapters (three derived chapter
-    // cards + inline row editing + the two-mode goal composer), replacing the
-    // retired Horizon (#gl-horizon), whose renderer (renderGoalsHorizon/
-    // initGoalsHorizon) has since been removed as dead code; this asserts the
-    // CURRENT DOM. The what-if drop mechanism was retired (2026-07-06).
+  await step('goals renders the Ledger view (title, columns, rows, adds, footer)', async () => {
+    // Contract for the Goals Ledger: one always-editable sheet over flat
+    // plan.goals (one goal = one row), replacing the retired Life Chapters
+    // view (chapter cards + composers + inline editors — all removed).
+    // Chapters survive as UI-only derivations: per-row range chips and a
+    // one-line footer of per-chapter input sums. Demo household resolves
+    // retirement 66 -> plan end 95, so derived chapters are 66-75/76-85/86-95.
     await page.click('.htab[data-sub-target="goals"]');
     await new Promise(r => setTimeout(r, 400));
     const m = await page.evaluate(() => {
-      const ch = document.querySelector('#gl-chapters');
-      const host = document.querySelector('#np-content') || ch;
-      const hostText = (host?.textContent || '').replace(/\s+/g, ' ').trim();
+      const led = document.querySelector('#gl-ledger');
+      const text = (led?.textContent || '').replace(/\s+/g, ' ').trim();
+      const px = sel => {
+        const el = document.querySelector(sel);
+        return el ? parseFloat(getComputedStyle(el).fontSize) : null;
+      };
       return {
-        chapters: !!ch,
-        title: /Spending & Lifestyle Goals/.test(hostText),
-        cards: document.querySelectorAll('.glc-card').length,
-        romans: [...document.querySelectorAll('.glc-roman')].map(el => el.textContent.trim()).join(','),
-        rows: document.querySelectorAll('.glc-row').length,
-        totals: [...document.querySelectorAll('.glc-total')].map(el => el.textContent.trim()),
-        switchTabs: document.querySelectorAll('.glc-csw').length,
-        composerA: !!document.querySelector('#glc-composer-a'),
-        composerB: !!document.querySelector('#glc-composer-b'),
-        catChips: document.querySelectorAll('#glc-a-cats .glc-cchip').length,
-        textLen: hostText.length,
+        ledger: !!led,
+        title: /Lifestyle Goals/.test(text),
+        caps: [...document.querySelectorAll('.glx-cap')].map(el => el.textContent.trim()),
+        rows: document.querySelectorAll('.glx-row').length,
+        names: [...document.querySelectorAll('.glx-name')].map(el => el.value),
+        chipsPerRow: document.querySelector('.glx-row') ?
+          document.querySelector('.glx-row').querySelectorAll('.glx-chip').length : 0,
+        segs: document.querySelectorAll('.glx-row .glx-seg').length,
+        quickAdds: document.querySelectorAll('.glx-qa').length,
+        footer: (document.querySelector('.glx-footer')?.textContent || '').replace(/\s+/g, ' '),
+        composersGone: !document.querySelector('.glc-csw, #glc-composer-a, #glc-composer-b, .glc-ed, .glc-card'),
+        glebeChips: (() => {
+          // Glebe Fee 71-95: Chapter I partial (dashed), II + III full (lit).
+          const row = [...document.querySelectorAll('.glx-row')]
+            .find(r => (r.querySelector('.glx-name')?.value || '').includes('Glebe'));
+          return row ? [...row.querySelectorAll('.glx-chip')].map(c =>
+            c.classList.contains('glx-chip--on') ? 'on' :
+            c.classList.contains('glx-chip--part') ? 'part' : 'off').join(',') : '';
+        })(),
+        fontFloor: Math.min(...['.glx-cap', '.glx-name', '.glx-amt', '.glx-row .glx-seg',
+          '.glx-chip', '.glx-ain', '.glx-f-lbl', '.glx-f-note'].map(px).filter(v => v != null)),
+        textLen: text.length,
       };
     });
-    if(!m.chapters) throw new Error('Goals Life Chapters (#gl-chapters) did not render');
-    if(!m.title) throw new Error('Goals title "Spending & Lifestyle Goals" missing from rendered view');
-    if(m.cards !== 3) throw new Error(`expected 3 chapter cards, got ${m.cards}`);
-    if(m.romans !== 'I,II,III') throw new Error(`chapter numerals wrong (${m.romans})`);
-    if(m.rows < 1) throw new Error(`expected >=1 goal row, got ${m.rows}`);
-    if(m.totals.some(t => !/^\$/.test(t))) throw new Error(`chapter totals malformed (${m.totals.join(' / ')})`);
-    if(m.switchTabs !== 2 || !m.composerA || !m.composerB)
-      throw new Error('composer (TIMELINE/QUICK-TAP switch + both panels) did not render');
-    if(m.catChips < 1) throw new Error('composer category chips did not render');
+    if(!m.ledger) throw new Error('Goals Ledger (#gl-ledger) did not render');
+    if(!m.title) throw new Error('Goals title "Lifestyle Goals" missing from rendered view');
+    if(!m.composersGone) throw new Error('retired Life Chapters DOM (composer/cards/editor) still renders');
+    const wantCaps = ['GOAL','AMOUNT','HOW OFTEN','WHICH YEARS'];
+    if(!wantCaps.every(c => m.caps.includes(c)))
+      throw new Error(`ledger column captions wrong: ${JSON.stringify(m.caps)}`);
+    if(m.rows < 2) throw new Error(`expected the 2 demo goal rows, got ${m.rows}`);
+    if(!m.names.some(n => n.includes('Glebe'))) throw new Error('demo goal name missing from name inputs');
+    if(m.chipsPerRow !== 3) throw new Error(`expected 3 chapter chips per recurring row, got ${m.chipsPerRow}`);
+    if(m.segs < m.rows * 2) throw new Error('cadence segments missing from rows');
+    if(m.quickAdds !== 4) throw new Error(`expected 4 quick adds, got ${m.quickAdds}`);
+    if(!/I \u00b7 66\u201375/.test(m.footer) || !/II \u00b7 76\u201385/.test(m.footer) || !/III \u00b7 86\u201395/.test(m.footer))
+      throw new Error(`footer chapters not derived 66-75/76-85/86-95: "${m.footer}"`);
+    if(!/Lifetime/.test(m.footer) || !/sum of entered goals/.test(m.footer))
+      throw new Error(`footer must label sums honestly: "${m.footer}"`);
+    if(m.glebeChips !== 'part,on,on')
+      throw new Error(`Glebe Fee 71\u201395 chips should be part,on,on \u2014 got "${m.glebeChips}"`);
+    if(m.fontFloor < 16) throw new Error(`ledger type floor broken: ${m.fontFloor}px < 16px`);
     if(m.textLen < 40) throw new Error(`Goals page appears blank (textLen=${m.textLen})`);
     await page.screenshot({ path: join(OUT, '02-goals.png'), fullPage: true });
   });
 
-  await step('goals Life Chapters: composer add, inline edit, Escape, cadence, remove', async () => {
-    // Add via composer A writes ONE flat plan.goals record; its rows derive
-    // into every overlapped chapter (data-gi ties them) and flash gold.
-    // Pointerdown on a row opens the inline editor; closing commits to the
-    // flat store (whole-goal amount semantics); Escape cancels and restores
-    // the store-derived render. All assertions are DOM-level (the app script
-    // is a module — `plan` is not a window global).
+  await step('goals Ledger: add, type-through, steppers, cadence, chips, age boxes, delete', async () => {
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
     await page.click('.htab[data-sub-target="goals"]');
-    await new Promise(r => setTimeout(r, 350));
-    const maxGi = () => page.evaluate(() =>
-      Math.max(-1, ...[...document.querySelectorAll('.glc-row')].map(r => +r.dataset.gi)));
-    const rowsFor = gi => page.evaluate(g =>
-      document.querySelectorAll(`.glc-row[data-gi="${g}"]`).length, gi);
-    const chapterTotals = () => page.evaluate(() =>
-      [...document.querySelectorAll('.glc-total')].map(el => el.textContent.trim()));
-    const openRow = (gi, band) => page.evaluate((g, b) => {
-      const row = document.querySelector(`.glc-row[data-gi="${g}"][data-band="${b}"]`) ||
-                  document.querySelector(`.glc-row[data-gi="${g}"]`);
-      row.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
-    }, gi, band);
-    const closeOutside = () => page.evaluate(() => {
-      document.body.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, clientX: 4, clientY: 4 }));
-    });
+    await sleep(350);
+    const rowCount = () => page.evaluate(() => document.querySelectorAll('.glx-row').length);
+    const rowVal = (gi, sel) => page.evaluate(({g, s}) =>
+      document.querySelector(`${s}[data-i="${g}"]`)?.value ?? null, {g: gi, s: sel});
+    const n0 = await rowCount();
 
-    const gi0 = await maxGi();
-    if(gi0 < 0) throw new Error('no seed goal rows rendered');
-
-    // 1) composer add (recurring, default full span) → one new goal index,
-    //    one flashing row in each of the 3 chapters, name field refocused
-    await page.click('#glc-a-name');
-    await page.type('#glc-a-name', 'Verify goal');
-    await page.click('#glc-a-add');
-    await new Promise(r => setTimeout(r, 400));
-    const newGi = await maxGi();
-    if(newGi !== gi0 + 1) throw new Error(`composer add did not append a goal (maxGi ${gi0} -> ${newGi})`);
+    // 1) + Add a goal -> one new flat record, flashgold, name focused+selected
+    await page.click('#glx-add');
+    await sleep(400);
+    const gi = n0;   // appended at the end of plan.goals
     let m = await page.evaluate(g => ({
-      rows: document.querySelectorAll(`.glc-row[data-gi="${g}"]`).length,
-      flash: document.querySelectorAll('.glc-row--flash').length,
-      named: [...document.querySelectorAll(`.glc-row[data-gi="${g}"] .glc-name`)].every(el => el.textContent === 'Verify goal'),
-      refocused: document.activeElement && document.activeElement.id === 'glc-a-name',
-    }), newGi);
-    if(m.rows !== 3) throw new Error(`full-span goal should render in all 3 chapters, got ${m.rows} rows`);
-    if(m.flash < 1) throw new Error('newly added rows did not flash');
-    if(!m.named) throw new Error('added rows do not carry the typed goal name');
+      rows: document.querySelectorAll('.glx-row').length,
+      flash: document.querySelectorAll('.glx-row--flash').length,
+      name: document.querySelector(`.glx-name[data-i="${g}"]`)?.value,
+      focused: document.activeElement?.classList.contains('glx-name'),
+      status: document.querySelector('#status')?.textContent || '',
+    }), gi);
+    if(m.rows !== n0 + 1) throw new Error(`+ Add a goal did not append a row (${n0} -> ${m.rows})`);
+    if(m.flash < 1) throw new Error('newly added row did not flash');
+    if(m.name !== 'New goal') throw new Error(`new row name wrong: "${m.name}"`);
+    if(!m.focused) throw new Error('new row name field not focused after add');
+    if(!/Plan edited/.test(m.status)) throw new Error(`add did not arm the plan-edited status ("${m.status}")`);
 
-    // 2) inline edit: open the new goal's row, change the amount, click
-    //    outside → commits to the whole flat goal (all slices re-render)
-    const totalsSeed = await chapterTotals();
-    await openRow(newGi, 0);
-    await new Promise(r => setTimeout(r, 200));
-    if(!await page.evaluate(() => !!document.querySelector('.glc-ed')))
-      throw new Error('inline editor did not open on row pointerdown');
-    await page.evaluate(() => {
-      const amt = document.querySelector('.glc-ed-amt');
-      amt.value = '7000';
-      amt.dispatchEvent(new Event('input', { bubbles: true }));
-    });
-    await closeOutside();
-    await new Promise(r => setTimeout(r, 400));
+    // 2) typing the name replaces the selected seed text and never re-renders
+    await page.keyboard.type('Boat fund');
+    await sleep(150);
     m = await page.evaluate(g => ({
-      editorGone: !document.querySelector('.glc-ed'),
-      totals: [...document.querySelectorAll('.glc-total')].map(el => el.textContent.trim()),
-      subs: [...document.querySelectorAll(`.glc-row[data-gi="${g}"] .glc-sub`)].map(el => el.textContent),
-    }), newGi);
-    if(!m.editorGone) throw new Error('inline editor did not close on outside click');
-    if(JSON.stringify(m.totals) === JSON.stringify(totalsSeed))
-      throw new Error('inline amount edit did not commit (chapter totals unchanged)');
-    if(!m.subs.every(s => s.includes('$7,000')))
-      throw new Error(`whole-goal amount did not propagate to all slices (${m.subs.join(' | ')})`);
+      name: document.querySelector(`.glx-name[data-i="${g}"]`)?.value,
+      stillFocused: document.activeElement?.classList.contains('glx-name'),
+    }), gi);
+    if(m.name !== 'Boat fund') throw new Error(`typed name did not write through ("${m.name}")`);
+    if(!m.stillFocused) throw new Error('name typing lost focus (row re-rendered mid-keystroke)');
 
-    // 3) Escape cancels a dirty edit and restores the store-derived render
-    const beforeCancel = await page.evaluate(() => ({
-      totals: [...document.querySelectorAll('.glc-total')].map(el => el.textContent.trim()),
-      subs: [...document.querySelectorAll('.glc-sub')].map(el => el.textContent.trim()),
-    }));
-    await openRow(newGi, 0);
-    await new Promise(r => setTimeout(r, 200));
-    const midTotals = await page.evaluate(() => {
-      const amt = document.querySelector('.glc-ed-amt');
-      amt.value = '99000';
-      amt.dispatchEvent(new Event('input', { bubbles: true }));
-      return [...document.querySelectorAll('.glc-total')].map(el => el.textContent.trim());
-    });
-    if(JSON.stringify(midTotals) === JSON.stringify(beforeCancel.totals))
-      throw new Error('live edit did not update chapter totals (test precondition failed)');
-    await page.evaluate(() => {
-      document.querySelector('.glc-ed').dispatchEvent(
-        new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-    });
-    await new Promise(r => setTimeout(r, 400));
-    m = await page.evaluate(() => ({
-      totals: [...document.querySelectorAll('.glc-total')].map(el => el.textContent.trim()),
-      subs: [...document.querySelectorAll('.glc-sub')].map(el => el.textContent.trim()),
-      editorGone: !document.querySelector('.glc-ed'),
-    }));
-    if(!m.editorGone) throw new Error('Escape did not close the editor');
-    if(JSON.stringify(m.totals) !== JSON.stringify(beforeCancel.totals))
-      throw new Error(`Escape did not restore chapter totals (${m.totals} vs ${beforeCancel.totals})`);
-    if(JSON.stringify(m.subs) !== JSON.stringify(beforeCancel.subs))
-      throw new Error('Escape did not restore row subtitles');
+    // 3) amount typing: live commas, footer repaints, focus survives.
+    // ($900k/yr so the compact Lifetime figure visibly moves — $3.1M -> $12M.)
+    const lifeBefore = await page.evaluate(() => document.querySelector('#glx-life')?.textContent);
+    await page.click(`.glx-amt[data-i="${gi}"]`);
+    await page.evaluate(g => {
+      const el = document.querySelector(`.glx-amt[data-i="${g}"]`);
+      el.value = '900000';
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+    }, gi);
+    await sleep(150);
+    m = await page.evaluate(g => ({
+      amt: document.querySelector(`.glx-amt[data-i="${g}"]`)?.value,
+      focused: document.activeElement?.classList.contains('glx-amt'),
+      life: document.querySelector('#glx-life')?.textContent,
+    }), gi);
+    if(m.amt !== '900,000') throw new Error(`amount live-commas failed ("${m.amt}")`);
+    if(!m.focused) throw new Error('amount typing lost focus (row re-rendered mid-keystroke)');
+    if(m.life === lifeBefore) throw new Error('footer Lifetime sum did not repaint on amount typing');
 
-    // 4) cadence round-trip: recurring multi-chapter -> one-time collapses to
-    //    a single chapter row on commit; one-time -> recurring defaults to the
-    //    chapter's full band (a real span again)
-    await openRow(newGi, 0);
-    await new Promise(r => setTimeout(r, 200));
-    await page.evaluate(() => document.querySelector('.glc-ed-cad[data-cad="once"]').click());
-    await closeOutside();
-    await new Promise(r => setTimeout(r, 400));
-    if(await rowsFor(newGi) !== 1)
-      throw new Error('cadence -> one-time did not collapse the goal to a single chapter row');
+    // 4) recurring stepper is +-$1,000
+    await page.click(`.glx-step[data-act="plus"][data-i="${gi}"]`);
+    await sleep(300);
+    if(await rowVal(gi, '.glx-amt') !== '901,000')
+      throw new Error('recurring + stepper did not add $1,000');
+
+    // 5) cadence -> One-time: endAge=startAge, "at age" control, +-$5,000 stepper
+    await page.click(`.glx-seg[data-act="cad-once"][data-i="${gi}"]`);
+    await sleep(300);
+    m = await page.evaluate(g => {
+      const row = document.querySelector(`.glx-row[data-row="${g}"]`);
+      return {
+        onceVisible: !row.querySelector('.glx-agewrap').hidden,
+        yrHidden: row.querySelector('.glx-when').hidden,
+        age: row.querySelector('.glx-ageval')?.textContent,
+      };
+    }, gi);
+    if(!m.onceVisible || !m.yrHidden) throw new Error('cadence -> One-time did not switch the which-years control');
+    if(m.age !== '66') throw new Error(`one-time age should collapse to startAge 66, got ${m.age}`);
+    await page.click(`.glx-step[data-act="plus"][data-i="${gi}"]`);
+    await sleep(300);
+    if(await rowVal(gi, '.glx-amt') !== '906,000')
+      throw new Error('one-time + stepper did not add $5,000');
+    await page.click(`.glx-step--sm[data-act="age-plus"][data-i="${gi}"]`);
+    await sleep(300);
     m = await page.evaluate(g =>
-      document.querySelector(`.glc-row[data-gi="${g}"] .glc-sub`).textContent, newGi);
-    if(!/One-time/.test(m)) throw new Error(`collapsed row sub-line is not one-time ("${m}")`);
-    await openRow(newGi, 0);
-    await new Promise(r => setTimeout(r, 200));
-    await page.evaluate(() => document.querySelector('.glc-ed-cad[data-cad="yr"]').click());
-    await closeOutside();
-    await new Promise(r => setTimeout(r, 400));
-    m = await page.evaluate(g =>
-      document.querySelector(`.glc-row[data-gi="${g}"] .glc-sub`).textContent, newGi);
-    if(!/\/yr/.test(m)) throw new Error(`cadence -> recurring did not restore a /yr span ("${m}")`);
+      document.querySelector(`.glx-row[data-row="${g}"] .glx-ageval`)?.textContent, gi);
+    if(m !== '67') throw new Error(`one-time age + did not step to 67 (got ${m})`);
 
-    // 5) remove: reopen the row, click REMOVE → goal deleted from the store
-    await openRow(newGi, 0);
-    await new Promise(r => setTimeout(r, 200));
-    await page.click('.glc-ed-remove');
-    await new Promise(r => setTimeout(r, 400));
+    // 6) cadence -> Every year restores a real span (start+9, plan-end capped)
+    await page.click(`.glx-seg[data-act="cad-yr"][data-i="${gi}"]`);
+    await sleep(300);
+    if(await rowVal(gi, '.glx-ain[data-t="s"]') !== '67' || await rowVal(gi, '.glx-ain[data-t="e"]') !== '76')
+      throw new Error('cadence -> Every year did not restore a 67-76 span');
+
+    // 7) chips set contiguous ranges over the derived chapters
+    await page.click(`.glx-chip[data-ch="0"][data-i="${gi}"]`);   // no full chapters lit -> I
+    await sleep(300);
+    if(await rowVal(gi, '.glx-ain[data-t="s"]') !== '66' || await rowVal(gi, '.glx-ain[data-t="e"]') !== '75')
+      throw new Error('chip I did not set 66-75');
+    await page.click(`.glx-chip[data-ch="1"][data-i="${gi}"]`);   // I+II -> 66-85
+    await sleep(300);
+    if(await rowVal(gi, '.glx-ain[data-t="e"]') !== '85')
+      throw new Error('chip II did not extend the range to 85');
+    await page.click(`.glx-chip[data-ch="0"][data-i="${gi}"]`);   // drop I -> 76-85
+    await sleep(300);
+    if(await rowVal(gi, '.glx-ain[data-t="s"]') !== '76')
+      throw new Error('unlighting chip I did not trim the range to 76-85');
+
+    // 8) exact age boxes clamp to the resolved span and hold start <= end
+    const setAge = (t, v) => page.evaluate(({g, tt, vv}) => {
+      const el = document.querySelector(`.glx-ain[data-t="${tt}"][data-i="${g}"]`);
+      el.value = vv;
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+    }, {g: gi, tt: t, vv: v});
+    await setAge('s', '60'); await sleep(300);
+    if(await rowVal(gi, '.glx-ain[data-t="s"]') !== '66')
+      throw new Error('start age 60 did not clamp to retirement (66)');
+    await setAge('e', '99'); await sleep(300);
+    if(await rowVal(gi, '.glx-ain[data-t="e"]') !== '95')
+      throw new Error('end age 99 did not clamp to plan end (95)');
+
+    // 9) delete floats the row away and the store shrinks with it
+    await page.click(`.glx-del[data-i="${gi}"]`);
+    await sleep(300);
     m = await page.evaluate(() => ({
-      maxGi: Math.max(-1, ...[...document.querySelectorAll('.glc-row')].map(r => +r.dataset.gi)),
-      verifyGone: ![...document.querySelectorAll('.glc-name')].some(el => el.textContent === 'Verify goal'),
-      chapters: !!document.querySelector('#gl-chapters'),
-      rows: document.querySelectorAll('.glc-row').length,
-      textLen: (document.querySelector('#gl-chapters')?.textContent || '').replace(/\s+/g, ' ').trim().length,
+      rows: document.querySelectorAll('.glx-row').length,
+      gone: ![...document.querySelectorAll('.glx-name')].some(el => el.value === 'Boat fund'),
     }));
-    if(m.maxGi !== gi0) throw new Error(`remove did not restore goal count (maxGi=${m.maxGi}, want ${gi0})`);
-    if(!m.verifyGone) throw new Error('removed goal still renders in a chapter');
-
-    // Goals page must remain rendered (not blank) after all interactions.
-    if(!m.chapters || m.rows < 1 || m.textLen < 40)
-      throw new Error(`Goals page blank/broken after workflows (${JSON.stringify(m)})`);
+    if(m.rows !== n0) throw new Error(`delete did not remove the row (${m.rows} rows, want ${n0})`);
+    if(!m.gone) throw new Error('deleted goal still renders');
   });
 
-  await step('goals: removing a goal from one chapter leaves it in the others', async () => {
-    // Regression guard: a recurring goal is stored once but rendered as a slice
-    // per chapter. Removing it from ONE chapter must trim only that chapter's
-    // slice (splitting the goal if the slice was interior), NOT delete it plan-wide.
+  await step('goals Ledger: quick adds derive ages from the plan and reach Scenarios', async () => {
     const sleep = ms => new Promise(r => setTimeout(r, ms));
-    const bandsFor = name => page.evaluate(nm =>
-      [...document.querySelectorAll('.glc-row')]
-        .filter(r => (r.querySelector('.glc-name')?.textContent || '').trim() === nm)
-        .map(r => +r.dataset.band).sort(), name);
+    const goalPillCount = async () => {
+      await page.click('button[data-page="scenarios"]'); await sleep(900);
+      await page.click('#scn-seg-compare'); await sleep(400);
+      const t = await page.evaluate(() =>
+        document.querySelector('#scn-view .goal-pill, #scn-view .goal-note')?.textContent || '');
+      const m = t.match(/(\d+)\s*active/);
+      return m ? +m[1] : null;
+    };
 
+    // Baseline scenario goal count with the 2 demo goals.
+    const before = await goalPillCount();
+    if(before == null) throw new Error('Scenarios goal pill missing (precondition)');
+
+    // Quick add Travel: ages derive from the resolved demo plan (66-95).
     await page.click('.htab[data-sub-target="goals"]'); await sleep(400);
-    // Add a full-span recurring goal → renders in all three chapters.
-    await page.click('#glc-a-name');
-    await page.type('#glc-a-name', 'ChapterSplit');
-    await page.click('#glc-a-add');
+    const n0 = await page.evaluate(() => document.querySelectorAll('.glx-row').length);
+    await page.click('.glx-qa[data-q="0"]');
     await sleep(400);
-    let where = await bandsFor('ChapterSplit');
-    if(JSON.stringify(where) !== JSON.stringify([0,1,2]))
-      throw new Error(`full-span goal should span all 3 chapters, got ${JSON.stringify(where)}`);
+    const m = await page.evaluate(g => {
+      const row = document.querySelector(`.glx-row[data-row="${g}"]`);
+      return row ? {
+        name: row.querySelector('.glx-name')?.value,
+        amt: row.querySelector('.glx-amt')?.value,
+        s: row.querySelector('.glx-ain[data-t="s"]')?.value,
+        e: row.querySelector('.glx-ain[data-t="e"]')?.value,
+        chips: [...row.querySelectorAll('.glx-chip')].every(c => c.classList.contains('glx-chip--on')),
+      } : null;
+    }, n0);
+    if(!m) throw new Error('quick add did not append a row');
+    if(m.name !== 'Travel' || m.amt !== '12,000') throw new Error(`Travel quick add wrong (${m.name} / ${m.amt})`);
+    if(m.s !== '66' || m.e !== '95') throw new Error(`Travel ages must derive 66-95 from the plan, got ${m.s}-${m.e}`);
+    if(!m.chips) throw new Error('full-span quick add should light all three chapter chips');
 
-    // Open its Chapter II (band 1) row and REMOVE — only that chapter's slice.
-    await page.evaluate(() => {
-      const row = [...document.querySelectorAll('.glc-row')]
-        .find(r => (r.querySelector('.glc-name')?.textContent||'').trim()==='ChapterSplit' && r.dataset.band==='1');
-      row.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+    // The new goal flows to the planning surface: Scenarios sees one more active goal.
+    const after = await goalPillCount();
+    if(after !== before + 1)
+      throw new Error(`quick-added goal did not reach Scenarios (${before} -> ${after} active)`);
+
+    // Cleanup: delete the Travel row; Scenarios returns to the seed count.
+    await page.click('.htab[data-sub-target="goals"]'); await sleep(400);
+    await page.click(`.glx-del[data-i="${n0}"]`); await sleep(300);
+
+    // Blank household: clean first-run sheet — no rows, no column headers, no
+    // helper copy; quick adds stay as the entry point and derive from THIS
+    // plan (blank household resolves 65->90, so Home improvements = 65-80).
+    await page.evaluate(() => { window.__origConfirm = window.confirm; window.confirm = () => true; });
+    await page.click('.htab[data-page="household"]'); await sleep(300);
+    await page.click('#hh-menu-btn'); await sleep(200);
+    await page.click('#hh-act-clear'); await sleep(600);
+    await page.click('.htab[data-sub-target="goals"]'); await sleep(400);
+    let b = await page.evaluate(() => ({
+      rows: document.querySelectorAll('.glx-row').length,
+      colsHidden: (document.querySelector('.glx-cols')?.style.display || '') === 'none',
+      adds: !!document.querySelector('#glx-add'),
+      quickAdds: document.querySelectorAll('.glx-qa').length,
+      noCoaching: !/Every plan starts|Add one below/.test(document.querySelector('#gl-ledger')?.textContent || ''),
+    }));
+    if(b.rows !== 0) throw new Error(`blank household should show zero rows, got ${b.rows}`);
+    if(!b.colsHidden) throw new Error('blank state should hide the column captions');
+    if(!b.adds || b.quickAdds !== 4) throw new Error('blank state must keep the add line as the entry point');
+    if(!b.noCoaching) throw new Error('helper/guiding copy leaked into the blank state');
+    await page.click('.glx-qa[data-q="1"]');   // Home improvements
+    await sleep(400);
+    b = await page.evaluate(() => {
+      const row = document.querySelector('.glx-row[data-row="0"]');
+      return row ? {
+        headers: (document.querySelector('.glx-cols')?.style.display || '') !== 'none',
+        s: row.querySelector('.glx-ain[data-t="s"]')?.value,
+        e: row.querySelector('.glx-ain[data-t="e"]')?.value,
+      } : null;
     });
-    await sleep(200);
-    await page.click('.glc-ed-remove');
-    await sleep(400);
+    if(!b) throw new Error('first quick add on a blank household did not create a row');
+    if(!b.headers) throw new Error('first row should reveal the column captions');
+    if(b.s !== '65' || b.e !== '80')
+      throw new Error(`blank-household quick add must derive 65-80 from ITS plan, got ${b.s}-${b.e}`);
 
-    where = await bandsFor('ChapterSplit');
-    if(where.includes(1)) throw new Error(`goal still in Chapter II after per-chapter remove: ${JSON.stringify(where)}`);
-    if(!(where.includes(0) && where.includes(2)))
-      throw new Error(`per-chapter remove must keep the goal in Chapters I & III: ${JSON.stringify(where)}`);
-
-    // Clean up: remove the remaining single-chapter slices so later steps see
-    // only the seed goals. Each remaining slice lives in one chapter, so REMOVE
-    // deletes it outright.
-    for(let i = 0; i < 3; i++){
-      const opened = await page.evaluate(() => {
-        const r = [...document.querySelectorAll('.glc-row')]
-          .find(r => (r.querySelector('.glc-name')?.textContent||'').trim()==='ChapterSplit');
-        if(!r) return false;
-        r.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
-        return true;
-      });
-      if(!opened) break;
-      await sleep(200);
-      await page.click('.glc-ed-remove');
-      await sleep(300);
-    }
-    const leftover = await bandsFor('ChapterSplit');
-    if(leftover.length) throw new Error(`cleanup failed, ChapterSplit slices remain: ${JSON.stringify(leftover)}`);
+    // Restore the demo household for the steps that follow.
+    await page.click('.htab[data-page="household"]'); await sleep(300);
+    await page.evaluate(() => document.querySelector('#hh-act-demo').click()); await sleep(800);
+    await page.evaluate(() => { window.confirm = window.__origConfirm; });
+    await page.click('.htab[data-sub-target="goals"]'); await sleep(400);
+    const restored = await page.evaluate(() =>
+      [...document.querySelectorAll('.glx-name')].map(el => el.value));
+    if(!restored.some(n => n.includes('Glebe')))
+      throw new Error(`demo restore did not bring the seed goals back (${JSON.stringify(restored)})`);
   });
 
   await step('scenarios Compare view: columns, rings, levers, goals', async () => {
@@ -1417,8 +1459,8 @@ try {
     if(scnBg.includes(NAVY)) throw new Error(`Scenarios page still shows retired navy: ${scnBg}`);
 
     await page.click('.htab[data-sub-target="goals"]'); await sleep(600);
-    // Goals mounts the Life Chapters view (.gl-chapters) now, not the retired Horizon.
-    if(!await page.evaluate(() => !!document.querySelector('#np-content .gl-chapters'))) throw new Error('Goals view did not mount .gl-chapters');
+    // Goals mounts the Ledger view (.gl-ledger) now, not the retired Life Chapters.
+    if(!await page.evaluate(() => !!document.querySelector('#np-content .gl-ledger'))) throw new Error('Goals view did not mount .gl-ledger');
     const goalsBg = await bgOf('.page[data-page="net-worth"]');
 
     await page.click('button[data-page="sequencing"]'); await sleep(450);
