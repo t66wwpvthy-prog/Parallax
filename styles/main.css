@@ -1308,15 +1308,14 @@ body .page[data-page="sequencing"]{
   position:relative;
   padding:24px 56px 34px;
 }
-/* All page tabs sit on the Scenarios navy background. Household gets its own
+/* All page tabs sit on the shared charcoal background. Household gets its own
    slightly-subtler variant via household.css, but we anchor it here too so any
-   future regression (e.g. losing the household.css link) still shows navy.
-   Goals mounts .gl-wrap, so the :has() selector targets that sub-view only. */
+   future regression (e.g. losing the household.css link) still shows charcoal.
+   Goals mounts .gl-ledger, so the :has() selector targets that sub-view only. */
 body .page[data-page="household"],
 body .page[data-page="sequencing"],
 body .page[data-page="net-worth"]:has(.gl-wrap),
-body .page[data-page="net-worth"]:has(.gl-horizon),
-body .page[data-page="net-worth"]:has(.gl-chapters){
+body .page[data-page="net-worth"]:has(.gl-ledger){
   background:var(--app-page-bg);
   background-attachment:fixed;
 }
