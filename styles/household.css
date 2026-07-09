@@ -12,10 +12,8 @@
    • No global html/body resets, no !important, no specificity escalation.
    • Type floor: nothing below 16px — labels 16, body 16–18, serif money up.
 
-   4K-QUALITY GLASS (see INTEGRATION.md): the wizard paints ONE primary glass
-   surface (.hh-wizard) floating on the page background. Keep the three layers
-   intact at 3840×2160: layered gradient fills, real backdrop blur+saturate,
-   and the deep ambient shadow PLUS the 1px inner top highlight.
+   • Page background (--app-page-bg) lives in main.css on body .page[data-page="household"];
+     this file owns wizard tokens, layout, and the in-card scroll region.
    ============================================================================= */
 
 /* ---- Tokens + page base (household route only) ---------------------------- */
@@ -23,16 +21,6 @@
   /* Type */
   --font-sans: 'Hanken Grotesk', system-ui, -apple-system, sans-serif;
   --font-serif: 'Spectral', Georgia, serif;
-
-  /* Page background (fixed, behind the floating glass) */
-  --bg-deep:   #0f1216;
-  --bg-top:    #15181d;
-  --bg-bottom: #0b0d11;
-  --page-bg:
-    radial-gradient(56% 52% at 85% -10%, rgba(74,58,34,0.16), rgba(74,58,34,0) 58%),
-    radial-gradient(58% 60% at 2% 106%, rgba(22,33,50,0.5), rgba(0,0,0,0) 62%),
-    radial-gradient(50% 48% at 50% 48%, rgba(224,212,178,0.10), rgba(0,0,0,0) 72%),
-    linear-gradient(158deg, var(--bg-top) 0%, var(--bg-deep) 50%, var(--bg-bottom) 100%);
 
   /* Gold accent */
   --gold:         #c6a662;
@@ -102,17 +90,16 @@
   --prail-w: 300px;
   --gutter: 56px;
   --ctrl-w: 32px;
+  /* Viewport chrome: app header + page padding (wizard max-height uses this). */
+  --hh-chrome: 148px;
 
-  /* Page surface — compact layout; scroll when content exceeds the viewport. */
+  /* Page surface — compact layout; tall steps scroll inside the wizard card. */
   font-family: var(--font-sans);
   font-feature-settings: 'tnum' 1;            /* tabular figures for ledgers */
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   color: var(--text-2);
-  background: var(--page-bg);
-  background-attachment: fixed;
-  overflow-x: hidden;
-  overflow-y: auto;
+  overflow: hidden;
 }
 
 .page[data-page="household"] *,
@@ -134,6 +121,9 @@
    WIZARD FRAME — the single primary glass surface
    ============================================================================= */
 .page[data-page="household"] .hh-wizard {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - var(--hh-chrome));
   padding: 20px 40px 24px;
   border-radius: var(--r-frame);
   background: var(--glass-panel);
@@ -148,6 +138,7 @@
   display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;
   padding-bottom: 12px; margin-bottom: 16px;
   border-bottom: 1px solid var(--line-08);
+  flex: none;
 }
 .page[data-page="household"] .hh-wiz-id { display: flex; align-items: center; gap: 16px; min-width: 0; }
 .page[data-page="household"] .hh-avatars { display: flex; align-items: center; }
@@ -231,6 +222,7 @@
   grid-template-columns: auto 1fr auto 1fr auto 1fr auto 1fr auto;
   align-items: center;
   margin: 0 0 20px;
+  flex: none;
 }
 .page[data-page="household"] .hh-step {
   display: inline-flex; align-items: center; gap: 8px;
@@ -273,16 +265,42 @@
   grid-template-columns: minmax(560px, 720px) var(--prail-w);
   column-gap: var(--gutter);
   justify-content: center;
+  flex: 1 1 auto;
+  min-height: 0;
+  align-items: stretch;
 }
 .page[data-page="household"] .hh-wiz-body--solo { grid-template-columns: minmax(0, 1fr); }
 .page[data-page="household"] .hh-wiz-body--solo .hh-plan-rail,
 .page[data-page="household"] .hh-plan-rail--off { display: none; }
-.page[data-page="household"] .hh-content { min-width: 0; }
+.page[data-page="household"] .hh-content {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.page[data-page="household"] .hh-wstep {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.page[data-page="household"] .hh-wstep__scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 2px;
+}
 .page[data-page="household"] .hh-plan-rail {
   border-left: 1px solid var(--line-08); padding-left: 32px;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 .page[data-page="household"] .hh-plan-rail[hidden] { display: none; }
-.page[data-page="household"] .hh-prail { position: sticky; top: 24px; }
+.page[data-page="household"] .hh-prail { position: static; }
 
 /* One section = header + hairline rows. The ONLY boxes are input fields.
    Rhythm: 32px above every section header; header → 16px → its rows; rows
@@ -423,8 +441,14 @@
 .page[data-page="household"] .hh-acct-form .hh-form-val { width: 12ch; text-align: right; font-family: var(--font-serif); font-size: 16px; }
 .page[data-page="household"] .hh-sel--type { max-width: 190px; }
 
-/* Footer nav (Back / Continue): content block → 24px → footer. */
-.page[data-page="household"] .hh-wiz-nav { display: flex; justify-content: space-between; align-items: center; margin-top: 24px; }
+/* Footer nav — pinned below the scrollable step body; always visible. */
+.page[data-page="household"] .hh-wiz-nav {
+  display: flex; justify-content: space-between; align-items: center;
+  flex: none;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line-08);
+}
 .page[data-page="household"] .hh-nav-btn {
   font-family: var(--font-sans); font-size: 16px; letter-spacing: 0.12em;
   font-weight: 600; text-transform: uppercase;
@@ -560,6 +584,10 @@
   .page[data-page="household"] .hh-wizard { padding: 18px 28px 22px; }
 }
 @media (max-width: 1080px) {
+  .page[data-page="household"] { overflow-y: auto; }
+  .page[data-page="household"] .hh-wizard { max-height: none; }
+  .page[data-page="household"] .hh-wstep__scroll,
+  .page[data-page="household"] .hh-plan-rail { overflow: visible; }
   .page[data-page="household"] .hh-wiz-body { grid-template-columns: minmax(0, 1fr); }
   .page[data-page="household"] .hh-plan-rail { border-left: 0; padding-left: 0; border-top: 1px solid var(--line-08); padding-top: 24px; margin-top: 32px; }
   .page[data-page="household"] .hh-prail { position: static; }
