@@ -69,7 +69,38 @@ export function taxSidecarFor(scn, { isTypicalPath, typicalPathFederalTax }) {
       if (e.age != null)  byAge.set(e.age, t);
       if (e.year != null) byYear.set(e.year, t);
     });
-    return { byAge: byAge, byYear: byYear };
+    return {
+      byAge: byAge,
+      byYear: byYear,
+      scope: Array.isArray(raw) ? null : (raw.scope ?? null),
+    };
+  }
+
+export function taxColumnMeta(sidecar) {
+    if (!sidecar) {
+      return {
+        label: 'Engine Tax',
+        source: 'engine',
+        scope: null,
+        title: 'Engine row tax estimate',
+      };
+    }
+    if (sidecar.scope === 'INCOME_TAX_ONLY') {
+      return {
+        label: 'Federal Income Tax',
+        source: 'federal-sidecar',
+        scope: sidecar.scope,
+        title: 'Federal sidecar · income tax only',
+      };
+    }
+    return {
+      label: 'Federal Tax',
+      source: 'federal-sidecar',
+      scope: sidecar.scope,
+      title: sidecar.scope === 'FULL_1040'
+        ? 'Federal sidecar · full Form 1040 scope'
+        : 'Federal sidecar',
+    };
   }
 
 export function resolveRowTax(row, sidecar) {
@@ -106,6 +137,7 @@ export function renderCashflow(scn, allScns, {
     const hasWorking = allRows.some((r) => r.accum);
     const summary = cashSummary(scn.raw);
     const sidecar = taxSidecarFor(scn.raw, { isTypicalPath, typicalPathFederalTax });
+    const taxColumn = taxColumnMeta(sidecar);
 
     const pills = allScns.map((s) => (
       '<button class="cf-pill ' + (s.id === scn.id ? 'is-active' : '') + '" type="button" data-cash-pick="' + esc(s.id) + '" aria-pressed="' + (s.id === scn.id ? 'true' : 'false') + '" style="--tone:' + s.tone + ';">' +
@@ -169,7 +201,16 @@ export function renderCashflow(scn, allScns, {
       '<div class="cf-band ' + (idx % 2 === 1 ? 'is-shaded' : '') + '">' + p.rows.map(rowHtml).join('') + '</div>'
     )).join('');
 
-    const headCells = cfCols.map((h, i) => '<span class="cf-th ' + (i >= 2 ? 'cf-th--r' : '') + '">' + h + '</span>').join('');
+    const headCells = cfCols.map((h, i) => {
+      const isTax = h === 'Tax';
+      const label = isTax ? taxColumn.label : h;
+      const taxAttrs = isTax
+        ? ' data-tax-source="' + esc(taxColumn.source) + '"' +
+          (taxColumn.scope ? ' data-tax-scope="' + esc(taxColumn.scope) + '"' : '') +
+          ' title="' + esc(taxColumn.title) + '"'
+        : '';
+      return '<span class="cf-th ' + (i >= 2 ? 'cf-th--r' : '') + '"' + taxAttrs + '>' + esc(label) + '</span>';
+    }).join('');
     const empty = rows.length ? '' : '<div class="cf-band"><div style="padding:26px 18px;color:var(--text-5);">No cash-flow data yet. Press Run — or check the plan inputs if the status bar shows a warning.</div></div>';
 
     return (
