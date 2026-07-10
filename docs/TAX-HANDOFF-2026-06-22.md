@@ -1,8 +1,9 @@
 # Tax + planning handoff
 
-**Updated:** 2026-06-24  
-**Branch:** `main` (`83a5b61` — PR #49: engine vs federal tax on Scenarios after Run)  
-**Tests:** 166 passing (`npm test`)  
+**Updated:** 2026-07-10 (post-modularization)  
+**Branch:** `main`  
+**Tests:** 156 passing (`npm test`)  
+**UI entry:** `index.html` (markup) → `src/main.js` (wiring)  
 **Visual gate:** `node scripts/verify.mjs` (runs full test suite + headless UI smoke)
 
 ---
@@ -46,7 +47,7 @@ Parallax line 24 ≈ **$55,493** vs client **$56,815** (~$1,322 gap). Expected u
 | `src/planning/tax/attachTypicalPathFederalTax.js` | `analysis.paths.p50` retirement rows → slim summary |
 | `src/planning/tax/attachTypicalPathFederalTax.test.js` | Tests (imports `engine.js` in tests only — OK) |
 
-Wired in `index.html` inside `runAll()` after each scenario simulation:
+Wired in `src/main.js` inside `runAll()` after each scenario simulation:
 
 ```js
 s.res.typicalPathFederalTax = attachTypicalPathFederalTax(s.res, { planMeta, filingStatus, ... });
@@ -75,7 +76,7 @@ npm test
 node scripts/verify.mjs
 ```
 
-- **Tests:** engine, history, tax rules, fixtures, planning attach (166 today).
+- **Tests:** engine, history, tax rules, fixtures, planning attach (156 today).
 - **Verify:** full test preamble + Chromium smoke of Household (map + net worth), Goals, Scenarios, Cash Flow mode, Sequencing, History. Screenshots → `verify-out/`.
 - **Chrome:** verify auto-detects system Chrome on Windows/macOS/Linux, or set `PUPPETEER_EXECUTABLE_PATH`.
 
@@ -120,7 +121,8 @@ Pick one when ready — not tracked in this file day-to-day:
 src/tax/annual1040.js              ← stable public tax module
 src/planning/tax/                  ← multi-year + typical-path attach
 engine.js                          ← planner (unchanged)
-index.html                         ← UI; imports attach + shows tax compare
+index.html                         ← markup + CSS links
+src/main.js                        ← boot; imports attach + shows tax compare
 scripts/verify.mjs                 ← tests + visual smoke
-ui/household.js                    ← Household packet (map / net worth)
+ui/formatters.js, ui/charts.js     ← extracted display helpers
 ```

@@ -83,6 +83,27 @@ export const STANDARD_DEDUCTION_INPUT_SCHEMA = {
   required: ['filingStatus'],
 };
 
+export const SCHEDULE_D_CLASSIFICATION_INPUT_SCHEMA = {
+  fields: {
+    filingStatus: 'string',
+    line7:  'number',
+    line15: 'number',
+    line16: 'number',
+    line18: 'number',
+    line19: 'number',
+  },
+  required: ['filingStatus', 'line7', 'line15', 'line16'],
+};
+
+export const SELF_EMPLOYMENT_TAX_INPUT_SCHEMA = {
+  fields: {
+    taxpayer:                          'string',
+    netEarningsFromSelfEmployment:     'number',
+    socialSecurityWagesAndTips:        'number',
+  },
+  required: ['netEarningsFromSelfEmployment', 'socialSecurityWagesAndTips'],
+};
+
 export const FORM1040_LINE_STATUSES = ['CALCULATED', 'SUPPLIED', 'DEFERRED', 'NOT_APPLICABLE'];
 
 export const ANNUAL_FEDERAL_TAX_INPUT_SCHEMA = {
@@ -95,6 +116,8 @@ export const ANNUAL_FEDERAL_TAX_INPUT_SCHEMA = {
     socialSecurity:         'object',
     traditionalIra:         'object',
     capitalGains:           'object',
+    scheduleSE:             'object',
+    schedule2:              'object',
   },
   required: ['filingStatus'],
 };

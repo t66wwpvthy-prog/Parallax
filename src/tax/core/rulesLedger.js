@@ -4,14 +4,18 @@ import { ordinaryIncomeTax } from '../federal/rules/ordinaryIncomeTax.js';
 import { standardDeduction } from '../federal/rules/standardDeduction.js';
 import { traditionalIraDeductibility } from '../federal/rules/traditionalIraDeductibility.js';
 import { capitalGainsStacking } from '../federal/rules/capitalGainsStacking.js';
+import { scheduleDClassification } from '../federal/rules/scheduleDClassification.js';
 import { taxableSocialSecurity } from '../federal/rules/taxableSocialSecurity.js';
+import { selfEmploymentTax } from '../federal/rules/selfEmploymentTax.js';
 
 export const rulesLedger = [
   ordinaryIncomeTax,
   standardDeduction,
   traditionalIraDeductibility,
   capitalGainsStacking,
+  scheduleDClassification,
   taxableSocialSecurity,
+  selfEmploymentTax,
 ];
 
 export function getRuleById(ruleId){

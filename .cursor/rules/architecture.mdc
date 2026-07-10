@@ -1,0 +1,38 @@
+---
+description: Parallax repo layout, layer boundaries, and anti-monolith rules for all code changes
+alwaysApply: true
+---
+
+# Parallax architecture (mandatory)
+
+Read `docs/ARCHITECTURE.md` and `PRINCIPLES.md` before structural or feature work.
+
+## Layout
+
+- `index.html` — markup + CSS + single `<script src="src/main.js">`. **Never add inline app JS.**
+- `src/main.js` — boot, `runAll`, listeners only. **Target ~200–400 lines.** If a change adds ~50+ lines here, extract to `src/household/`, `src/scenarios/`, or `ui/*` in the same PR.
+- `src/state.js` — mutable UI state; no render, no DOM.
+- `ui/*.js` — view renderers and display helpers; **no engine or tax math**.
+- `src/tax/` — federal 1040 rules; **must not import `engine.js`**.
+- `src/planning/tax/` — engine↔tax adapters and attach; no rule math.
+- `engine.js` — simulation truth only; test-guarded. Large is OK here by design.
+
+## Where code goes
+
+- Wealth / paths / buckets → `engine.js`
+- Federal tax rules → `src/tax/federal/rules/<name>.js` + test
+- Tax wiring → `src/planning/tax/` or `src/tax/adapters/`
+- UI / HTML → `ui/<surface>.js`
+- UI state → `src/state.js`
+
+## Prohibited
+
+- Duplicating helpers already in `ui/formatters.js`, `ui/dom.js`, `ui/charts.js`
+- Tax math in `ui/*` or `src/main.js`
+- New monolith files (`ui/misc.js`, growing `main.js` without extraction)
+- New npm dependencies without explicit approval
+
+## Verify
+
+- `engine.js` / `src/tax/*` → `npm test`
+- UI / `main.js` → `npm test` + `node scripts/verify.mjs`

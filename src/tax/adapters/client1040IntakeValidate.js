@@ -72,6 +72,50 @@ export function validateClient1040Intake(intake){
     pushWarning(warnings, 'SCHEDULE_D_SHAPE', 'scheduleD should be an object when supplied');
   }
 
+  if(intake.scheduleSE !== undefined){
+    if(!Array.isArray(intake.scheduleSE) || intake.scheduleSE.length === 0){
+      pushError(errors, 'INVALID_SCHEDULE_SE', 'scheduleSE must be a non-empty array');
+    } else {
+      for(const [index, scheduleSE] of intake.scheduleSE.entries()){
+        if(!scheduleSE || typeof scheduleSE !== 'object' || Array.isArray(scheduleSE)){
+          pushError(errors, 'INVALID_SCHEDULE_SE', `scheduleSE[${index}] must be an object`);
+          continue;
+        }
+        assertNonNegative(
+          errors,
+          scheduleSE.netEarningsFromSelfEmployment,
+          `scheduleSE[${index}].netEarningsFromSelfEmployment`
+        );
+        assertNonNegative(
+          errors,
+          scheduleSE.socialSecurityWagesAndTips,
+          `scheduleSE[${index}].socialSecurityWagesAndTips`
+        );
+        if(scheduleSE.netEarningsFromSelfEmployment === undefined){
+          pushError(errors, 'MISSING_SCHEDULE_SE_INPUT',
+            `scheduleSE[${index}].netEarningsFromSelfEmployment is required`);
+        }
+        if(scheduleSE.socialSecurityWagesAndTips === undefined){
+          pushError(errors, 'MISSING_SCHEDULE_SE_INPUT',
+            `scheduleSE[${index}].socialSecurityWagesAndTips is required`);
+        }
+      }
+    }
+
+    const schedule2 = intake.schedule2;
+    if(!schedule2 || typeof schedule2 !== 'object' || Array.isArray(schedule2)){
+      pushError(errors, 'MISSING_SCHEDULE_2_INPUT',
+        'schedule2 supplied-tax components are required when scheduleSE is supplied');
+    } else {
+      for(const field of ['netInvestmentIncomeTax', 'additionalMedicareTax', 'otherPartIITaxes']){
+        assertNonNegative(errors, schedule2[field], `schedule2.${field}`);
+        if(schedule2[field] === undefined){
+          pushError(errors, 'MISSING_SCHEDULE_2_INPUT', `schedule2.${field} is required`);
+        }
+      }
+    }
+  }
+
   return { errors, warnings };
 }
 

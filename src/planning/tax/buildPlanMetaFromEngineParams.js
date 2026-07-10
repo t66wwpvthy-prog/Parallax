@@ -22,7 +22,7 @@ function resolveTaxableGainFraction(params, options){
 /**
  * Shared planMeta for runTaxForScenarioPath from analyzeResults().params.
  *
- * options.filingStatus — defaults to marriedFilingJointly
+ * options.filingStatus — explicit household filing status (required unless present in params.meta)
  * options.baseTaxYear — calendar tax year for row.year === 1; later years increment
  * options.deductions — defaults to standard deduction
  * options.resolved — optional taxable-portion overrides for adapter
@@ -31,8 +31,17 @@ export function buildPlanMetaFromEngineParams(params, options = {}){
   assertPlainObject(params, 'params');
   assertPlainObject(options, 'options');
 
+  const filingStatus = options.filingStatus
+    ?? params.meta?.filingStatus
+    ?? params.filingStatus;
+  if(filingStatus === undefined || filingStatus === null){
+    throw new TaxInputError('planner tax attachment is missing plan.meta.filingStatus', {
+      field: 'filingStatus',
+    });
+  }
+
   const planMeta = {
-    filingStatus: options.filingStatus ?? params.filingStatus ?? 'marriedFilingJointly',
+    filingStatus,
     deductions: options.deductions ?? { useStandard: true },
     treatWithdrawalsAsFullyTaxable: options.treatWithdrawalsAsFullyTaxable !== false,
   };

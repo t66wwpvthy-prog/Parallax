@@ -160,10 +160,9 @@
 .page[data-page="scenarios"] .seg__btn { padding: 7px 17px; border-radius: var(--r-md); font-size: 14px; cursor: pointer; background: transparent; color: var(--text-4); border: 0; font-family: inherit; transition: background .15s, color .15s; }
 .page[data-page="scenarios"] .seg__btn.is-active { background: var(--fill-08); color: var(--text-1); }
 
-/* Pill buttons (Add / Solve) + Suggest */
+/* Pill buttons (Add / Solve) */
 .page[data-page="scenarios"] .btn { display: inline-flex; align-items: center; gap: 7px; padding: 10px 16px; border-radius: var(--r-lg); background: var(--fill-04); border: 1px solid var(--line-08); font-family: inherit; font-size: 14px; color: var(--text-1); cursor: pointer; }
 .page[data-page="scenarios"] .btn__plus { font-size: 15px; color: var(--text-4); }
-.page[data-page="scenarios"] .btn-suggest { display: inline-flex; align-items: center; gap: 8px; padding: 10px 17px; border-radius: var(--r-lg); background: rgba(198,166,98,0.08); border: 1px solid rgba(198,166,98,0.45); font-family: inherit; font-size: 14px; color: var(--gold-bright); cursor: pointer; }
 
 /* Cash Flow toggle chip */
 .page[data-page="scenarios"] .cash-chip { display: inline-flex; align-items: center; gap: 10px; padding: 9px 15px; border-radius: var(--r-lg); cursor: pointer; transition: background .15s, border-color .15s; background: var(--fill-03); border: 1px solid var(--line-07); font-family: inherit; }
@@ -487,17 +486,12 @@
 /* =============================================================================
    CASH FLOW VIEW
    ============================================================================= */
-.page[data-page="scenarios"] .cf__head { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-bottom: 16px; }
-.page[data-page="scenarios"] .cf__head-left { display: flex; align-items: center; gap: 14px; }
-.page[data-page="scenarios"] .cf__pills { display: inline-flex; gap: 7px; }
-.page[data-page="scenarios"] .cf-pill { display: inline-flex; align-items: center; gap: 7px; padding: 6px 13px; border-radius: var(--r-pill); font-size: 14px; cursor: pointer; background: transparent; border: 1px solid var(--line-07); color: var(--text-4); font-family: inherit; }
+.page[data-page="scenarios"] .cf__head { display: flex; align-items: center; flex-wrap: wrap; gap: 14px; margin-bottom: 16px; }
+.page[data-page="scenarios"] .cf__pills { display: inline-flex; flex-wrap: nowrap; gap: 7px; }
+.page[data-page="scenarios"] .cf-pill { display: inline-flex; align-items: center; gap: 7px; padding: 6px 13px; border-radius: var(--r-pill); font-size: 14px; white-space: nowrap; cursor: pointer; background: transparent; border: 1px solid var(--line-07); color: var(--text-4); font-family: inherit; }
 .page[data-page="scenarios"] .cf-pill.is-active { background: var(--fill-08); border-color: rgba(255,255,255,0.16); color: var(--text-1); }
 .page[data-page="scenarios"] .cf-pill__dot { width: 6px; height: 6px; border-radius: 50%; background: var(--tone); }
-.page[data-page="scenarios"] .cf__caption { font-size: 14px; letter-spacing: 0.05em; color: var(--text-6); }
 
-/* Path-replay controls slot — visible and styled to the Glass-v2 token set.
-   main.css applies background + border-color !important on .path-control;
-   every other property is overridden here via the higher-specificity scope. */
 .page[data-page="scenarios"] .cf__path-controls {
   display: inline-flex;
   align-items: center;
@@ -506,21 +500,17 @@
   border-left: 1px solid var(--line-08);
 }
 
-/* Reset main.css layout that adds top/bottom margins */
-.page[data-page="scenarios"] .cf__path-controls .cf-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0;
-}
+.page[data-page="scenarios"] .cf-ret-toggle { padding: 6px 13px; border-radius: var(--r-pill); font-family: inherit; font-size: 14px; cursor: pointer; background: transparent; border: 1px solid var(--line-07); color: var(--text-4); }
+.page[data-page="scenarios"] .cf-ret-toggle.is-on { background: rgba(198,166,98,0.10); border-color: rgba(198,166,98,0.45); color: var(--gold-bright); }
 
-/* Path selector pill — font + color tokens; background/border come from main.css glass rule */
-.page[data-page="scenarios"] .cf__path-controls .path-control {
+.page[data-page="scenarios"] .cf__path-controls .scn-path {
   display: inline-flex;
   align-items: center;
   gap: 7px;
   padding: 5px 11px;
   border-radius: var(--r-pill);
+  border: 1px solid var(--line-07);
+  background: transparent;
   font-family: var(--font-sans);
   font-size: 14px;
   letter-spacing: 0.08em;
@@ -528,24 +518,24 @@
   color: var(--text-4);
 }
 
-.page[data-page="scenarios"] .cf__path-controls .path-control select,
-.page[data-page="scenarios"] .cf__path-controls .path-control input {
+.page[data-page="scenarios"] .cf__path-controls .scn-path select {
+  height: auto;
+  min-width: 0;
+  padding: 0;
   background: transparent;
   border: 0;
   font-family: var(--font-sans);
   font-size: 14px;
+  line-height: 1.3;
   color: var(--text-1);
   outline: none;
   cursor: pointer;
 }
 
-/* summary strip */
-.page[data-page="scenarios"] .cf-summary { display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap; border-radius: var(--r-xl); padding: 18px 26px; margin-bottom: 16px; background: var(--glass-summary); border: 1px solid var(--line-10); box-shadow: var(--shadow-summary); backdrop-filter: blur(36px) saturate(160%); -webkit-backdrop-filter: blur(36px) saturate(160%); }
+/* summary strip — floats directly on the page, no glass box */
+.page[data-page="scenarios"] .cf-summary { display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap; padding: 6px 4px 4px; margin-bottom: 18px; }
 .page[data-page="scenarios"] .cf-summary__id { display: flex; align-items: center; gap: 16px; }
-.page[data-page="scenarios"] .cf-summary__name-row { display: flex; align-items: center; gap: 9px; }
-.page[data-page="scenarios"] .cf-summary__dot { width: 8px; height: 8px; border-radius: 50%; background: var(--tone); box-shadow: 0 0 8px var(--tone-glow); }
-.page[data-page="scenarios"] .cf-summary__name { font-family: var(--font-serif); font-weight: 300; font-size: 21px; color: var(--text-1); }
-.page[data-page="scenarios"] .cf-summary__sub { font-size: 14px; color: var(--text-5); margin-top: 3px; }
+.page[data-page="scenarios"] .cf-summary__sub { font-size: 14px; color: var(--text-5); }
 .page[data-page="scenarios"] .cf-summary__stats { display: flex; align-items: stretch; }
 .page[data-page="scenarios"] .cf-stat { padding: 0 26px; }
 .page[data-page="scenarios"] .cf-stat + .cf-stat { border-left: 1px solid var(--line-08); }
@@ -556,34 +546,46 @@
 .page[data-page="scenarios"] .cf-stat__peak-age { font-size: 14px; color: var(--text-5); }
 
 /* the ledger table */
-.page[data-page="scenarios"] .cf-table { border-radius: var(--r-panel); overflow: hidden; background: var(--glass-table); border: 1px solid var(--line-11); box-shadow: var(--shadow-table); backdrop-filter: var(--blur-table); -webkit-backdrop-filter: var(--blur-table); }
-/* shared 10-column grid for header + every data row */
-.page[data-page="scenarios"] .cf-grid { display: grid; grid-template-columns: 66px 46px repeat(5, 1fr) 1.2fr 70px 1.4fr; column-gap: 8px; }
+.page[data-page="scenarios"] .cf-table { border-radius: var(--r-panel); overflow: hidden; background: var(--glass-table); border: 1px solid var(--line-11); box-shadow: var(--shadow-table); backdrop-filter: var(--blur-table); -webkit-backdrop-filter: var(--blur-table); font-variant-numeric: tabular-nums; }
+/* shared 11-column grid for header + every data row. Each numeric column gets
+   a minimum sized to ITS OWN header (14px uppercase, nowrap) so headers never
+   collide at narrow widths, then grows proportionally; digits align via
+   tabular-nums on .cf-table.
+   Order: Year Age Income RMD Essential Goals Tax Draw Return WDRate Ending */
+.page[data-page="scenarios"] .cf-grid {
+  display: grid;
+  grid-template-columns:
+    64px 40px
+    minmax(72px, 1fr)   /* Income */
+    minmax(56px, 1fr)   /* RMD */
+    minmax(94px, 1fr)   /* Essential */
+    minmax(64px, 1fr)   /* Goals */
+    minmax(52px, 1fr)   /* Tax */
+    minmax(72px, 1fr)   /* Draw — parenthetical outflows e.g. ($62K) */
+    minmax(72px, 0.8fr) /* Return */
+    minmax(80px, 0.8fr) /* WD Rate */
+    minmax(76px, 1.1fr);/* Ending */
+  column-gap: 12px;
+}
 .page[data-page="scenarios"] .cf-table__head { padding: 13px 26px; border-bottom: 1px solid var(--line-09); }
-.page[data-page="scenarios"] .cf-th { font-size: 14px; letter-spacing: 0.08em; text-transform: uppercase; color: #8A929C; }
+.page[data-page="scenarios"] .cf-th { font-size: 14px; letter-spacing: 0.08em; text-transform: uppercase; color: #8A929C; white-space: nowrap; }
 .page[data-page="scenarios"] .cf-th--r { text-align: right; }
 
-.page[data-page="scenarios"] .cf-phase { display: flex; align-items: center; justify-content: space-between; padding: 7px 26px 6px; background: rgba(198,166,98,0.04); border-top: 1px solid var(--fill-05); }
-.page[data-page="scenarios"] .cf-phase__left { display: flex; align-items: baseline; gap: 11px; }
-.page[data-page="scenarios"] .cf-phase__name { font-size: 14px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--gold-eyebrow); }
-.page[data-page="scenarios"] .cf-phase__meta { font-size: 14px; color: var(--text-5); }
-.page[data-page="scenarios"] .cf-phase__stats { display: flex; align-items: center; gap: 18px; font-size: 14px; color: var(--text-5); }
-.page[data-page="scenarios"] .cf-phase__stats b { font-weight: 400; }
-.page[data-page="scenarios"] .cf-phase__stats .draw { color: var(--text-1); }
-.page[data-page="scenarios"] .cf-phase__stats .inc { color: var(--text-2); }
 .page[data-page="scenarios"] .cf-band { padding: 2px 0 4px; }
 .page[data-page="scenarios"] .cf-band.is-shaded { background: rgba(255,255,255,0.016); }
 
 .page[data-page="scenarios"] .cf-row { align-items: start; padding: 5px 26px; }
-.page[data-page="scenarios"] .cf-row__year-wrap { display: flex; flex-direction: column; gap: 1px; }
-.page[data-page="scenarios"] .cf-row__year { display: flex; align-items: center; gap: 6px; font-size: 14px; }
-.page[data-page="scenarios"] .cf-row__year-dot { width: 5px; height: 5px; border-radius: 50%; flex: none; }
-.page[data-page="scenarios"] .cf-row__lifetag { font-size: 14px; letter-spacing: 0.03em; white-space: nowrap; padding-left: 11px; }
-.page[data-page="scenarios"] .cf-cell { font-size: 14px; text-align: right; }
+.page[data-page="scenarios"] .cf-row__year { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; color: var(--text-3); }
+.page[data-page="scenarios"] .cf-row__mark { width: 10px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+.page[data-page="scenarios"] .cf-row__mark-dot { flex-shrink: 0; }
+.page[data-page="scenarios"] .cf-row__mark-dot--ret { width: 6px; height: 6px; border-radius: 50%; background: #a8d4e8; box-shadow: 0 0 0 2.5px rgba(168, 212, 232, 0.45); }
+.page[data-page="scenarios"] .cf-row__mark-dot--rmd { width: 6px; height: 6px; border-radius: 50%; background: transparent; border: 2px solid #c9a8a0; box-shadow: 0 0 0 1px rgba(201, 168, 160, 0.25); }
+.page[data-page="scenarios"] .cf-cell { font-size: 14px; text-align: right; white-space: nowrap; }
 .page[data-page="scenarios"] .cf-cell--age { color: var(--text-4); text-align: left; }
 .page[data-page="scenarios"] .cf-cell--essential { color: var(--text-2b); }
 .page[data-page="scenarios"] .cf-cell--tax { color: var(--text-2b); }
 .page[data-page="scenarios"] .cf-cell--draw { color: var(--text-2); }
+.page[data-page="scenarios"] .cf-cell--zero { color: var(--text-mute); }
 .page[data-page="scenarios"] .cf-cell--wd { font-size: 14px; }
 .page[data-page="scenarios"] .cf-cell--ending { font-size: 14px; font-weight: 500; color: var(--text-2); }
 .page[data-page="scenarios"] .cf-row__goals-wrap { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
@@ -594,6 +596,5 @@
   .page[data-page="scenarios"] .scn-stage { padding-left: 24px; padding-right: 24px; }
   .page[data-page="scenarios"] .cf-grid { column-gap: 6px; }
   .page[data-page="scenarios"] .cf-row,
-  .page[data-page="scenarios"] .cf-table__head,
-  .page[data-page="scenarios"] .cf-phase { padding-left: 18px; padding-right: 18px; }
+  .page[data-page="scenarios"] .cf-table__head { padding-left: 18px; padding-right: 18px; }
 }

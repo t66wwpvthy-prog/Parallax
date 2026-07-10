@@ -519,860 +519,417 @@
 }
 
 /* ================================================================
-   Goals · Life Chapters — all rules scoped under .gl-chapters
+   Goals · Ledger — all rules scoped under .gl-ledger
    No :root tokens, no global overrides, no body/page/nav styles.
-   Appended to styles/goals.css (the retired .gl-horizon layer stays
-   above; nothing here depends on it).
+   (The retired .gl-horizon layer stays above; nothing here depends
+   on it.) Type scale: NOTHING below 16px on this page.
    ================================================================ */
 
-@keyframes glc-drift {
-  from { transform: rotate(16deg) translateY(0); }
-  to   { transform: rotate(16deg) translateY(-14px); }
-}
-
-@keyframes glc-flashgold {
-  0%   { background: rgba(198,166,98,0.18); }
+@keyframes glx-flashgold {
+  0%   { background: rgba(198,166,98,0.16); }
   100% { background: transparent; }
-}
-
-@keyframes glc-gein {
-  from { opacity: 0; transform: translateY(-4px); }
-  to   { opacity: 1; transform: none; }
 }
 
 /* ── Page column ────────────────────────────────────────────── */
 
-.gl-chapters {
+.gl-ledger {
   position: relative;
   width: 100%;
   max-width: 1620px;
   margin: 0 auto;
+  padding: 0 0 46px;
   font-family: 'Hanken Grotesk', system-ui, sans-serif;
   color: #b8ad92;
   box-sizing: border-box;
 }
 
-.gl-chapters *,
-.gl-chapters *::before,
-.gl-chapters *::after { box-sizing: border-box; }
+.gl-ledger *,
+.gl-ledger *::before,
+.gl-ledger *::after { box-sizing: border-box; }
 
-/* Ambient beam (decorative, gated by GLC_SHOW_ATMOSPHERE) */
-.glc-beam-wrap {
-  position: absolute;
-  inset: -34px 0 0 0;
-  overflow: hidden;
-  pointer-events: none;
-  z-index: 0;
-}
+/* The cadence toggle swaps .glx-when / .glx-agewrap via the hidden attribute;
+   their display:flex would beat the UA's [hidden] rule without this. */
+.gl-ledger [hidden] { display: none !important; }
 
-.glc-beam {
-  position: absolute;
-  top: -36px; right: 8%;
-  width: 520px; height: 150%;
-  background: linear-gradient(180deg, rgba(224,212,178,0.09), rgba(224,212,178,0));
-  transform: rotate(16deg);
-  filter: blur(52px);
-  animation: glc-drift 10s ease-in-out infinite alternate;
-}
-
-.glc-body {
-  position: relative;
-  z-index: 1;
-}
-
-/* ── Page title ─────────────────────────────────────────────── */
-
-.glc-h1 {
+.glx-h1 {
   margin: 30px 0 0;
   font-family: 'Spectral', Georgia, serif;
   font-weight: 500;
-  font-size: 46px;
+  font-size: 48px;
   line-height: 1;
   color: #d8cfb8;
   letter-spacing: 0.01em;
 }
 
-/* ── Chapter grid ───────────────────────────────────────────── */
+/* ── Sheet (the only card on the page) ──────────────────────── */
 
-.glc-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 22px;
-  margin-top: 40px;
-}
-
-.glc-card {
-  position: relative;
-  border-radius: 22px;
-  padding: 26px 26px 14px;
-  background: linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.012));
+.glx-sheet {
+  margin-top: 24px;
+  border-radius: 20px;
+  padding: 10px 28px 18px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.012));
   border: 1px solid rgba(255,255,255,0.07);
   box-shadow:
     inset 0 1px 0 rgba(255,255,255,0.05),
     0 30px 80px rgba(0,0,0,0.45);
 }
 
-/* Chapter I warm corner glow / Chapter III cool corner glow */
-.glc-card--warm {
-  background:
-    radial-gradient(130% 90% at 12% -10%, rgba(74,58,34,0.16), transparent 50%),
-    linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.012));
+/* Shared row grid: dot · name · amount · cadence · which-years · delete */
+.glx-cols, .glx-row {
+  display: grid;
+  grid-template-columns: 18px minmax(150px,1fr) 250px 224px 480px 30px;
+  gap: 16px;
+  align-items: center;
 }
 
-.glc-card--cool {
-  background:
-    radial-gradient(120% 100% at 92% 112%, rgba(22,33,50,0.5), transparent 55%),
-    linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.012));
+.glx-cols {
+  padding: 18px 0 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
 }
 
-/* Card header */
-.glc-card-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-}
-
-.glc-roman {
-  font-family: 'Spectral', Georgia, serif;
-  font-weight: 300;
-  font-size: 46px;
-  line-height: 1;
-  color: rgba(216,207,184,0.5);   /* #d8cfb8 at the reference's alpha */
-}
-
-.glc-band-meta { text-align: right; }
-
-.glc-ages {
+.glx-cap {
   font: 600 16px/1 'Hanken Grotesk', sans-serif;
-  letter-spacing: 0.2em;
-  color: #b8944d;
-}
-
-.glc-years {
-  margin-top: 7px;
-  font: 500 16px/1 'Hanken Grotesk', sans-serif;
-  color: #b8ad92;
-}
-
-/* Card total */
-.glc-total-row {
-  margin-top: 18px;
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-}
-
-.glc-total {
-  font-family: 'Spectral', Georgia, serif;
-  font-weight: 500;
-  font-size: 36px;
-  line-height: 1;
-  color: #d8cfb8;
-  font-variant-numeric: tabular-nums;
-}
-
-.glc-total-lbl {
-  font: 500 15px/1 'Hanken Grotesk', sans-serif;
-  color: #b8ad92;
-}
-
-.glc-pct {
-  margin-top: 9px;
-  font: 500 14px/1 'Hanken Grotesk', sans-serif;
-  color: #b8ad92;
-}
-
-/* Funding confidence (gated by GLC_SHOW_CONFIDENCE, default off) */
-.glc-conf { margin-top: 18px; }
-
-.glc-conf-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.glc-conf-lbl {
-  font: 600 14px/1 'Hanken Grotesk', sans-serif;
-  letter-spacing: 0.18em;
-  color: #b8ad92;
-}
-
-.glc-conf-val {
-  font: 600 14px/1 'Hanken Grotesk', sans-serif;
-  color: #d8cfb8;
-  font-variant-numeric: tabular-nums;
-}
-
-.glc-conf-track {
-  margin-top: 8px;
-  height: 4px;
-  border-radius: 2px;
-  background: rgba(255,255,255,0.07);
-}
-
-.glc-conf-fill {
-  height: 4px;
-  border-radius: 2px;
-  background: linear-gradient(90deg, #8a7448, #c6a662);
-  box-shadow: 0 0 8px rgba(198,166,98,0.25);
-}
-
-/* Divider before goal list */
-.glc-div {
-  margin-top: 20px;
-  height: 1px;
-  background: rgba(255,255,255,0.06);
-}
-
-/* ── Goal rows ──────────────────────────────────────────────── */
-
-.glc-list { margin-top: 4px; }
-
-.glc-row {
-  display: flex;
-  align-items: center;
-  gap: 13px;
-  padding: 13px 0;
-  border-bottom: 1px solid rgba(255,255,255,0.04);
-  cursor: pointer;
-  transition: opacity 0.2s ease;
-}
-
-.glc-list .glc-row:last-child { border-bottom: none; }
-
-.glc-row--dim { opacity: 0.32; }
-
-.glc-row--open { background: rgba(198,166,98,0.05); }
-
-.glc-row--flash { animation: glc-flashgold 1.3s ease; }
-
-.glc-row-main { flex: 1; min-width: 0; }
-
-.glc-name-line {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.glc-name {
-  font: 600 20px/1 'Hanken Grotesk', sans-serif;
-  color: #d8cfb8;
-}
-
-/* One-time diamond marker */
-.glc-once-marker {
-  width: 7px; height: 7px;
-  border-radius: 2px;
-  background: radial-gradient(circle at 35% 30%, #b3a9d6, #7a6ea4);
-  transform: rotate(45deg);
-  box-shadow: 0 0 6px rgba(146,134,182,0.5);
-  flex-shrink: 0;
-}
-
-.glc-sub {
-  margin-top: 5px;
-  font: 500 16px/1 'Hanken Grotesk', sans-serif;
-  color: #b8ad92;
-}
-
-.glc-row-total {
-  margin-left: auto;
-  font: 600 14px/1 'Hanken Grotesk', sans-serif;
-  color: #d8cfb8;
-  font-variant-numeric: tabular-nums;
-}
-
-.glc-empty {
-  padding: 13px 0;
-  font: 500 14px/1.4 'Hanken Grotesk', sans-serif;
-  color: #b8ad92;
-}
-
-/* ── Inline row editor ──────────────────────────────────────── */
-
-.glc-ed {
-  margin-top: 9px;
-  animation: glc-gein 0.16s ease;
-  cursor: default;
-}
-
-.glc-ed-row1 {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-}
-
-.glc-ed-amt-wrap {
-  display: flex;
-  align-items: baseline;
-  border-bottom: 1px solid rgba(255,255,255,0.2);
-  padding-bottom: 2px;
-}
-
-.glc-ed-dollar {
-  color: #b8944d;
-  font: 500 15px/1 'Hanken Grotesk', sans-serif;
-}
-
-.glc-ed-amt {
-  width: 66px;
-  background: transparent;
-  border: none;
-  outline: none;
-  color: #d8cfb8;
-  font: 500 15px/1 'Hanken Grotesk', sans-serif;
-  font-variant-numeric: tabular-nums;
-  margin-left: 2px;
-  padding: 0;
-}
-
-.glc-ed-amt::placeholder { color: #b8ad92; }
-
-.glc-ed-cads { display: flex; gap: 3px; }
-
-.glc-ed-cad {
-  font: 600 14px/1 'Hanken Grotesk', sans-serif;
-  padding: 4px 9px;
-  border-radius: 6px;
-  cursor: pointer;
-  color: #b8ad92;
-  background: transparent;
-  transition: background 0.15s, color 0.15s;
-}
-
-.glc-ed-cad--on {
-  color: #d8cfb8;
-  background: linear-gradient(180deg, rgba(150,124,64,0.34), rgba(120,98,48,0.16));
-}
-
-.glc-ed-remove {
-  margin-left: auto;
-  font: 600 14px/1 'Hanken Grotesk', sans-serif;
   letter-spacing: 0.14em;
-  color: #b8ad92;
-  cursor: pointer;
-  transition: color 0.15s;
+  color: #7d848c;
 }
 
-.glc-ed-remove:hover { color: #c08f86; }
-
-.glc-ed-slider { margin-top: 13px; }
-
-.glc-ed-track {
-  position: relative;
-  height: 16px;
-  touch-action: none;
+.glx-row {
+  padding: 16px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
 }
 
-.glc-ed-rail {
-  position: absolute;
-  left: 0; right: 0; top: 6px;
-  height: 4px;
-  border-radius: 2px;
-  background: rgba(255,255,255,0.1);
-}
+.glx-row--flash { animation: glx-flashgold 1.2s ease; }
 
-.glc-ed-fill {
-  position: absolute;
-  top: 6px;
-  height: 4px;
-  border-radius: 2px;
-  background: linear-gradient(90deg, #8a7448, #c6a662);
-  box-shadow: 0 0 8px rgba(198,166,98,0.3);
-}
-
-.glc-ed-h {
-  position: absolute;
-  top: 0;
-  width: 16px; height: 16px;
-  margin-left: -8px;
+.glx-dot {
+  width: 11px; height: 11px;
   border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, #f4e9cb, #c6a662);
-  box-shadow: 0 2px 6px rgba(0,0,0,0.5);
-  cursor: grab;
+  justify-self: center;
 }
 
-.glc-ed-when {
-  margin-top: 6px;
-  font: 500 14px/1 'Hanken Grotesk', sans-serif;
-  color: #b8ad92;
-}
-
-/* ── Composer ───────────────────────────────────────────────── */
-
-.glc-composer-wrap { margin-top: 34px; }
-
-.glc-cswitch-row {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  margin-bottom: 14px;
-  padding: 0 4px;
-}
-
-.glc-cswitch {
-  display: flex;
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 9px;
-  overflow: hidden;
-  background: rgba(255,255,255,0.03);
-}
-
-.glc-csw {
-  padding: 8px 16px;
-  font: 600 14px/1 'Hanken Grotesk', sans-serif;
-  letter-spacing: 0.12em;
-  cursor: pointer;
-  color: #b8ad92;
-  background: transparent;
-  transition: background 0.15s, color 0.15s;
-}
-
-.glc-csw--on {
-  color: #d8cfb8;
-  background: linear-gradient(180deg, rgba(150,124,64,0.34), rgba(120,98,48,0.16));
-}
-
-/* Shared panel shell */
-.glc-panel {
-  border-radius: 20px;
-  padding: 18px 22px;
-  background: linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.014));
-  border: 1px solid rgba(255,255,255,0.08);
-  box-shadow:
-    inset 0 1px 0 rgba(255,255,255,0.05),
-    0 30px 80px rgba(0,0,0,0.45);
-}
-
-.glc-fields {
-  display: flex;
-  align-items: stretch;
-  gap: 22px;
-}
-
-.glc-vdiv {
-  width: 1px;
-  align-self: stretch;
-  background: rgba(255,255,255,0.07);
-  flex-shrink: 0;
-}
-
-.glc-field {
-  display: flex;
-  flex-direction: column;
-}
-
-/* Control wrapper below a caption: fills the column, centers the control
-   (handoff field-row alignment rule — captions on one top line, controls
-   vertically centered; underline inputs use .glc-in-wrap instead). */
-.glc-ctl {
-  flex: 1;
-  display: flex;
-  align-items: center;
-}
-
-.glc-ctl--col {
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: center;
-}
-
-.glc-cap {
-  font: 600 15px/1 'Hanken Grotesk', sans-serif;
-  letter-spacing: 0.2em;
-  color: #b8ad92;
-}
-
-/* Category chips */
-.glc-cats {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 7px;
-}
-
-.glc-cats--b { gap: 8px; }
-
-.glc-cchip {
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  cursor: pointer;
-}
-
-/* Name input */
-.glc-field--name { flex: 1; min-width: 150px; }
-
-.glc-in-wrap {
-  flex: 1;
-  display: flex;
-  align-items: flex-end;
-}
-
-.glc-in-name {
+/* Goal name — floats borderless; the box appears only on hover/focus */
+.glx-name {
   width: 100%;
   background: transparent;
-  border: none;
-  border-bottom: 1px solid rgba(255,255,255,0.14);
-  outline: none;
-  color: #d8cfb8;
-  font: 500 17px/1.2 'Hanken Grotesk', sans-serif;
-  padding: 0 0 7px;
-}
-
-.glc-in-name::placeholder { color: #b8ad92; }
-
-.glc-in-name:focus { border-bottom-color: rgba(198,166,98,0.55); }
-
-/* Amount (A) */
-.glc-amt-group {
-  flex: 1;
-  display: flex;
-  align-items: flex-end;
-  gap: 10px;
-}
-
-.glc-amt-wrap {
-  display: flex;
-  align-items: baseline;
-  border-bottom: 1px solid rgba(255,255,255,0.14);
-  padding-bottom: 6px;
-}
-
-.glc-dollar {
-  color: #b8944d;
-  font: 500 18px/1 'Hanken Grotesk', sans-serif;
-}
-
-.glc-in-amt {
-  width: 92px;
-  background: transparent;
-  border: none;
-  outline: none;
-  color: #d8cfb8;
-  font: 500 18px/1 'Hanken Grotesk', sans-serif;
-  font-variant-numeric: tabular-nums;
-  margin-left: 3px;
-  padding: 0;
-}
-
-.glc-in-amt::placeholder { color: #b8ad92; }
-
-.glc-seg-group {
-  display: flex;
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.glc-seg {
-  padding: 7px 12px;
-  font: 600 15px/1 'Hanken Grotesk', sans-serif;
-  white-space: nowrap;
-  cursor: pointer;
-  color: #b8ad92;
-  background: transparent;
-  transition: background 0.15s, color 0.15s;
-}
-
-.glc-seg--on {
-  color: #d8cfb8;
-  background: linear-gradient(180deg, rgba(150,124,64,0.34), rgba(120,98,48,0.16));
-}
-
-/* WHEN (A) */
-.glc-field--when { width: 320px; }
-
-.glc-when-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-}
-
-.glc-when-label {
-  font: 600 15px/1 'Hanken Grotesk', sans-serif;
-  color: #d8cfb8;
-  font-variant-numeric: tabular-nums;
-}
-
-.glc-track-wrap {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
-.glc-track {
-  position: relative;
-  height: 22px;
-  touch-action: none;
-}
-
-.glc-rail {
-  position: absolute;
-  left: 0; right: 0; top: 9px;
-  height: 4px;
-  border-radius: 2px;
-  background: rgba(255,255,255,0.09);
-}
-
-.glc-fill {
-  position: absolute;
-  top: 9px;
-  height: 4px;
-  border-radius: 2px;
-  background: linear-gradient(90deg, #8a7448, #c6a662);
-  box-shadow: 0 0 8px rgba(198,166,98,0.35);
-}
-
-.glc-h {
-  position: absolute;
-  top: 1px;
-  width: 18px; height: 18px;
-  margin-left: -9px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, #f4e9cb, #c6a662);
-  box-shadow: 0 2px 6px rgba(0,0,0,0.5);
-  cursor: grab;
-}
-
-.glc-ticks {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 6px;
-  font: 600 15px/1 'Hanken Grotesk', sans-serif;
-  color: #b8ad92;
-}
-
-/* Add button + total */
-.glc-field--add {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 7px;
-}
-
-.glc-add-btn {
-  padding: 13px 26px;
-  border-radius: 10px;
-  background: linear-gradient(180deg, #e7c883, #c9a75d);
-  box-shadow:
-    0 6px 18px rgba(198,166,98,0.28),
-    inset 0 1px 0 rgba(255,255,255,0.4);
-  cursor: pointer;
-  text-align: center;
-  border: none;
-  font: 700 14px/1 'Hanken Grotesk', sans-serif;
-  letter-spacing: 0.06em;
-  color: #33260a;
-}
-
-.glc-add-btn:active { transform: translateY(1px); }
-
-.glc-total-line {
-  text-align: center;
-  font: 600 14px/1 'Hanken Grotesk', sans-serif;
-  color: #b8ad92;
-}
-
-.glc-total-val {
-  color: #d8cfb8;
-  font-variant-numeric: tabular-nums;
-}
-
-/* Preview strip (A) */
-.glc-prev {
-  margin-top: 16px;
-  padding-top: 14px;
-  border-top: 1px solid rgba(255,255,255,0.06);
-  display: flex;
-  align-items: center;
-  gap: 11px;
-}
-
-.glc-prev-cap {
-  font: 600 14px/1 'Hanken Grotesk', sans-serif;
-  letter-spacing: 0.2em;
-  color: #b8ad92;
-}
-
-.glc-prev-name {
-  font: 600 15px/1 'Hanken Grotesk', sans-serif;
-  color: #d8cfb8;
-}
-
-.glc-prev-sub {
-  font: 500 14px/1 'Hanken Grotesk', sans-serif;
-  color: #b8ad92;
-}
-
-.glc-prev-chapters {
-  font: 600 14px/1 'Hanken Grotesk', sans-serif;
-  letter-spacing: 0.08em;
-  color: #b8944d;
-}
-
-/* Composer B specifics */
-.glc-stepper-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.glc-step-btn {
-  width: 30px; height: 30px;
-  border-radius: 8px;
-  border: 1px solid rgba(255,255,255,0.12);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  color: #c6a662;
-  font: 600 20px/1 'Hanken Grotesk', sans-serif;
-  background: transparent;
-  transition: background 0.15s;
-}
-
-.glc-step-btn:hover { background: rgba(255,255,255,0.05); }
-
-.glc-b-amt-wrap {
-  display: flex;
-  align-items: baseline;
-  min-width: 98px;
-  justify-content: center;
-}
-
-.glc-b-amt {
-  color: #d8cfb8;
-  font: 500 20px/1 'Hanken Grotesk', sans-serif;
-  font-variant-numeric: tabular-nums;
-  margin-left: 3px;
-}
-
-.glc-presets {
-  display: flex;
-  gap: 6px;
-  margin-top: 10px;
-}
-
-.glc-preset {
-  padding: 5px 10px;
-  border-radius: 7px;
-  border: 1px solid rgba(255,255,255,0.1);
-  font: 600 14px/1 'Hanken Grotesk', sans-serif;
-  color: #b8ad92;
-  cursor: pointer;
-  transition: border-color 0.15s, color 0.15s;
-}
-
-.glc-preset--on {
-  border-color: rgba(198,166,98,0.45);
-  color: #d8cfb8;
-}
-
-.glc-field--bwhen { min-width: 290px; }
-
-.glc-seg-group--sm { border-radius: 7px; }
-
-.glc-seg--sm {
-  padding: 5px 10px;
-  font: 600 14px/1 'Hanken Grotesk', sans-serif;
-  letter-spacing: 0.06em;
-}
-
-.glc-bands {
-  display: flex;
-  gap: 6px;
-}
-
-.glc-bband {
-  padding: 8px 13px;
+  border: 1px solid transparent;
   border-radius: 9px;
-  font: 600 14px/1 'Hanken Grotesk', sans-serif;
-  cursor: pointer;
-  border: 1px solid rgba(255,255,255,0.08);
-  color: #b8ad92;
-  background: rgba(255,255,255,0.03);
-  white-space: nowrap;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
-}
-
-.glc-bband--on {
-  color: #d8cfb8;
-  background: linear-gradient(180deg, rgba(150,124,64,0.34), rgba(120,98,48,0.16));
-  border-color: rgba(198,166,98,0.45);
-}
-
-.glc-age-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.glc-age-lbl {
-  font: 500 14px/1 'Hanken Grotesk', sans-serif;
-  color: #b8ad92;
-}
-
-.glc-step-btn--sm {
-  width: 28px; height: 28px;
-  font: 600 18px/1 'Hanken Grotesk', sans-serif;
-}
-
-.glc-b-age {
-  min-width: 36px;
-  text-align: center;
-  font: 600 18px/1 'Hanken Grotesk', sans-serif;
-  color: #d8cfb8;
-  font-variant-numeric: tabular-nums;
-}
-
-/* ── Element-level color guard ────────────────────────────────
-   main.css paints `body .page input/button/select` with the app ink
-   (#ddd5c4, near-white) via BOTH `color` (0,1,2) and, for inputs,
-   `-webkit-text-fill-color` — the latter overrides `color` outright in
-   Chromium. Re-assert the two-tone/gold palette at (0,2,0) for the
-   controls this layer owns: input text + fill stay #D8CFB8 with warm
-   placeholders, the gold Add button keeps its dark ink, and stepper
-   glyphs stay champagne. */
-
-.gl-chapters .glc-in-name,
-.gl-chapters .glc-in-amt,
-.gl-chapters .glc-ed-amt {
+  padding: 9px 11px;
+  margin-left: -11px;
+  outline: none;
+  font: 600 20px/1.2 'Hanken Grotesk', sans-serif;
   color: #d8cfb8;
   -webkit-text-fill-color: #d8cfb8;
   caret-color: #c6a662;
 }
 
-.gl-chapters .glc-in-name::placeholder,
-.gl-chapters .glc-in-amt::placeholder,
-.gl-chapters .glc-ed-amt::placeholder {
-  color: #b8ad92;
-  -webkit-text-fill-color: #b8ad92;
+.glx-name:hover { border-color: rgba(255,255,255,0.12); }
+.glx-name:focus { border-color: rgba(198,166,98,0.55); background: transparent; }
+
+/* ── Amount cell: − [$ amount] + ────────────────────────────── */
+
+.glx-amtcell {
+  display: flex;
+  align-items: center;
+  gap: 9px;
 }
 
-/* Buttons: main.css declares `color: var(--ng-ink) !important` and the ink
-   text-fill reaches them too — text-fill declared directly here wins the
-   glyph painting without needing !important. */
-.gl-chapters .glc-add-btn {
-  color: #33260a;
-  -webkit-text-fill-color: #33260a;
-}
-
-.gl-chapters .glc-step-btn {
+.glx-step {
+  width: 38px; height: 38px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.14);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
   color: #c6a662;
   -webkit-text-fill-color: #c6a662;
+  font: 600 21px/1 'Hanken Grotesk', sans-serif;
+  background: rgba(255,255,255,0.02);
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.glx-step:hover { background: rgba(255,255,255,0.06); }
+
+.glx-step--sm {
+  width: 34px; height: 34px;
+  font-size: 19px;
+  border-radius: 9px;
+}
+
+.glx-amtwrap {
+  display: flex;
+  align-items: baseline;
+  padding: 9px 13px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.045);
+  border: 1px solid rgba(255,255,255,0.12);
+}
+
+.glx-amtwrap:focus-within { border-color: rgba(198,166,98,0.55); }
+
+.glx-dollar {
+  color: #b8944d;
+  font: 500 16px/1 'Hanken Grotesk', sans-serif;
+}
+
+.glx-amt {
+  width: 96px;
+  background: transparent;
+  border: none;
+  outline: none;
+  margin-left: 4px;
+  padding: 0;
+  color: #d8cfb8;
+  -webkit-text-fill-color: #d8cfb8;
+  caret-color: #c6a662;
+  font: 600 18px/1 'Hanken Grotesk', sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Cadence segmented: Every year | One-time ───────────────── */
+
+.glx-seggroup {
+  display: flex;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px;
+  overflow: hidden;
+  width: max-content;
+}
+
+.glx-seg {
+  padding: 11px 16px;
+  font: 600 16px/1 'Hanken Grotesk', sans-serif;
+  cursor: pointer;
+  color: #8b9298;
+  background: transparent;
+  user-select: none;
+}
+
+.glx-seg--on {
+  color: #e2d6b4;
+  background: linear-gradient(180deg, rgba(150,124,64,0.34), rgba(120,98,48,0.16));
+}
+
+/* ── Which-years: chapter chips + exact age boxes ───────────── */
+
+.glx-when {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.glx-chip {
+  padding: 10px 13px;
+  border-radius: 10px;
+  cursor: pointer;
+  white-space: nowrap;
+  user-select: none;
+  font: 600 16px/1 'Hanken Grotesk', sans-serif;
+  border: 1px solid rgba(255,255,255,0.1);
+  color: #8b9298;
+  background: rgba(255,255,255,0.03);
+}
+
+.glx-chip--on {
+  border: 1px solid rgba(198,166,98,0.45);
+  color: #e2d6b4;
+  background: linear-gradient(180deg, rgba(150,124,64,0.34), rgba(120,98,48,0.16));
+}
+
+.glx-chip--part {
+  border: 1px dashed rgba(198,166,98,0.4);
+  color: #c8b98d;
+  background: rgba(255,255,255,0.03);
+}
+
+.glx-agepair {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 10px;
+}
+
+.glx-ain {
+  width: 54px;
+  text-align: center;
+  padding: 9px 0;
+  border-radius: 9px;
+  outline: none;
+  background: rgba(255,255,255,0.045);
+  border: 1px solid rgba(255,255,255,0.12);
+  color: #d8cfb8;
+  -webkit-text-fill-color: #d8cfb8;
+  caret-color: #c6a662;
+  font: 600 17px/1 'Hanken Grotesk', sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+
+.glx-ain:focus { border-color: rgba(198,166,98,0.55); }
+
+.glx-dash {
+  font: 500 16px/1 'Hanken Grotesk', sans-serif;
+  color: #7d848c;
+}
+
+/* One-time: at age − 68 + */
+.glx-agewrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.glx-agelbl {
+  font: 500 16px/1 'Hanken Grotesk', sans-serif;
+  color: #b8ad92;
+}
+
+.glx-ageval {
+  min-width: 36px;
+  text-align: center;
+  font: 600 19px/1 'Hanken Grotesk', sans-serif;
+  color: #d8cfb8;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Delete × — floats, warms on hover */
+.glx-del {
+  width: 30px; height: 30px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #5f666e;
+  font: 400 20px/1 'Hanken Grotesk', sans-serif;
+  user-select: none;
+}
+
+.glx-del:hover { color: #c08f86; background: rgba(192,143,134,0.08); }
+
+/* ── Adds line: floating text buttons, no boxes ─────────────── */
+
+.glx-adds {
+  margin-top: 12px;
+  padding: 16px 4px 4px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  flex-wrap: wrap;
+}
+
+.glx-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  cursor: pointer;
+  font: 600 18px/1 'Hanken Grotesk', sans-serif;
+  color: #c6a662;
+  -webkit-text-fill-color: #c6a662;
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+.glx-add-btn:hover { color: #e7c883; -webkit-text-fill-color: #e7c883; }
+
+.glx-add-plus { font: 600 20px/1 'Hanken Grotesk', sans-serif; }
+
+.glx-adds-sep {
+  width: 1px; height: 16px;
+  background: rgba(255,255,255,0.12);
+  flex-shrink: 0;
+}
+
+.glx-qa {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+.glx-qa-dot {
+  width: 9px; height: 9px;
+  border-radius: 50%;
+}
+
+.glx-qa-name {
+  font: 600 18px/1 'Hanken Grotesk', sans-serif;
+  color: #b3a888;
+  -webkit-text-fill-color: #b3a888;
+}
+
+.glx-qa:hover .glx-qa-name { color: #e7dec9; -webkit-text-fill-color: #e7dec9; }
+
+/* ── Chapter footer: where entered spending lands ───────────── */
+
+.glx-footer {
+  margin-top: 14px;
+  padding: 16px 4px 2px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+  display: flex;
+  align-items: baseline;
+  gap: 13px;
+  flex-wrap: wrap;
+}
+
+.glx-f-cap {
+  font: 600 16px/1 'Hanken Grotesk', sans-serif;
+  letter-spacing: 0.16em;
+  color: #7d848c;
+}
+
+.glx-f-lbl {
+  font: 500 16px/1 'Hanken Grotesk', sans-serif;
+  color: #b8ad92;
+}
+
+.glx-f-val {
+  font: 600 17px/1 'Hanken Grotesk', sans-serif;
+  color: #d8cfb8;
+  font-variant-numeric: tabular-nums;
+}
+
+.glx-f-dot {
+  color: rgba(255,255,255,0.14);
+  font: 400 16px/1 'Hanken Grotesk', sans-serif;
+}
+
+.glx-f-space { flex: 1; }
+
+.glx-f-life {
+  font: 600 20px/1 'Hanken Grotesk', sans-serif;
+  color: #e7dec9;
+  font-variant-numeric: tabular-nums;
+}
+
+.glx-f-note {
+  font: 500 16px/1 'Hanken Grotesk', sans-serif;
+  color: #5f666e;
+}
+
+/* ── Element-level ink guard ──────────────────────────────────
+   main.css paints `body .page input/button` with the app ink
+   (near-white) via BOTH `color` and `-webkit-text-fill-color`; the
+   latter overrides `color` outright in Chromium. Every control this
+   layer owns re-asserts its warm ink + text-fill above, so no bright
+   white can leak into the ledger. Placeholders too: */
+
+.gl-ledger .glx-name::placeholder,
+.gl-ledger .glx-amt::placeholder,
+.gl-ledger .glx-ain::placeholder {
+  color: #b8ad92;
+  -webkit-text-fill-color: #b8ad92;
 }
 
 /* ── Responsive (wide-grid tighten, matches app convention) ─── */
 
 @media (max-width: 1640px) {
-  .glc-grid { gap: 16px; }
-  .glc-card { padding: 22px 20px 12px; }
-  .glc-fields { gap: 16px; }
-  .glc-field--when { width: 260px; }
-  .glc-field--bwhen { min-width: 250px; }
+  .glx-cols, .glx-row { grid-template-columns: 18px minmax(130px,1fr) 232px 206px 440px 30px; gap: 12px; }
+  .glx-seg { padding: 11px 12px; }
+  .glx-chip { padding: 10px 10px; }
+  .glx-when { flex-wrap: wrap; }
 }
-

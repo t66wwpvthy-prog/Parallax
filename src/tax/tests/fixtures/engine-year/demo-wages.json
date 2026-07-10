@@ -1,6 +1,7 @@
 {
   "id": "demo-wages",
-  "label": "My return",
+  "label": "Legacy synthetic regression (not authoritative)",
+  "benchmarkRole": "legacySyntheticRegression",
   "inputMode": "facts",
   "filingStatus": "marriedFilingJointly",
   "taxYear": 2025,
