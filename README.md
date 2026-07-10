@@ -38,6 +38,7 @@ explain a client decision:
   screenshots to `verify-out/`. Requires Chrome (or `npx puppeteer browsers install chrome`).
 - `assets/` — the logo.
 - `PRINCIPLES.md` — doctrine.
+- `docs/ARCHITECTURE.md` — **where code goes; anti-monolith rules; all agents read this.**
 
 ## Commands
 
