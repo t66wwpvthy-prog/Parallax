@@ -1216,7 +1216,7 @@ try {
     await new Promise(r => setTimeout(r, 600));
     await setCashFlow(page, true);
     await waitCashRows(page, 10);
-    const EXPECT = ['Year', 'Age', 'Income', 'RMD', 'Essential', 'Goals', 'Tax', 'Draw', 'Return', 'WD Rate', 'Ending'];
+    const EXPECT = ['Year', 'Age', 'Income', 'RMD', 'Essential', 'Goals', 'Federal Income Tax', 'Draw', 'Return', 'WD Rate', 'Ending'];
     const m = await page.evaluate(() => {
       const v = document.querySelector('#scn-view');
       return {
@@ -1228,6 +1228,15 @@ try {
         stats: [...(v?.querySelectorAll('.cf-stat__label') || [])].map(s => s.textContent.trim()),
         pathControls: !!v?.querySelector('#scn-cf-path-controls #path-mode'),
         mode: v?.querySelector('#scn-cf-path-controls #path-mode')?.value || '',
+        taxHeader: (() => {
+          const th = v?.querySelector('.cf-table__head .cf-th[data-tax-source]');
+          return th ? {
+            label: th.textContent.trim(),
+            source: th.dataset.taxSource || '',
+            scope: th.dataset.taxScope || '',
+            title: th.getAttribute('title') || '',
+          } : null;
+        })(),
         hasCaption: !!v?.querySelector('.cf__caption'),
         hasCfEyebrow: !!v?.querySelector('.cf__head .eyebrow'),
         hasSummaryName: !!v?.querySelector('.cf-summary__name'),
@@ -1236,8 +1245,9 @@ try {
     if(!m.cf) throw new Error('cash-flow view did not render');
     if(m.rows < 10) throw new Error(`cash-flow rows = ${m.rows} (expected >=10)`);
     if(JSON.stringify(m.cols) !== JSON.stringify(EXPECT)) throw new Error(`cash-flow columns are not the exact contract: ${JSON.stringify(m.cols)}`);
-    // The diagnostic Engine-tax / Federal-tax columns must NOT appear in this view.
-    if(m.cols.some(c => /engine tax|federal tax/i.test(c))) throw new Error(`diagnostic tax column leaked into cash flow: ${JSON.stringify(m.cols)}`);
+    if(m.cols.filter(c => /tax/i.test(c)).length !== 1) throw new Error(`cash flow must have exactly one scoped tax column: ${JSON.stringify(m.cols)}`);
+    if(m.taxHeader?.source !== 'federal-sidecar' || m.taxHeader?.scope !== 'INCOME_TAX_ONLY') throw new Error(`typical path tax scope missing: ${JSON.stringify(m.taxHeader)}`);
+    if(!/income tax only/i.test(m.taxHeader?.title || '')) throw new Error(`typical path tax tooltip missing scope: ${JSON.stringify(m.taxHeader)}`);
     if(m.cols.some(c => ['Withdraw', 'One-time', 'Return $', 'Starting value', 'Inflows', 'Outflows', 'Annual return', 'Ending value'].includes(c))) throw new Error(`old cash-flow columns still present: ${JSON.stringify(m.cols)}`);
     if(m.pills.length < 2) throw new Error(`scenario pills missing: ${JSON.stringify(m.pills)}`);
     if(!m.pathControls) throw new Error('path-replay controls not relocated into #scn-cf-path-controls');
@@ -1303,8 +1313,19 @@ try {
     await page.select('#path-mode', 'favorable');
     await new Promise(r => setTimeout(r, 400));
     if(await waitCashRows(page, 10) < 10) throw new Error('favorable path emptied the cash-flow table');
+    const engineTaxHeader = await page.evaluate(() => {
+      const th = document.querySelector('#scn-view .cf-table__head .cf-th[data-tax-source]');
+      return th ? {
+        label: th.textContent.trim(),
+        source: th.dataset.taxSource || '',
+        scope: th.dataset.taxScope || '',
+      } : null;
+    });
+    if(engineTaxHeader?.label !== 'Engine Tax' || engineTaxHeader?.source !== 'engine' || engineTaxHeader?.scope) throw new Error(`non-typical path tax label is not engine-scoped: ${JSON.stringify(engineTaxHeader)}`);
     await page.select('#path-mode', 'typical');
     await new Promise(r => setTimeout(r, 300));
+    const restoredTaxLabel = await page.evaluate(() => document.querySelector('#scn-view .cf-table__head .cf-th[data-tax-source]')?.textContent.trim() || '');
+    if(restoredTaxLabel !== 'Federal Income Tax') throw new Error(`typical path tax label did not restore: "${restoredTaxLabel}"`);
     await page.screenshot({ path: join(OUT, '04-cashflow.png'), fullPage: true });
   });
 
