@@ -1,8 +1,8 @@
 # T4 planner adapter handoff
 
 **Branch:** `feat/tax-t4-planner-adapter`  
-**Base:** `main` @ `4467a92` (T1 #80 + T2 #81 + T3 #82 + T4.1 #83 + T4.2 #84 merged)  
-**Validation:** `npm test` + `verify.mjs` (adapter may affect typical-path attach)
+**Base:** `main` @ `a532f14` (T1–T3 + T4.1–T4.3 merged)
+**Validation:** 184 tests passing + `verify.mjs` passed
 
 ## Goal
 
@@ -26,12 +26,18 @@ The federal tax **rules** are largely ready for benchmark returns. T4 connects *
 - MFS requires explicit `livedWithSpouse`
 - 176 tests passing; `verify.mjs` passed
 
-**Gain fraction (T4.3) — in progress (PR #86)**
+**Gain fraction (T4.3) — complete**
 
 - Engine exposes read-only `row.taxableGainFraction` at start-of-year when taxable withdrawals occur
 - Adapter consumes row fact via `buildRowTaxableGainPlanMeta` (no duplicated basis replay)
 - Static starting-basis fraction removed from `buildPlanMetaFromEngineParams`; explicit override still supported
 - Empty-then-funded: engine reports `0` gain fraction once RMD-funded taxable is withdrawn
+
+**Zero-income and failed years (T4.4) — complete**
+
+- Explicit `income: {}` runs the full 1040 spine and calculates line 24 as `$0`
+- The real depletion/failure year remains in the annual results
+- Post-depletion filler rows (`failed: true`, `source: null`) are skipped without aborting the path
 
 ## Remaining T4 gaps
 
@@ -47,7 +53,8 @@ The federal tax **rules** are largely ready for benchmark returns. T4 connects *
 | Asset sales | `row.assetSale` ignored | Sale gain not reconstructed |
 | Age | Dropped | Blocks age-based rules |
 | Deductions | Standard assumed | No itemized from plan |
-| Zero-income years | Empty income rejected | One bad year aborts whole path |
+| Zero-income years | ~~Empty income rejected~~ | **Fixed T4.4** — explicit empty income calculates a `$0` return |
+| Failed filler rows | ~~Sent through annual tax runner~~ | **Fixed T4.4** — skipped while the real failure year remains |
 
 ## Key files
 
@@ -62,8 +69,8 @@ The federal tax **rules** are largely ready for benchmark returns. T4 connects *
 
 1. ~~**Filing status**~~ — done (T4.1)
 2. ~~**Social Security**~~ — done (T4.2)
-3. **Gain fraction** — engine row fact + adapter consume (T4.3 PR #86)
-4. **Zero-income / failed years** — deterministic skip or empty-year handling (no path abort)
+3. ~~**Gain fraction**~~ — done (T4.3)
+4. ~~**Zero-income / failed years**~~ — done (T4.4)
 5. **taxablePct** on other income streams
 6. Tests for representative MFJ, single, SS, RMD, survivor cases
 
@@ -78,12 +85,12 @@ The federal tax **rules** are largely ready for benchmark returns. T4 connects *
 
 ## Success criteria
 
-- [ ] Filing status from household flows to sidecar (not hardcoded MFJ)
-- [ ] Typical-path attach completes on benchmark-like scenario without silent MFJ default
-- [ ] Zero-income retirement year does not abort entire path
-- [ ] `npm test` — all pass
-- [ ] `node scripts/verify.mjs` — passes (UI smoke)
-- [ ] No tax rule math added to `ui/*` or `engine.js` (adapter/glue only)
+- [x] Filing status from household flows to sidecar (not hardcoded MFJ)
+- [x] Typical-path attach completes on benchmark-like scenario without silent MFJ default
+- [x] Zero-income retirement year does not abort entire path
+- [x] `npm test` — 184 pass
+- [x] `node scripts/verify.mjs` — passes (UI smoke)
+- [x] No tax rule math added to `ui/*` or `engine.js` (adapter/glue only)
 
 ## Benchmark reminder
 
