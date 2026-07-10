@@ -200,7 +200,9 @@ export function mapSimulationRowToYearFacts(row, planMeta){
   if(planMeta.wages !== undefined) income.wages = planMeta.wages;
   if(row.socialSecurity > 0) income.socialSecurityBenefits = row.socialSecurity;
   if(row.pension > 0) income.pensionAmount = row.pension;
-  if(row.otherIncome > 0) income.otherIncome = row.otherIncome;
+  if(row.otherIncome > 0){
+    income.otherIncome = row.otherIncomeTaxable ?? row.otherIncome;
+  }
 
   const traditionalWithdrawal = row.accountBreakdown?.traditional ?? 0;
   const rmd = row.rmd ?? 0;
