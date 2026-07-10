@@ -324,6 +324,15 @@
 .page[data-page="household"] .hh-btn--primary {
   background: linear-gradient(180deg, #cdb079, #9c7d44); color: var(--gold-ink); border: 0;
 }
+.page[data-page="household"] .hh-wiz-footer .hh-btn--primary {
+  background: linear-gradient(180deg, #cdb079, #9c7d44);
+  color: var(--gold-ink);
+  border: 0;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.28), 0 10px 24px -16px rgba(198,166,98,0.55);
+}
+.page[data-page="household"] .hh-wiz-footer .hh-btn--primary:hover {
+  filter: brightness(1.06);
+}
 .page[data-page="household"] .hh-btn--outline {
   background: transparent; border-color: var(--line-16); color: var(--text-1);
 }
@@ -398,25 +407,39 @@
   font-family: var(--font-serif); font-size: 20px; color: var(--text-1); line-height: 1;
 }
 .page[data-page="household"] .hh-bp-flow {
-  margin-top: auto; padding-top: 44px; display: flex; flex-direction: column; gap: 16px; max-width: 320px;
+  margin-top: auto; padding-top: 44px; width: 100%; max-width: 100%;
+  display: flex; flex-direction: column;
 }
 .page[data-page="household"] .hh-bp-flow__row {
-  display: flex; align-items: baseline; justify-content: space-between; gap: 16px;
+  display: flex; align-items: center; justify-content: space-between; gap: 24px;
+  padding: 14px 0;
+}
+.page[data-page="household"] .hh-bp-flow__row--rule {
+  border-bottom: 1px solid var(--line-06);
+}
+.page[data-page="household"] .hh-bp-flow__lab {
+  display: flex; flex-direction: column; gap: 5px; min-width: 0;
 }
 .page[data-page="household"] .hh-bp-flow__label {
-  font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-2);
+  font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-2);
 }
-.page[data-page="household"] .hh-bp-flow__row b {
+.page[data-page="household"] .hh-bp-flow__sub {
+  font-size: 11px; letter-spacing: 0.02em; color: var(--text-3); text-transform: none;
+}
+.page[data-page="household"] .hh-bp-flow__val {
   font-family: var(--font-serif); font-size: 21px; font-weight: 400; color: var(--text-1);
+  flex: none; text-align: right;
 }
-.page[data-page="household"] .hh-bp-flow__ss { color: var(--sage); }
+.page[data-page="household"] .hh-bp-flow__val--gold { color: var(--gold); }
+.page[data-page="household"] .hh-bp-flow__val--pos { color: var(--sage); }
+.page[data-page="household"] .hh-bp-flow__val--neg { color: var(--down); }
 
 .page[data-page="household"] .hh-bp-inst {
-  flex: none; width: min(370px, 100%); display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
+  flex: none; width: min(520px, 100%); display: flex; flex-direction: row;
+  align-items: center; justify-content: center; gap: 28px;
 }
 .page[data-page="household"] .hh-bp-gauge {
-  position: relative; width: 260px; height: 260px;
+  position: relative; width: 260px; height: 260px; flex: none;
 }
 .page[data-page="household"] .hh-bp-gauge__svg {
   display: block; width: 100%; height: 100%;
@@ -436,7 +459,8 @@
   font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-5); margin-top: 10px;
 }
 .page[data-page="household"] .hh-bp-alloc-list {
-  width: 100%; display: flex; flex-direction: column; gap: 13px; margin-top: 30px; padding: 0 4px;
+  width: auto; flex: 1; min-width: 180px; max-width: 220px;
+  display: flex; flex-direction: column; gap: 13px; margin-top: 0; padding: 0 4px;
 }
 .page[data-page="household"] .hh-bp-alloc {
   display: flex; align-items: center; justify-content: space-between; gap: 14px;
@@ -544,6 +568,8 @@
   .page[data-page="household"] .hh-cols--split .hh-col:first-child,
   .page[data-page="household"] .hh-cols--split .hh-col:last-child { padding: 0; }
   .page[data-page="household"] .hh-bp-sheet { flex-direction: column; }
+  .page[data-page="household"] .hh-bp-inst { flex-direction: column; width: 100%; }
+  .page[data-page="household"] .hh-bp-alloc-list { width: 100%; max-width: none; margin-top: 24px; }
   .page[data-page="household"] .hh-wiz-top,
   .page[data-page="household"] .hh-stepper,
   .page[data-page="household"] .hh-wiz-workspace,

@@ -187,15 +187,64 @@ function workingIncomeSum(plan){
   return (plan.income?.other || []).reduce((s, x) => s + (x.amount || 0), 0);
 }
 
-function workingIncomeHeaderHtml(plan){
-  const total = workingIncomeSum(plan);
-  if(total > 0) return hhMoney(total);
-  return '<span class="hh-empty">No working income</span>';
+function deferredIncomeSum(plan){
+  const ss = plan.income?.socialSecurity || {};
+  let total = 0;
+  if(ss.primary?.pia) total += ss.primary.pia;
+  if(plan.household?.spouse && ss.spouse?.pia) total += ss.spouse.pia;
+  return total;
 }
 
-function workingIncomeFlowHtml(plan){
-  const total = workingIncomeSum(plan);
-  return total > 0 ? hhMoney(total) : '—';
+function incomeTotal(plan){
+  return workingIncomeSum(plan) + deferredIncomeSum(plan);
+}
+
+function blueprintIncomeNote(plan){
+  const working = workingIncomeSum(plan);
+  const deferred = deferredIncomeSum(plan);
+  if(deferred <= 0) return '';
+  const ss = plan.income?.socialSecurity || {};
+  const ages = [];
+  if(ss.primary?.pia) ages.push(ss.primary.claimAge);
+  if(plan.household?.spouse && ss.spouse?.pia) ages.push(ss.spouse.claimAge);
+  const unique = [...new Set(ages.filter(a => a != null))];
+  const agePart = unique.length === 1
+    ? `begins at ${unique[0]}`
+    : (unique.length ? `begins at ${unique.join(' & ')}` : '');
+  if(working > 0) {
+    return agePart ? `Social Security · ${agePart}` : '';
+  }
+  return agePart ? `Social Security · ${agePart}` : 'Social Security';
+}
+
+function formatSurplus(n){
+  const rounded = Math.round(Number(n) || 0);
+  if(rounded > 0) return `+${hhMoney(rounded)}`;
+  return hhMoney(rounded);
+}
+
+function blueprintFlowRows(plan, spendTotal){
+  const income = incomeTotal(plan);
+  const surplus = income - spendTotal;
+  const note = blueprintIncomeNote(plan);
+  const incomeLab = note
+    ? `<div class="hh-bp-flow__lab"><span class="hh-bp-flow__label">Income</span><span class="hh-bp-flow__sub">${escHtml(note)}</span></div>`
+    : `<div class="hh-bp-flow__lab"><span class="hh-bp-flow__label">Income</span></div>`;
+  const surplusCls = surplus >= 0 ? 'hh-bp-flow__val--pos' : 'hh-bp-flow__val--neg';
+  return `<div class="hh-bp-flow">
+    <div class="hh-bp-flow__row hh-bp-flow__row--rule">
+      ${incomeLab}
+      <b class="hh-bp-flow__val hh-bp-flow__val--gold">${hhMoney(income)}</b>
+    </div>
+    <div class="hh-bp-flow__row hh-bp-flow__row--rule">
+      <div class="hh-bp-flow__lab"><span class="hh-bp-flow__label">Spending</span></div>
+      <b class="hh-bp-flow__val">${hhMoney(spendTotal)}</b>
+    </div>
+    <div class="hh-bp-flow__row">
+      <div class="hh-bp-flow__lab"><span class="hh-bp-flow__label">Annual surplus</span></div>
+      <b class="hh-bp-flow__val ${surplusCls}">${formatSurplus(surplus)}</b>
+    </div>
+  </div>`;
 }
 
 function goalNote(g){
@@ -363,7 +412,7 @@ export function createHouseholdWizard(deps){
         <div class="hh-col">
           <div class="hh-col__head hh-col__head--total">
             <span class="hh-col__role">Income</span>
-            <span class="hh-col__sum">${workingIncomeHeaderHtml(plan)}</span>
+            <span class="hh-col__sum">${hhMoney(incomeTotal(plan))}</span>
           </div>
           ${incomeRows(plan, deps)}
           ${inlineAdd('income', { label: 'Source', amount: true })}
@@ -392,8 +441,6 @@ export function createHouseholdWizard(deps){
     const total = visible.reduce((s, a) => s + (a.balance || 0), 0);
     const spendTotal = (plan.expenses?.living || 0) + (plan.expenses?.healthcare || 0)
       + (plan.expenses?.extra || []).reduce((s, x) => s + (x.amount || 0), 0);
-    const ss = plan.income?.socialSecurity || {};
-    const ssTotal = ((ss.primary?.pia) || 0) + ((ss.spouse?.pia) || 0);
     const pn = plan.meta?.primaryName || 'Client';
     const sn = plan.meta?.spouseName || 'Co-Client';
     const householdName = plan.household?.spouse ? `${pn} & ${sn}` : pn;
@@ -436,22 +483,18 @@ export function createHouseholdWizard(deps){
             <div><span class="hh-bp-facts__k">RETIRE</span><span class="hh-bp-facts__v">${retireAges}</span></div>
             <div><span class="hh-bp-facts__k">HORIZON</span><span class="hh-bp-facts__v">${plan.household?.primary?.planEndAge ?? '—'}</span></div>
           </div>
-          <div class="hh-bp-flow">
-            <div class="hh-bp-flow__row"><span class="hh-bp-flow__label">Income</span><b>${workingIncomeFlowHtml(plan)}</b></div>
-            <div class="hh-bp-flow__row"><span class="hh-bp-flow__label">Spending</span><b>${hhMoney(spendTotal)}</b></div>
-            <div class="hh-bp-flow__row"><span class="hh-bp-flow__label">Social Security</span><b class="hh-bp-flow__ss">${hhMoney(ssTotal)}</b></div>
-          </div>
+          ${blueprintFlowRows(plan, spendTotal)}
         </div>
         <div class="hh-bp-inst">
           <div class="hh-bp-gauge">
             ${renderGaugeSvg(visible, total)}
             <div class="hh-bp-gauge__center">
-              <div class="hh-bp-gauge__k">NET WORTH</div>
+              <div class="hh-bp-gauge__k">Allocation</div>
               <div class="hh-bp-gauge__v">${hhCompact(total)}</div>
               <div class="hh-bp-gauge__sub">${visible.length} account${visible.length === 1 ? '' : 's'}</div>
             </div>
           </div>
-          <div class="hh-bp-alloc-list">${alloc}</div>
+          <div class="hh-bp-alloc-list" aria-label="Account allocation">${alloc}</div>
         </div>
       </div>
       ${cta}

@@ -455,22 +455,37 @@ try {
       addIncome: !!document.querySelector('#hh-view [data-hh-action="open-add"][data-add-key="income"]'),
       goals: document.querySelectorAll('#hh-view [data-rmpath^="goals."]').length,
       working: !!document.querySelector('#hh-view input[data-path="income.workingIncome"]'),
+      incomeHdr: document.querySelector('#hh-view .hh-col .hh-col__sum')?.textContent.trim() || '',
+      noWorkingNote: (document.querySelector('#hh-view')?.textContent || '').includes('No working income'),
     }));
     if(s3.pia < 1) throw new Error(`SS benefit inputs missing, got ${s3.pia}`);
     if(!s3.living || !s3.health) throw new Error('core spending inputs missing from cash flow step');
     if(!s3.addIncome) throw new Error('"+ Add income" missing');
     if(s3.goals < 1) throw new Error('demo goals should render in cash flow step');
     if(s3.working) throw new Error('working income input must not render in the wizard');
+    if(s3.noWorkingNote) throw new Error('cash flow income header must not show "No working income"');
+    if(!/\$73,200/.test(s3.incomeHdr)) throw new Error(`cash flow income total must include deferred SS, got "${s3.incomeHdr}"`);
 
     await page.click('#hh-step-4'); await new Promise(r => setTimeout(r, 350));
     const s4 = await page.evaluate(() => ({
       gauge: !!document.querySelector('#hh-view .hh-bp-gauge'),
       run: !!document.querySelector('#hh-view [data-hh-action="run-blueprint"]'),
       footNote: document.querySelector('#hh-wiz-footer .hh-wiz-foot-note')?.textContent.trim() || '',
+      incomeVal: document.querySelector('#hh-view .hh-bp-flow__val--gold')?.textContent.trim() || '',
+      surplus: document.querySelector('#hh-view .hh-bp-flow__val--pos, #hh-view .hh-bp-flow__val--neg')?.textContent.trim() || '',
+      ssRow: [...document.querySelectorAll('#hh-view .hh-bp-flow__row')].some(row =>
+        /^Social Security$/i.test(row.querySelector('.hh-bp-flow__label')?.textContent.trim() || '')),
+      allocLegend: document.querySelectorAll('#hh-view .hh-bp-alloc').length,
+      gaugeLabel: document.querySelector('#hh-view .hh-bp-gauge__k')?.textContent.trim() || '',
     }));
     if(!s4.gauge) throw new Error('Blueprint gauge missing on step 4');
     if(!s4.run) throw new Error('RUN BLUEPRINT missing');
     if(s4.footNote !== 'Step 4 of 4') throw new Error(`footer note mismatch: "${s4.footNote}"`);
+    if(!/\$73,200/.test(s4.incomeVal)) throw new Error(`Blueprint income must roll up deferred income, got "${s4.incomeVal}"`);
+    if(!/[\+\-–]\$[\d,]+/.test(s4.surplus)) throw new Error(`Blueprint annual surplus missing, got "${s4.surplus}"`);
+    if(s4.ssRow) throw new Error('Blueprint must not show a separate Social Security row');
+    if(s4.allocLegend < 1) throw new Error('Blueprint account legend missing beside gauge');
+    if(s4.gaugeLabel !== 'Allocation') throw new Error(`gauge label must read Allocation, got "${s4.gaugeLabel}"`);
   });
 
   await step('type floor: wizard values >= 16px; tracked labels may use micro type', async () => {
@@ -490,7 +505,7 @@ try {
           'hh-wiz-id__eyebrow','hh-step__label','hh-step__num','hh-col__role','hh-kv__k',
           'hh-meta__k','hh-subhead','hh-tl__labels','hh-link-btn','hh-inline-form__k',
           'hh-grand-total__k','hh-grand-total__sub','hh-bp-eyebrow','hh-bp-filing',
-          'hh-bp-facts__k','hh-bp-flow__label','hh-bp-gauge__k','hh-bp-gauge__sub',
+          'hh-bp-facts__k','hh-bp-flow__label','hh-bp-flow__sub','hh-bp-gauge__k','hh-bp-gauge__sub',
           'hh-bp-alloc__pct','hh-wiz-foot-note','hh-bp-cta--run','hh-bp-cta--done',
           'hh-bp-cta__chip','hh-bp-cta__status','hh-bp-cta__sep','hh-bp-cta__link',
           'hh-empty','hh-future-row__note','hh-future-row__name','hh-ledger-row__name',
