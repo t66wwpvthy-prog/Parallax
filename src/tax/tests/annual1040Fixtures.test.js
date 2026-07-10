@@ -53,6 +53,10 @@ for(const fixture of loadAnnualFixtures()){
     if(fixture.expected?.line15 !== undefined){
       assert.strictEqual(annual1040Result.lines.line15.value, fixture.expected.line15);
     }
+    if(fixture.expected?.line7a !== undefined){
+      assert.strictEqual(result.form1040.line7a.value, fixture.expected.line7a);
+      assert.strictEqual(result.form1040.line7a.ruleId, 'FED_SCHEDULE_D_CLASSIFICATION');
+    }
     if(fixture.expected?.line16 !== undefined){
       assert.strictEqual(annual1040Result.lines.line16.value, fixture.expected.line16);
     }

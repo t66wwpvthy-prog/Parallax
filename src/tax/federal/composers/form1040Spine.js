@@ -15,6 +15,7 @@ import {
 import { taxableSocialSecurity } from '../rules/taxableSocialSecurity.js';
 import { traditionalIraDeductibility } from '../rules/traditionalIraDeductibility.js';
 import { standardDeduction } from '../rules/standardDeduction.js';
+import { scheduleDClassification } from '../rules/scheduleDClassification.js';
 
 const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
 
@@ -64,9 +65,34 @@ function buildLine6b(input, context, audits){
   return deferredLine('line6b');
 }
 
-function buildLine7a(input){
+function resolveScheduleDClassification(input, context, audits){
+  if(!input.scheduleD) return null;
+  const classified = scheduleDClassification.calculate({
+    filingStatus: input.filingStatus,
+    line7: input.scheduleD.line7,
+    line15: input.scheduleD.line15,
+    line16: input.scheduleD.line16,
+    line18: input.scheduleD.line18 ?? 0,
+    line19: input.scheduleD.line19 ?? 0,
+  }, context);
+  audits.push(classified.audit);
+  return {
+    ...classified.result,
+    auditIndex: audits.length - 1,
+  };
+}
+
+function buildLine7a(input, context, audits, scheduleDClassificationResult){
   const supplied = readSupplied(input, 'line7a');
   if(supplied !== undefined) return suppliedLine('line7a', supplied);
+
+  if(scheduleDClassificationResult){
+    return calculatedLine('line7a', scheduleDClassificationResult.form1040Line7, {
+      ruleId: 'FED_SCHEDULE_D_CLASSIFICATION',
+      auditIndex: scheduleDClassificationResult.auditIndex,
+    });
+  }
+
   if(input.capitalGains?.netLongTermCapitalGains !== undefined){
     return calculatedLine('line7a', input.capitalGains.netLongTermCapitalGains, {
       ruleId: 'COMPOSER_CAPITAL_GAINS',
@@ -142,15 +168,17 @@ function buildLine12e(input, context, audits){
 }
 
 /** Resolve preferential amounts for line 16 from explicit rule input or 1040 spine lines. */
-export function resolvePreferentialComponents(input){
+export function resolvePreferentialComponents(input, scheduleDClassificationResult = null){
   const cg = input.capitalGains;
 
   let netLongTermCapitalGains = 0;
-  if(cg?.netLongTermCapitalGains !== undefined){
+  if(scheduleDClassificationResult){
+    netLongTermCapitalGains = scheduleDClassificationResult.preferentialScheduleDGain;
+  } else if(cg?.netLongTermCapitalGains !== undefined){
     netLongTermCapitalGains = cg.netLongTermCapitalGains;
   } else {
     const line7 = readSupplied(input, 'line7a');
-    if(line7 !== undefined) netLongTermCapitalGains = line7;
+    if(line7 !== undefined && line7 > 0) netLongTermCapitalGains = line7;
   }
 
   let qualifiedDividends = 0;
@@ -165,16 +193,19 @@ export function resolvePreferentialComponents(input){
     netLongTermCapitalGains,
     qualifiedDividends,
     total: round2(netLongTermCapitalGains + qualifiedDividends),
+    scheduleDClassification: scheduleDClassificationResult,
   };
 }
 
-function preferentialIncome(input){
-  return resolvePreferentialComponents(input).total;
+function preferentialIncome(input, scheduleDClassificationResult = null){
+  return resolvePreferentialComponents(input, scheduleDClassificationResult).total;
 }
 
 function buildIncomeAndDeductionLines(input, context, audits){
+  const scheduleDClassificationResult = resolveScheduleDClassification(input, context, audits);
+
   if(isLine15Shortcut(input)){
-    const pref = preferentialIncome(input);
+    const pref = preferentialIncome(input, scheduleDClassificationResult);
     const line15Value = pref > 0
       ? round2(input.taxableOrdinaryIncome + pref)
       : input.taxableOrdinaryIncome;
@@ -199,6 +230,11 @@ function buildIncomeAndDeductionLines(input, context, audits){
     const suppliedLine7 = readSupplied(input, 'line7a');
     if(suppliedLine7 !== undefined){
       form1040.line7a = suppliedLine('line7a', suppliedLine7);
+    } else if(scheduleDClassificationResult){
+      form1040.line7a = calculatedLine('line7a', scheduleDClassificationResult.form1040Line7, {
+        ruleId: 'FED_SCHEDULE_D_CLASSIFICATION',
+        auditIndex: scheduleDClassificationResult.auditIndex,
+      });
     } else if(input.capitalGains?.netLongTermCapitalGains !== undefined){
       form1040.line7a = calculatedLine('line7a', input.capitalGains.netLongTermCapitalGains, {
         ruleId: 'COMPOSER_CAPITAL_GAINS',
@@ -218,6 +254,7 @@ function buildIncomeAndDeductionLines(input, context, audits){
       ordinaryTaxableIncome: Math.max(0, ordinaryTaxableIncome),
       preferentialIncome: pref,
       shortcut: true,
+      scheduleDClassification: scheduleDClassificationResult,
     };
   }
 
@@ -229,7 +266,7 @@ function buildIncomeAndDeductionLines(input, context, audits){
     line4b: resolveIncomeComponent('line4b', readSupplied(input, 'line4b')),
     line5b: resolveIncomeComponent('line5b', readSupplied(input, 'line5b')),
     line6b: buildLine6b(input, context, audits),
-    line7a: buildLine7a(input),
+    line7a: buildLine7a(input, context, audits, scheduleDClassificationResult),
     line8: resolveIncomeComponent('line8', readSupplied(input, 'line8')),
   };
 
@@ -257,7 +294,7 @@ function buildIncomeAndDeductionLines(input, context, audits){
   const line15Value = Math.max(0, round2(lineAmount(line11b) - lineAmount(line14)));
   const line15 = calculatedLine('line15', line15Value);
 
-  const pref = preferentialIncome(input);
+  const pref = preferentialIncome(input, scheduleDClassificationResult);
   const ordinaryTaxableIncome = input.ordinaryTaxableIncome !== undefined
     ? input.ordinaryTaxableIncome
     : Math.max(0, round2(line15Value - pref));
@@ -297,6 +334,7 @@ function buildIncomeAndDeductionLines(input, context, audits){
     ordinaryTaxableIncome,
     preferentialIncome: pref,
     shortcut: false,
+    scheduleDClassification: scheduleDClassificationResult,
   };
 }
 

@@ -23,7 +23,7 @@ function resolvePassThroughTaxLine(input, lineId){
   return deferredLine(lineId);
 }
 
-function buildTaxLines(input, context, form1040, ordinaryTaxableIncome, preferentialIncome, audits){
+function buildTaxLines(input, context, form1040, ordinaryTaxableIncome, preferentialIncome, audits, scheduleDClassificationResult){
   const ordinaryInput = {
     filingStatus: input.filingStatus,
     taxableOrdinaryIncome: ordinaryTaxableIncome,
@@ -36,7 +36,8 @@ function buildTaxLines(input, context, form1040, ordinaryTaxableIncome, preferen
   let line16AuditIndex = audits.length - 1;
 
   if(preferentialIncome > 0){
-    const { netLongTermCapitalGains, qualifiedDividends } = resolvePreferentialComponents(input);
+    const { netLongTermCapitalGains, qualifiedDividends } =
+      resolvePreferentialComponents(input, scheduleDClassificationResult);
     const capitalGains = capitalGainsStacking.calculate({
       filingStatus: input.filingStatus,
       ordinaryTaxableIncome,
@@ -79,7 +80,7 @@ function buildTaxLines(input, context, form1040, ordinaryTaxableIncome, preferen
 }
 
 export function composeAnnualFederalTax(input, context){
-  const { form1040: incomeSpine, ordinaryTaxableIncome, preferentialIncome, audits } =
+  const { form1040: incomeSpine, ordinaryTaxableIncome, preferentialIncome, audits, scheduleDClassification } =
     buildForm1040IncomeSpine(input, context);
 
   const form1040 = buildTaxLines(
@@ -88,7 +89,8 @@ export function composeAnnualFederalTax(input, context){
     incomeSpine,
     ordinaryTaxableIncome,
     preferentialIncome,
-    audits
+    audits,
+    scheduleDClassification
   );
 
   const totalFederalTax = form1040.line24.value;

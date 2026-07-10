@@ -12,7 +12,7 @@
 git fetch origin
 git checkout feat/tax-t2-income-spine
 git pull origin feat/tax-t2-income-spine   # after first push; until then: git merge origin/main
-npm test                                   # must be 158 passed before claiming done
+npm test                                   # must be 167 passed before claiming done
 ```
 
 Optional isolated worktree (keeps Household edits separate):
@@ -84,6 +84,6 @@ See `docs/tax/T2-HANDOFF.md`.
 PARALLAX TAX — read docs/tax/GPT-TAX-WORKFLOW.md and docs/tax/T2-HANDOFF.md
 Branch: feat/tax-t2-income-spine (NOT feat/household-wizard)
 Base: main @ 7f2d057 (T1 merged PR #80)
-Tests: npm test must pass (158 baseline)
+Tests: npm test must pass (167 baseline on feat/tax-t2-income-spine)
 Scope: T2 only — no T3 rules, no adapters, no UI
 ```

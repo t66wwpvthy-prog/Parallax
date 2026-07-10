@@ -4,11 +4,19 @@
 **Base:** `main` @ `7f2d057` (T1 merged, PR #80)  
 **Validation:** `npm test` only (no `verify.mjs` — no UI)
 
+## Status
+
+**Schedule D classification implemented** — `FED_SCHEDULE_D_CLASSIFICATION` rule wired through `form1040Spine.js`.
+
+- annual-08 no longer supplies manual `netLongTermCapitalGains: 0`
+- Form 1040 line 7a calculated as `-$3,000` from Schedule D loss limitation
+- Preferential Schedule D gain `$0`; qualified dividends `$3,358` via line 3a
+- Benchmark still passes: line 24 `$10,330.40` vs filed `$10,331` (-$0.60)
+- **167 tests passing**
+
 ## Goal
 
 Reconcile **Form 1040 lines 1–16** from complete inputs on the authoritative benchmark, without inventing missing income categories.
-
-T1 locked line 15 and the worksheet split as fixture facts. T2 makes preferential-income and Schedule D handling **calculated**, not only supplied.
 
 ## Authoritative benchmark (do not break)
 
@@ -17,59 +25,42 @@ Fixture: `src/tax/tests/fixtures/annual/annual-08-authoritative-2025-mfj.json`
 | Input / result | Value |
 |----------------|------:|
 | Line 15 (taxable income) | $80,328 |
+| Line 7a (from Schedule D) | -$3,000 |
 | Qualified dividends (3a) | $3,358 |
 | Schedule D line 16 | -$7,656 |
-| Worksheet Schedule D gain used | $0 (loss → no preferential gain from Sch D) |
+| Worksheet Schedule D gain used | $0 |
 | Ordinary-taxable portion | $76,970 |
 | Parallax line 16 | $8,759.40 |
-| Filed line 16 (Tax Table) | $8,760 |
 | Line 24 | $10,330.40 (filed $10,331, -$0.60) |
 
-Full attribution: `docs/tax/T1-BENCHMARK-RECONCILIATION.md`
+## Implemented (T2)
 
-## T2 work items
+### `scheduleDClassification.js`
 
-### 1. Schedule D ST/LT classification (priority)
+- Verifies line 16 = line 7 + line 15
+- Capital-loss limit: $3,000 ($1,500 MFS)
+- Preferential gain: `min(line15, line16)` when both positive; else $0
+- Rejects lines 18/19 > 0 (Schedule D Tax Worksheet required)
 
-Fixture already captures Schedule D lines 7, 15, 16, 18, 19. Today:
+### Composer wiring
 
-- `scheduleD` is recorded as `architectureLater` in intake report
-- Preferential stacking uses supplied `capitalGains.qualifiedDividends` and `netLongTermCapitalGains` only
+- `form1040Spine.js` — Schedule D → line 7a + preferential components
+- `annualFederalTax.js` — passes classification to stacking
+- `capitalGainsStacking.js` — unchanged
+- `intakeReport.js` — metadata updated when classification applied
 
-**Deliver:** derive preferential components from Schedule D detail where present; respect loss → $0 worksheet gain rule.
-
-Key files:
-
-- `src/tax/federal/composers/form1040Spine.js`
-- `src/tax/federal/rules/capitalGainsStacking.js`
-- `src/tax/adapters/intakeReport.js`
-- `src/tax/core/1040BasicLineMap.js`
-
-### 2. Line 16 Tax Table gap (optional)
-
-The **$0.60** delta vs filed line 16 is IRS Tax Table rounding vs exact bracket math on $76,970 ordinary-taxable income.
-
-**Deliver (optional):** Tax Table lookup for worksheet line 22 when benchmark requires it; or document as accepted tolerance and skip.
-
-### 3. Tests
-
-- Keep `annual-08` passing within $1 line 24 tolerance
-- Add rule/composer tests for Schedule D → preferential path
-- Do not change `demo-wages` synthetic expectations unless intake shape changes
-
-## Explicitly deferred
+## Deferred
 
 | Item | Phase |
 |------|-------|
-| $1,028 self-employment tax calculation | T3 |
-| $543 NIIT calculation | T3 |
-| Additional Medicare, AMT, credits | T3 |
-| Filing status / SS / basis from planner rows | T4 |
-| Cash Flow tax column / sidecar UI | T5 |
+| IRS Tax Table vs exact bracket ($0.60) | optional T2 follow-up |
+| Schedule D Tax Worksheet (lines 18/19 > 0) | T2+ or T3 |
+| $1,028 SE tax + $543 NIIT calculation | T3 |
+| Planner adapter facts | T4 |
 
 ## Success criteria
 
-- [ ] Schedule D facts drive preferential income when supplied (annual-08 still passes)
-- [ ] `npm test` — 158+ passed, 0 failed
-- [ ] No changes to `engine.js`, `src/planning/tax/*`, or `ui/*`
-- [ ] One rule per file + `rulesLedger.js` entry if new rules added
+- [x] Schedule D facts drive preferential income when supplied (annual-08 passes)
+- [x] `npm test` — 167 passed, 0 failed
+- [x] No changes to `engine.js`, `src/planning/tax/*`, or `ui/*`
+- [x] One rule file + test + `rulesLedger.js` entry

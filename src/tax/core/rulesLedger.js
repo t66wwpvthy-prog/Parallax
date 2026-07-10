@@ -4,6 +4,7 @@ import { ordinaryIncomeTax } from '../federal/rules/ordinaryIncomeTax.js';
 import { standardDeduction } from '../federal/rules/standardDeduction.js';
 import { traditionalIraDeductibility } from '../federal/rules/traditionalIraDeductibility.js';
 import { capitalGainsStacking } from '../federal/rules/capitalGainsStacking.js';
+import { scheduleDClassification } from '../federal/rules/scheduleDClassification.js';
 import { taxableSocialSecurity } from '../federal/rules/taxableSocialSecurity.js';
 
 export const rulesLedger = [
@@ -11,6 +12,7 @@ export const rulesLedger = [
   standardDeduction,
   traditionalIraDeductibility,
   capitalGainsStacking,
+  scheduleDClassification,
   taxableSocialSecurity,
 ];
 
