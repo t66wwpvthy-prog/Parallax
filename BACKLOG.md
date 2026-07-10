@@ -27,12 +27,12 @@ Format: `- [YYYY-MM-DD] short description (why / context)`
   into an invariant.
 
 ## Tech debt / structure
-- [2026-07-10] Tax engine completion — see tax execution plan (NIIT, spine lines
-  17–23, adapter gaps, demo-wages benchmark). Build in `src/tax/`; wire through
-  `src/planning/tax/`; do not put federal tax math in `engine.js` or UI modules.
-- [2026-07-10] Asset-class bucketing — per-account allocation detail in `engine.js`
-  (sim truth) with new Household/Scenarios UI in `ui/*`. After tax Phase T3 or in
-  parallel once tax adapter seam is stable.
+- [2026-07-10] Thin `src/main.js` — extract to `src/household/*` and `src/scenarios/*`
+  per `docs/ARCHITECTURE.md`. First target: `persistence.js` (household DB). Do alongside
+  feature work, not as a standalone sprint.
+- [2026-07-10] Tax engine completion — see `docs/ARCHITECTURE.md` workstreams and
+  `docs/TAX-HANDOFF-2026-06-22.md` (T0–T6).
+- [2026-07-10] Asset-class bucketing — `engine.js` + `ui/household.js`; after tax T1.
 
 ## Flexibility / "don't trap the input"
 - [2026-07-07] Spending lever range is a fixed $80k–$360k window (LEVCFG `spend`).
