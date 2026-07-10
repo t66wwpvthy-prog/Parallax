@@ -3,6 +3,7 @@
 import { ANNUAL_1040_MODULE_VERSION } from '../../tax/annual1040.js';
 import { TaxInputError } from '../../tax/core/errors.js';
 import { buildPlanMetaFromEngineParams, buildRowPlanMetaFromOptions } from './buildPlanMetaFromEngineParams.js';
+import { buildRowTaxableGainPlanMeta } from './taxableBasisTracker.js';
 import { runTaxForScenarioPath } from './runTaxForScenarioPath.js';
 
 const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
@@ -71,7 +72,10 @@ export function attachTypicalPathFederalTax(analysis, options = {}){
   if(rows.length === 0) return emptySummary(typical);
 
   const planMeta = buildPlanMetaFromEngineParams(params, options);
-  const rowPlanMeta = buildRowPlanMetaFromOptions(options);
+  const baseRowPlanMeta = buildRowPlanMetaFromOptions(options);
+  const rowPlanMeta = options.taxableGainFraction !== undefined
+    ? baseRowPlanMeta
+    : buildRowTaxableGainPlanMeta(baseRowPlanMeta);
   const scenarioId = options.scenarioId ?? 'typical_path';
 
   const { results } = runTaxForScenarioPath(rows, planMeta, {

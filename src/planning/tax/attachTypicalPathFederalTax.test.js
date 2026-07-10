@@ -4,14 +4,14 @@ import { generateReturnPath, runSimulation, defaultPlan } from '../../../engine.
 import { attachTypicalPathFederalTax } from './attachTypicalPathFederalTax.js';
 import { buildPlanMetaFromEngineParams, buildRowPlanMetaFromOptions } from './buildPlanMetaFromEngineParams.js';
 
-test('buildPlanMetaFromEngineParams derives taxable gain fraction from account basis', () => {
+test('buildPlanMetaFromEngineParams requires filing status and optional overrides', () => {
   const planMeta = buildPlanMetaFromEngineParams({
     accounts: {
       taxable: { balance: 1000000, basis: 600000 },
       traditional: { balance: 0 },
       roth: { balance: 0 },
     },
-  }, { filingStatus: 'marriedFilingJointly', baseTaxYear: 2025 });
+  }, { filingStatus: 'marriedFilingJointly', baseTaxYear: 2025, taxableGainFraction: 0.4 });
 
   assert.strictEqual(planMeta.filingStatus, 'marriedFilingJointly');
   assert.strictEqual(planMeta.taxableGainFraction, 0.4);

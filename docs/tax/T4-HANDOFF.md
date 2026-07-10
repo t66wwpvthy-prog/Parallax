@@ -26,14 +26,21 @@ The federal tax **rules** are largely ready for benchmark returns. T4 connects *
 - MFS requires explicit `livedWithSpouse`
 - 176 tests passing; `verify.mjs` passed
 
+**Gain fraction (T4.3) — in progress (PR)**
+
+- Engine exposes read-only `row.taxableGainFraction` at start-of-year when taxable withdrawals occur
+- Adapter consumes row fact via `buildRowTaxableGainPlanMeta` (no duplicated basis replay)
+- Static starting-basis fraction removed from `buildPlanMetaFromEngineParams`; explicit override still supported
+- Empty-then-funded: engine reports `0` gain fraction once RMD-funded taxable is withdrawn
+
 ## Remaining T4 gaps
 
 | Planner fact | Current handling | Consequence |
 |--------------|------------------|-------------|
 | Filing status | ~~Defaults to MFJ~~ | **Fixed T4.1** — passes from household `plan.meta` |
 | Social Security | ~~Gross only, line 6b = $0~~ | **Fixed T4.2** — worksheet drives line 6b |
-| Taxable-account gain | Static gain fraction from starting basis | Ignores basis depletion |
-| Empty taxable account | No gain fraction created | Later withdrawals can abort attach |
+| Taxable-account gain | ~~Static gain fraction from starting basis~~ | **T4.3** — `row.taxableGainFraction` from engine |
+| Empty taxable account | ~~No gain fraction created~~ | **T4.3** — engine fact; attach no longer aborts |
 | Traditional withdrawals/RMDs | Assumed 100% taxable | Nondeductible basis lost |
 | Pension / other income | `taxablePct` discarded | Wrong taxable amounts |
 | Interest/dividends | Not on planner rows | Lines 2b/3a/3b absent |
@@ -54,7 +61,7 @@ The federal tax **rules** are largely ready for benchmark returns. T4 connects *
 
 1. ~~**Filing status**~~ — done (T4.1)
 2. ~~**Social Security**~~ — done (T4.2)
-3. **Gain fraction** — dynamic basis / reinvested RMD handling; no throw on empty-then-funded taxable
+3. **Gain fraction** — engine row fact + adapter consume (T4.3 PR)
 4. **Zero-income / failed years** — deterministic skip or empty-year handling (no path abort)
 5. **taxablePct** on other income streams
 6. Tests for representative MFJ, single, SS, RMD, survivor cases

@@ -9,14 +9,11 @@ function assertPlainObject(value, label){
   }
 }
 
-function resolveTaxableGainFraction(params, options){
+function resolveTaxableGainFraction(options){
   if(options.taxableGainFraction !== undefined){
     return options.taxableGainFraction;
   }
-  const taxable = params.accounts?.taxable;
-  if(!taxable || !(taxable.balance > 0)) return undefined;
-  const basis = taxable.basis ?? 0;
-  return Math.max(0, Math.min(1, 1 - basis / taxable.balance));
+  return undefined;
 }
 
 /**
@@ -46,7 +43,7 @@ export function buildPlanMetaFromEngineParams(params, options = {}){
     treatWithdrawalsAsFullyTaxable: options.treatWithdrawalsAsFullyTaxable !== false,
   };
 
-  const taxableGainFraction = resolveTaxableGainFraction(params, options);
+  const taxableGainFraction = resolveTaxableGainFraction(options);
   if(taxableGainFraction !== undefined){
     planMeta.taxableGainFraction = taxableGainFraction;
   }
