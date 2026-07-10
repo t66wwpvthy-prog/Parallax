@@ -576,10 +576,10 @@
 
 .page[data-page="scenarios"] .cf-row { align-items: start; padding: 5px 26px; }
 .page[data-page="scenarios"] .cf-row__year { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; color: var(--text-3); }
-.page[data-page="scenarios"] .cf-row__mark { width: 8px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+.page[data-page="scenarios"] .cf-row__mark { width: 10px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
 .page[data-page="scenarios"] .cf-row__mark-dot { flex-shrink: 0; }
-.page[data-page="scenarios"] .cf-row__mark-dot--ret { width: 5px; height: 5px; border-radius: 50%; background: #8eb4c9; box-shadow: 0 0 0 2px rgba(142, 180, 201, 0.32); }
-.page[data-page="scenarios"] .cf-row__mark-dot--rmd { width: 5px; height: 5px; border-radius: 50%; background: transparent; border: 1.5px solid #a89088; }
+.page[data-page="scenarios"] .cf-row__mark-dot--ret { width: 6px; height: 6px; border-radius: 50%; background: #a8d4e8; box-shadow: 0 0 0 2.5px rgba(168, 212, 232, 0.45); }
+.page[data-page="scenarios"] .cf-row__mark-dot--rmd { width: 6px; height: 6px; border-radius: 50%; background: transparent; border: 2px solid #c9a8a0; box-shadow: 0 0 0 1px rgba(201, 168, 160, 0.25); }
 .page[data-page="scenarios"] .cf-cell { font-size: 14px; text-align: right; white-space: nowrap; }
 .page[data-page="scenarios"] .cf-cell--age { color: var(--text-4); text-align: left; }
 .page[data-page="scenarios"] .cf-cell--essential { color: var(--text-2b); }
