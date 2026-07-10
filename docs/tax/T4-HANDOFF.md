@@ -1,8 +1,8 @@
 # T4 planner adapter handoff
 
 **Branch:** `feat/tax-t4-planner-adapter` (continue on same branch)  
-**Base:** `main` @ `d9360c5` (T1–T3 + T4.1 #83 + T4.2 #84 + T4.3 #86 + T4.4 #87 merged; T4.5 PR pending)  
-**Validation:** `npm test` (187 baseline) + `verify.mjs`
+**Base:** `main` @ `2602fc8` (T1–T3 + T4.1–T4.5 merged)
+**Validation:** `npm test` (190 passed, 1 skipped) + `verify.mjs` passed
 
 ## Goal
 
@@ -39,12 +39,20 @@ The federal tax **rules** are largely ready for benchmark returns. T4 connects *
 - The real depletion/failure year remains in the annual results
 - Post-depletion filler rows (`failed: true`, `source: null`) are skipped without aborting the path
 
-**Other-income taxable share (T4.5) — complete**
+**Other-income taxable share (T4.5) — complete** (#89)
 
 - Engine retirement rows expose `otherIncomeTaxable` from the existing `oiTaxable` calculation
 - Adapter maps the taxable portion to Form 1040 line 8 and the Social Security worksheet
 - Older rows without the fact retain gross `otherIncome` as a compatibility fallback
 - Default `taxablePct: 1` behavior is unchanged
+
+**Representative planner integration (T4.6) — complete**
+
+- MFJ and single paths preserve filing status through sidecar intake and attached line 24
+- SS-heavy path calculates line 6b from engine Social Security facts
+- RMD plus taxable-withdrawal path cross-checks IRA gross and `taxableGainFraction`
+- Partly taxable other income cross-checks `otherIncomeTaxable` against line 8
+- Survivor transition is explicitly skipped: the engine has no death/survivor state or filing-status transition row fact
 
 ## Remaining T4 gaps
 
@@ -63,6 +71,7 @@ The federal tax **rules** are largely ready for benchmark returns. T4 connects *
 | Asset sales | `row.assetSale` ignored | Sale gain not reconstructed |
 | Age | Dropped | Blocks age-based rules |
 | Deductions | Standard assumed | No itemized from plan |
+| Survivor transition | No death/survivor row state | Integration test skipped pending an engine contract |
 
 ## Key files
 
@@ -82,7 +91,7 @@ The federal tax **rules** are largely ready for benchmark returns. T4 connects *
 3. ~~**Gain fraction**~~ — done (T4.3)
 4. ~~**Zero-income / failed years**~~ — done (T4.4)
 5. ~~**taxablePct on other income streams**~~ — done (T4.5)
-6. Integration tests for representative MFJ, single, SS, RMD, survivor cases
+6. ~~Integration tests for representative MFJ, single, SS, and RMD cases~~ — done (T4.6); survivor skipped pending engine support
 7. Remaining gaps: traditional nondeductible basis, asset sales, age, itemized deductions
 
 ## Out of scope (T4)
@@ -102,7 +111,9 @@ The federal tax **rules** are largely ready for benchmark returns. T4 connects *
 - [x] Zero-income retirement year does not abort entire path
 - [x] Post-depletion filler rows skipped; real failure year retained
 - [x] Other-income `taxablePct` reaches Form 1040 line 8 from an engine row fact
-- [x] `npm test` — 187 pass
+- [x] Representative MFJ, single, SS-heavy, and RMD/taxable paths attach end to end
+- [ ] Survivor filing transition — blocked on missing engine death/survivor state
+- [x] `npm test` — 190 pass, 1 intentional survivor skip
 - [x] `node scripts/verify.mjs` — passes (UI smoke)
 - [x] No tax rule math added to `ui/*` or `engine.js` (adapter/glue only)
 
