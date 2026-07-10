@@ -27,31 +27,12 @@ Format: `- [YYYY-MM-DD] short description (why / context)`
   into an invariant.
 
 ## Tech debt / structure
-- [2026-07-07] Dead-code audit of index.html (test-guarded). Confirmed retired code
-  still shipping: `renderGoalsHorizon()` (~line 3317) + `initGoalsHorizon()` (~line
-  3522) — replaced by `renderGoalsChapters()`, comment says "preserved below" (~280
-  lines); and the "PRESERVED richer lever editor" grid (~line 4218, `buildLevers`
-  slider/type-in grid) that is unmounted in the Scenarios redesign. Before deleting:
-  grep each symbol for LIVE callers (buildLevers is still invoked and no-ops when
-  #scn-levers is absent, so it needs care), remove in small commits, run full verify
-  after each. Goal: cut genuine bloat, not relocate it.
-- [2026-07-07] buildLevers() lever-editor grid is a CALLED NO-OP, not simple dead
-  code: the `#scn-levers` markup was removed in the Scenarios redesign so buildLevers
-  renders nothing, but it's still invoked from ~15 live sites (scenario add/remove,
-  reseedScenarios, household load, solver, boot). Don't pure-delete. During the
-  Scenarios modularization, either stub it or drop the call sites, and remove its
-  now-unused helpers (renderLevValue, stepper, updateCell, barFillPct, isDollarLever
-  + the #scn-levers delegate) after confirming none are used by the live views.
-- [2026-07-07] Modularize index.html (currently ~5,790 lines; a single
-  <script type="module">). Split into native ES modules (NO bundler needed — the app
-  already imports engine.js as ESM and is served statically). Proposed layout: state
-  (household store + scenarios), config (LEVCFG/levRange), engine-bridge
-  (leversToOverrides/planForScenario/runAll), views (household / goals / scenarios /
-  sequencing / notes), main.js boot. KEY CAVEAT: verify.mjs static checks regex the
-  index.html string for symbols (e.g. /function createDemoHousehold/) — those must be
-  repointed to scan the module files, or they'll fail even though behavior is intact.
-  Do dead-code audit FIRST, then extract leaf/pure modules, then shared-state module,
-  then big views — one phase per commit, full verify between phases.
+- [2026-07-10] Tax engine completion — see tax execution plan (NIIT, spine lines
+  17–23, adapter gaps, demo-wages benchmark). Build in `src/tax/`; wire through
+  `src/planning/tax/`; do not put federal tax math in `engine.js` or UI modules.
+- [2026-07-10] Asset-class bucketing — per-account allocation detail in `engine.js`
+  (sim truth) with new Household/Scenarios UI in `ui/*`. After tax Phase T3 or in
+  parallel once tax adapter seam is stable.
 
 ## Flexibility / "don't trap the input"
 - [2026-07-07] Spending lever range is a fixed $80k–$360k window (LEVCFG `spend`).
@@ -68,6 +49,13 @@ Format: `- [YYYY-MM-DD] short description (why / context)`
   years before they retire, if we want the accumulation phase to look real.
 
 ## Done (for reference; prune when stale)
+- [2026-07-10] UI modularization (Phases 0–8). `index.html` → 255 lines markup;
+  `src/main.js` boot/orchestration; `src/state.js`; `ui/*` view modules (dom,
+  chartLayout, goalPalette, householdFactories, household, goals, sequencing,
+  cashflow, scenarios, solver). `buildLevers` and retired `#scn-levers` code
+  removed. `verify.mjs` scans html + modules. 156 tests + verify pass.
+- [2026-07-07] Goals Horizon dead code removed from index.html (PR #67). Goals Ledger
+  (`renderGoalsPage`, `initGoalsPage`) is the live view; icon/color constants kept.
 - [2026-07-07] Retirement age goes inert once the household is already retired
   (hidden from Scenarios levers, no engine effect). Shipped + tested.
 - [2026-07-07] Multi-household persistence + demo/blank factories, per-household

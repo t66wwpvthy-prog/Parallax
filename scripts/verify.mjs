@@ -4,7 +4,7 @@
 
    Run: node scripts/verify.mjs */
 import puppeteer from 'puppeteer';
-import { existsSync, mkdirSync, readFile, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, readFile, readFileSync, readdirSync, rmSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
@@ -63,6 +63,27 @@ function closeServer(server){
   return new Promise(resolveClose => server.close(resolveClose));
 }
 
+function jsFilesUnder(dir){
+  if(!existsSync(dir)) return [];
+  return readdirSync(dir, { withFileTypes:true }).flatMap(entry => {
+    const filePath = join(dir, entry.name);
+    if(entry.isDirectory()) return jsFilesUnder(filePath);
+    return entry.isFile() && entry.name.endsWith('.js') ? [filePath] : [];
+  });
+}
+
+function appSource(html){
+  const rootModules = readdirSync(ROOT, { withFileTypes:true })
+    .filter(entry => entry.isFile() && entry.name.endsWith('.js'))
+    .map(entry => join(ROOT, entry.name));
+  const moduleFiles = [
+    ...rootModules,
+    ...jsFilesUnder(join(ROOT, 'ui')),
+    ...jsFilesUnder(join(ROOT, 'src')),
+  ];
+  return [html, ...moduleFiles.map(file => readFileSync(file, 'utf8'))].join('\n');
+}
+
 /* ── Household contract (static source assertions) ──────────────────────────
    Household is the 5-STEP SETUP WIZARD (Household → Accounts → Income →
    Retirement → Blueprint), an EDITABLE plan-input console. This asserts its
@@ -79,6 +100,7 @@ function verifyHousehold(){
   const fails = [];
   const ok = (cond, msg) => { if(!cond) fails.push(msg); };
   const html = read(join(ROOT, 'index.html'));
+  const source = appSource(html);
   const css  = read(join(ROOT, 'styles', 'household.css'));
   const main = read(join(ROOT, 'styles', 'main.css'));
 
@@ -86,60 +108,60 @@ function verifyHousehold(){
   ok(/class="hh-stepper"/.test(html), 'wizard stepper (.hh-stepper) missing');
   [1,2,3,4,5].forEach(n => ok(new RegExp(`id="hh-step-${n}"`).test(html), `stepper button #hh-step-${n} missing`));
   ok(/id="hh-plan-rail"/.test(html), 'live "Plan so far" rail (#hh-plan-rail) missing');
-  ok(/function renderWizRail\b/.test(html), 'plan-rail renderer (renderWizRail) missing');
-  ok(/function hhDefaultStep\b/.test(html), 'hhDefaultStep() landing heuristic missing');
-  ok(/data-hh-action="step-back"/.test(html) && /data-hh-action="step-next"/.test(html) && /data-hh-action="goto-planning"/.test(html), 'wizard footer actions missing');
+  ok(/function renderWizRail\b/.test(source), 'plan-rail renderer (renderWizRail) missing');
+  ok(/function hhDefaultStep\b/.test(source), 'hhDefaultStep() landing heuristic missing');
+  ok(/data-hh-action="step-back"/.test(source) && /data-hh-action="step-next"/.test(source) && /data-hh-action="goto-planning"/.test(source), 'wizard footer actions missing');
   // Tucked household controls menu (Switch / New / Demo / Clear).
   ok(/id="hh-menu-btn"/.test(html) && /id="hh-menu-pop"/.test(html), 'household controls menu (#hh-menu-btn / #hh-menu-pop) missing');
 
   // The RETIRED surfaces must be gone: Demographics, the chapter rail, the
   // Net Worth equilibrium and the Cash Flow chapter renderers.
-  ok(!/hh-chap-demographics/.test(html) && !/function renderHhDemographics\b/.test(html), 'retired Demographics chapter still present');
-  ok(!/hh-chap-networth/.test(html) && !/function renderHhNetWorth\b/.test(html), 'retired Net Worth chapter still present (hh-chap-networth / renderHhNetWorth)');
-  ok(!/hh-chap-cashflow/.test(html) && !/function renderHhCashflow\b/.test(html), 'retired Cash Flow chapter still present (hh-chap-cashflow / renderHhCashflow)');
-  ok(!/function renderHhBanner\b/.test(html), 'retired Household Basics banner renderer still present (renderHhBanner)');
-  ok(!/function renderHhFulcrum\b/.test(html) && !/function renderHhPillar\b/.test(html), 'retired equilibrium renderers still present (fulcrum/pillar)');
+  ok(!/hh-chap-demographics/.test(html) && !/function renderHhDemographics\b/.test(source), 'retired Demographics chapter still present');
+  ok(!/hh-chap-networth/.test(html) && !/function renderHhNetWorth\b/.test(source), 'retired Net Worth chapter still present (hh-chap-networth / renderHhNetWorth)');
+  ok(!/hh-chap-cashflow/.test(html) && !/function renderHhCashflow\b/.test(source), 'retired Cash Flow chapter still present (hh-chap-cashflow / renderHhCashflow)');
+  ok(!/function renderHhBanner\b/.test(source), 'retired Household Basics banner renderer still present (renderHhBanner)');
+  ok(!/function renderHhFulcrum\b/.test(source) && !/function renderHhPillar\b/.test(source), 'retired equilibrium renderers still present (fulcrum/pillar)');
   ok(/id=["']hh-view["']/.test(html), 'Household document mount (#hh-view) is missing');
   ok(/data-page=["']household["']/.test(html), 'Household container must carry data-page="household"');
   // Account Type Bank present with the required types (529 intentionally excluded for now)
-  ok(/HH_ACCOUNT_TYPES/.test(html), 'Account Type Bank (HH_ACCOUNT_TYPES) missing');
+  ok(/HH_ACCOUNT_TYPES/.test(source), 'Account Type Bank (HH_ACCOUNT_TYPES) missing');
   ['Checking','Savings','Money Market','CD','Brokerage (taxable)','Joint brokerage','Trust brokerage',
    'Traditional IRA','Rollover IRA','Roth IRA','401(k)','Roth 401(k)','403(b)','457','SEP IRA','SIMPLE IRA',
    'Solo 401(k)','Qualified Plan'].forEach(t => {
-    ok(html.includes(`'${t}'`), `Account Type Bank missing type: ${t}`);
+    ok(source.includes(`'${t}'`), `Account Type Bank missing type: ${t}`);
   });
-  ok(!html.includes(`'529'`), 'retired 529 account type still present in the bank');
-  ok(!/meta\.inflationPct/.test(html), 'engine-inert Inflation field must not ship in the wizard');
-  ok(/\['trust','Trust'\]/.test(html), 'Trust ownership option missing from HH_OWNERS');
+  ok(!source.includes(`'529'`), 'retired 529 account type still present in the bank');
+  ok(!/meta\.inflationPct/.test(source), 'engine-inert Inflation field must not ship in the wizard');
+  ok(/\['trust','Trust'\]/.test(source), 'Trust ownership option missing from HH_OWNERS');
 
   // exactly one renderer per step, no reassignment
   ['renderWizHousehold', 'renderWizAccounts', 'renderWizIncome', 'renderWizRetirement', 'renderWizBlueprint'].forEach(fn => {
-    const defs = (html.match(new RegExp('function\\s+' + fn + '\\b', 'g')) || []).length;
+    const defs = (source.match(new RegExp('function\\s+' + fn + '\\b', 'g')) || []).length;
     ok(defs === 1, 'Expected exactly one ' + fn + ' implementation; found ' + defs);
-    ok(!new RegExp(fn + '\\s*=\\s*function').test(html), fn + ' function reassignment detected');
+    ok(!new RegExp(fn + '\\s*=\\s*function').test(source), fn + ' function reassignment detected');
   });
 
   // Wizard data additions: addable children (engine-inert context), addable
   // primary home with the mortgage NESTED inside it, annual savings on the
   // Accounts step; working income must NOT render as a wizard input.
-  ok(/household\.children/.test(html), 'household.children[] (addable children) missing');
-  ok(/child:\s*\{\s*arr:'household\.children'/.test(html), 'ROW_KINDS child factory missing');
-  ok(/data-hh-action="add-home"/.test(html), 'addable Primary home action (add-home) missing');
-  ok(/data-hh-action="add-mortgage"/.test(html), 'nested mortgage add action (add-mortgage) missing');
-  ok(/hhField\('savings\.annual','money'\)/.test(html), 'Annual savings field missing from the Accounts step');
-  ok(!/hhField\('income\.workingIncome'/.test(html), 'working income must not render as a wizard input (engine-inert today)');
+  ok(/household\.children/.test(source), 'household.children[] (addable children) missing');
+  ok(/child:\s*\{\s*arr:'household\.children'/.test(source), 'ROW_KINDS child factory missing');
+  ok(/data-hh-action="add-home"/.test(source), 'addable Primary home action (add-home) missing');
+  ok(/data-hh-action="add-mortgage"/.test(source), 'nested mortgage add action (add-mortgage) missing');
+  ok(/hhField\('savings\.annual','money'\)/.test(source), 'Annual savings field missing from the Accounts step');
+  ok(!/hhField\('income\.workingIncome'/.test(source), 'working income must not render as a wizard input (engine-inert today)');
 
   // EDITABLE console: inline data-path inputs + a #hh-view delegate that writes
   // back to `plan` and reseeds/dirties scenarios (parity with the rest of the
   // input layer). This is the non-negotiable — Household must not be static.
-  ok(/function hhField\b/.test(html), 'Household inputs helper missing (hhField → renderField data-path controls)');
-  ok(/\$\(\s*['"]#hh-view['"]\s*\)\.addEventListener\(\s*['"]change['"]/.test(html), 'Household edit delegate missing (#hh-view change handler)');
-  ok(/function hhCommit\b/.test(html), 'Household commit (hhCommit) missing');
-  ok(/function\s+hhCommit\b[\s\S]{0,160}reseedScenarios\(\)[\s\S]{0,80}plansDirty\s*=\s*true/.test(html), 'Household edits must reseed + dirty scenarios exactly like the input layer (hhCommit)');
-  ok(/function syncHousehold\b/.test(html), 'syncHousehold() renderer missing');
+  ok(/function hhField\b/.test(source), 'Household inputs helper missing (hhField → renderField data-path controls)');
+  ok(/\$\(\s*['"]#hh-view['"]\s*\)\.addEventListener\(\s*['"]change['"]/.test(source), 'Household edit delegate missing (#hh-view change handler)');
+  ok(/function hhCommit\b/.test(source), 'Household commit (hhCommit) missing');
+  ok(/function\s+hhCommit\b[\s\S]{0,160}reseedScenarios\(\)[\s\S]{0,80}plansDirty\s*=\s*true/.test(source), 'Household edits must reseed + dirty scenarios exactly like the input layer (hhCommit)');
+  ok(/function syncHousehold\b/.test(source), 'syncHousehold() renderer missing');
 
   // no baked sample household
-  ok(!/Whitmore/i.test(html), 'Sample household data (Whitmore) must not ship in production');
+  ok(!/Whitmore/i.test(source), 'Sample household data (Whitmore) must not ship in production');
 
   // stylesheet hygiene
   const cssLinks = (html.match(/<link[^>]+styles\/household\.css[^>]*>/g) || []).length;
@@ -162,49 +184,48 @@ function verifyHousehold(){
   }
 
   // ── CP2 additions: reset/clear helpers, new action buttons, new input fields ──
-  ok(/function hhResetToDemo\b/.test(html),    'hhResetToDemo helper missing from index.html');
-  ok(/function hhClearHousehold\b/.test(html), 'hhClearHousehold helper missing from index.html');
-  ok(/data-hh-action=.add-spouse/.test(html),    'add-spouse action button missing');
-  ok(/data-hh-action=.remove-spouse/.test(html), 'remove-spouse action button missing');
-  ok(/data-hh-action=.add-pension-age/.test(html),'add-pension-age action button missing');
+  ok(/function hhResetToDemo\b/.test(source),    'hhResetToDemo helper missing from app source');
+  ok(/function hhClearHousehold\b/.test(source), 'hhClearHousehold helper missing from app source');
+  ok(/data-hh-action=.add-spouse/.test(source),    'add-spouse action button missing');
+  ok(/data-hh-action=.remove-spouse/.test(source), 'remove-spouse action button missing');
+  ok(/data-hh-action=.add-pension-age/.test(source),'add-pension-age action button missing');
   ok(/id=.hh-act-demo/.test(html),  'Demo rail button (hh-act-demo) missing');
   ok(/id=.hh-act-clear/.test(html), 'Clear rail button (hh-act-clear) missing');
 
   // ── Multi-household state management: pure factories + records-by-id store ──
   // The app boots with a demo household but supports creating/switching custom
   // households, and demo values must never overwrite a custom household on reload.
-  ok(/function createDemoHousehold\b/.test(html),  'createDemoHousehold() factory missing');
-  ok(/function createBlankHousehold\b/.test(html), 'createBlankHousehold() factory missing');
-  ok(/function hydratePlan\b/.test(html),          'hydratePlan() (in-place plan hydrate) missing');
-  ok(/function bootstrapHouseholds\b/.test(html),  'bootstrapHouseholds() (first-load seed + reload hydrate) missing');
-  ok(/function newHousehold\b/.test(html),         'newHousehold() action missing');
-  ok(/function switchHousehold\b/.test(html),      'switchHousehold() action missing');
-  ok(/function hhAlreadyRetired\b/.test(html),     'hhAlreadyRetired() helper missing (retirement age must go inert once retired)');
-  ok(/meta\.householdId/.test(html), 'household record must carry meta.householdId');
-  ok(/meta\.isDemo/.test(html),      'household record must carry meta.isDemo');
-  ok(/meta\.name\s*=/.test(html),    'household record must carry meta.name');
-  ok(/['"]parallax\.households\.v1['"]/.test(html),       'households store key (parallax.households.v1) missing');
-  ok(/['"]parallax\.activeHouseholdId['"]/.test(html),    'active-household key (parallax.activeHouseholdId) missing');
+  ok(/function createDemoHousehold\b/.test(source),  'createDemoHousehold() factory missing');
+  ok(/function createBlankHousehold\b/.test(source), 'createBlankHousehold() factory missing');
+  ok(/function hydratePlan\b/.test(source),          'hydratePlan() (in-place plan hydrate) missing');
+  ok(/function bootstrapHouseholds\b/.test(source),  'bootstrapHouseholds() (first-load seed + reload hydrate) missing');
+  ok(/function newHousehold\b/.test(source),         'newHousehold() action missing');
+  ok(/function switchHousehold\b/.test(source),      'switchHousehold() action missing');
+  ok(/function hhAlreadyRetired\b/.test(source),     'hhAlreadyRetired() helper missing (retirement age must go inert once retired)');
+  ok(/meta\.householdId/.test(source), 'household record must carry meta.householdId');
+  ok(/meta\.isDemo/.test(source),      'household record must carry meta.isDemo');
+  ok(/meta\.name\s*=/.test(source),    'household record must carry meta.name');
+  ok(/['"]parallax\.households\.v1['"]/.test(source),       'households store key (parallax.households.v1) missing');
+  ok(/['"]parallax\.activeHouseholdId['"]/.test(source),    'active-household key (parallax.activeHouseholdId) missing');
   // Scenarios must be scoped per household (parallax.scenarios.<id>.v1) so demo
   // and custom scenario sets never collide; the old global key must be gone.
-  ok(/['"]parallax\.scenarios\.['"]/.test(html) || /SCEN_PREFIX/.test(html), 'scoped scenario key prefix (parallax.scenarios.) missing');
-  ok(!/['"]parallax\.scenarios\.v2['"]/.test(html), 'legacy global scenario key (parallax.scenarios.v2) must be gone');
+  ok(/['"]parallax\.scenarios\.['"]/.test(source) || /SCEN_PREFIX/.test(source), 'scoped scenario key prefix (parallax.scenarios.) missing');
+  ok(!/['"]parallax\.scenarios\.v2['"]/.test(source), 'legacy global scenario key (parallax.scenarios.v2) must be gone');
   // No standalone demo subtab / demo data page — this is state management only.
   ok(!/data-page=["']demo["']/.test(html), 'a separate demo page/subtab must NOT exist (state management, not navigation)');
   // Household selector + New Household controls.
   ok(/id=.hh-switch/.test(html), 'household switcher (#hh-switch) missing');
   ok(/id=.hh-new/.test(html),    'New Household button (#hh-new) missing');
-  ok(/meta\.filingStatus/.test(html), 'Filing status field (meta.filingStatus) missing from Household');
+  ok(/meta\.filingStatus/.test(source), 'Filing status field (meta.filingStatus) missing from Household');
   // NO basis input: the taxable cost-basis % is an engine default now, never an
   // advisor-facing wizard field.
-  ok(!/hhField\('portfolio\.accounts\.taxable\.basisPct'/.test(html), 'taxable cost-basis input must NOT ship in the wizard');
-  ok(/income\.pension\.colaPct/.test(html), 'Pension COLA % field (income.pension.colaPct) missing from Household');
+  ok(!/hhField\('portfolio\.accounts\.taxable\.basisPct'/.test(source), 'taxable cost-basis input must NOT ship in the wizard');
+  ok(/income\.pension\.colaPct/.test(source), 'Pension COLA % field (income.pension.colaPct) missing from Household');
   // colaPct must use pctPoints (stores raw whole-number %); the engine itself divides by 100
-  ok(/colaPct.*pctPoints|pctPoints.*colaPct/.test(html), 'pension colaPct must use data-type="pctPoints" not data-type="pct" (engine divides by 100 itself)');
+  ok(/colaPct.*pctPoints|pctPoints.*colaPct/.test(source), 'pension colaPct must use data-type="pctPoints" not data-type="pct" (engine divides by 100 itself)');
 
-  // no stale ui/household.js import or ensureHouseholdNetWorthView helper
-  ok(!/import.*ui\/household/.test(html), 'stale ui/household.js import in index.html');
-  ok(!/ensureHouseholdNetWorthView/.test(html), 'stale ensureHouseholdNetWorthView in index.html');
+  // no stale ensureHouseholdNetWorthView helper
+  ok(!/ensureHouseholdNetWorthView/.test(source), 'stale ensureHouseholdNetWorthView in app source');
 
   // main.css: retired .hh-bar / .hh-f selectors must be gone (comments excluded)
   if(main){

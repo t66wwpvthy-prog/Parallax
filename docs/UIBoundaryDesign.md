@@ -1,8 +1,14 @@
 # UI Boundary Design: index.html State & Module Extraction
 
+> **Status (2026-07-10):** Extraction **complete**. Live layout: `index.html` (255 lines,
+> markup only) → `src/main.js` (orchestration) → `src/state.js` + `ui/*` modules.
+> This document is **historical reference** for the pre-split state map and red flags.
+> For current file locations, grep `src/main.js` and `ui/*.js`.
+
 ## Overview
 
-The Parallax UI layer (`index.html`) is currently a 3,563-line monolithic module with 109 functions and 9 mutable state objects. This document defines:
+The Parallax UI layer was a monolithic `index.html` script before modularization.
+This document defines:
 
 1. **Shared state ownership** — what each global tracks, who reads/writes it
 2. **Communication pattern** — explicit params vs. centralized state
