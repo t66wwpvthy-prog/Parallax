@@ -1050,6 +1050,14 @@ function runSinglePath(p, returnPath){
       accounts.taxable.basis = Math.max(0, taxStartBasis - basisConsumed);
     }
 
+    // Start-of-year gain share for adapter/tax attach — read-only fact, not tax math.
+    const taxableWithdrawal = funding.breakdown.taxable;
+    const taxableGainFraction = taxableWithdrawal > 0.01
+      ? (taxStartBal > 0.01
+          ? Math.max(0, Math.min(1, (taxStartBal - taxStartBasis) / taxStartBal))
+          : 0)
+      : undefined;
+
     // ── RMD: force out any required distribution beyond what spending pulled ──
     // Spending may already have drawn from Traditional (funding.breakdown). Only
     // the shortfall to the required amount is forced. It's taxed as ordinary
@@ -1122,6 +1130,7 @@ function runSinglePath(p, returnPath){
         traditional: accounts.traditional.balance,
         roth: accounts.roth.balance
       },
+      ...(taxableGainFraction !== undefined ? { taxableGainFraction } : {}),
       taxBySource: {
         ss: taxOnSS, oi: taxOnOI,
         traditional: funding.taxBySource.traditional,
