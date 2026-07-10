@@ -56,6 +56,12 @@ for(const fixture of loadAnnualFixtures()){
     if(fixture.expected?.line16 !== undefined){
       assert.strictEqual(annual1040Result.lines.line16.value, fixture.expected.line16);
     }
+    for(const lineId of ['line17', 'line19', 'line20', 'line23']){
+      const key = lineId;
+      if(fixture.expected?.[key] !== undefined){
+        assert.strictEqual(annual1040Result.line24Breakdown[key], fixture.expected[key]);
+      }
+    }
     if(fixture.expected?.line24 !== undefined){
       assert.strictEqual(annual1040Result.lines.line24.value, fixture.expected.line24);
       assert.strictEqual(annual1040Result.federalSummary.federalTaxLiability, fixture.expected.line24);
@@ -68,6 +74,34 @@ for(const fixture of loadAnnualFixtures()){
     }
     if(fixture.expected?.line22 !== undefined){
       assert.strictEqual(annual1040Result.line24Breakdown.line22, fixture.expected.line22);
+    }
+    if(fixture.expected?.line18 !== undefined && fixture.expected?.line16 !== undefined){
+      const line16 = annual1040Result.line24Breakdown.line16 ?? 0;
+      const line17 = annual1040Result.line24Breakdown.line17 ?? 0;
+      assert.strictEqual(annual1040Result.line24Breakdown.line18, line16 + line17);
+    }
+    if(fixture.expected?.line22 !== undefined && fixture.expected?.line18 !== undefined){
+      const line18 = annual1040Result.line24Breakdown.line18 ?? 0;
+      const line21 = annual1040Result.line24Breakdown.line21 ?? 0;
+      assert.strictEqual(annual1040Result.line24Breakdown.line22, line18 - line21);
+    }
+    if(fixture.expected?.line24 !== undefined && fixture.expected?.line22 !== undefined){
+      const line22 = annual1040Result.line24Breakdown.line22 ?? 0;
+      const line23 = annual1040Result.line24Breakdown.line23 ?? 0;
+      assert.strictEqual(annual1040Result.lines.line24.value, line22 + line23);
+    }
+    if(fixture.reconciliation?.theirLine24 !== undefined){
+      assert.ok(annual1040Result.reconciliation);
+      assert.strictEqual(annual1040Result.reconciliation.theirLine24, fixture.reconciliation.theirLine24);
+      assert.strictEqual(annual1040Result.reconciliation.withinTolerance, true);
+    }
+    if(fixture.expected?.reconciliationDelta !== undefined){
+      assert.ok(annual1040Result.reconciliation);
+      assert.strictEqual(annual1040Result.reconciliation.delta, fixture.expected.reconciliationDelta);
+    }
+    if(fixture.expected?.withinTolerance !== undefined){
+      assert.ok(annual1040Result.reconciliation);
+      assert.strictEqual(annual1040Result.reconciliation.withinTolerance, fixture.expected.withinTolerance);
     }
     if(fixture.expected?.taxTotalScope !== undefined){
       assert.strictEqual(annual1040Result.federalSummary.taxTotalScope, fixture.expected.taxTotalScope);
