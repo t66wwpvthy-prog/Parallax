@@ -3,6 +3,15 @@
 import { TaxDataError } from './errors.js';
 
 export const DATA_SOURCES = {
+  IRS_2025_SCHEDULE_SE_v1_0: {
+    id: 'IRS_2025_SCHEDULE_SE_v1.0',
+    description: 'Schedule SE social security wage base and self-employment tax rates, tax year 2025',
+    authority: 'IRS 2025 Schedule SE (Form 1040)',
+    taxYear: 2025,
+    lawVersion: '2025_FINAL',
+    status: 'verified',
+    retrievedAt: '2026-07-10',
+  },
   IRS_2025_TAX_TABLES_v1_0: {
     id: 'IRS_2025_TAX_TABLES_v1.0',
     description: 'Federal ordinary income tax rate schedules, tax year 2025 (OBBBA)',

@@ -39,7 +39,20 @@ export const TRIGGER_TAGS = [
   'social_security_taxation',
   'provisional_income',
   'standard_deduction',
+  'self_employment_tax',
 ];
+
+export const SELF_EMPLOYMENT_TAX = {
+  '2025_FINAL': {
+    socialSecurityWageBase: 176100,
+    socialSecurityRate: 0.124,
+    medicareRate: 0.029,
+  },
+};
+
+export const SELF_EMPLOYMENT_TAX_SOURCE = {
+  '2025_FINAL': 'IRS_2025_SCHEDULE_SE_v1.0',
+};
 
 // Ordinary-income brackets. Each entry: { rate, upTo } where `upTo` is the
 // INCLUSIVE upper bound of taxable ordinary income taxed at `rate`. The final

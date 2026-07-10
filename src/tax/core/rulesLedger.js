@@ -6,6 +6,7 @@ import { traditionalIraDeductibility } from '../federal/rules/traditionalIraDedu
 import { capitalGainsStacking } from '../federal/rules/capitalGainsStacking.js';
 import { scheduleDClassification } from '../federal/rules/scheduleDClassification.js';
 import { taxableSocialSecurity } from '../federal/rules/taxableSocialSecurity.js';
+import { selfEmploymentTax } from '../federal/rules/selfEmploymentTax.js';
 
 export const rulesLedger = [
   ordinaryIncomeTax,
@@ -14,6 +15,7 @@ export const rulesLedger = [
   capitalGainsStacking,
   scheduleDClassification,
   taxableSocialSecurity,
+  selfEmploymentTax,
 ];
 
 export function getRuleById(ruleId){

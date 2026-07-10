@@ -95,6 +95,15 @@ export const SCHEDULE_D_CLASSIFICATION_INPUT_SCHEMA = {
   required: ['filingStatus', 'line7', 'line15', 'line16'],
 };
 
+export const SELF_EMPLOYMENT_TAX_INPUT_SCHEMA = {
+  fields: {
+    taxpayer:                          'string',
+    netEarningsFromSelfEmployment:     'number',
+    socialSecurityWagesAndTips:        'number',
+  },
+  required: ['netEarningsFromSelfEmployment', 'socialSecurityWagesAndTips'],
+};
+
 export const FORM1040_LINE_STATUSES = ['CALCULATED', 'SUPPLIED', 'DEFERRED', 'NOT_APPLICABLE'];
 
 export const ANNUAL_FEDERAL_TAX_INPUT_SCHEMA = {
@@ -107,6 +116,8 @@ export const ANNUAL_FEDERAL_TAX_INPUT_SCHEMA = {
     socialSecurity:         'object',
     traditionalIra:         'object',
     capitalGains:           'object',
+    scheduleSE:             'object',
+    schedule2:              'object',
   },
   required: ['filingStatus'],
 };

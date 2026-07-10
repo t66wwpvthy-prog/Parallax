@@ -13,7 +13,7 @@
 ```powershell
 cd C:\Dev\Parallax-tax-t3
 git pull origin feat/tax-t3-schedule2   # after first push
-npm test                                   # must be 167 passed before claiming done
+npm test                                   # must be 172 passed before claiming done
 ```
 
 If starting fresh:
@@ -77,6 +77,6 @@ PARALLAX TAX T3 — read docs/tax/GPT-TAX-WORKFLOW.md and docs/tax/T3-HANDOFF.md
 Worktree: C:\Dev\Parallax-tax-t3
 Branch: feat/tax-t3-schedule2 (NOT feat/household-wizard)
 Base: main @ d6e1e1b (T1 #80 + T2 #81 merged)
-Tests: npm test must pass (167 baseline)
-Scope: T3 only — calculate SE tax + NIIT for line 23; no adapters, no UI
+Tests: npm test must pass (172 baseline on feat/tax-t3-schedule2)
+Scope: T3 SE tax calculated; NIIT supplied; no adapters, no UI
 ```
