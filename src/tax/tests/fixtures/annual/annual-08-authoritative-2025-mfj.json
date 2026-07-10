@@ -1,0 +1,88 @@
+{
+  "id": "annual-08-authoritative-2025-mfj",
+  "label": "Authoritative redacted 2025 MFJ client benchmark",
+  "taxYear": 2025,
+  "filingStatus": "marriedFilingJointly",
+  "taxableOrdinaryIncome": 76970,
+  "capitalGains": {
+    "qualifiedDividends": 3358,
+    "netLongTermCapitalGains": 0
+  },
+  "passThrough": {
+    "line17": 0,
+    "line19": 0,
+    "line20": 0,
+    "line23": 1571
+  },
+  "scheduleD": {
+    "line7": -7668,
+    "line15": 12,
+    "line16": -7656,
+    "line18": 0,
+    "line19": 0
+  },
+  "reconciliation": {
+    "theirLine24": 10331,
+    "tolerance": 1
+  },
+  "sourceEvidence": {
+    "form1040": {
+      "line1z": 190868,
+      "line3a": 3358,
+      "line3b": 17838,
+      "line7": -3000,
+      "line11": 283193,
+      "line12": 201486,
+      "line13": 1379,
+      "line15": 80328,
+      "line16": 8760,
+      "line17": 0,
+      "line18": 8760,
+      "line19": 0,
+      "line20": 0,
+      "line21": 0,
+      "line22": 8760,
+      "line23": 1571,
+      "line24": 10331
+    },
+    "w2": {
+      "medicareWagesBox5Total": 204218
+    },
+    "schedule2": {
+      "line2": 0,
+      "line3": 0,
+      "line4": 1028,
+      "line8": 0,
+      "line11": 0,
+      "line12": 543,
+      "line21": 1571
+    },
+    "line16Worksheet": {
+      "name": "Qualified Dividends and Capital Gain Tax Worksheet",
+      "line1TaxableIncome": 80328,
+      "line2QualifiedDividends": 3358,
+      "line3ScheduleDGain": 0,
+      "line4PreferentialIncome": 3358,
+      "line5OrdinaryTaxableIncome": 76970,
+      "line22TaxTableTax": 8760,
+      "line25Tax": 8760
+    }
+  },
+  "expected": {
+    "line15": 80328,
+    "line16": 8759.4,
+    "line17": 0,
+    "line18": 8759.4,
+    "line19": 0,
+    "line20": 0,
+    "line21": 0,
+    "line22": 8759.4,
+    "line23": 1571,
+    "line24": 10330.4,
+    "taxTotalScope": "FULL_1040",
+    "reconciliationDelta": -0.6,
+    "withinTolerance": true
+  },
+  "expectPassThrough": ["line17", "line19", "line20", "line23"],
+  "expectWarnings": []
+}

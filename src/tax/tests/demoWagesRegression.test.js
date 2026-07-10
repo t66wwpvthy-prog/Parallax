@@ -20,7 +20,7 @@ function loadDemoWagesFacts(){
   return facts;
 }
 
-test('demo-wages regression: 2025 itemized return with dividends and LTCG', () => {
+test('demo-wages legacy synthetic regression: 2025 itemized return with dividends and LTCG', () => {
   const facts = loadDemoWagesFacts();
   const context = buildDefaultTaxContext({ taxYear: 2025, scenarioId: 'demo-wages-regression' });
   const intake = engineYearTo1040Input(facts);
