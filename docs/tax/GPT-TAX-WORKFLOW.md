@@ -6,30 +6,36 @@
 
 | Branch | Purpose | Base |
 |--------|---------|------|
-| **`feat/tax-t4-planner-adapter`** | **Current tax work** — engine rows → tax facts | `main` @ `608bea6` |
+| **`feat/tax-t4-planner-adapter`** | **Current tax work** — engine rows → tax facts | `main` @ `33a7cd4` |
 
 **Worktree (recommended):** `C:\Dev\Parallax\.worktrees\Parallax-tax-t4`
 
 ```powershell
 cd C:\Dev\Parallax\.worktrees\Parallax-tax-t4
-npm test                                   # must be 172 passed before claiming done
+git checkout main && git pull
+git checkout -B feat/tax-t4-planner-adapter main
+npm test                                   # must be 184 passed before claiming done
 node scripts/verify.mjs                    # required for T4 adapter/UI-touching work
 ```
 
 ## Closed / merged (do not extend)
 
-| Branch | Status |
-|--------|--------|
-| `feat/tax-t1-benchmark` | Merged PR #80 |
-| `feat/tax-t2-income-spine` | Merged PR #81 |
-| `feat/tax-t3-schedule2` | Merged PR #82 |
-| `main` | `608bea6` |
+| Branch / PR | Status |
+|-------------|--------|
+| T1 Benchmark | Merged #80 |
+| T2 Schedule D | Merged #81 |
+| T3 SE tax | Merged #82 |
+| T4.1 Filing status | Merged #83 |
+| T4.2 Social Security | Merged #84 |
+| T4.3 Gain fraction | Merged #86 |
+| T4.4 Zero-income / filler | Merged #87 |
+| `main` | `33a7cd4` |
 
 ## Do NOT use for tax work
 
 | Branch / tree | Reason |
 |---------------|--------|
-| `feat/household-wizard` | Household UI — separate workspace |
+| `feat/household-wizard` | Household UI — separate workspace (PR #85) |
 | Old `Parallax-tax-t2` / `Parallax-tax-t3` worktrees | Stale; use `Parallax-tax-t4` |
 
 ## Phase map
@@ -39,7 +45,11 @@ node scripts/verify.mjs                    # required for T4 adapter/UI-touching
 | T1 Benchmark | **Done** #80 | `npm test` |
 | T2 Schedule D | **Done** #81 | `npm test` |
 | T3 SE tax | **Done** #82 | `npm test` |
-| **T4 Planner adapter** | **Active** | `npm test` + `verify.mjs` |
+| T4.1 Filing status | **Done** #83 | `npm test` + `verify.mjs` |
+| T4.2 Social Security | **Done** #84 | `npm test` + `verify.mjs` |
+| T4.3 Gain fraction | **Done** #86 | `npm test` + `verify.mjs` |
+| T4.4 Zero-income / filler | **Done** #87 | `npm test` + `verify.mjs` |
+| **T4.5 Other-income taxablePct** | **Active** | `npm test` + `verify.mjs` |
 | T5 Sidecar + UI scope | Pending | `npm test` + `verify.mjs` |
 | T6 Engine vs federal truth | Gate | evidence |
 
@@ -52,10 +62,10 @@ node scripts/verify.mjs                    # required for T4 adapter/UI-touching
 ## GPT session opener (paste)
 
 ```
-PARALLAX TAX T4 — read docs/tax/GPT-TAX-WORKFLOW.md and docs/tax/T4-HANDOFF.md
+PARALLAX TAX T4.5 — read docs/tax/GPT-TAX-WORKFLOW.md and docs/tax/T4-HANDOFF.md
 Worktree: C:\Dev\Parallax\.worktrees\Parallax-tax-t4
 Branch: feat/tax-t4-planner-adapter (NOT feat/household-wizard)
-Base: main @ 608bea6 (T1–T3 merged)
-Tests: npm test (172 baseline) + verify.mjs for T4
-Scope: T4 adapter only — filing status, SS facts, gain fraction, zero-income years; no new tax rules, no UI redesign
+Base: main @ 33a7cd4 (T4.1–T4.4 merged)
+Tests: npm test (184 baseline) + verify.mjs
+Scope: T4.5 — other-income taxablePct via engine row fact + adapter; no UI, no new federal rules
 ```
