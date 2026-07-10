@@ -5,8 +5,7 @@
   "filingStatus": "marriedFilingJointly",
   "taxableOrdinaryIncome": 76970,
   "capitalGains": {
-    "qualifiedDividends": 3358,
-    "netLongTermCapitalGains": 0
+    "qualifiedDividends": 3358
   },
   "passThrough": {
     "line17": 0,
@@ -69,6 +68,7 @@
     }
   },
   "expected": {
+    "line7a": -3000,
     "line15": 80328,
     "line16": 8759.4,
     "line17": 0,

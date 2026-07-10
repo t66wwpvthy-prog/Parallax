@@ -89,12 +89,15 @@ export function buildIntakeReport(intake, result, validation, context){
 
   const architectureLater = [];
   if(intake.scheduleD){
-    architectureLater.push({
-      lineId: 'scheduleD',
-      label: 'Schedule D ST/LT detail',
-      notes: 'Captured; not used in independent line 16 calc yet.',
-      supplied: true,
-    });
+    const classified = form1040.line7a?.ruleId === 'FED_SCHEDULE_D_CLASSIFICATION';
+    if(!classified){
+      architectureLater.push({
+        lineId: 'scheduleD',
+        label: 'Schedule D ST/LT detail',
+        notes: 'Captured; Schedule D classification not applied.',
+        supplied: true,
+      });
+    }
   }
 
   const reconciliation = reconcileTaxTotal(

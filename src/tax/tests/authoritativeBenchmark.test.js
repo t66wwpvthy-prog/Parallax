@@ -11,10 +11,13 @@ const fixturePath = join(here, 'fixtures', 'annual', 'annual-08-authoritative-20
 test('authoritative benchmark: redacted 2025 MFJ line24 within tolerance', () => {
   const fixture = JSON.parse(readFileSync(fixturePath, 'utf8'));
   const context = buildDefaultTaxContext({ scenarioId: fixture.id, taxYear: fixture.taxYear });
-  const { annual1040Result } = runClient1040Intake(fixture, context);
+  const { annual1040Result, result } = runClient1040Intake(fixture, context);
 
   assert.strictEqual(annual1040Result.federalSummary.taxTotalScope, 'FULL_1040');
+  assert.strictEqual(result.form1040.line7a.value, -3000);
+  assert.strictEqual(result.form1040.line7a.ruleId, 'FED_SCHEDULE_D_CLASSIFICATION');
   assert.strictEqual(annual1040Result.lines.line15.value, 80328);
+  assert.strictEqual(annual1040Result.lines.line16.value, 8759.4);
   assert.strictEqual(annual1040Result.lines.line24.value, 10330.4);
   assert.strictEqual(annual1040Result.reconciliation.theirLine24, 10331);
   assert.strictEqual(annual1040Result.reconciliation.delta, -0.6);
