@@ -6,77 +6,56 @@
 
 | Branch | Purpose | Base |
 |--------|---------|------|
-| **`feat/tax-t3-schedule2`** | **Current tax work** — SE tax + NIIT, line 23 | `main` @ `d6e1e1b` |
+| **`feat/tax-t4-planner-adapter`** | **Current tax work** — engine rows → tax facts | `main` @ `608bea6` |
 
-**Worktree (recommended):** `C:\Dev\Parallax-tax-t3`
+**Worktree (recommended):** `C:\Dev\Parallax\.worktrees\Parallax-tax-t4`
 
 ```powershell
-cd C:\Dev\Parallax-tax-t3
-git pull origin feat/tax-t3-schedule2   # after first push
+cd C:\Dev\Parallax\.worktrees\Parallax-tax-t4
 npm test                                   # must be 172 passed before claiming done
-```
-
-If starting fresh:
-
-```powershell
-git fetch origin
-git worktree add C:\Dev\Parallax-tax-t3 origin/main -b feat/tax-t3-schedule2
-cd C:\Dev\Parallax-tax-t3
-npm test
+node scripts/verify.mjs                    # required for T4 adapter/UI-touching work
 ```
 
 ## Closed / merged (do not extend)
 
-| Branch | Status | Notes |
-|--------|--------|-------|
-| `feat/tax-t1-benchmark` | **Merged** PR #80 | Benchmark lock |
-| `feat/tax-t2-income-spine` | **Merged** PR #81 | Schedule D classification |
-| `main` | `d6e1e1b` | Includes T1 + T2 |
+| Branch | Status |
+|--------|--------|
+| `feat/tax-t1-benchmark` | Merged PR #80 |
+| `feat/tax-t2-income-spine` | Merged PR #81 |
+| `feat/tax-t3-schedule2` | Merged PR #82 |
+| `main` | `608bea6` |
 
 ## Do NOT use for tax work
 
 | Branch / tree | Reason |
 |---------------|--------|
-| `feat/household-wizard` | Household UI — separate dirty workspace |
-| `feat/tax-1040-spine` | Stale |
-| `feat/tax-typical-path-attach` | Stale |
-
-**Never mix tax work into the Household checkout.** Use `Parallax-tax-t3` worktree.
+| `feat/household-wizard` | Household UI — separate workspace |
+| Old `Parallax-tax-t2` / `Parallax-tax-t3` worktrees | Stale; use `Parallax-tax-t4` |
 
 ## Phase map
 
-| Phase | Status | Branch | Validation |
-|-------|--------|--------|------------|
-| T1 Benchmark lock | **Done** PR #80 | merged | `npm test` |
-| T2 Lines 1–16 / Schedule D | **Done** PR #81 | merged | `npm test` |
-| **T3** Schedule 2 / line 23 | **Active** | `feat/tax-t3-schedule2` | `npm test` |
-| T4 Planner adapter facts | Pending | `feat/tax-t4-planner-adapter` | `npm test` + `verify.mjs` |
-| T5 Sidecar + UI scope | Pending | `feat/tax-t5-sidecar-validation` | `npm test` + `verify.mjs` |
-| T6 Engine vs federal truth | Gate | evidence only | — |
+| Phase | Status | Validation |
+|-------|--------|------------|
+| T1 Benchmark | **Done** #80 | `npm test` |
+| T2 Schedule D | **Done** #81 | `npm test` |
+| T3 SE tax | **Done** #82 | `npm test` |
+| **T4 Planner adapter** | **Active** | `npm test` + `verify.mjs` |
+| T5 Sidecar + UI scope | Pending | `npm test` + `verify.mjs` |
+| T6 Engine vs federal truth | Gate | evidence |
 
-**Rule:** One phase per branch/PR.
+## Benchmark (annual-08)
 
-## Benchmark facts (annual-08)
-
-- Filed line 24: **$10,331** | Parallax: **$10,330.40** | delta **-$0.60** (within **$1**)
-- Line 23 today: **pass-through $1,571** ($1,028 SE + $543 NIIT) — **T3 must calculate this**
-- Line 7a: **-$3,000** (from Schedule D, T2 done)
-- Reconciliation doc: `docs/tax/T1-BENCHMARK-RECONCILIATION.md`
-
-## Architecture (mandatory)
-
-- Read `docs/ARCHITECTURE.md` and `PRINCIPLES.md`
-- One rule = one file in `src/tax/federal/rules/` + test + `rulesLedger.js`
-- `src/tax/` must **never** import `engine.js`
-- No new npm dependencies without approval
+- Line 24: $10,330.40 vs filed $10,331 (-$0.60, within $1)
+- Line 23: $1,028 calculated SE + $543 supplied NIIT
+- `taxTotalScope`: FULL_1040
 
 ## GPT session opener (paste)
 
 ```
-PARALLAX TAX T3 — read docs/tax/GPT-TAX-WORKFLOW.md and docs/tax/T3-HANDOFF.md
-Worktree: C:\Dev\Parallax-tax-t3
-Branch: feat/tax-t3-schedule2 (NOT feat/household-wizard)
-Base: main @ d6e1e1b (T1 #80 + T2 #81 merged)
-Tests: npm test must pass (172 baseline on feat/tax-t3-schedule2)
-Scope: T3 SE tax calculated; NIIT supplied; no adapters, no UI
+PARALLAX TAX T4 — read docs/tax/GPT-TAX-WORKFLOW.md and docs/tax/T4-HANDOFF.md
+Worktree: C:\Dev\Parallax\.worktrees\Parallax-tax-t4
+Branch: feat/tax-t4-planner-adapter (NOT feat/household-wizard)
+Base: main @ 608bea6 (T1–T3 merged)
+Tests: npm test (172 baseline) + verify.mjs for T4
+Scope: T4 adapter only — filing status, SS facts, gain fraction, zero-income years; no new tax rules, no UI redesign
 ```
