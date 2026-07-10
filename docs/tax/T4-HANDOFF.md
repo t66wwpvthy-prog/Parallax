@@ -1,7 +1,7 @@
 # T4 planner adapter handoff
 
 **Branch:** `feat/tax-t4-planner-adapter`  
-**Base:** `main` @ `608bea6` (T1 #80 + T2 #81 + T3 #82 merged)  
+**Base:** `main` @ `4467a92` (T1 #80 + T2 #81 + T3 #82 + T4.1 #83 + T4.2 #84 merged)  
 **Validation:** `npm test` + `verify.mjs` (adapter may affect typical-path attach)
 
 ## Goal
@@ -26,7 +26,7 @@ The federal tax **rules** are largely ready for benchmark returns. T4 connects *
 - MFS requires explicit `livedWithSpouse`
 - 176 tests passing; `verify.mjs` passed
 
-**Gain fraction (T4.3) — in progress (PR)**
+**Gain fraction (T4.3) — in progress (PR #86)**
 
 - Engine exposes read-only `row.taxableGainFraction` at start-of-year when taxable withdrawals occur
 - Adapter consumes row fact via `buildRowTaxableGainPlanMeta` (no duplicated basis replay)
@@ -53,6 +53,7 @@ The federal tax **rules** are largely ready for benchmark returns. T4 connects *
 
 - `src/tax/adapters/engineYearTo1040Input.js`
 - `src/planning/tax/buildPlanMetaFromEngineParams.js`
+- `src/planning/tax/taxableBasisTracker.js`
 - `src/planning/tax/attachTypicalPathFederalTax.js`
 - `src/planning/tax/runTaxForScenarioPath.js`
 - `engine.js` (row output facts only — no tax math)
@@ -61,7 +62,7 @@ The federal tax **rules** are largely ready for benchmark returns. T4 connects *
 
 1. ~~**Filing status**~~ — done (T4.1)
 2. ~~**Social Security**~~ — done (T4.2)
-3. **Gain fraction** — engine row fact + adapter consume (T4.3 PR)
+3. **Gain fraction** — engine row fact + adapter consume (T4.3 PR #86)
 4. **Zero-income / failed years** — deterministic skip or empty-year handling (no path abort)
 5. **taxablePct** on other income streams
 6. Tests for representative MFJ, single, SS, RMD, survivor cases
