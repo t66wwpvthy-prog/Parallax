@@ -143,3 +143,42 @@ test('attachTypicalPathFederalTax throws when p50 rows are missing', () => {
     /analysis\.paths\.p50\.rows is required/
   );
 });
+
+test('attachTypicalPathFederalTax uses taxable other income instead of gross', () => {
+  const buildAnalysis = (otherIncomeTaxable) => ({
+    params: {
+      retirementAge: 65,
+      currentAge: 65,
+      meta: { filingStatus: 'single' },
+      accounts: { taxable: { balance: 0, basis: 0 } },
+    },
+    paths: {
+      p50: {
+        simIndex: 0,
+        lifetimeTax: 0,
+        rows: [{
+          year: 1,
+          source: 2025,
+          age: 65,
+          socialSecurity: 0,
+          pension: 0,
+          otherIncome: 40000,
+          ...(otherIncomeTaxable !== undefined ? { otherIncomeTaxable } : {}),
+          taxes: 0,
+          accountBreakdown: { taxable: 0, traditional: 0, roth: 0 },
+          rmd: 0,
+        }],
+      },
+    },
+  });
+
+  const halfTaxable = attachTypicalPathFederalTax(buildAnalysis(20000), { baseTaxYear: 2025 });
+  const grossFallback = attachTypicalPathFederalTax(buildAnalysis(undefined), { baseTaxYear: 2025 });
+
+  assert.strictEqual(halfTaxable.years[0].agi, 20000);
+  assert.strictEqual(grossFallback.years[0].agi, 40000);
+  assert.ok(
+    halfTaxable.years[0].federalTaxLiability
+      < grossFallback.years[0].federalTaxLiability
+  );
+});

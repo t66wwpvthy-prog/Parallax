@@ -175,6 +175,40 @@ test('mapSimulationRowToYearFacts requires gain split when taxable withdrawals e
   );
 });
 
+test('mapSimulationRowToYearFacts uses taxable other income on Form 1040 line 8', () => {
+  const context = buildDefaultTaxContext({ taxYear: 2026, scenarioId: 'taxable-other-income' });
+  const halfTaxableFacts = mapSimulationRowToYearFacts({
+    socialSecurity: 12000,
+    otherIncome: 40000,
+    otherIncomeTaxable: 20000,
+    accountBreakdown: { taxable: 0, traditional: 0, roth: 0 },
+  }, {
+    filingStatus: 'single',
+    taxYear: 2026,
+  });
+  const grossFallbackFacts = mapSimulationRowToYearFacts({
+    socialSecurity: 12000,
+    otherIncome: 40000,
+    accountBreakdown: { taxable: 0, traditional: 0, roth: 0 },
+  }, {
+    filingStatus: 'single',
+    taxYear: 2026,
+  });
+
+  const halfTaxable = runEngineYearTax(halfTaxableFacts, context);
+  const grossFallback = runEngineYearTax(grossFallbackFacts, context);
+  const intake = engineYearTo1040Input(halfTaxableFacts);
+
+  assert.strictEqual(halfTaxableFacts.income.otherIncome, 20000);
+  assert.strictEqual(halfTaxable.result.form1040.line8.value, 20000);
+  assert.strictEqual(grossFallback.result.form1040.line8.value, 40000);
+  assert.strictEqual(intake.socialSecurity.otherIncome, 20000);
+  assert.ok(
+    halfTaxable.annual1040Result.lines.line24.value
+      < grossFallback.annual1040Result.lines.line24.value
+  );
+});
+
 test('runEngineYearTax matches direct intake for wages-only MFJ standard deduction', () => {
   const context = buildDefaultTaxContext({ taxYear: 2026, scenarioId: 'engine-adapter' });
   const facts = {

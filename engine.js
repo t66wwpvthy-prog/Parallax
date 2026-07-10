@@ -1119,6 +1119,7 @@ function runSinglePath(p, returnPath){
       inflationRate: (rp && rp.proxyInflationRate != null) ? rp.proxyInflationRate : null,
       realReturnUsed: r,
       socialSecurity: ssInc, otherIncome: oiInc, pension: penInc, withdrawal,
+      ...(oiInc > 0 ? { otherIncomeTaxable: oiTaxable } : {}),
       rmd: rmdForced, assetSale: saleProceeds,
       expenses, goals: goalsY, liabilities: liabCost, taxes: totalTax + rmdTax, lumpSum: lumpY,
       startBalance, wdRate,

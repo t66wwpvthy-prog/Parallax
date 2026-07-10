@@ -1,8 +1,8 @@
 # T4 planner adapter handoff
 
 **Branch:** `feat/tax-t4-planner-adapter`  
-**Base:** `main` @ `a532f14` (T1–T3 + T4.1–T4.3 merged)
-**Validation:** 184 tests passing + `verify.mjs` passed
+**Base:** `main` @ `33a7cd4` (T1–T3 + T4.1–T4.4 merged)
+**Validation:** 187 tests passing + `verify.mjs` passed
 
 ## Goal
 
@@ -39,6 +39,13 @@ The federal tax **rules** are largely ready for benchmark returns. T4 connects *
 - The real depletion/failure year remains in the annual results
 - Post-depletion filler rows (`failed: true`, `source: null`) are skipped without aborting the path
 
+**Other-income taxable share (T4.5) — complete**
+
+- Engine retirement rows expose `otherIncomeTaxable` from the existing `oiTaxable` calculation
+- Adapter maps the taxable portion to Form 1040 line 8 and the Social Security worksheet
+- Older rows without the fact retain gross `otherIncome` as a compatibility fallback
+- Default `taxablePct: 1` behavior is unchanged
+
 ## Remaining T4 gaps
 
 | Planner fact | Current handling | Consequence |
@@ -48,7 +55,8 @@ The federal tax **rules** are largely ready for benchmark returns. T4 connects *
 | Taxable-account gain | ~~Static gain fraction from starting basis~~ | **T4.3** — `row.taxableGainFraction` from engine |
 | Empty taxable account | ~~No gain fraction created~~ | **T4.3** — engine fact; attach no longer aborts |
 | Traditional withdrawals/RMDs | Assumed 100% taxable | Nondeductible basis lost |
-| Pension / other income | `taxablePct` discarded | Wrong taxable amounts |
+| Other income | ~~`taxablePct` discarded~~ | **Fixed T4.5** — engine row supplies `otherIncomeTaxable` |
+| Pension | Assumed 100% taxable | May overstate if plan adds a taxable share later |
 | Interest/dividends | Not on planner rows | Lines 2b/3a/3b absent |
 | Asset sales | `row.assetSale` ignored | Sale gain not reconstructed |
 | Age | Dropped | Blocks age-based rules |
@@ -71,7 +79,7 @@ The federal tax **rules** are largely ready for benchmark returns. T4 connects *
 2. ~~**Social Security**~~ — done (T4.2)
 3. ~~**Gain fraction**~~ — done (T4.3)
 4. ~~**Zero-income / failed years**~~ — done (T4.4)
-5. **taxablePct** on other income streams
+5. ~~**taxablePct** on other income streams~~ — done (T4.5)
 6. Tests for representative MFJ, single, SS, RMD, survivor cases
 
 ## Out of scope (T4)
@@ -88,7 +96,8 @@ The federal tax **rules** are largely ready for benchmark returns. T4 connects *
 - [x] Filing status from household flows to sidecar (not hardcoded MFJ)
 - [x] Typical-path attach completes on benchmark-like scenario without silent MFJ default
 - [x] Zero-income retirement year does not abort entire path
-- [x] `npm test` — 184 pass
+- [x] Other-income `taxablePct` reaches Form 1040 line 8 from an engine row fact
+- [x] `npm test` — 187 pass
 - [x] `node scripts/verify.mjs` — passes (UI smoke)
 - [x] No tax rule math added to `ui/*` or `engine.js` (adapter/glue only)
 
