@@ -848,6 +848,13 @@ const HH_OWNERS  = [['client','Client'],['spouse','Co-Client'],['joint','Joint']
 /* Account Type Bank — every addable account type and the engine tax sleeve it
    maps into. The engine consumes ONLY the three buckets (taxable / traditional /
    roth); the type is advisor-facing detail. */
+const HH_WIZARD_ACCOUNT_TYPES = [
+  { label:'Traditional IRA',     bucket:'traditional' },
+  { label:'Roth IRA',            bucket:'roth' },
+  { label:'Brokerage (taxable)', bucket:'taxable' },
+  { label:'401(k)',              bucket:'traditional' },
+  { label:'HSA',                 bucket:'roth' },
+];
 const HH_ACCOUNT_TYPES = [
   { label:'Checking',            bucket:'taxable' },
   { label:'Savings',             bucket:'taxable' },
@@ -868,7 +875,11 @@ const HH_ACCOUNT_TYPES = [
   { label:'Solo 401(k)',         bucket:'traditional' },
   { label:'Qualified Plan',      bucket:'traditional' },
 ];
-const hhBucketForType = t => (HH_ACCOUNT_TYPES.find(x => x.label === t) || {}).bucket || 'taxable';
+const hhBucketForType = t => (
+  HH_WIZARD_ACCOUNT_TYPES.find(x => x.label === t) ||
+  HH_ACCOUNT_TYPES.find(x => x.label === t) ||
+  {}
+).bucket || 'taxable';
 const HH_STATES = [
   ['AL','Alabama'],['AK','Alaska'],['AZ','Arizona'],['AR','Arkansas'],['CA','California'],['CO','Colorado'],['CT','Connecticut'],['DE','Delaware'],['FL','Florida'],['GA','Georgia'],
   ['HI','Hawaii'],['ID','Idaho'],['IL','Illinois'],['IN','Indiana'],['IA','Iowa'],['KS','Kansas'],['KY','Kentucky'],['LA','Louisiana'],['ME','Maine'],['MD','Maryland'],
@@ -909,7 +920,7 @@ function ensureHouseholdWizard(){
     initial: hhInitial,
     ageFromYear: hhAgeFromYear,
     allAccounts: () => hhAllAccounts(plan),
-    accountTypes: HH_ACCOUNT_TYPES,
+    accountTypes: HH_WIZARD_ACCOUNT_TYPES,
     states: HH_STATES,
   });
   return householdWizard;
@@ -1049,7 +1060,7 @@ function syncHousehold(){
   const foot = $('#hh-wiz-footer');
   if(foot) foot.innerHTML = wizFooter();
   const wiz = document.querySelector('.hh-wizard');
-  if(wiz) wiz.dataset.wizardRev = '6';
+  if(wiz) wiz.dataset.wizardRev = '7';
   for(let i = 1; i <= 4; i++){
     const el = $('#hh-step-'+i); if(!el) continue;
     const num = el.querySelector('.hh-step__num');
@@ -2235,7 +2246,7 @@ document.querySelector('.page[data-page="household"] .hh-wizard')?.addEventListe
     } else if(action === 'save-account'){
       const form = document.querySelector('#hh-acct-form');
       if(!form) return;
-      const t = HH_ACCOUNT_TYPES[+form.querySelector('.hh-form-type').value] || HH_ACCOUNT_TYPES[0];
+      const t = HH_WIZARD_ACCOUNT_TYPES[+form.querySelector('.hh-form-type').value] || HH_WIZARD_ACCOUNT_TYPES[0];
       const valEl = form.querySelector('.hh-form-val');
       const bal = parseFloat(String(valEl ? valEl.value : '').replace(/[^0-9.]/g, ''));
       if(!isFinite(bal) || bal <= 0){
