@@ -13,7 +13,7 @@
      instead of serving a stale cached copy (GitHub Pages caches CSS hard). -->
 <link rel="stylesheet" href="styles/main.css?v=14"/>
 <link rel="stylesheet" href="styles/household.css?v=19"/>
-<link rel="stylesheet" href="styles/scenarios.css?v=11"/>
+<link rel="stylesheet" href="styles/scenarios.css?v=12"/>
 <link rel="stylesheet" href="styles/goals.css?v=6"/>
 </head>
 <body>
@@ -193,17 +193,13 @@
           </button>
           <button class="btn" id="scn-add" type="button"><span class="btn__plus" aria-hidden="true">+</span> Add</button>
           <button class="btn" id="scn-solve" type="button">Solve</button>
-          <button class="btn-suggest" id="scn-suggest" type="button">
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="#d8c084" aria-hidden="true"><path d="M6 0 L7 5 L12 6 L7 7 L6 12 L5 7 L0 6 L5 5 Z"></path></svg>
-            Suggest
-          </button>
         </div>
       </header>
 
       <!-- View mount — exactly one authoritative renderer writes here per sync. -->
       <div id="scn-view" aria-live="polite"></div>
 
-      <!-- Engine-backed solver (Solve / Suggest). renderSolvePanel() fills this. -->
+      <!-- Engine-backed solver (Solve). renderSolvePanel() fills this. -->
       <div id="solve-panel"></div>
     </div>
 
@@ -211,23 +207,14 @@
          this node into its header (window.scnPathControlsEl) — never recreated.
          Detached/hidden when Cash Flow is not the active view. -->
     <div id="scn-path-src" hidden>
-      <div class="cf-toggle">
-        <label class="path-control">Path
-          <select id="path-mode">
+      <label class="scn-path" id="scn-path-replay">Path
+        <select id="path-mode">
             <option value="typical">Typical path</option>
             <option value="stressed">Stressed path</option>
             <option value="favorable">Favorable path</option>
             <option value="sequence-stress">Sequence Stress</option>
-            <option value="choose">Choose path...</option>
           </select>
         </label>
-        <label class="path-control advanced" id="path-choose">Path #
-          <input id="path-index" type="number" min="0" value="0" inputmode="numeric">
-        </label>
-        <label class="path-control advanced" id="path-seed-wrap">Seed
-          <input id="path-seed" type="number" min="1" value="20260609" inputmode="numeric">
-        </label>
-      </div>
     </div>
   </section>
 
@@ -3440,12 +3427,11 @@ let pathReplay = (()=> {
   try{
     const saved = JSON.parse(localStorage.getItem(PATH_KEY)||'{}');
     return {
-      mode: ['typical','stressed','favorable','failed','lowest-survivor','choose'].includes(saved.mode) ? saved.mode : 'typical',
-      index: Math.max(0, parseInt(saved.index,10) || 0),
+      mode: ['typical','stressed','favorable','sequence-stress'].includes(saved.mode) ? saved.mode : 'typical',
       seed: Math.max(1, parseInt(saved.seed,10) || DEFAULT_PATH_SEED)
     };
   }catch{
-    return { mode:'typical', index:0, seed:DEFAULT_PATH_SEED };
+    return { mode:'typical', seed:DEFAULT_PATH_SEED };
   }
 })();
 function savePathReplay(){
@@ -3789,7 +3775,7 @@ $('#scn-levers')?.addEventListener('click', e=>{
 // then every column refreshes (the amount is reference data shared across
 // scenarios — the DECISION is the age, not the amount).
 // Scenario header rename / remove / add-menu lived on the old #scn-band grid
-// (removed with its markup). Add / Solve / Suggest are now wired by the
+// (removed with its markup). Add / Solve are now wired by the
 // ScenariosUI toolbar to the existing addScenario() and solver (renderSolvePanel)
 // seams. Per-scenario rename/remove returns via the new view's menu in a later pass.
 // removeScenario() / resetScenarios() remain available for that wiring.
@@ -3991,9 +3977,6 @@ function findSimByTerminalBalance(res, targetBalance){
 function selectedPathIndex(){
   const res = baselineResult();
   if(!res || !Array.isArray(res.sims) || !res.sims.length) return 0;
-  if(pathReplay.mode === 'choose'){
-    return Math.max(0, Math.min(res.sims.length - 1, pathReplay.index || 0));
-  }
   if(pathReplay.mode === 'typical'){
     return (res.paths && res.paths.p50 && res.paths.p50.simIndex != null) ? res.paths.p50.simIndex : 0;
   }
@@ -4013,8 +3996,7 @@ function pathModeLabel(){
     typical:'Typical path',
     stressed:'Stressed path',
     favorable:'Favorable path',
-    'sequence-stress':'Sequence Stress',
-    choose:'Chosen path'
+    'sequence-stress':'Sequence Stress'
   })[pathReplay.mode] || 'Typical path';
 }
 function pathOutcomeText(sim){
@@ -4385,33 +4367,14 @@ $('#save-btn').onclick=()=>{
   saveConfirmTimer=setTimeout(syncSaveBtn, 1400);
 };
 function syncPathControls(){
-  const mode=$('#path-mode'), idx=$('#path-index'), seed=$('#path-seed');
-  const choose=$('#path-choose'), seedWrap=$('#path-seed-wrap');
+  const mode=$('#path-mode');
   if(mode) mode.value = pathReplay.mode;
-  if(idx) idx.value = pathReplay.index;
-  if(seed) seed.value = pathReplay.seed;
-  const advanced = pathReplay.mode === 'choose';
-  if(choose) choose.classList.toggle('on', advanced);
-  if(seedWrap) seedWrap.classList.toggle('on', advanced);
 }
 $('#path-mode').onchange=e=>{
   pathReplay.mode=e.target.value;
   savePathReplay();
   syncPathControls();
   if(window.ScenariosUI) window.ScenariosUI.sync();
-};
-$('#path-index').onchange=e=>{
-  pathReplay.index=Math.max(0, parseInt(e.target.value,10)||0);
-  savePathReplay();
-  syncPathControls();
-  if(window.ScenariosUI) window.ScenariosUI.sync();
-};
-$('#path-seed').onchange=e=>{
-  pathReplay.seed=Math.max(1, parseInt(e.target.value,10)||DEFAULT_PATH_SEED);
-  savePathReplay();
-  sharedPaths=null;
-  syncPathControls();
-  runAll();
 };
 // Cash Flow is now an explicit view inside the ScenariosUI view layer (the
 // Compare/Focus/Cash-Flow renderer at the end of this script). The old
@@ -4445,7 +4408,6 @@ $('#path-seed').onchange=e=>{
     setSelectedId:(id) => { _selectedId = id; },
     addScenario:  () => { addScenario(); },
     solve:        () => openSolver(),
-    suggest:      () => openSolver(),
     afterEngineAction: () => {},      // addScenario already runs runAll()→sync; solver opens a form
     isTypicalPath:() => pathReplay.mode === 'typical',
     id:        (s) => String(scenarios.indexOf(s)),
@@ -4487,6 +4449,10 @@ $('#path-seed').onchange=e=>{
     if (n >= 1e3) return '$' + Math.round(n / 1e3) + 'K';
     return '$' + Math.round(n);
   }
+  function fmtParenMoney(n) {
+    const m = fmtMoney(n);
+    return m === '—' ? m : '(' + m + ')';
+  }
   function num(n, d) { return (n == null) ? '—' : Number(n).toFixed(d == null ? 1 : d); }
   function esc(s) {
     return String(s == null ? '' : s)
@@ -4497,6 +4463,14 @@ $('#path-seed').onchange=e=>{
     if (wd < 3) return 'var(--tone-green)';
     if (wd < 4.5) return 'var(--tone-amber)';
     if (wd < 6) return 'var(--down)';
+    return 'var(--down-deep)';
+  }
+  // Cash-flow table WD column: slate under 5%, then coral/rust only — no amber
+  // or gold tones (those compete with accent gold elsewhere in the UI).
+  function cfWdColor(wd, shortfall) {
+    if (shortfall) return 'var(--down-deep)';
+    if (wd < 5) return 'var(--text-3)';
+    if (wd < 7) return 'var(--down)';
     return 'var(--down-deep)';
   }
   function ring(size, r, sw, tone, pct, inner) {
@@ -4627,20 +4601,16 @@ $('#path-seed').onchange=e=>{
       };
     });
   }
-  function lifeTagFor(age, lev) {
-    if (!lev) return null;
-    if (age === lev.retireAge) return 'Retirement begins';
-    if (age === lev.ssAge)     return 'Social Security';
-    if (age === 73)            return 'RMDs begin';
-    return null;
-  }
   function goalTagFor(r, age) {
     if (!(r.goals > 0)) return null;
     const g = (Array.isArray(plan.goals) ? plan.goals : [])
       .find((x) => (x.amount || 0) > 0 && x.startAge === x.endAge && x.startAge === age);
     return g ? g.name : null;
   }
-  // Cash-flow rows = the selected path's engine rows (retirement phase), formatted.
+  // Cash-flow rows = the selected path's engine rows from CURRENT AGE forward,
+  // formatted. Working (accum) years are included so the ledger starts today,
+  // not at retirement; they carry an `accum` flag so the renderer can dash the
+  // spending/draw columns (the engine assumes salary covers costs while working).
   // r.wdRate is the engine's own per-row withdrawal rate (percent); r.taxes the
   // engine row tax — no UI-side math here.
   function buildPathRows(s) {
@@ -4649,11 +4619,13 @@ $('#path-seed').onchange=e=>{
     if (!sim || !Array.isArray(sim.rows)) return [];
     const curAge = plan.household.primary.currentAge;
     const baseYear = new Date().getFullYear();
-    return sim.rows.filter((r) => r.phase !== 'accum').map((r) => {
+    return sim.rows.map((r) => {
       const age = (r.age != null) ? r.age : curAge;
       return {
         year: baseYear + (age - curAge),
         age: age,
+        accum: r.phase === 'accum',
+        ret: (r.source != null && r.returnRate != null) ? r.returnRate : null,   // engine's applied return; null on failed filler rows
         income: (r.socialSecurity || 0) + (r.pension || 0) + (r.otherIncome || 0),
         rmd: r.rmd || 0,
         essential: r.expenses || 0,
@@ -4664,7 +4636,6 @@ $('#path-seed').onchange=e=>{
         ending: r.balance || 0,
         shortfall: (r.balance != null && r.balance <= 0),
         startPort: r.startBalance || 0,
-        lifeTag: lifeTagFor(age, s.lev),
         goalTag: goalTagFor(r, age),
       };
     });
@@ -4675,11 +4646,7 @@ $('#path-seed').onchange=e=>{
     if (!sim) return {};
     let d = {};
     try { d = (typeof pathDigest === 'function') ? pathDigest(sim) : {}; } catch (e) { d = {}; }
-    const retRows = (sim.rows || []).filter((r) => r.phase !== 'accum');
-    const lifetimeDraw = retRows.reduce((a, r) => a + (r.withdrawal || 0), 0);
-    const planEnd = plan.household.primary.planEndAge;
-    const fundsLast = sim.failed ? ('Age ' + (sim.depletionAge || d.depletionAge || '—')) : ('Through ' + planEnd);
-    return { lifetimeDraw: lifetimeDraw, peakWdRate: d.peakWdRate, peakWdAge: d.peakWdAge, fundsLast: fundsLast };
+    return { peakWdRate: d.peakWdRate, peakWdAge: d.peakWdAge };
   }
 
   // Lever step: reuses the EXISTING production mutation (LEVCFG/levRange/syncPension)
@@ -5080,10 +5047,15 @@ $('#path-seed').onchange=e=>{
 
   /* ---- CASH FLOW --------------------------------------------------------- */
   // Visible columns, exactly and in order. No Engine-tax / Federal-tax columns.
-  const CF_COLS = ['Year', 'Age', 'Income', 'RMD', 'Essential', 'Goals', 'Tax', 'Portfolio Draw', 'WD Rate', 'Ending'];
+  const CF_COLS = ['Year', 'Age', 'Income', 'RMD', 'Essential', 'Goals', 'Tax', 'Draw', 'Return', 'WD Rate', 'Ending'];
 
   function renderCashflow(scn, allScns) {
-    const rows = PROD.pathRows(scn.raw);
+    const allRows = PROD.pathRows(scn.raw);
+    // "Start at retirement" hides the working (accum) years. Retirement rows
+    // begin only once BOTH spouses have retired (engine rule), so this starts
+    // the ledger at the second retirement.
+    const rows = state.cashFromRetirement ? allRows.filter((r) => !r.accum) : allRows;
+    const hasWorking = allRows.some((r) => r.accum);
     const summary = PROD.cashSummary(scn.raw);
     const sidecar = taxSidecarFor(scn.raw);
 
@@ -5093,17 +5065,18 @@ $('#path-seed').onchange=e=>{
       '</button>'
     )).join('');
 
+    const retStartAge = rows.find((r) => !r.accum)?.age ?? null;
+    const RMD_START_AGE = 73;
+    const rmdStartAge = rows.find((r) => r.age >= RMD_START_AGE)?.age ?? null;
+
     const summaryStrip = (
       '<div class="cf-summary" style="--tone:' + scn.tone + ';--tone-glow:' + toneGlow(scn.tone) + ';">' +
         '<div class="cf-summary__id">' +
-          ring(52, 21, 4.5, scn.tone, scn.prob, '<span class="numeral" style="font-size:19px;">' + scn.probStr + '</span>') +
-          '<div><div class="cf-summary__name-row"><span class="cf-summary__dot"></span><span class="cf-summary__name">' + esc(scn.name) + '</span></div>' +
-            '<div class="cf-summary__sub">Probability of success</div></div>' +
+          ring(56, 24, 4.5, scn.tone, scn.prob, '<span class="numeral" style="font-size:15px;">' + scn.probStr + '<span class="pct" style="font-size:11px;">%</span></span>') +
+          '<div class="cf-summary__sub">Probability of success</div>' +
         '</div>' +
         '<div class="cf-summary__stats">' +
           '<div class="cf-stat"><div class="cf-stat__label">Median Ending</div><div class="cf-stat__value">' + scn.median + '</div></div>' +
-          '<div class="cf-stat"><div class="cf-stat__label">Lifetime Draw</div><div class="cf-stat__value">' + fmtMoney(summary.lifetimeDraw) + '</div></div>' +
-          '<div class="cf-stat"><div class="cf-stat__label">Funds Last</div><div class="cf-stat__value">' + esc(summary.fundsLast || '—') + '</div></div>' +
           '<div class="cf-stat"><div class="cf-stat__label">Peak Withdrawal</div>' +
             '<div class="cf-stat__peak"><span class="cf-stat__value" style="color:' + wdColor(summary.peakWdRate, false) + ';">' + (summary.peakWdRate ? num(summary.peakWdRate, 1) + '%' : '—') + '</span><span class="cf-stat__peak-age">' + (summary.peakWdAge ? 'age ' + summary.peakWdAge : '') + '</span></div>' +
           '</div>' +
@@ -5116,41 +5089,37 @@ $('#path-seed').onchange=e=>{
       const ending = (r.shortfall || r.ending <= 0) ? '$0' : fmtMoney(r.ending);
       const endColor = (r.shortfall || r.ending <= 0) ? 'var(--down-deep)' : 'var(--text-2)';
       const goalsColor = r.goals > 0 ? (r.goalTag ? '#d8c084' : '#c6a662') : 'var(--text-mute)';
-      const lifeTag = r.lifeTag || null;
+      const isRetStart = retStartAge != null && !r.accum && r.age === retStartAge;
+      const isRmdStart = rmdStartAge != null && r.age === rmdStartAge;
+      const yearMark = isRetStart
+        ? '<span class="cf-row__mark-dot cf-row__mark-dot--ret"></span>'
+        : (isRmdStart ? '<span class="cf-row__mark-dot cf-row__mark-dot--rmd"></span>' : '');
       return (
         '<div class="cf-row cf-grid">' +
-          '<div class="cf-row__year-wrap">' +
-            '<span class="cf-row__year" style="color:' + (lifeTag ? 'var(--text-1)' : 'var(--text-3)') + ';"><span class="cf-row__year-dot" style="background:' + (lifeTag ? 'var(--gold)' : 'transparent') + ';"></span>' + esc(r.year) + '</span>' +
-            (lifeTag ? '<span class="cf-row__lifetag" style="color:var(--gold-soft);">' + esc(lifeTag) + '</span>' : '') +
-          '</div>' +
+          '<span class="cf-row__year">' +
+            '<span class="cf-row__mark" aria-hidden="true">' + yearMark + '</span>' +
+            esc(r.year) +
+          '</span>' +
           '<span class="cf-cell cf-cell--age">' + esc(r.age) + '</span>' +
           '<span class="cf-cell" style="color:' + (r.income > 0 ? 'var(--text-2b)' : 'var(--text-mute)') + ';">' + (r.income > 0 ? fmtMoney(r.income) : '—') + '</span>' +
-          '<span class="cf-cell" style="color:' + (r.rmd > 0 ? 'var(--text-2b)' : 'var(--text-mute)') + ';">' + (r.rmd > 0 ? fmtMoney(r.rmd) : '—') + '</span>' +
-          '<span class="cf-cell cf-cell--essential">' + fmtMoney(r.essential) + '</span>' +
+          '<span class="cf-cell" style="color:var(--text-2b);">' + (r.rmd > 0 ? fmtMoney(r.rmd) : '') + '</span>' +
+          '<span class="cf-cell ' + (r.essential > 0 ? 'cf-cell--essential' : 'cf-cell--zero') + '">' + fmtMoney(r.essential) + '</span>' +
           '<div class="cf-row__goals-wrap">' +
             '<span class="cf-cell" style="color:' + goalsColor + ';">' + (r.goals > 0 ? fmtMoney(r.goals) : '—') + '</span>' +
             (r.goalTag ? '<span class="cf-row__goaltag">' + esc(r.goalTag) + '</span>' : '') +
           '</div>' +
-          '<span class="cf-cell cf-cell--tax">' + fmtMoney(tax) + '</span>' +
-          '<span class="cf-cell cf-cell--draw">' + fmtMoney(r.draw) + '</span>' +
-          '<span class="cf-cell cf-cell--wd" style="color:' + wdColor(r.wdRate, r.shortfall) + ';">' + (r.startPort > 0 ? num(r.wdRate, 1) + '%' : '—') + '</span>' +
+          '<span class="cf-cell ' + (tax > 0 ? 'cf-cell--tax' : 'cf-cell--zero') + '">' + fmtMoney(tax) + '</span>' +
+          '<span class="cf-cell ' + (r.draw > 0 ? 'cf-cell--draw' : 'cf-cell--zero') + '">' + fmtParenMoney(r.draw) + '</span>' +
+          '<span class="cf-cell cf-cell--ret" style="color:' + (r.ret == null ? 'var(--text-mute)' : (r.ret < 0 ? 'var(--down)' : 'var(--tone-green)')) + ';">' + (r.ret == null ? '—' : (r.ret < 0 ? '−' : '+') + num(Math.abs(r.ret) * 100, 1) + '%') + '</span>' +
+          '<span class="cf-cell cf-cell--wd" style="color:' + (!r.accum && r.startPort > 0 ? cfWdColor(r.wdRate, r.shortfall) : 'var(--text-mute)') + ';">' + (!r.accum && r.startPort > 0 ? num(r.wdRate, 1) + '%' : '—') + '</span>' +
           '<span class="cf-cell cf-cell--ending" style="color:' + endColor + ';">' + ending + '</span>' +
         '</div>'
       );
     };
 
-    const phases = groupPhases(rows).map((p, idx) => {
-      const di = p.rows.reduce((s, r) => s + (r.draw || 0), 0);
-      const ii = p.rows.reduce((s, r) => s + (r.income || 0), 0);
-      const range = p.lo === p.hi ? 'Age ' + p.lo : 'Ages ' + p.lo + '–' + p.hi;
-      return (
-        '<div class="cf-phase">' +
-          '<div class="cf-phase__left"><span class="cf-phase__name">' + esc(p.name) + '</span><span class="cf-phase__meta">' + range + (p.note ? ' · ' + esc(p.note) : '') + '</span></div>' +
-          '<div class="cf-phase__stats"><span>Income <b class="inc">' + (ii > 0 ? fmtMoney(ii) : '—') + '</b></span><span>Draw <b class="draw">' + fmtMoney(di) + '</b></span></div>' +
-        '</div>' +
-        '<div class="cf-band ' + (idx % 2 === 1 ? 'is-shaded' : '') + '">' + p.rows.map(rowHtml).join('') + '</div>'
-      );
-    }).join('');
+    const phases = groupPhases(rows).map((p, idx) => (
+      '<div class="cf-band ' + (idx % 2 === 1 ? 'is-shaded' : '') + '">' + p.rows.map(rowHtml).join('') + '</div>'
+    )).join('');
 
     const headCells = CF_COLS.map((h, i) => '<span class="cf-th ' + (i >= 2 ? 'cf-th--r' : '') + '">' + h + '</span>').join('');
     const empty = rows.length ? '' : '<div class="cf-band"><div style="padding:26px 18px;color:var(--text-5);">No cash-flow data yet. Press Run — or check the plan inputs if the status bar shows a warning.</div></div>';
@@ -5158,12 +5127,11 @@ $('#path-seed').onchange=e=>{
     return (
       '<div class="cf">' +
         '<div class="cf__head">' +
-          '<div class="cf__head-left">' +
-            '<span class="eyebrow" style="letter-spacing:0.16em;">Cash Flow</span>' +
-            '<div class="cf__pills">' + pills + '</div>' +
-            '<div class="cf__path-controls" id="scn-cf-path-controls"></div>' +
-          '</div>' +
-          '<span class="cf__caption">Projected to age ' + plan.household.primary.planEndAge + ' · nominal $</span>' +
+          '<div class="cf__pills">' + pills + '</div>' +
+          '<div class="cf__path-controls" id="scn-cf-path-controls"></div>' +
+          (hasWorking
+            ? '<button class="cf-ret-toggle ' + (state.cashFromRetirement ? 'is-on' : '') + '" type="button" data-cash-retstart aria-pressed="' + (state.cashFromRetirement ? 'true' : 'false') + '">Start at retirement</button>'
+            : '') +
         '</div>' +
         summaryStrip +
         '<div class="cf-table">' +
@@ -5174,24 +5142,18 @@ $('#path-seed').onchange=e=>{
     );
   }
 
-  // Group rows into age-band phases (presentation grouping only — no math).
+  // Group rows into bands (presentation only — alternating shade at RMD age).
   function groupPhases(rows) {
     if (!rows.length) return [];
-    const defs = [
-      { name: 'Bridge years', lo: -Infinity, hi: 66, note: 'before Social Security' },
-      { name: 'Social Security on', lo: 67, hi: 72, note: 'benefits begin' },
-      { name: 'RMD years', lo: 73, hi: 84, note: 'required distributions' },
-      { name: 'Later retirement', lo: 85, hi: Infinity, note: 'longevity tail' },
-    ];
-    return defs.map((d) => {
-      const rs = rows.filter((r) => r.age >= d.lo && r.age <= d.hi);
-      if (!rs.length) return null;
-      return { name: d.name, note: d.note, lo: rs[0].age, hi: rs[rs.length - 1].age, rows: rs };
-    }).filter(Boolean);
+    const RMD_START_AGE = 73;
+    return [
+      { rows: rows.filter((r) => r.age < RMD_START_AGE) },
+      { rows: rows.filter((r) => r.age >= RMD_START_AGE) },
+    ].filter((p) => p.rows.length);
   }
 
   /* ---- STATE + ONE AUTHORITATIVE SYNC ------------------------------------ */
-  const state = { view: 'compare', cashActive: false, focusedId: null, showRange: true, goalsExpanded: false };
+  const state = { view: 'compare', cashActive: false, focusedId: null, showRange: true, goalsExpanded: false, cashFromRetirement: false };
   const $id = (id) => document.getElementById(id);
 
   function buildScenarios() {
@@ -5250,6 +5212,9 @@ $('#path-seed').onchange=e=>{
     view.querySelectorAll('[data-cash-pick]').forEach((el) => {
       el.addEventListener('click', () => { state.focusedId = el.dataset.cashPick; PROD.setSelectedId(state.focusedId); syncScenariosView(); });
     });
+    // "Start at retirement" — hide the working (accum) years in the cash-flow ledger.
+    const retStart = view.querySelector('[data-cash-retstart]');
+    if (retStart) retStart.addEventListener('click', () => { state.cashFromRetirement = !state.cashFromRetirement; syncScenariosView(); });
     // Always-visible +/- buttons in Compare (discrete levers) and Focus (all levers).
     // data-lever-key + data-dir + optional data-scn-id → stepFocusLever.
     view.querySelectorAll('[data-lever-key]').forEach((el) => {
@@ -5359,15 +5324,14 @@ $('#path-seed').onchange=e=>{
     if (segC) segC.addEventListener('click', () => { state.cashActive = false; state.view = 'compare'; syncScenariosView(); });
     if (segF) segF.addEventListener('click', () => { state.cashActive = false; state.view = 'focus'; syncScenariosView(); });
     if (chip) chip.addEventListener('click', () => { state.cashActive = !state.cashActive; syncScenariosView(); });
-    const add = $id('scn-add'), solve = $id('scn-solve'), suggest = $id('scn-suggest');
-    if (add)     add.addEventListener('click',     () => { PROD.addScenario(); PROD.afterEngineAction(); });
-    if (solve)   solve.addEventListener('click',   () => { PROD.solve();       PROD.afterEngineAction(); });
-    if (suggest) suggest.addEventListener('click', () => { PROD.suggest();      PROD.afterEngineAction(); });
+    const add = $id('scn-add'), solve = $id('scn-solve');
+    if (add)   add.addEventListener('click',   () => { PROD.addScenario(); PROD.afterEngineAction(); });
+    if (solve) solve.addEventListener('click', () => { PROD.solve();       PROD.afterEngineAction(); });
   }
 
   function init() {
     if (!document.getElementById('scn-view')) return;
-    const src = document.querySelector('#scn-path-src .cf-toggle');
+    const src = document.querySelector('#scn-path-replay');
     if (src) window.scnPathControlsEl = src;
     bindToolbarOnce();
     // One document-level closer for the ⋯ menus (bound once — init runs once).

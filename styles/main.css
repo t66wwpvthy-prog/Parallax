@@ -618,13 +618,6 @@ select option{background:#14161b;color:var(--text-2,#d9d4c9)}
 .cf-toggle{margin:18px 0 12px;display:flex;justify-content:flex-end;align-items:center;gap:10px;flex-wrap:wrap;flex-shrink:0}
 .cf-toggle button{background:transparent;border:1px solid var(--rule);color:var(--ink-mute);font-family:var(--font-sans);font-size:14px;letter-spacing:.16em;text-transform:uppercase;padding:8px 16px;border-radius:5px;cursor:pointer}
 .cf-toggle button:hover{color:var(--accent);border-color:var(--accent)}
-.path-control{display:flex;align-items:center;gap:8px;border:1px solid var(--rule);border-radius:5px;padding:7px 10px;color:var(--ink-mute);font-family:var(--font-sans);font-size:14px;letter-spacing:.14em;text-transform:uppercase}
-.path-control select,.path-control input{height:24px;border:0;background:rgba(16,10,6,.38);color:var(--ink);font-family:inherit;font-size:14px;outline:none}
-.path-control select{min-width:132px}
-.path-control input{width:64px;text-align:center}
-.path-control.advanced{display:none}
-.path-control.advanced.on{display:flex}
-
 /* ──────────────────────────────────────────────────────────────────────────
    PHONE / TOUCH (iOS-first). The desktop layout is a fixed 100vh, no-scroll,
    multi-column grid — unusable on a phone. Below 760px we: let the whole app
@@ -1038,7 +1031,6 @@ body::after{inset:var(--frame-inset);border-radius:var(--frame-radius);border-co
 
 .acct-picker{padding:15px 17px;border-radius:var(--panel-radius)}
 .acct-chip,
-.path-control,
 .cf-toggle button,
 .seq-chip,
 .fold-tab{
@@ -1102,12 +1094,6 @@ body::after{inset:var(--frame-inset);border-radius:var(--frame-radius);border-co
 
 .cf-toggle{gap:9px}
 .cf-toggle button{font-size:14px;padding:7px 15px}
-.path-control{font-size:14px;padding:6px 9px}
-.path-control select,.path-control input{
-  background:transparent!important;
-  color:var(--ink-bright);
-  font-size:14px;
-}
 .cf-drawer{border-radius:var(--panel-radius)}
 .cf-drawer-head{padding:11px 16px;font-size:14px}
 

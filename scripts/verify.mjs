@@ -822,7 +822,11 @@ try {
       const row = [...document.querySelectorAll('#scn-view .cf-row')].find(r => r.querySelector('.cf-cell--age')?.textContent.trim() === String(a));
       return row ? (row.children[2]?.textContent.trim() || '') : '';
     }, age);
-    const firstAge = () => page.evaluate(() => { const a = [...document.querySelectorAll('#scn-view .cf-row .cf-cell--age')].map(e => parseInt(e.textContent.trim(),10)).filter(Number.isFinite); return a.length ? Math.min(...a) : null; });
+    const firstRetirementAge = () => page.evaluate(() => {
+      const row = [...document.querySelectorAll('#scn-view .cf-row')]
+        .find(r => r.querySelector('.cf-cell--essential:not(.cf-cell--zero)'));
+      return row ? (row.querySelector('.cf-cell--age')?.textContent.trim() || '') : '';
+    });
 
     // (1) Co-client SS on vs off changes baseline income at age 72 (past both
     // claims). SS lives on wizard step 3 (Income).
@@ -842,11 +846,11 @@ try {
     // ages live on wizard step 4.
     await goStep(3); await setHh('income.socialSecurity.spouse.pia', '18,000');
     await goStep(4); await setHh('household.spouse.retirementAge', '65');
-    await openCashFlow(); const firstEarly = await firstAge();
+    await openCashFlow(); const firstEarly = await firstRetirementAge();
     await goStep(4); await setHh('household.spouse.retirementAge', '70');
-    await openCashFlow(); const firstLate = await firstAge();
-    if(firstEarly == null || firstLate == null) throw new Error(`first cash-flow age missing (${firstEarly} vs ${firstLate})`);
-    if(!(firstLate > firstEarly)) throw new Error(`delaying co-client retirement via Household did not push retirement later (${firstEarly} -> ${firstLate})`);
+    await openCashFlow(); const firstLate = await firstRetirementAge();
+    if(!firstEarly || !firstLate) throw new Error(`first retirement age missing (${firstEarly} vs ${firstLate})`);
+    if(!(parseInt(firstLate, 10) > parseInt(firstEarly, 10))) throw new Error(`delaying co-client retirement via Household did not push retirement later (${firstEarly} -> ${firstLate})`);
 
     // Restore the demo household and leave Cash Flow closed.
     await goStep(4); await setHh('household.spouse.retirementAge', '65');
@@ -1195,7 +1199,7 @@ try {
         reference: !!v?.querySelector('.tag-ref'),
         solveBtn: !!document.querySelector('#scn-solve'),
         addBtn: !!document.querySelector('#scn-add'),
-        suggestBtn: !!document.querySelector('#scn-suggest'),
+        suggestBtn: !!document.querySelector('#scn-suggest'),   // removed control — must stay gone
         status: document.querySelector('#status')?.textContent || '',
         segActive: document.querySelector('#scn-seg-compare')?.classList.contains('is-active') || false,
       };
@@ -1208,7 +1212,8 @@ try {
     if(m.goalCells < m.cols) throw new Error(`goals row not mirrored across columns (cells=${m.goalCells}, cols=${m.cols})`);
     if(!/active/.test(m.goalPill)) throw new Error(`goals summary cell missing an active count: "${m.goalPill}"`);
     if(!m.reference) throw new Error('baseline Reference tag missing from Compare');
-    if(!m.solveBtn || !m.addBtn || !m.suggestBtn) throw new Error('Solve / Add / Suggest toolbar actions missing from Scenarios');
+    if(!m.solveBtn || !m.addBtn) throw new Error('Solve / Add toolbar actions missing from Scenarios');
+    if(m.suggestBtn) throw new Error('removed Suggest button is still present in the Scenarios toolbar');
     if(!m.segActive) throw new Error('Compare segment did not mark itself active');
     if(m.names.some(n => /sell\s*home/i.test(n))) throw new Error(`stale sale scenario visible: ${JSON.stringify(m.names)}`);
 
@@ -1271,7 +1276,7 @@ try {
     await new Promise(r => setTimeout(r, 600));
     await setCashFlow(page, true);
     await waitCashRows(page, 10);
-    const EXPECT = ['Year', 'Age', 'Income', 'RMD', 'Essential', 'Goals', 'Tax', 'Portfolio Draw', 'WD Rate', 'Ending'];
+    const EXPECT = ['Year', 'Age', 'Income', 'RMD', 'Essential', 'Goals', 'Tax', 'Draw', 'Return', 'WD Rate', 'Ending'];
     const m = await page.evaluate(() => {
       const v = document.querySelector('#scn-view');
       return {
@@ -1279,11 +1284,13 @@ try {
         rows: v?.querySelectorAll('.cf-row').length || 0,
         cols: [...(v?.querySelectorAll('.cf-table__head .cf-th') || [])].map(th => th.textContent.trim()),
         pills: [...(v?.querySelectorAll('.cf-pill') || [])].map(p => p.textContent.trim()),
-        summaryName: v?.querySelector('.cf-summary__name')?.textContent.trim() || '',
+        activePill: v?.querySelector('.cf-pill.is-active')?.textContent.trim() || '',
         stats: [...(v?.querySelectorAll('.cf-stat__label') || [])].map(s => s.textContent.trim()),
         pathControls: !!v?.querySelector('#scn-cf-path-controls #path-mode'),
         mode: v?.querySelector('#scn-cf-path-controls #path-mode')?.value || '',
-        caption: v?.querySelector('.cf__caption')?.textContent || '',
+        hasCaption: !!v?.querySelector('.cf__caption'),
+        hasCfEyebrow: !!v?.querySelector('.cf__head .eyebrow'),
+        hasSummaryName: !!v?.querySelector('.cf-summary__name'),
       };
     });
     if(!m.cf) throw new Error('cash-flow view did not render');
@@ -1295,29 +1302,34 @@ try {
     if(m.pills.length < 2) throw new Error(`scenario pills missing: ${JSON.stringify(m.pills)}`);
     if(!m.pathControls) throw new Error('path-replay controls not relocated into #scn-cf-path-controls');
     if(m.mode !== 'typical') throw new Error(`path replay default mode not typical (${m.mode})`);
-    for(const label of ['Median Ending', 'Lifetime Draw', 'Funds Last', 'Peak Withdrawal']){
+    for(const label of ['Median Ending', 'Peak Withdrawal']){
       if(!m.stats.includes(label)) throw new Error(`cash-flow summary stat missing: ${label} (${JSON.stringify(m.stats)})`);
     }
-    if(!/nominal/.test(m.caption)) throw new Error(`cash-flow caption missing nominal-$ note: "${m.caption}"`);
+    // Lifetime Draw / Funds Last were removed from the summary strip — stay gone.
+    if(m.stats.some(s => /lifetime draw|funds last/i.test(s))) throw new Error(`removed summary stat still present: ${JSON.stringify(m.stats)}`);
+    if(m.hasCaption) throw new Error('cash-flow caption should be removed');
+    if(m.hasCfEyebrow) throw new Error('redundant Cash Flow eyebrow still in cf header');
+    if(m.hasSummaryName) throw new Error('redundant scenario name still in summary strip');
+    if(await page.evaluate(() => !!document.querySelector('#scn-view .cf-phase__name'))) throw new Error('phase header labels should be removed');
 
-    // The baseline plan's retirement marker (lifeTag) lands on the retirement age.
-    const retireAge = await page.evaluate(() => {
-      const row = [...document.querySelectorAll('#scn-view .cf-row')]
-        .find(r => /Retirement begins/.test(r.querySelector('.cf-row__lifetag')?.textContent || ''));
+    // Retirement start = filled dot on the year column of the first non-accum row.
+    const retirementStartAge = () => page.evaluate(() => {
+      const row = document.querySelector('#scn-view .cf-row__mark-dot--ret')?.closest('.cf-row');
       return row ? (row.querySelector('.cf-cell--age')?.textContent.trim() || '') : '';
     });
-    if(retireAge !== '66') throw new Error(`baseline retirement marker not at age 66 (got "${retireAge}")`);
+    const retireAge = await retirementStartAge();
+    if(retireAge !== '66') throw new Error(`baseline retirement start not at age 66 (got "${retireAge}")`);
+    const rmdAge = await page.evaluate(() => {
+      const row = document.querySelector('#scn-view .cf-row__mark-dot--rmd')?.closest('.cf-row');
+      return row ? (row.querySelector('.cf-cell--age')?.textContent.trim() || '') : '';
+    });
+    if(rmdAge !== '73') throw new Error(`RMD start marker not at age 73 (got "${rmdAge}")`);
 
     // The scenario pills switch which plan's cash flow is shown, and each plan's
-    // retirement marker reflects ITS OWN retire age. demoScenarios seeds Baseline
-    // at the household retire age (66 here, asserted just above) and Scenario B at
-    // +2 years (68), so selecting the Scenario B pill must move the
-    // "Retirement begins" marker from 66 to 68.
-    const markerAge = () => page.evaluate(() => {
-      const row = [...document.querySelectorAll('#scn-view .cf-row')]
-        .find(r => /Retirement begins/.test(r.querySelector('.cf-row__lifetag')?.textContent || ''));
-      return row ? (row.querySelector('.cf-cell--age')?.textContent.trim() || '') : '';
-    });
+    // cash flow reflects ITS OWN retire age. demoScenarios seeds Baseline at the
+    // household retire age (66 here, asserted just above) and Scenario B at
+    // +2 years (68), so selecting the Scenario B pill must move the first
+    // retirement-spending row from 66 to 68.
     const pickedB = await page.evaluate(() => {
       const pill = [...document.querySelectorAll('#scn-view .cf-pill')].find(p => /Scenario B/.test(p.textContent));
       if(!pill) return false;
@@ -1327,32 +1339,25 @@ try {
     if(!pickedB) throw new Error(`Scenario B pill not found among ${JSON.stringify(m.pills)}`);
     await new Promise(r => setTimeout(r, 450));
     await waitCashRows(page, 10);
-    const bName = await page.evaluate(() => document.querySelector('#scn-view .cf-summary__name')?.textContent.trim() || '');
-    if(bName !== 'Scenario B') throw new Error(`cash-flow pill did not switch to Scenario B (got "${bName}")`);
-    const bMarker = await markerAge();
-    if(bMarker !== '68') throw new Error(`Scenario B retirement marker not at age 68 (got "${bMarker}")`);
+    const bActive = await page.evaluate(() => document.querySelector('#scn-view .cf-pill.is-active')?.textContent.trim() || '');
+    if(!/Scenario B/.test(bActive)) throw new Error(`cash-flow pill did not switch to Scenario B (got "${bActive}")`);
+    const bMarker = await retirementStartAge();
+    if(bMarker !== '68') throw new Error(`Scenario B retirement start not at age 68 (got "${bMarker}")`);
     // Restore Baseline for the path-replay checks below.
     await page.evaluate(() => [...document.querySelectorAll('#scn-view .cf-pill')].find(p => /Baseline/.test(p.textContent))?.click());
     await new Promise(r => setTimeout(r, 350));
     await waitCashRows(page, 10);
 
-    // Path replay: choose mode reveals the advanced controls and re-renders the
-    // table; favorable mode is available and also re-renders. (#path-mode is the
+    // Path replay: named modes only. The advanced Path # / Seed inputs were
+    // removed from the header — assert they stay gone. (#path-mode is the
     // production node relocated into the Cash Flow header — same element, same
     // bindings.)
-    await page.select('#path-mode', 'choose');
-    await new Promise(r => setTimeout(r, 300));
-    const chosen = await page.evaluate(() => ({
-      chooseOn: document.querySelector('#path-choose')?.classList.contains('on') || false,
-      seedOn: document.querySelector('#path-seed-wrap')?.classList.contains('on') || false,
+    const advanced = await page.evaluate(() => ({
+      chooseOpt: [...document.querySelectorAll('#path-mode option')].some(o => o.value === 'choose'),
+      indexInput: !!document.querySelector('#path-index'),
+      seedInput: !!document.querySelector('#path-seed'),
     }));
-    if(!chosen.chooseOn || !chosen.seedOn) throw new Error(`choose-path advanced controls not revealed: ${JSON.stringify(chosen)}`);
-    await page.evaluate(() => {
-      const input = document.querySelector('#path-index');
-      input.value = '47'; input.dispatchEvent(new Event('change', { bubbles: true }));
-    });
-    await new Promise(r => setTimeout(r, 400));
-    if(await waitCashRows(page, 10) < 10) throw new Error('choosing path 47 emptied the cash-flow table');
+    if(advanced.chooseOpt || advanced.indexInput || advanced.seedInput) throw new Error(`removed path #/seed controls still present: ${JSON.stringify(advanced)}`);
     const hasFavorable = await page.evaluate(() => [...document.querySelectorAll('#path-mode option')].some(o => o.value === 'favorable'));
     if(!hasFavorable) throw new Error('favorable option missing from path-mode select');
     await page.select('#path-mode', 'favorable');
