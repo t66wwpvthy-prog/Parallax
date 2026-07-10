@@ -59,6 +59,53 @@ function applyResolvedIncome(income, resolved){
   if(resolved.taxableSS !== undefined) income.taxableSS = resolved.taxableSS;
 }
 
+function hasResolvedTaxableSocialSecurity(income){
+  return income.taxableSocialSecurity !== undefined || income.taxableSS !== undefined;
+}
+
+function sumSocialSecurityWorksheetOtherIncome(income){
+  // Qualified dividends are already included in ordinary dividends and must not
+  // be counted a second time in the Social Security worksheet.
+  const directIncome = [
+    income.wages,
+    income.taxableInterest,
+    income.ordinaryDividends,
+    income.otherIncome,
+    income.capitalGain,
+  ].reduce((sum, value) => sum + (typeof value === 'number' ? value : 0), 0);
+  const taxableIra = income.taxableIra ?? income.iraDistributions ?? 0;
+  const taxablePensions = income.taxablePensions ?? income.pensionAmount ?? 0;
+  return directIncome + taxableIra + taxablePensions;
+}
+
+function buildSocialSecurityWorksheetInput(engineYearFacts, income){
+  if(engineYearFacts.socialSecurityWorksheet !== undefined){
+    assertPlainObject(engineYearFacts.socialSecurityWorksheet, 'socialSecurityWorksheet');
+  }
+  const supplemental = engineYearFacts.socialSecurityWorksheet ?? {};
+  const isMfs = engineYearFacts.filingStatus === 'marriedFilingSeparately';
+  if(isMfs && typeof supplemental.livedWithSpouse !== 'boolean'){
+    throw new TaxInputError(
+      'socialSecurityWorksheet.livedWithSpouse is required for married filing separately',
+      { field: 'socialSecurityWorksheet.livedWithSpouse' }
+    );
+  }
+
+  // Planner rows do not currently expose tax-exempt interest or excluded-income
+  // add-backs. Keep those limitations explicit as zero unless facts are supplied.
+  return {
+    socialSecurityBenefits: income.socialSecurityBenefits,
+    otherIncome: sumSocialSecurityWorksheetOtherIncome(income),
+    taxExemptInterest: supplemental.taxExemptInterest ?? 0,
+    excludedIncomeAddBacks: supplemental.excludedIncomeAddBacks ?? 0,
+    adjustments: supplemental.adjustments
+      ?? engineYearFacts.adjustments?.total
+      ?? engineYearFacts.adjustments?.line10
+      ?? 0,
+    livedWithSpouse: supplemental.livedWithSpouse ?? false,
+  };
+}
+
 /**
  * Map a stable engine-year fact bundle to client1040 intake JSON.
  *
@@ -98,6 +145,11 @@ export function engineYearTo1040Input(engineYearFacts){
   if(engineYearFacts.resolved){
     intake.income = intake.income || {};
     applyResolvedIncome(intake.income, engineYearFacts.resolved);
+  }
+
+  if(intake.income?.socialSecurityBenefits > 0
+      && !hasResolvedTaxableSocialSecurity(intake.income)){
+    intake.socialSecurity = buildSocialSecurityWorksheetInput(engineYearFacts, intake.income);
   }
 
   if(engineYearFacts.adjustments){
@@ -184,5 +236,8 @@ export function mapSimulationRowToYearFacts(row, planMeta){
   };
 
   if(Object.keys(resolved).length > 0) facts.resolved = resolved;
+  if(planMeta.socialSecurityWorksheet){
+    facts.socialSecurityWorksheet = { ...planMeta.socialSecurityWorksheet };
+  }
   return facts;
 }
