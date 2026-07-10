@@ -44,6 +44,10 @@ function hasDetailedIncome(facts){
     || (facts.adjustments && Object.keys(facts.adjustments).length > 0);
 }
 
+function hasExplicitIncomeObject(facts){
+  return facts.income !== undefined;
+}
+
 function copyDefinedIncome(target, source){
   for(const key of INCOME_KEYS){
     if(source[key] !== undefined) target[key] = source[key];
@@ -130,14 +134,15 @@ export function engineYearTo1040Input(engineYearFacts){
     return intake;
   }
 
-  if(!hasDetailedIncome(engineYearFacts)){
+  if(!hasDetailedIncome(engineYearFacts) && !hasExplicitIncomeObject(engineYearFacts)){
     throw new TaxInputError(
       'engineYearFacts must include taxableOrdinaryIncome or at least one income/adjustment field',
       { fields: ['taxableOrdinaryIncome', 'income', 'adjustments'] }
     );
   }
 
-  if(engineYearFacts.income){
+  if(hasExplicitIncomeObject(engineYearFacts)){
+    assertPlainObject(engineYearFacts.income, 'engineYearFacts.income');
     intake.income = {};
     copyDefinedIncome(intake.income, engineYearFacts.income);
   }

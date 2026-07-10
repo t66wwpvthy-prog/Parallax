@@ -27,6 +27,10 @@ function resolveRowPlanMeta(row, index, planMeta, rowPlanMeta){
   return base;
 }
 
+function isFailedFillerRow(row){
+  return row.failed === true && row.source === null;
+}
+
 /**
  * Run annual federal tax for each simulation row in a path.
  *
@@ -35,6 +39,9 @@ function resolveRowPlanMeta(row, index, planMeta, rowPlanMeta){
  * @param {object} [options]
  * @param {object} [options.contextOverrides] - passed to buildDefaultTaxContext
  * @param {(row: object, index: number) => object} [options.rowPlanMeta] - per-row planMeta merge
+ * Post-depletion filler rows (failed with a null source) are not tax years and
+ * are skipped. The real failure year retains its non-null source and is run.
+ *
  * @returns {{ results: object[], byYear: Record<string|number, object> }}
  */
 export function runTaxForScenarioPath(rows, planMeta, options = {}){
@@ -50,6 +57,7 @@ export function runTaxForScenarioPath(rows, planMeta, options = {}){
   for(let index = 0; index < rows.length; index++){
     const row = rows[index];
     assertPlainObject(row, `rows[${index}]`);
+    if(isFailedFillerRow(row)) continue;
     const meta = resolveRowPlanMeta(row, index, planMeta, rowPlanMeta);
     const yearKey = resolveYearKey(row, index);
     const taxYear = meta.taxYear ?? contextOverrides.taxYear ?? 2026;

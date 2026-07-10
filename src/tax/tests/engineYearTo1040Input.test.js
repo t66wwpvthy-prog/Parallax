@@ -121,6 +121,23 @@ test('engineYearTo1040Input throws when filingStatus or income detail is missing
   );
 });
 
+test('engineYearTo1040Input accepts an explicit zero-income year', () => {
+  const facts = {
+    filingStatus: 'single',
+    taxYear: 2026,
+    income: {},
+    deductions: { useStandard: true },
+  };
+  const intake = engineYearTo1040Input(facts);
+  const context = buildDefaultTaxContext({ taxYear: 2026, scenarioId: 'zero-income-year' });
+  const { annual1040Result } = runEngineYearTax(facts, context);
+
+  assert.deepStrictEqual(intake.income, {});
+  assert.strictEqual(annual1040Result.lines.line11.value, 0);
+  assert.strictEqual(annual1040Result.lines.line15.value, 0);
+  assert.strictEqual(annual1040Result.lines.line24.value, 0);
+});
+
 test('mapSimulationRowToYearFacts reshapes row cash flows without importing engine.js', () => {
   const facts = mapSimulationRowToYearFacts({
     age: 68,

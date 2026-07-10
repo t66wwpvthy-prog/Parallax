@@ -79,7 +79,7 @@ test('attachTypicalPathFederalTax returns slim summary without mutating analysis
   ));
 });
 
-test('attachTypicalPathFederalTax skips accumulation rows only', () => {
+test('attachTypicalPathFederalTax skips accumulation and failed filler rows', () => {
   const analysis = {
     params: { retirementAge: 65, currentAge: 60, accounts: { taxable: { balance: 0, basis: 0 } } },
     paths: {
@@ -90,12 +90,34 @@ test('attachTypicalPathFederalTax skips accumulation rows only', () => {
           { year: 1, age: 61, phase: 'accum', taxes: 0, accountBreakdown: { taxable: 0, traditional: 0, roth: 0 } },
           {
             year: 6,
+            source: 2025,
             age: 66,
             socialSecurity: 30000,
             pension: 0,
             taxes: 4000,
             accountBreakdown: { taxable: 0, traditional: 20000, roth: 0 },
             rmd: 0,
+          },
+          {
+            year: 7,
+            source: 2026,
+            age: 67,
+            socialSecurity: 0,
+            pension: 0,
+            otherIncome: 0,
+            taxes: 0,
+            accountBreakdown: { taxable: 0, traditional: 0, roth: 0 },
+            rmd: 0,
+          },
+          {
+            year: 8,
+            source: null,
+            age: 68,
+            failed: true,
+            socialSecurity: 0,
+            otherIncome: 0,
+            taxes: 0,
+            accountBreakdown: { taxable: 0, traditional: 0, roth: 0 },
           },
         ],
       },
@@ -107,8 +129,10 @@ test('attachTypicalPathFederalTax skips accumulation rows only', () => {
     baseTaxYear: 2025,
     filingStatus: 'marriedFilingJointly',
   });
-  assert.strictEqual(summary.years.length, 1);
+  assert.strictEqual(summary.years.length, 2);
   assert.strictEqual(summary.years[0].year, 6);
+  assert.strictEqual(summary.years[1].year, 7);
+  assert.strictEqual(summary.years[1].federalTaxLiability, 0);
   assert.strictEqual(summary.totals.enginePathTax, 4000);
   assert.ok(summary.totals.federalTaxLiability > mfjSummary.totals.federalTaxLiability);
 });
