@@ -17,14 +17,21 @@ The federal tax **rules** are largely ready for benchmark returns. T4 connects *
 - `main.js` passes `p.meta.filingStatus` into attach
 - `buildPlanMetaFromEngineParams` reads `options.filingStatus` → `params.meta.filingStatus` → throws if missing
 - Silent MFJ default removed
-- 173 tests passing; `verify.mjs` passed
+
+**Social Security worksheet (T4.2) — complete**
+
+- `engineYearTo1040Input` builds `intake.socialSecurity` when gross SS > 0
+- Line 6b calculated by `FED_TAXABLE_SOCIAL_SECURITY`
+- Resolved `taxableSocialSecurity` / `taxableSS` bypasses worksheet
+- MFS requires explicit `livedWithSpouse`
+- 176 tests passing; `verify.mjs` passed
 
 ## Remaining T4 gaps
 
 | Planner fact | Current handling | Consequence |
 |--------------|------------------|-------------|
 | Filing status | ~~Defaults to MFJ~~ | **Fixed T4.1** — passes from household `plan.meta` |
-| Social Security | Gross benefit → line 6a; no worksheet | Taxable SS effectively $0 |
+| Social Security | ~~Gross only, line 6b = $0~~ | **Fixed T4.2** — worksheet drives line 6b |
 | Taxable-account gain | Static gain fraction from starting basis | Ignores basis depletion |
 | Empty taxable account | No gain fraction created | Later withdrawals can abort attach |
 | Traditional withdrawals/RMDs | Assumed 100% taxable | Nondeductible basis lost |
@@ -46,7 +53,7 @@ The federal tax **rules** are largely ready for benchmark returns. T4 connects *
 ## T4 work items (prioritized)
 
 1. ~~**Filing status**~~ — done (T4.1)
-2. **Social Security** — supply worksheet facts or resolved taxable 6b from engine rows
+2. ~~**Social Security**~~ — done (T4.2)
 3. **Gain fraction** — dynamic basis / reinvested RMD handling; no throw on empty-then-funded taxable
 4. **Zero-income / failed years** — deterministic skip or empty-year handling (no path abort)
 5. **taxablePct** on other income streams

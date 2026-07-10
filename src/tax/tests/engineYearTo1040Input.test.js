@@ -59,6 +59,55 @@ test('engineYearTo1040Input passes resolved taxable portions through', () => {
   assert.strictEqual(intake.income.taxablePensions, 18000);
   assert.strictEqual(intake.income.taxableSocialSecurity, 9000);
   assert.strictEqual(intake.income.socialSecurityBenefits, 36000);
+  assert.strictEqual(intake.socialSecurity, undefined);
+});
+
+test('engineYearTo1040Input builds Social Security worksheet facts from mapped taxable income', () => {
+  const intake = engineYearTo1040Input({
+    filingStatus: 'marriedFilingJointly',
+    income: {
+      wages: 12000,
+      taxableInterest: 1000,
+      ordinaryDividends: 2000,
+      qualifiedDividends: 500,
+      socialSecurityBenefits: 36000,
+      pensionAmount: 24000,
+      otherIncome: 5000,
+      iraDistributions: 40000,
+      capitalGain: 7000,
+    },
+    resolved: {
+      taxableIra: 32000,
+      taxablePensions: 18000,
+    },
+    adjustments: { total: 3000 },
+  });
+
+  assert.deepStrictEqual(intake.socialSecurity, {
+    socialSecurityBenefits: 36000,
+    otherIncome: 77000,
+    taxExemptInterest: 0,
+    excludedIncomeAddBacks: 0,
+    adjustments: 3000,
+    livedWithSpouse: false,
+  });
+});
+
+test('engineYearTo1040Input requires the MFS lived-with-spouse worksheet fact', () => {
+  assert.throws(
+    () => engineYearTo1040Input({
+      filingStatus: 'marriedFilingSeparately',
+      income: { socialSecurityBenefits: 12000 },
+    }),
+    /livedWithSpouse/
+  );
+
+  const intake = engineYearTo1040Input({
+    filingStatus: 'marriedFilingSeparately',
+    income: { socialSecurityBenefits: 12000 },
+    socialSecurityWorksheet: { livedWithSpouse: true },
+  });
+  assert.strictEqual(intake.socialSecurity.livedWithSpouse, true);
 });
 
 test('engineYearTo1040Input throws when filingStatus or income detail is missing', () => {
@@ -155,4 +204,25 @@ test('runEngineYearTax pipeline matches annual-04 retiree fixture via row mappin
   assert.strictEqual(annual1040Result.lines.line11.value, 71000);
   assert.strictEqual(annual1040Result.lines.line15.value, 39500);
   assert.strictEqual(annual1040Result.lines.line24.value, 4244);
+});
+
+test('planner row Social Security reaches calculated Form 1040 line 6b', () => {
+  const context = buildDefaultTaxContext({ taxYear: 2026, scenarioId: 'engine-ss-worksheet' });
+  const facts = mapSimulationRowToYearFacts({
+    socialSecurity: 36000,
+    pension: 24000,
+    otherIncome: 0,
+    accountBreakdown: { taxable: 0, traditional: 40000, roth: 0 },
+    rmd: 0,
+  }, {
+    filingStatus: 'marriedFilingJointly',
+    taxYear: 2026,
+  });
+
+  const { result, annual1040Result } = runEngineYearTax(facts, context);
+  assert.strictEqual(result.form1040.line6a.value, 36000);
+  assert.strictEqual(result.form1040.line6b.value, 30600);
+  assert.strictEqual(result.form1040.line6b.status, 'CALCULATED');
+  assert.strictEqual(result.form1040.line6b.ruleId, 'FED_TAXABLE_SOCIAL_SECURITY');
+  assert.strictEqual(annual1040Result.lines.line11.value, 94600);
 });
