@@ -12,7 +12,7 @@
 <!-- ?v= cache-buster: bump on any CSS change so browsers fetch the new file
      instead of serving a stale cached copy (GitHub Pages caches CSS hard). -->
 <link rel="stylesheet" href="styles/main.css?v=14"/>
-<link rel="stylesheet" href="styles/household.css?v=19"/>
+<link rel="stylesheet" href="styles/household.css?v=24"/>
 <link rel="stylesheet" href="styles/scenarios.css?v=13"/>
 <link rel="stylesheet" href="styles/goals.css?v=6"/>
 </head>
@@ -87,17 +87,17 @@
   </header>
 
   <!-- =====================================================================
-       Household — the EDITABLE plan-input console (canonical "Folio + Equilibrium"
+       Household ΓÇö the EDITABLE plan-input console (canonical "Folio + Equilibrium"
        design). syncHousehold() renders the Demographics / Net Worth / Cash Flow
        chapters into #hh-view from the live `plan`; every value slot is an inline
        renderField() input and the #hh-view delegate writes edits back to `plan`
        and reseeds/dirties scenarios. One primary glass surface (the Folio app-frame);
        the chapter rail + equilibrium pillars are regions inside it. No logo/orb/global
-       header here — production already owns those.
+       header here ΓÇö production already owns those.
        ===================================================================== -->
   <section class="page on" data-page="household">
     <div class="hh-stage">
-      <div class="hh-wizard" data-wizard-rev="4">
+      <div class="hh-wizard">
 
         <!-- Wizard header: household identity (filled on every sync) + the
              tucked household controls menu (Switch / New / Demo / Clear). The
@@ -133,24 +133,19 @@
         <!-- Gold progress stepper = the view switch. The view layer toggles
              .is-current / .is-done and renders the matching step into #hh-view. -->
         <nav class="hh-stepper" role="tablist" aria-label="Household setup steps">
-          <button class="hh-step" id="hh-step-1" data-step="1" type="button" role="tab" aria-controls="hh-view"><span class="hh-step__num">1</span><span class="hh-step__label">Household</span></button>
+          <button class="hh-step" id="hh-step-1" data-step="1" type="button" role="tab" aria-controls="hh-view"><span class="hh-step__num">1</span><span class="hh-step__label">People &amp; Timeline</span></button>
           <span class="hh-step__conn" aria-hidden="true"></span>
-          <button class="hh-step" id="hh-step-2" data-step="2" type="button" role="tab" aria-controls="hh-view"><span class="hh-step__num">2</span><span class="hh-step__label">Accounts</span></button>
+          <button class="hh-step" id="hh-step-2" data-step="2" type="button" role="tab" aria-controls="hh-view"><span class="hh-step__num">2</span><span class="hh-step__label">Balance Sheet</span></button>
           <span class="hh-step__conn" aria-hidden="true"></span>
-          <button class="hh-step" id="hh-step-3" data-step="3" type="button" role="tab" aria-controls="hh-view"><span class="hh-step__num">3</span><span class="hh-step__label">Income</span></button>
+          <button class="hh-step" id="hh-step-3" data-step="3" type="button" role="tab" aria-controls="hh-view"><span class="hh-step__num">3</span><span class="hh-step__label">Cash Flow</span></button>
           <span class="hh-step__conn" aria-hidden="true"></span>
-          <button class="hh-step" id="hh-step-4" data-step="4" type="button" role="tab" aria-controls="hh-view"><span class="hh-step__num">4</span><span class="hh-step__label">Retirement</span></button>
-          <span class="hh-step__conn" aria-hidden="true"></span>
-          <button class="hh-step" id="hh-step-5" data-step="5" type="button" role="tab" aria-controls="hh-view"><span class="hh-step__num">5</span><span class="hh-step__label">Blueprint</span></button>
+          <button class="hh-step" id="hh-step-4" data-step="4" type="button" role="tab" aria-controls="hh-view"><span class="hh-step__num">4</span><span class="hh-step__label">Blueprint</span></button>
         </nav>
 
-        <!-- Two-pane body: the step form + the live "Plan so far" rail. Exactly
-             one step renderer writes into #hh-view per sync; the rail re-derives
-             from `plan` on the same sync. -->
-        <div class="hh-wiz-body">
+        <div class="hh-wiz-workspace">
           <div class="hh-content" id="hh-view" aria-live="polite"></div>
-          <aside class="hh-plan-rail" id="hh-plan-rail" aria-label="Plan so far"></aside>
         </div>
+        <div id="hh-wiz-footer"></div>
 
       </div>
     </div>
@@ -166,7 +161,7 @@
          Presentation only: the ScenariosUI view layer renders Compare / Focus /
          Cash Flow into #scn-view from PRODUCTION engine state. The old band /
          levers / tax / cash-flow grids and their renderers were replaced.
-         No logo/orb, no global header, no outer glass shell here — production
+         No logo/orb, no global header, no outer glass shell here ΓÇö production
          already owns those; each view paints its own single glass surface.
          ===================================================================== -->
     <div class="scn-stage">
@@ -196,7 +191,7 @@
         </div>
       </header>
 
-      <!-- View mount — exactly one authoritative renderer writes here per sync. -->
+      <!-- View mount ΓÇö exactly one authoritative renderer writes here per sync. -->
       <div id="scn-view" aria-live="polite"></div>
 
       <!-- Engine-backed solver (Solve). renderSolvePanel() fills this. -->
@@ -204,7 +199,7 @@
     </div>
 
     <!-- Path-replay controls. PRODUCTION owns these; the Cash Flow view relocates
-         this node into its header (window.scnPathControlsEl) — never recreated.
+         this node into its header (window.scnPathControlsEl) ΓÇö never recreated.
          Detached/hidden when Cash Flow is not the active view. -->
     <div id="scn-path-src" hidden>
       <label class="scn-path" id="scn-path-replay">Path
