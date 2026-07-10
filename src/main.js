@@ -2764,6 +2764,7 @@ function runAll(){
             s.res.typicalPathFederalTax = attachTypicalPathFederalTax(s.res, {
               baseTaxYear,
               scenarioId: s.name,
+              filingStatus: p.meta?.filingStatus,
             });
           }catch(taxErr){
             s.res.typicalPathFederalTax = null;
