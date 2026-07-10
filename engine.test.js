@@ -488,6 +488,28 @@ test('a partly tax-free stream is taxed less than a fully-taxable one (higher en
     'taxablePct changes tax only, not the gross income shown');
 });
 
+test('engine rows expose taxable other income matching taxBySource', () => {
+  const run = (taxablePct) => {
+    const p = JSON.parse(JSON.stringify(defaultPlan));
+    p.household.primary = { currentAge: 65, retirementAge: 65, planEndAge: 95 };
+    p.income.other = [{ label:'Annuity', amount:60000, startAge:65, endAge:95, taxablePct }];
+    const params = resolveInputs(p, {});
+    const row = runHistoricalPath(p, 1995, 'taxable-first').rows.find(r => r.age === 70);
+    return { params, row };
+  };
+
+  const half = run(0.5);
+  assert.strictEqual(half.row.otherIncome, 60000);
+  assert.strictEqual(half.row.otherIncomeTaxable, 30000);
+  assert.ok(Math.abs(
+    half.row.otherIncomeTaxable - (half.row.taxBySource.oi / half.params.taxRates.ordinary)
+  ) < 1e-9);
+
+  const fully = run(undefined);
+  assert.strictEqual(fully.params.otherIncome[0].taxablePct, 1);
+  assert.strictEqual(fully.row.otherIncomeTaxable, fully.row.otherIncome);
+});
+
 // ── Earmarked-asset sale ("sell this to fund that") ─────────────────────────
 // A sale is an OVERRIDE, never baked into the base plan, so the Baseline stays
 // clean. Net proceeds = value − mortgage payoff − agent commission − cap-gains
