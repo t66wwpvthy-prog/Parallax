@@ -228,6 +228,14 @@ export function client1040IntakeToComposerInput(intake){
 
   }
 
+  if(intake.scheduleSE){
+    input.scheduleSE = intake.scheduleSE.map((entry) => ({ ...entry }));
+  }
+
+  if(intake.schedule2){
+    input.schedule2 = { ...intake.schedule2 };
+  }
+
 
 
   return input;

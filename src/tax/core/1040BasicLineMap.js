@@ -48,7 +48,7 @@ export const FORM1040_BASIC_LINES = [
   { lineId: 'line20', label: 'Schedule 3, line 8', intakePath: 'passThrough.line20', coverage: LINE_COVERAGE.PASS_THROUGH, spineLine: 'line20' },
   { lineId: 'line21', label: 'Total credits', coverage: LINE_COVERAGE.CALCULATED, spineLine: 'line21' },
   { lineId: 'line22', label: 'Tax after credits', coverage: LINE_COVERAGE.CALCULATED, spineLine: 'line22' },
-  { lineId: 'line23', label: 'Other taxes (Schedule 2, line 21)', intakePath: 'passThrough.line23', coverage: LINE_COVERAGE.PASS_THROUGH, spineLine: 'line23' },
+  { lineId: 'line23', label: 'Other taxes (Schedule 2, line 21)', intakePath: 'schedule2', coverage: LINE_COVERAGE.CALCULATED, spineLine: 'line23', notes: 'Calculated when Schedule SE and the remaining Schedule 2 components are supplied; legacy pass-through remains supported.' },
   { lineId: 'line24', label: 'Total tax', intakePath: 'reconciliation.theirLine24', coverage: LINE_COVERAGE.CALCULATED, spineLine: 'line24', notes: 'Calculated roll-up; includes supplied pass-through tax lines.' },
 
   { lineId: 'scheduleD', label: 'Schedule D ST/LT detail', intakePath: 'scheduleD', coverage: LINE_COVERAGE.ARCHITECTURE_LATER, notes: 'Needed when line 7 mixes short- and long-term gains.' },
