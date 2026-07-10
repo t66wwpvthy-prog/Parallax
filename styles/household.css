@@ -1,487 +1,555 @@
 /* =============================================================================
-   household.css — THE single authoritative Household style layer (production)
-   -----------------------------------------------------------------------------
-   Household is the 5-STEP SETUP WIZARD (Household → Accounts → Income →
-   Retirement → Blueprint): a gold progress stepper over a two-pane body — the
-   step form column beside a slim live "Plan so far" rail. One visual layer of
-   boxes (input fields only); all other structure comes from hairline dividers,
-   uppercase letter-spaced labels and serif money.
-
-   • Tokens live on .page[data-page="household"] (NOT :root) so nothing leaks.
-   • EVERY selector is scoped beneath .page[data-page="household"].
-   • No global html/body resets, no !important, no specificity escalation.
-   • Type floor: nothing below 16px — labels 16, body 16–18, serif money up.
-
-   4K-QUALITY GLASS (see INTEGRATION.md): the wizard paints ONE primary glass
-   surface (.hh-wizard) floating on the page background. Keep the three layers
-   intact at 3840×2160: layered gradient fills, real backdrop blur+saturate,
-   and the deep ambient shadow PLUS the 1px inner top highlight.
+   household.css — 4-step Blueprint wizard (People → Balance Sheet → Cash Flow → Blueprint)
+   Scoped to .page[data-page="household"] only. Spectral + Hanken Grotesk.
    ============================================================================= */
 
-/* ---- Tokens + page base (household route only) ---------------------------- */
 .page[data-page="household"] {
-  /* Type */
-  --font-sans: 'Hanken Grotesk', system-ui, -apple-system, sans-serif;
+  --font-sans: 'Hanken Grotesk', system-ui, sans-serif;
   --font-serif: 'Spectral', Georgia, serif;
 
-  /* Page background (fixed, behind the floating glass) */
-  --bg-deep:   #0f1216;
-  --bg-top:    #15181d;
-  --bg-bottom: #0b0d11;
-  --page-bg:
-    radial-gradient(56% 52% at 85% -10%, rgba(74,58,34,0.16), rgba(74,58,34,0) 58%),
-    radial-gradient(58% 60% at 2% 106%, rgba(22,33,50,0.5), rgba(0,0,0,0) 62%),
-    radial-gradient(50% 48% at 50% 48%, rgba(224,212,178,0.10), rgba(0,0,0,0) 72%),
-    linear-gradient(158deg, var(--bg-top) 0%, var(--bg-deep) 50%, var(--bg-bottom) 100%);
+  --gold: #c3a56a;
+  --gold-bright: #cdb079;
+  --gold-ink: #1c1a15;
+  --gold-dim: rgba(195,165,106,0.45);
 
-  /* Gold accent */
-  --gold:         #c6a662;
-  --gold-bright:  #d8c084;
-  --gold-soft:    #b08f4e;
-  --gold-eyebrow: #c6a662;
-  --gold-dim:     rgba(198,166,98,0.45);
-  --gold-ink:     #1c1a15;
+  --text-hi: #ece7db;
+  --text-1: #cfcabf;
+  --text-2: #8a8880;
+  --text-3: #7a7a7c;
+  --text-4: #6f6f72;
+  --text-5: #63625d;
 
-  /* Spouse (cool) accent — muted slate per charcoal system */
-  --blue-soft:  #8b94a8;
-  --blue-bright:#a3aab8;
-  --blue-dim:   #8b94a8;
+  --sage: #96a394;
+  --sage-dim: #879a86;
+  --slate: #7688a0;
+  --down: #c07a63;
 
-  /* Income / spending tones */
-  --pass: #8fa57e;
-  --down: #c0795f;
+  --line-06: rgba(255,255,255,0.06);
+  --line-07: rgba(255,255,255,0.07);
+  --line-08: rgba(255,255,255,0.08);
+  --line-10: rgba(255,255,255,0.10);
+  --line-12: rgba(255,255,255,0.12);
+  --line-16: rgba(255,255,255,0.16);
 
-  /* Text ramp */
-  --text-hi: #e7dec9;
-  --text-1:  #ddd5c4;
-  --text-2:  #c2bbab;
-  --text-3:  #9097a0;
-  --text-4:  #878e96;
-  --text-5:  #7d848c;
-  --text-6:  #6b727a;
+  --card-bg: rgba(255,255,255,0.012);
+  --sheet-bg: #0b0b0d;
+  --max-w: 1120px;
+  --hh-chrome: 132px;
 
-  /* Hairlines + fills */
-  --line-06: rgba(231,222,201,0.06);
-  --line-08: rgba(231,222,201,0.08);
-  --line-09: rgba(231,222,201,0.09);
-  --line-10: rgba(231,222,201,0.10);
-  --line-16: rgba(231,222,201,0.16);
-  --fill-03: rgba(231,222,201,0.03);
-  --fill-04: rgba(231,222,201,0.04);
-  --fill-05: rgba(231,222,201,0.05);
-
-  /* Layered glass gradients (the sheen layer + the body tint) */
-  --glass-panel:
-    linear-gradient(150deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0) 32%),
-    linear-gradient(158deg, rgba(231,222,201,0.055) 0%, rgba(231,222,201,0.02) 100%);
-  --glass-card:
-    linear-gradient(150deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0) 36%),
-    linear-gradient(158deg, rgba(231,222,201,0.045), rgba(231,222,201,0.016));
-
-  /* Elevation shadows (ambient depth + inner top highlight = the glass read) */
-  --shadow-frame:  0 44px 96px rgba(0,0,0,0.50), inset 0 1px 0 rgba(255,255,255,0.14);
-  --shadow-card:   0 16px 40px rgba(0,0,0,0.30);
-
-  /* Backdrop blur strengths */
-  --blur-frame:   blur(38px) saturate(155%);
-  --blur-card:    blur(20px);
-
-  /* Radii */
-  --r-sm:    7px;
-  --r-md:    11px;
-  --r-card:  14px;
-  --r-frame: 18px;
-  --r-pill:  999px;
-
-  /* Layout */
-  --max-w: 1580px;
-  --prail-w: 288px;
-  --frame-min-h: 700px;
-
-  /* Page surface */
   font-family: var(--font-sans);
-  font-feature-settings: 'tnum' 1;            /* tabular figures for ledgers */
   -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
-  color: var(--text-2);
-  background: var(--page-bg);
-  background-attachment: fixed;
-  overflow-y: auto;            /* tall steps scroll; body is overflow:hidden */
-  overflow-x: hidden;
+  color: var(--text-1);
+  overflow-y: auto;
 }
 
 .page[data-page="household"] *,
 .page[data-page="household"] *::before,
 .page[data-page="household"] *::after { box-sizing: border-box; }
 
-.page[data-page="household"] :focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; border-radius: var(--r-sm); }
+.page[data-page="household"] .hh-stage {
+  width: 100%;
+  max-width: var(--max-w);
+  margin: 0 auto;
+  padding: 0 26px 60px;
+}
 
-/* Inner stage: centers + pads the content. Premium floating glass — at 4K it
-   sits centered with wide margins (intended). Raise --max-w to occupy more
-   width; that is the one knob. */
-.page[data-page="household"] .hh-stage { width: 100%; max-width: var(--max-w); margin: 28px auto; padding: 0 22px 64px; }
-
-/* =============================================================================
-   WIZARD FRAME — the single primary glass surface
-   ============================================================================= */
 .page[data-page="household"] .hh-wizard {
-  min-height: var(--frame-min-h);
-  padding: 30px 40px 40px;
-  border-radius: var(--r-frame);
-  background: var(--glass-panel);
-  border: 1px solid var(--line-09);
-  box-shadow: var(--shadow-frame);
-  backdrop-filter: var(--blur-frame);
-  -webkit-backdrop-filter: var(--blur-frame);
+  border: 1px solid var(--line-07);
+  border-radius: 20px;
+  background: var(--card-bg);
+  overflow: hidden;
 }
 
-/* ---- Wizard header: identity left, tucked controls menu right ------------- */
+/* ---- Header + menu -------------------------------------------------------- */
 .page[data-page="household"] .hh-wiz-top {
-  display: flex; align-items: flex-start; justify-content: space-between; gap: 20px;
-  padding-bottom: 20px; margin-bottom: 24px;
-  border-bottom: 1px solid var(--line-08);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 52px 18px;
+  border-bottom: 1px solid var(--line-07);
 }
-.page[data-page="household"] .hh-wiz-id { display: flex; align-items: center; gap: 16px; min-width: 0; }
+.page[data-page="household"] .hh-wiz-id { display: flex; align-items: center; gap: 13px; min-width: 0; }
 .page[data-page="household"] .hh-avatars { display: flex; align-items: center; }
 .page[data-page="household"] .hh-avatar {
-  width: 38px; height: 38px; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  font-family: var(--font-serif); font-size: 16px;
+  width: 30px; height: 30px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-family: var(--font-serif); font-size: 16px; flex: none;
 }
-.page[data-page="household"] .hh-avatar--c {
-  border: 1px solid rgba(198,166,98,0.40);
-  background: radial-gradient(120% 120% at 30% 25%, rgba(198,166,98,0.22), rgba(255,255,255,0.02));
-  color: var(--gold-bright); position: relative; z-index: 2;
+.page[data-page="household"] .hh-av {
+  width: 24px; height: 24px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-family: var(--font-serif); font-size: 13px; flex: none;
 }
-.page[data-page="household"] .hh-avatar--s {
-  border: 1px solid rgba(139,148,168,0.42);
-  background: radial-gradient(120% 120% at 30% 25%, rgba(139,148,168,0.24), rgba(255,255,255,0.02));
-  color: #aeb4c2; margin-left: -11px;
+.page[data-page="household"] .hh-avatar--c,
+.page[data-page="household"] .hh-av--c {
+  background: radial-gradient(circle at 40% 32%, #cdb079, #8a6d34);
+  color: #2a220f;
 }
-.page[data-page="household"] .hh-wiz-id__eyebrow { font-size: 16px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--text-6); font-weight: 600; }
-.page[data-page="household"] .hh-wiz-id__name { font-family: var(--font-serif); font-size: 22px; color: var(--text-1); font-weight: 400; line-height: 1.2; }
-.page[data-page="household"] .hh-wiz-id__filing { font-family: var(--font-serif); font-size: 16px; color: var(--text-5); font-style: italic; margin-top: 2px; }
+.page[data-page="household"] .hh-avatar--s,
+.page[data-page="household"] .hh-av--s {
+  background: radial-gradient(circle at 40% 32%, #6d6f76, #3a3c42);
+  color: var(--text-1);
+  margin-left: -9px;
+}
+.page[data-page="household"] .hh-av--lg { width: 30px; height: 30px; font-size: 14px; }
+.page[data-page="household"] .hh-av--overlap { margin-left: -9px; }
+.page[data-page="household"] .hh-wiz-id__eyebrow {
+  font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--text-4);
+}
+.page[data-page="household"] .hh-wiz-id__name {
+  font-family: var(--font-serif); font-size: 22px; color: var(--text-hi); line-height: 1.15;
+}
+.page[data-page="household"] .hh-wiz-id__filing { font-size: 16px; color: var(--text-2); margin-top: 4px; }
 
-/* Tucked household menu (⋯): Switch / New / Demo / Clear live in the popover. */
 .page[data-page="household"] .hh-menu { position: relative; flex: none; }
 .page[data-page="household"] .hh-menu__btn {
-  width: 36px; height: 36px; border-radius: var(--r-sm);
-  background: var(--fill-04); border: 1px solid var(--line-08);
-  color: var(--text-4); font-size: 20px; line-height: 1; cursor: pointer;
-  transition: color .15s, border-color .15s;
+  width: 36px; height: 36px; border-radius: 8px;
+  border: 1px solid var(--line-10); background: rgba(255,255,255,0.03);
+  color: var(--text-2); font-size: 20px; cursor: pointer;
 }
-.page[data-page="household"] .hh-menu__btn:hover { color: var(--gold-soft); border-color: var(--gold-dim); }
 .page[data-page="household"] .hh-menu__pop {
   position: absolute; top: 44px; right: 0; z-index: 30;
-  display: flex; flex-direction: column; gap: 8px;
-  width: 240px; padding: 14px;
-  border-radius: var(--r-md);
-  background:
-    linear-gradient(150deg, rgba(255,255,255,0.05), rgba(255,255,255,0) 40%),
-    #15181d;
-  border: 1px solid var(--line-10);
-  box-shadow: 0 22px 54px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.12);
+  width: 240px; padding: 14px; display: flex; flex-direction: column; gap: 8px;
+  border-radius: 11px; border: 1px solid var(--line-10);
+  background: #121316; box-shadow: 0 22px 54px rgba(0,0,0,0.5);
 }
 .page[data-page="household"] .hh-menu__pop[hidden] { display: none; }
 .page[data-page="household"] .hh-menu__row { display: flex; gap: 6px; }
-
-/* Household selector + action buttons (inside the menu popover). */
-.page[data-page="household"] .hh-rail__switch-lbl {
-  font-family: var(--font-sans); font-size: 16px; letter-spacing: 0.16em;
-  font-weight: 600; text-transform: uppercase; color: var(--text-5);
-}
+.page[data-page="household"] .hh-rail__switch-lbl,
+.page[data-page="household"] .hh-rail-act,
 .page[data-page="household"] .hh-rail__switch-sel {
-  width: 100%; font-family: var(--font-serif); font-size: 16px;
-  padding: 7px 10px; background: var(--fill-04); border: 1px solid var(--line-08);
-  border-radius: var(--r-sm); color: var(--text-2); cursor: pointer;
+  font-family: var(--font-sans); font-size: 16px;
 }
-.page[data-page="household"] .hh-rail__switch-sel:hover { border-color: var(--gold-dim); }
+.page[data-page="household"] .hh-rail__switch-sel,
 .page[data-page="household"] .hh-rail-act {
-  flex: 1; font-family: var(--font-sans); font-size: 16px; letter-spacing: 0.14em;
-  font-weight: 600; text-transform: uppercase; padding: 7px 4px;
-  background: var(--fill-04); border: 1px solid var(--line-08);
-  border-radius: var(--r-sm); color: var(--text-5); cursor: pointer;
-  transition: color .15s, border-color .15s;
+  width: 100%; padding: 7px 10px; border-radius: 8px;
+  border: 1px solid var(--line-10); background: rgba(255,255,255,0.03); color: var(--text-2);
 }
-.page[data-page="household"] .hh-rail-act:hover { color: var(--gold-soft); border-color: rgba(198,166,98,0.28); }
-.page[data-page="household"] .hh-rail-act--clear:hover { color: var(--down); border-color: rgba(212,154,126,0.28); }
-.page[data-page="household"] .hh-rail-act.is-disabled,
-.page[data-page="household"] .hh-rail-act:disabled { opacity: 0.4; cursor: default; }
-.page[data-page="household"] .hh-rail-act.is-disabled:hover,
-.page[data-page="household"] .hh-rail-act:disabled:hover { color: var(--text-5); border-color: var(--line-08); }
+.page[data-page="household"] .hh-rail-act { cursor: pointer; }
 .page[data-page="household"] .hh-rail-act--new { width: 100%; }
 
-/* =============================================================================
-   GOLD PROGRESS STEPPER
-   ============================================================================= */
+/* ---- Stepper -------------------------------------------------------------- */
 .page[data-page="household"] .hh-stepper {
-  display: flex; align-items: center;
-  max-width: 1216px; margin: 0 auto 34px;
+  display: grid;
+  grid-template-columns: auto 1fr auto 1fr auto 1fr auto;
+  align-items: center;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 30px 52px 4px;
 }
 .page[data-page="household"] .hh-step {
-  display: inline-flex; align-items: center; gap: 10px; flex: none;
-  background: transparent; border: 0; padding: 4px 2px; cursor: pointer;
-  font-family: inherit;
+  display: inline-flex; align-items: center; gap: 9px;
+  background: transparent; border: 0; padding: 0; cursor: pointer;
 }
 .page[data-page="household"] .hh-step__num {
-  width: 30px; height: 30px; border-radius: 50%; flex: none;
+  width: 26px; height: 26px; border-radius: 50%;
   display: inline-flex; align-items: center; justify-content: center;
   font-family: var(--font-serif); font-size: 16px;
-  color: var(--text-5); border: 1px solid var(--line-16);
-  transition: color .15s, border-color .15s, background .15s;
+  border: 1px solid var(--line-16); color: var(--text-4);
 }
 .page[data-page="household"] .hh-step__label {
-  font-size: 16px; letter-spacing: 0.14em; text-transform: uppercase;
-  font-weight: 600; color: var(--text-5); transition: color .15s;
+  font-size: 11px; letter-spacing: 0.14em; color: var(--text-4); white-space: nowrap;
 }
-.page[data-page="household"] .hh-step:hover .hh-step__label { color: var(--text-2); }
-.page[data-page="household"] .hh-step.is-current .hh-step__num { background: var(--gold); border-color: var(--gold); color: var(--gold-ink); }
+.page[data-page="household"] .hh-step.is-current .hh-step__num {
+  background: linear-gradient(180deg, #cdb079, #9c7d44);
+  border-color: transparent; color: var(--gold-ink); font-weight: 500;
+}
 .page[data-page="household"] .hh-step.is-current .hh-step__label { color: var(--text-hi); }
-.page[data-page="household"] .hh-step.is-done .hh-step__num { color: var(--gold); border-color: var(--gold-dim); background: rgba(198,166,98,0.14); }
-.page[data-page="household"] .hh-step.is-done .hh-step__label { color: var(--gold-soft); }
+.page[data-page="household"] .hh-step.is-done .hh-step__num {
+  background: rgba(195,165,106,0.16); border-color: var(--gold-dim); color: var(--gold);
+  font-size: 13px; font-family: var(--font-sans);
+}
+.page[data-page="household"] .hh-step.is-done .hh-step__label { color: var(--text-1); }
 .page[data-page="household"] .hh-step__conn {
-  flex: 1 1 auto; min-width: 24px; height: 1px; margin: 0 16px;
-  background: var(--line-08);
+  height: 1px; min-width: 16px; margin: 0 14px; background: var(--line-08);
 }
-.page[data-page="household"] .hh-step__conn.is-done { background: var(--gold-dim); }
+.page[data-page="household"] .hh-step__conn.is-done { background: rgba(195,165,106,0.4); }
 
-/* =============================================================================
-   TWO-PANE BODY — step form column + live "Plan so far" rail
-   ============================================================================= */
-.page[data-page="household"] .hh-wiz-body {
-  display: flex; flex-wrap: wrap; gap: 28px; justify-content: center;
+/* ---- Workspace + footer --------------------------------------------------- */
+.page[data-page="household"] .hh-wiz-workspace { padding: 16px 52px 44px; }
+.page[data-page="household"] .hh-wiz-footer {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 20px 52px; border-top: 1px solid var(--line-07);
 }
-.page[data-page="household"] .hh-content { flex: 1 1 560px; max-width: 900px; min-width: 0; }
-.page[data-page="household"] .hh-plan-rail {
-  flex: 0 0 var(--prail-w); min-width: 264px;
-  align-self: flex-start; position: sticky; top: 20px;
-  border-left: 1px solid var(--line-08); padding-left: 30px;
+.page[data-page="household"] .hh-wiz-foot-note { font-size: 12px; color: var(--text-4); letter-spacing: 0.06em; }
+
+.page[data-page="household"] .hh-step-title {
+  font-family: var(--font-serif); font-size: 31px; font-weight: 400;
+  color: var(--text-hi); line-height: 1; margin: 20px 0 24px;
 }
 
-/* One section = header + hairline rows. The ONLY boxes are input fields. */
-.page[data-page="household"] .hh-wsec { margin: 26px 0 6px; }
-.page[data-page="household"] .hh-wsec:first-of-type { margin-top: 0; }
-.page[data-page="household"] .hh-wsec__head {
-  display: flex; align-items: center; gap: 12px;
-  padding-bottom: 8px; margin-bottom: 6px;
-  border-bottom: 1px solid var(--line-08);
+/* ---- Two-column layouts --------------------------------------------------- */
+.page[data-page="household"] .hh-cols { display: flex; align-items: stretch; }
+.page[data-page="household"] .hh-cols--split .hh-col { flex: 1; min-width: 0; }
+.page[data-page="household"] .hh-cols--split .hh-col:first-child { padding-right: 44px; }
+.page[data-page="household"] .hh-cols--split .hh-col:last-child { padding-left: 44px; }
+.page[data-page="household"] .hh-cols__div { width: 1px; background: var(--line-08); flex: none; }
+.page[data-page="household"] .hh-cols--gap { gap: 56px; flex-wrap: wrap; }
+.page[data-page="household"] .hh-cols--gap .hh-col { flex: 1; min-width: 280px; }
+
+.page[data-page="household"] .hh-col--placeholder {
+  display: flex; align-items: center; justify-content: center; min-height: 200px;
 }
-.page[data-page="household"] .hh-wsec__avatar {
-  width: 28px; height: 28px; border-radius: 50%; flex: none;
+.page[data-page="household"] .hh-joint-block {
+  margin-top: 28px; padding-top: 24px; border-top: 1px solid var(--line-08);
+}
+
+.page[data-page="household"] .hh-col__head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 24px; gap: 12px;
+}
+.page[data-page="household"] .hh-col__head--total {
+  padding-bottom: 14px; margin-bottom: 0; border-bottom: 1px solid var(--line-10);
+}
+.page[data-page="household"] .hh-col__id { display: inline-flex; align-items: center; gap: 11px; min-width: 0; }
+.page[data-page="household"] .hh-col__role {
+  font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold);
+}
+.page[data-page="household"] .hh-col__sum {
+  font-family: var(--font-serif); font-size: 20px; color: var(--gold);
+}
+.page[data-page="household"] .hh-empty {
+  font-family: var(--font-sans); font-size: 13px; letter-spacing: 0.02em;
+  text-transform: none; color: var(--text-4); font-style: normal;
+}
+.page[data-page="household"] .hh-link-btn {
+  font-size: 10px; color: var(--text-3); background: none; border: 0;
+  text-decoration: underline; cursor: pointer; padding: 0;
+}
+.page[data-page="household"] .hh-link-btn:hover { color: var(--down); }
+
+/* ---- Key-value rows (step 1) ---------------------------------------------- */
+.page[data-page="household"] .hh-kv-stack { margin-bottom: 4px; }
+.page[data-page="household"] .hh-kv {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 16px;
+  padding: 11px 2px;
+}
+.page[data-page="household"] .hh-kv--rule { border-bottom: 1px solid var(--line-06); }
+.page[data-page="household"] .hh-kv__k {
+  font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-3);
+}
+.page[data-page="household"] .hh-kv__v {
+  font-family: var(--font-serif); font-size: 21px; color: var(--text-hi); line-height: 1;
+  display: inline-flex; align-items: baseline; gap: 8px;
+}
+.page[data-page="household"] .hh-derived { color: #9a968d; }
+
+/* ---- Timeline ------------------------------------------------------------- */
+.page[data-page="household"] .hh-tl { margin-top: 26px; position: relative; }
+.page[data-page="household"] .hh-tl__track {
+  height: 5px; border-radius: 4px; background: var(--line-08); overflow: hidden;
+}
+.page[data-page="household"] .hh-tl__fill { height: 100%; }
+.page[data-page="household"] .hh-tl__knob {
+  position: absolute; top: -3px; width: 9px; height: 9px; border-radius: 50%;
+  background: var(--text-hi); transform: translateX(-50%);
+  box-shadow: 0 0 0 3px rgba(9,9,9,0.95);
+}
+.page[data-page="household"] .hh-tl__labels {
+  display: flex; justify-content: space-between; margin-top: 13px;
+  font-size: 10.5px; color: var(--text-3);
+}
+.page[data-page="household"] .hh-tl__hi { color: var(--text-1); }
+.page[data-page="household"] .hh-tl__acc { color: var(--gold); }
+
+/* ---- Meta row ------------------------------------------------------------- */
+.page[data-page="household"] .hh-meta-row {
+  display: flex; gap: 48px; flex-wrap: wrap; align-items: flex-end;
+  margin-top: 34px; padding-top: 28px; border-top: 1px solid var(--line-07);
+}
+.page[data-page="household"] .hh-meta { flex: 1; min-width: 200px; }
+.page[data-page="household"] .hh-meta__k {
+  display: block; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--text-4); margin-bottom: 10px;
+}
+.page[data-page="household"] .hh-meta__v {
+  border-bottom: 1px solid var(--line-16); padding-bottom: 8px;
+}
+
+/* ---- Ledger rows ---------------------------------------------------------- */
+.page[data-page="household"] .hh-ledger-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  padding: 14px 2px; border-bottom: 1px solid var(--line-06);
+}
+.page[data-page="household"] .hh-ledger-row__name {
+  flex: 1; min-width: 0; font-size: 15px; color: var(--text-1); white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis;
+}
+.page[data-page="household"] .hh-ledger-row__name--in {
+  font-family: var(--font-sans); background: transparent; border: 0;
+  border-bottom: 1px solid var(--line-16); padding: 4px 2px; color: var(--text-hi);
+  outline: none; width: 100%;
+}
+.page[data-page="household"] .hh-ledger-row__end {
+  display: inline-flex; align-items: center; gap: 16px; flex: none;
+}
+.page[data-page="household"] .hh-ledger-row__amt {
+  font-family: var(--font-serif); font-size: 20px; color: var(--text-hi);
+  display: inline-flex; align-items: baseline;
+}
+.page[data-page="household"] .hh-future-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 14px;
+  padding: 11px 2px; border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.page[data-page="household"] .hh-future-row__name { flex: 1; min-width: 0; font-size: 14px; color: var(--text-2); }
+.page[data-page="household"] .hh-future-row__note { color: var(--text-4); font-size: 14px; }
+.page[data-page="household"] .hh-future-row__amt {
+  flex: none; font-family: var(--font-serif); font-size: 18px; color: #9a968d;
+}
+.page[data-page="household"] .hh-subhead {
+  font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--text-4); margin: 26px 0 4px;
+}
+
+/* ---- Grand total ---------------------------------------------------------- */
+.page[data-page="household"] .hh-grand-total {
+  display: flex; align-items: flex-end; justify-content: space-between;
+  margin-top: 38px; padding-top: 22px; border-top: 1px solid var(--line-12);
+}
+.page[data-page="household"] .hh-grand-total__k {
+  font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-4);
+}
+.page[data-page="household"] .hh-grand-total__sub { font-size: 13px; color: var(--text-3); margin-top: 6px; }
+.page[data-page="household"] .hh-grand-total__v {
+  font-family: var(--font-serif); font-size: 38px; line-height: 1; color: var(--gold);
+}
+
+/* ---- Buttons -------------------------------------------------------------- */
+.page[data-page="household"] .hh-btn {
+  font-family: var(--font-sans); font-size: 16px; letter-spacing: 0.08em;
+  font-weight: 500; border-radius: 8px; padding: 12px 28px; cursor: pointer;
+  border: 1px solid transparent;
+}
+.page[data-page="household"] .hh-btn--primary {
+  background: linear-gradient(180deg, #cdb079, #9c7d44); color: var(--gold-ink); border: 0;
+}
+.page[data-page="household"] .hh-btn--outline {
+  background: transparent; border-color: var(--line-16); color: var(--text-1);
+}
+.page[data-page="household"] .hh-btn--ghost {
+  background: transparent; border: 0; color: var(--text-3); padding: 12px 12px;
+}
+.page[data-page="household"] .hh-dash-btn,
+.page[data-page="household"] .hh-link-add {
+  display: inline-flex; align-items: center; gap: 7px; margin-top: 14px;
+  font-size: 13px; letter-spacing: 0.04em; color: var(--gold);
+  background: transparent; cursor: pointer;
+  border: 1px dashed rgba(195,165,106,0.4); border-radius: 9px; padding: 12px 22px;
+}
+
+/* ---- Inline forms --------------------------------------------------------- */
+.page[data-page="household"] .hh-inline-form {
+  display: flex; gap: 16px; align-items: flex-end; flex-wrap: wrap;
+  border-left: 2px solid rgba(195,165,106,0.45); padding: 14px 0 14px 20px; margin: 6px 0;
+}
+.page[data-page="household"] .hh-inline-form--slim { gap: 10px; padding: 12px 0 12px 16px; }
+.page[data-page="household"] .hh-inline-form__k {
+  display: block; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--text-4); margin-bottom: 8px;
+}
+.page[data-page="household"] .hh-inline-form__field { flex: 0 1 220px; min-width: 160px; }
+.page[data-page="household"] .hh-inline-form__money {
+  display: flex; align-items: center; gap: 4px;
+  background: rgba(0,0,0,0.24); border: 1px solid var(--line-16); border-radius: 8px; padding: 0 12px;
+}
+.page[data-page="household"] .hh-inline-input {
+  font-family: var(--font-sans); font-size: 16px; color: var(--text-hi);
+  background: transparent; border: 0; border-bottom: 1px solid var(--line-16);
+  padding: 6px 2px; outline: none; min-width: 0; flex: 1;
+}
+.page[data-page="household"] .hh-form-val { border: none; background: transparent; color: var(--text-hi); font-size: 16px; padding: 10px 6px; min-width: 0; flex: 1; outline: none; }
+
+/* ---- Blueprint sheet ------------------------------------------------------ */
+.page[data-page="household"] .hh-bp-sheet {
+  position: relative; background: var(--sheet-bg);
+  border: 1px solid var(--line-06); border-radius: 14px;
+  padding: 46px 50px; display: flex; gap: 52px; align-items: stretch; overflow: hidden;
+}
+.page[data-page="household"] .hh-bp-corner {
+  position: absolute; width: 13px; height: 13px; pointer-events: none;
+}
+.page[data-page="household"] .hh-bp-corner--tl { top: 14px; left: 14px; border-top: 1px solid var(--gold-dim); border-left: 1px solid var(--gold-dim); }
+.page[data-page="household"] .hh-bp-corner--tr { top: 14px; right: 14px; border-top: 1px solid var(--gold-dim); border-right: 1px solid var(--gold-dim); }
+.page[data-page="household"] .hh-bp-corner--bl { bottom: 14px; left: 14px; border-bottom: 1px solid var(--gold-dim); border-left: 1px solid var(--gold-dim); }
+.page[data-page="household"] .hh-bp-corner--br { bottom: 14px; right: 14px; border-bottom: 1px solid var(--gold-dim); border-right: 1px solid var(--gold-dim); }
+
+.page[data-page="household"] .hh-bp-read {
+  flex: 1; min-width: 0; display: flex; flex-direction: column;
+}
+.page[data-page="household"] .hh-bp-eyebrow {
+  font-size: 10px; letter-spacing: 0.35em; text-transform: uppercase; color: var(--gold); margin-bottom: 18px;
+}
+.page[data-page="household"] .hh-bp-house {
+  display: flex; align-items: center; gap: 13px; min-width: 0;
+}
+.page[data-page="household"] .hh-bp-avs { display: inline-flex; align-items: center; flex: none; }
+.page[data-page="household"] .hh-bp-house__name {
+  font-family: var(--font-serif); font-size: 29px; color: var(--text-hi); white-space: nowrap;
+}
+.page[data-page="household"] .hh-bp-filing {
+  font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-2); margin-top: 12px;
+}
+.page[data-page="household"] .hh-bp-facts { display: flex; gap: 34px; margin-top: 24px; }
+.page[data-page="household"] .hh-bp-facts__k {
+  display: block; font-size: 9px; letter-spacing: 0.14em; color: var(--text-5); margin-bottom: 8px;
+}
+.page[data-page="household"] .hh-bp-facts__v {
+  font-family: var(--font-serif); font-size: 20px; color: var(--text-1); line-height: 1;
+}
+.page[data-page="household"] .hh-bp-flow {
+  margin-top: auto; padding-top: 44px; display: flex; flex-direction: column; gap: 16px; max-width: 320px;
+}
+.page[data-page="household"] .hh-bp-flow__row {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 16px;
+}
+.page[data-page="household"] .hh-bp-flow__label {
+  font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-2);
+}
+.page[data-page="household"] .hh-bp-flow__row b {
+  font-family: var(--font-serif); font-size: 21px; font-weight: 400; color: var(--text-1);
+}
+.page[data-page="household"] .hh-bp-flow__ss { color: var(--sage); }
+
+.page[data-page="household"] .hh-bp-inst {
+  flex: none; width: min(370px, 100%); display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+}
+.page[data-page="household"] .hh-bp-gauge {
+  position: relative; width: 260px; height: 260px;
+}
+.page[data-page="household"] .hh-bp-gauge__svg {
+  display: block; width: 100%; height: 100%;
+  transform: rotate(135deg); transform-origin: center;
+}
+.page[data-page="household"] .hh-bp-gauge__center {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; text-align: center;
+}
+.page[data-page="household"] .hh-bp-gauge__k {
+  font-size: 9px; letter-spacing: 0.18em; color: var(--text-2); margin-bottom: 10px;
+}
+.page[data-page="household"] .hh-bp-gauge__v {
+  font-family: var(--font-serif); font-size: 48px; color: var(--text-hi); line-height: 0.86;
+}
+.page[data-page="household"] .hh-bp-gauge__sub {
+  font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-5); margin-top: 10px;
+}
+.page[data-page="household"] .hh-bp-alloc-list {
+  width: 100%; display: flex; flex-direction: column; gap: 13px; margin-top: 30px; padding: 0 4px;
+}
+.page[data-page="household"] .hh-bp-alloc {
+  display: flex; align-items: center; justify-content: space-between; gap: 14px;
+}
+.page[data-page="household"] .hh-bp-alloc__name {
+  display: inline-flex; align-items: center; gap: 10px; flex: 1; min-width: 0;
+  font-size: 16px; color: var(--text-1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.page[data-page="household"] .hh-bp-alloc__dot { width: 7px; height: 7px; border-radius: 2px; flex: none; }
+.page[data-page="household"] .hh-bp-alloc__nums {
+  display: inline-flex; align-items: baseline; gap: 10px; flex: none; width: 150px; justify-content: flex-end;
+}
+.page[data-page="household"] .hh-bp-alloc__pct { font-size: 10.5px; color: var(--text-2); }
+.page[data-page="household"] .hh-bp-alloc__amt { font-family: var(--font-serif); font-size: 18px; color: var(--text-hi); }
+
+.page[data-page="household"] .hh-bp-cta {
+  display: flex; align-items: center; justify-content: flex-end;
+  margin-top: 28px; width: 100%;
+}
+.page[data-page="household"] .hh-bp-cta--run {
+  margin-left: auto;
+  font-family: var(--font-sans);
+  font-size: 11px; font-weight: 500;
+  letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--gold);
+  background: transparent;
+  border: 1px solid rgba(195,165,106,0.45);
+  border-radius: 7px;
+  padding: 12px 28px;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+.page[data-page="household"] .hh-bp-cta--run:hover {
+  background: rgba(195,165,106,0.08);
+  border-color: var(--gold);
+}
+.page[data-page="household"] .hh-bp-cta--done {
+  margin-left: auto;
+  display: inline-flex; align-items: center; gap: 12px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--sage);
+}
+.page[data-page="household"] .hh-bp-cta__chip {
+  width: 20px; height: 20px; border-radius: 50%;
+  background: rgba(135,154,134,0.2);
   display: inline-flex; align-items: center; justify-content: center;
-  font-family: var(--font-serif); font-size: 16px;
+  color: var(--sage-dim); font-size: 11px; flex: none;
 }
-.page[data-page="household"] .hh-wsec__avatar--c {
-  border: 1px solid rgba(198,166,98,0.40);
-  background: radial-gradient(120% 120% at 30% 25%, rgba(198,166,98,0.22), rgba(255,255,255,0.02));
-  color: var(--gold-bright);
+.page[data-page="household"] .hh-bp-cta__status { color: var(--sage); }
+.page[data-page="household"] .hh-bp-cta__sep {
+  width: 1px; height: 14px; background: rgba(255,255,255,0.15); margin: 0 4px; flex: none;
 }
-.page[data-page="household"] .hh-wsec__avatar--s {
-  border: 1px solid rgba(139,148,168,0.42);
-  background: radial-gradient(120% 120% at 30% 25%, rgba(139,148,168,0.24), rgba(255,255,255,0.02));
-  color: #aeb4c2;
+.page[data-page="household"] .hh-bp-cta__link {
+  background: none; border: 0; color: var(--gold); cursor: pointer;
+  font: inherit; letter-spacing: 0.14em; text-transform: uppercase;
+  padding: 0;
 }
-.page[data-page="household"] .hh-wsec__title {
-  font-size: 16px; letter-spacing: 0.18em; text-transform: uppercase;
-  color: var(--gold-eyebrow); font-weight: 600;
-}
-.page[data-page="household"] .hh-wsec__title--slate { color: var(--blue-dim); }
-.page[data-page="household"] .hh-wsec__title--gold { color: var(--gold-eyebrow); }
-.page[data-page="household"] .hh-wsec__total { margin-left: auto; font-family: var(--font-serif); font-size: 19px; color: var(--gold-bright); }
-.page[data-page="household"] .hh-wsec__tag { margin-left: auto; font-size: 16px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-6); }
-.page[data-page="household"] .hh-wsec__act {
-  margin-left: auto; font-family: var(--font-sans); font-size: 16px; color: var(--text-5);
-  background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 3px;
-}
-.page[data-page="household"] .hh-wsec__act:hover { color: var(--down); }
-.page[data-page="household"] .hh-wsec--absent { opacity: 0.85; }
+.page[data-page="household"] .hh-bp-cta__link:hover { color: var(--gold-bright); text-decoration: underline; }
 
-/* Field grid: uppercase key over a serif value slot. */
-.page[data-page="household"] .hh-wgrid { display: flex; flex-wrap: wrap; gap: 14px 26px; padding: 10px 2px 4px; }
-.page[data-page="household"] .hh-wf { display: flex; flex-direction: column; gap: 4px; }
-.page[data-page="household"] .hh-wf__k { font-size: 16px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-6); }
-.page[data-page="household"] .hh-wf__v { font-family: var(--font-serif); font-size: 18px; color: var(--text-1); display: inline-flex; align-items: baseline; gap: 3px; }
-.page[data-page="household"] .hh-derived { font-family: var(--font-serif); color: var(--text-1); }
-.page[data-page="household"] .hh-wmeta { font-size: 16px; color: var(--text-6); font-style: italic; padding: 6px 2px 0; }
-.page[data-page="household"] .hh-wempty { padding: 13px 2px; font-family: var(--font-serif); font-style: italic; font-size: 16px; color: var(--text-5); border-bottom: 1px solid var(--line-06); }
-.page[data-page="household"] .hh-wadd { padding: 12px 2px 0; display: flex; gap: 8px; }
-
-/* List rows (children / pension quotes / other income). */
-.page[data-page="household"] .hh-wrow {
-  display: flex; align-items: baseline; gap: 14px;
-  padding: 13px 2px; border-bottom: 1px solid var(--line-08);
-}
-.page[data-page="household"] .hh-wrow__name { flex: 1 1 auto; min-width: 8ch; font-family: var(--font-sans); font-size: 16px; color: var(--text-2); }
-.page[data-page="household"] .hh-wrow__name--fixed { font-size: 16px; color: var(--text-4); }
-.page[data-page="household"] .hh-wrow__fields { display: inline-flex; align-items: baseline; gap: 8px; font-family: var(--font-serif); font-size: 17px; color: var(--text-1); }
-.page[data-page="household"] .hh-wrow__age { font-size: 16px; color: var(--text-5); min-width: 6ch; }
-.page[data-page="household"] .hh-wrow--stack { flex-direction: column; align-items: stretch; gap: 6px; }
-.page[data-page="household"] .hh-wrow__main { display: flex; align-items: baseline; gap: 14px; }
-.page[data-page="household"] .hh-wrow__main .hh-wrow__name { flex: 1; }
-.page[data-page="household"] .hh-wrow__meta { font-size: 16px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-6); display: flex; align-items: baseline; gap: 5px; flex-wrap: wrap; }
-.page[data-page="household"] .hh-wrow__meta input,
-.page[data-page="household"] .hh-gw-in { width: 4ch; font-family: var(--font-serif); font-size: 16px; color: var(--text-3); text-transform: none; letter-spacing: 0; text-align: right; }
-.page[data-page="household"] .hh-wpen-meta { padding: 10px 2px 0; }
-.page[data-page="household"] .hh-wdash { color: var(--text-6); }
-.page[data-page="household"] .hh-suffix { color: var(--text-6); font-size: 16px; }
-
-/* Nested mortgage block inside the Primary home section. */
-.page[data-page="household"] .hh-wmort {
-  margin: 12px 0 4px; padding: 6px 0 6px 20px;
-  border-left: 2px solid var(--gold-dim);
-}
-.page[data-page="household"] .hh-wmort__head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-
-/* Account ledger rows (typed bank rows reused across owner groups). */
-.page[data-page="household"] .hh-acct { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding: 11px 2px; border-bottom: 1px solid var(--line-06); }
-.page[data-page="household"] .hh-acct__cat { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; min-width: 0; font-size: 16px; color: var(--text-4); }
-.page[data-page="household"] .hh-acct__amt { display: flex; align-items: center; justify-content: flex-end; gap: 6px; font-family: var(--font-serif); font-size: 17px; color: var(--text-2); }
-
-/* Account Type Bank add-form — opens INSIDE the owner group that spawned it. */
-.page[data-page="household"] .hh-acct-form {
-  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
-  padding: 10px 12px; margin: 10px 0 4px;
-  border: 1px dashed var(--gold-dim); border-left: 2px solid var(--gold-dim);
-  border-radius: var(--r-md);
-  background: rgba(198,166,98,0.05);
-}
-.page[data-page="household"] .hh-acct-form .hh-form-amt { display: inline-flex; align-items: baseline; gap: 2px; font-family: var(--font-serif); font-size: 16px; color: var(--text-1); }
-.page[data-page="household"] .hh-acct-form .hh-form-val { width: 12ch; text-align: right; font-family: var(--font-serif); font-size: 16px; }
-.page[data-page="household"] .hh-sel--type { max-width: 190px; }
-
-/* Footer nav (Back / Continue) inside the form column. */
-.page[data-page="household"] .hh-wiz-nav { display: flex; justify-content: space-between; align-items: center; margin-top: 30px; }
-.page[data-page="household"] .hh-nav-btn {
-  font-family: var(--font-sans); font-size: 16px; letter-spacing: 0.12em;
-  font-weight: 600; text-transform: uppercase;
-  padding: 10px 22px; border-radius: var(--r-sm); cursor: pointer;
-  transition: color .15s, border-color .15s, background .15s;
-}
-.page[data-page="household"] .hh-nav-btn--ghost { background: transparent; border: 1px solid var(--line-16); color: var(--text-2); }
-.page[data-page="household"] .hh-nav-btn--ghost:hover { border-color: var(--gold-dim); color: var(--text-hi); }
-.page[data-page="household"] .hh-nav-btn--primary { background: var(--gold); border: 1px solid var(--gold); color: var(--gold-ink); font-weight: 500; }
-.page[data-page="household"] .hh-nav-btn--primary:hover { background: var(--gold-bright); border-color: var(--gold-bright); }
-
-/* =============================================================================
-   PLAN-SO-FAR RAIL (live, derived on every sync)
-   ============================================================================= */
-.page[data-page="household"] .hh-prail__eyebrow { font-size: 16px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--gold-eyebrow); font-weight: 600; margin-bottom: 16px; }
-.page[data-page="household"] .hh-prail__label { font-size: 16px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-5); margin-bottom: 4px; }
-.page[data-page="household"] .hh-prail__total { font-family: var(--font-serif); font-size: 36px; color: var(--gold-bright); line-height: 1.1; margin-bottom: 16px; }
-.page[data-page="household"] .hh-prail__row { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--line-06); }
-.page[data-page="household"] .hh-prail__k { font-size: 16px; color: var(--text-5); }
-.page[data-page="household"] .hh-prail__v { font-family: var(--font-serif); font-size: 16px; color: var(--text-2); font-weight: 400; }
-.page[data-page="household"] .hh-prail__v--debt { color: var(--down); }
-
-/* Ownership bar (rail + Blueprint hero). */
-.page[data-page="household"] .hh-own { width: 100%; margin: 4px 0 18px; }
-.page[data-page="household"] .hh-own__label { font-size: 16px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-6); margin-bottom: 8px; }
-.page[data-page="household"] .hh-own__bar { display: flex; height: 6px; border-radius: 4px; overflow: hidden; margin-bottom: 8px; background: rgba(63,88,120,0.45); }
-.page[data-page="household"] .hh-own__c { background: var(--gold); }
-.page[data-page="household"] .hh-own__s { background: var(--blue-soft); }
-.page[data-page="household"] .hh-own__legend { display: flex; justify-content: space-between; font-size: 16px; color: var(--text-5); }
-
-/* =============================================================================
-   STEP 5 · BLUEPRINT (read-only overview)
-   ============================================================================= */
-.page[data-page="household"] .hh-bp__hero {
-  text-align: center; padding: 18px 20px 6px; margin-bottom: 22px;
-  border-radius: var(--r-card);
-  background: var(--glass-card);
-  border: 1px solid var(--line-08);
-  box-shadow: var(--shadow-card);
-  backdrop-filter: var(--blur-card); -webkit-backdrop-filter: var(--blur-card);
-}
-.page[data-page="household"] .hh-bp__label { font-size: 16px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-5); margin-bottom: 6px; }
-.page[data-page="household"] .hh-bp__total { font-family: var(--font-serif); font-size: 42px; color: var(--gold-bright); line-height: 1.1; margin-bottom: 14px; }
-.page[data-page="household"] .hh-bp__hero .hh-own { max-width: 420px; margin: 0 auto 12px; }
-.page[data-page="household"] .hh-bp__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px 36px; }
-.page[data-page="household"] .hh-bp__head { font-size: 16px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--gold-eyebrow); font-weight: 600; padding-bottom: 8px; margin-bottom: 4px; border-bottom: 1px solid var(--line-08); }
-.page[data-page="household"] .hh-bp__row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--line-06); }
-.page[data-page="household"] .hh-bp__k { font-size: 16px; color: var(--text-4); }
-.page[data-page="household"] .hh-bp__v { font-family: var(--font-serif); font-size: 16px; color: var(--text-1); font-weight: 400; text-align: right; }
-.page[data-page="household"] .hh-bp__v--debt { color: var(--down); }
-
-/* =============================================================================
-   EDITABLE INPUTS — the console reads as a refined document, not a form.
-   Inputs INHERIT the serif / size / colour of their value slot; the only chrome
-   is a hairline underline that warms to gold on focus. Selects are quiet pills.
-   ============================================================================= */
-.page[data-page="household"] input {
-  font-family: inherit; font-size: inherit; color: inherit; line-height: inherit;
-  background: transparent; border: 0; border-bottom: 1px solid var(--line-08);
-  padding: 0 1px 2px; margin: 0; outline: none; min-width: 0;
-  font-variant-numeric: tabular-nums;
-  transition: border-color .15s, background .15s;
-}
-.page[data-page="household"] input::placeholder { color: var(--text-6); }
-.page[data-page="household"] input:hover  { border-bottom-color: var(--line-10); }
-.page[data-page="household"] input:focus  { border-bottom-color: var(--gold); background: rgba(198,166,98,0.06); }
-.page[data-page="household"] input[type=number]::-webkit-inner-spin-button,
-.page[data-page="household"] input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-.page[data-page="household"] input[type=number] { -moz-appearance: textfield; }
-/* widths scale with the inherited serif size (ch units) */
-.page[data-page="household"] input[data-type="text"]  { width: 14ch; }
-.page[data-page="household"] input[data-type="money"] { width: 10ch;  text-align: right; }
-.page[data-page="household"] input[data-type="age"],
-.page[data-page="household"] input[data-type="num"]   { width: 4.5ch; text-align: right; }
-.page[data-page="household"] input[data-type="pct"]   { width: 3.5ch; text-align: right; }
-.page[data-page="household"] input[data-type="rate"]  { width: 5ch;   text-align: right; }
-.page[data-page="household"] input.hh-born-in { width: 5.5ch; }
-/* Money prefix ($) — 16px keeps the type floor while staying subordinate to
-   the serif figure beside it (muted colour carries the hierarchy). */
-.page[data-page="household"] .pre { font-family: var(--font-sans); font-size: 16px; color: var(--text-5); margin-right: 1px; vertical-align: 0.05em; }
-
+/* ---- Inputs --------------------------------------------------------------- */
+.page[data-page="household"] input,
 .page[data-page="household"] select {
-  font-family: var(--font-sans); font-size: 16px; color: var(--text-3);
-  background-color: var(--fill-04); border: 1px solid var(--line-08); border-radius: var(--r-sm);
-  padding: 3px 26px 3px 9px; cursor: pointer; outline: none;
-  -webkit-appearance: none; appearance: none; max-width: 100%;
-  color-scheme: dark;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none' stroke='%23c6a662' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><path d='M3 4.5 L6 7.5 L9 4.5'/></svg>");
-  background-repeat: no-repeat; background-position: right 8px center;
-  transition: border-color .15s, color .15s;
+  font-family: inherit; color: inherit; font-size: 16px;
 }
-.page[data-page="household"] select:hover { border-color: var(--line-10); color: var(--text-2); }
-.page[data-page="household"] select:focus { border-color: var(--gold); }
-.page[data-page="household"] .hh-sel--owner { color: var(--gold-soft); }
+.page[data-page="household"] input[data-path] {
+  background: transparent; border: 0; border-bottom: 1px solid var(--line-16);
+  padding: 0 1px 4px; outline: none; min-width: 0;
+}
+.page[data-page="household"] input[data-path]:focus { border-bottom-color: var(--gold); }
+.page[data-page="household"] input[data-type="text"] { width: 14ch; }
+.page[data-page="household"] input[data-type="money"] { width: 10ch; text-align: right; }
+.page[data-page="household"] input[data-type="age"],
+.page[data-page="household"] input[data-type="num"] { width: 4.5ch; text-align: right; }
+.page[data-page="household"] input.hh-born-in {
+  width: 7ch; min-width: 7ch; text-align: left;
+  -moz-appearance: textfield;
+}
+.page[data-page="household"] input.hh-born-in::-webkit-outer-spin-button,
+.page[data-page="household"] input.hh-born-in::-webkit-inner-spin-button {
+  -webkit-appearance: none; margin: 0;
+}
+.page[data-page="household"] .pre { font-size: 16px; color: var(--text-4); margin-right: 2px; }
+
+.page[data-page="household"] select.hh-sel,
+.page[data-page="household"] .hh-sel {
+  font-size: 16px; color: var(--text-hi);
+  background: rgba(0,0,0,0.24); border: 1px solid var(--line-16); border-radius: 8px;
+  padding: 10px 34px 10px 12px; cursor: pointer; outline: none;
+  appearance: none; max-width: 100%;
+}
+.page[data-page="household"] .hh-meta__v select { width: 100%; border: 0; border-radius: 0; background: transparent; padding-left: 0; }
 
 .page[data-page="household"] .row-x {
-  width: 18px; height: 18px; flex: none; border: 0; border-radius: var(--r-sm);
-  background: transparent; color: var(--text-6); font-size: 16px; line-height: 1; cursor: pointer; padding: 0;
+  width: 18px; height: 18px; flex: none; border: 0; border-radius: 6px;
+  background: transparent; color: var(--text-4); font-size: 16px; cursor: pointer; padding: 0;
 }
-.page[data-page="household"] .row-x:hover { color: var(--down); background: var(--fill-05); }
-.page[data-page="household"] .hh-add {
-  display: inline-flex; align-items: center;
-  font-family: var(--font-sans); font-size: 16px; letter-spacing: 0.06em; font-weight: 600;
-  color: var(--gold-soft); background: transparent; border: 1px dashed var(--gold-dim);
-  border-radius: var(--r-sm); padding: 6px 14px; cursor: pointer; transition: border-color .15s, color .15s, background .15s;
-}
-.page[data-page="household"] .hh-add:hover { color: var(--gold-bright); border-color: rgba(198,166,98,0.6); background: rgba(198,166,98,0.08); }
-/* Muted variant (Cancel). */
-.page[data-page="household"] .hh-add--muted { opacity: 0.55; }
-.page[data-page="household"] .hh-add--muted:hover { opacity: 1; }
+.page[data-page="household"] .row-x:hover { color: var(--down); }
 
-/* ---- 4K / 1920 safety ----------------------------------------------------
-   No global shrink. The wizard caps at --max-w and floats centered (premium at
-   3840×2160). Below 1640px the frame tightens its gutters; below ~950px the
-   plan rail wraps beneath the form column. */
-@media (max-width: 1640px) {
-  .page[data-page="household"] .hh-stage { padding-left: 18px; padding-right: 18px; }
-  .page[data-page="household"] .hh-wizard { padding: 26px 28px 34px; }
-}
-@media (max-width: 950px) {
-  .page[data-page="household"] .hh-plan-rail { flex: 1 1 100%; border-left: 0; padding-left: 0; position: static; border-top: 1px solid var(--line-08); padding-top: 20px; }
+@media (max-width: 1080px) {
+  .page[data-page="household"] .hh-cols--split { flex-direction: column; }
+  .page[data-page="household"] .hh-cols__div { width: 100%; height: 1px; margin: 24px 0; }
+  .page[data-page="household"] .hh-cols--split .hh-col:first-child,
+  .page[data-page="household"] .hh-cols--split .hh-col:last-child { padding: 0; }
+  .page[data-page="household"] .hh-bp-sheet { flex-direction: column; }
+  .page[data-page="household"] .hh-wiz-top,
+  .page[data-page="household"] .hh-stepper,
+  .page[data-page="household"] .hh-wiz-workspace,
+  .page[data-page="household"] .hh-wiz-footer { padding-left: 24px; padding-right: 24px; }
 }
 
-/* ---- Large displays: the glass occupies a premium share of the screen --------
-   "--max-w is the one knob" (INTEGRATION.md). On 2.5K / 4K panels the frame
-   widens and (at 4K) sits vertically centred instead of stuck at the top. */
-@media (min-width: 2400px) {
-  .page[data-page="household"] { --max-w: 1980px; --prail-w: 320px; }
-}
-@media (min-width: 3200px) {
-  .page[data-page="household"] { --max-w: 2520px; --prail-w: 360px; --frame-min-h: 900px; }
-  .page[data-page="household"] .hh-stage { margin-top: auto; margin-bottom: auto; }
-  .page[data-page="household"] .hh-wizard { padding: 40px 56px 52px; }
-}
+/* Hide sticky-note floater on Household wizard — it clashes with footer CTAs */
+body:has(.page[data-page="household"].on) .sn-btn,
+body:has(.page[data-page="household"].on) .sn-clear { display: none; }
