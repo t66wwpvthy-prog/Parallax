@@ -10,11 +10,20 @@ Make every planner year deliver **correct filing status and traceable tax facts*
 
 The federal tax **rules** are largely ready for benchmark returns. T4 connects **engine rows → tax input** so the sidecar uses real facts instead of defaults.
 
-## Known adapter gaps (from inventory)
+## Status
+
+**Filing status (T4.1) — complete**
+
+- `main.js` passes `p.meta.filingStatus` into attach
+- `buildPlanMetaFromEngineParams` reads `options.filingStatus` → `params.meta.filingStatus` → throws if missing
+- Silent MFJ default removed
+- 173 tests passing; `verify.mjs` passed
+
+## Remaining T4 gaps
 
 | Planner fact | Current handling | Consequence |
 |--------------|------------------|-------------|
-| Filing status | Defaults to MFJ in `buildPlanMetaFromEngineParams` | Single/HoH/MFS taxed as MFJ |
+| Filing status | ~~Defaults to MFJ~~ | **Fixed T4.1** — passes from household `plan.meta` |
 | Social Security | Gross benefit → line 6a; no worksheet | Taxable SS effectively $0 |
 | Taxable-account gain | Static gain fraction from starting basis | Ignores basis depletion |
 | Empty taxable account | No gain fraction created | Later withdrawals can abort attach |
@@ -36,7 +45,7 @@ The federal tax **rules** are largely ready for benchmark returns. T4 connects *
 
 ## T4 work items (prioritized)
 
-1. **Filing status** — pass household status from planner to `planMeta` / attach
+1. ~~**Filing status**~~ — done (T4.1)
 2. **Social Security** — supply worksheet facts or resolved taxable 6b from engine rows
 3. **Gain fraction** — dynamic basis / reinvested RMD handling; no throw on empty-then-funded taxable
 4. **Zero-income / failed years** — deterministic skip or empty-year handling (no path abort)

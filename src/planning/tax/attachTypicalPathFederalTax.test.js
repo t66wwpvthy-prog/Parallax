@@ -22,6 +22,28 @@ test('buildPlanMetaFromEngineParams derives taxable gain fraction from account b
   assert.deepStrictEqual(rowPlanMeta({ year: 99 }), { taxYear: 2026 });
 });
 
+test('buildPlanMetaFromEngineParams uses household filing status without an MFJ default', () => {
+  for(const filingStatus of [
+    'single',
+    'marriedFilingJointly',
+    'headOfHousehold',
+    'marriedFilingSeparately',
+  ]){
+    const planMeta = buildPlanMetaFromEngineParams({
+      meta: { filingStatus },
+      accounts: { taxable: { balance: 0, basis: 0 } },
+    });
+    assert.strictEqual(planMeta.filingStatus, filingStatus);
+  }
+
+  assert.throws(
+    () => buildPlanMetaFromEngineParams({
+      accounts: { taxable: { balance: 0, basis: 0 } },
+    }),
+    /plan\.meta\.filingStatus/
+  );
+});
+
 test('attachTypicalPathFederalTax returns slim summary without mutating analysis', () => {
   const horizon = defaultPlan.household.primary.planEndAge - defaultPlan.household.primary.currentAge;
   const paths = Array.from({ length: 12 }, () => generateReturnPath(horizon));
@@ -33,6 +55,7 @@ test('attachTypicalPathFederalTax returns slim summary without mutating analysis
   const summary = attachTypicalPathFederalTax(analysis, {
     baseTaxYear: 2025,
     scenarioId: 'attach_test',
+    filingStatus: 'marriedFilingJointly',
   });
 
   assert.strictEqual(analysis.paths.p50.lifetimeTax, beforeLifetimeTax);
@@ -80,9 +103,14 @@ test('attachTypicalPathFederalTax skips accumulation rows only', () => {
   };
 
   const summary = attachTypicalPathFederalTax(analysis, { baseTaxYear: 2025, filingStatus: 'single' });
+  const mfjSummary = attachTypicalPathFederalTax(analysis, {
+    baseTaxYear: 2025,
+    filingStatus: 'marriedFilingJointly',
+  });
   assert.strictEqual(summary.years.length, 1);
   assert.strictEqual(summary.years[0].year, 6);
   assert.strictEqual(summary.totals.enginePathTax, 4000);
+  assert.ok(summary.totals.federalTaxLiability > mfjSummary.totals.federalTaxLiability);
 });
 
 test('attachTypicalPathFederalTax throws when p50 rows are missing', () => {
