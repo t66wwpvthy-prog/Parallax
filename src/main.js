@@ -1,6 +1,7 @@
 import { runSimulation, runHistoricalPath, generateReturnPath, resetSeed, annualMortgagePayment, LONGRUN_INFLATION, pathDigest, assessPlan, RISK_PROFILES, defaultPlan as plan } from '../engine.js';
 import { attachPathFederalTax } from './planning/tax/attachTypicalPathFederalTax.js';
 import { rerunMonteCarloWithFederalTax } from './planning/tax/rerunMonteCarloWithFederalTax.js';
+import { runMonteCarloWithFederalFunding } from './planning/tax/runMonteCarloWithFederalFunding.js';
 import { runHistoricalPathWithFederalTax } from './planning/tax/runHistoricalPathWithFederalTax.js';
 import { fmtM, fmtMoney, fmtMDelta, fmtPts, cfMoney, cfRetPct, cfGain } from '../ui/formatters.js';
 import { storyChart, seqChartSvg } from '../ui/charts.js?v=2';
@@ -2521,14 +2522,22 @@ function runAll(){
           const p=planForScenario(s.lev);
           const ov=leversToOverrides(s.lev);
           s.res=runSimulation(p, ov, sharedPaths);
+          const taxOptions = {
+            baseTaxYear,
+            scenarioId: s.name,
+            filingStatus: p.meta?.filingStatus,
+          };
+          // Add a federal-funded probability sidecar without replacing the
+          // shortcut successRate consumed by the current Scenarios UI.
+          try{
+            s.res = runMonteCarloWithFederalFunding(s.res, p, ov, taxOptions);
+          }catch(fundingTaxErr){
+            s.res.federalSuccessRate = null;
+            console.warn('Federal success-rate rerun failed:', s.name, fundingTaxErr);
+          }
           // Re-run every MC path with federal row taxes, then attach auditable
           // p10/p50/p90 summaries. All shortcut MC aggregates stay authoritative.
           try{
-            const taxOptions = {
-              baseTaxYear,
-              scenarioId: s.name,
-              filingStatus: p.meta?.filingStatus,
-            };
             const federalResult = rerunMonteCarloWithFederalTax(s.res, taxOptions);
             federalResult.pathFederalTax = Object.fromEntries(
               ['p10', 'p50', 'p90'].map((pathKey) => [
