@@ -654,6 +654,7 @@ function demoScenarios(){
 // household was active; a corrupt store safely recreates the demo.
 bootstrapHouseholds();
 uiState.scenarios = loadScenarios() || demoScenarios();
+reseedScenarios({ markDirty: false });   // align baseline levers with hydrated plan (saved levers can be stale)
 // Solver UI state. solverFormOpen toggles the inline "Solve…" form in the band
 // gutter; solving guards against re-entry while a solve is in flight.
 
@@ -858,8 +859,8 @@ uiState.baseSnapshot=defaultLevers();   // base lever values; used to preserve d
 
 // Re-seed scenarios from the current base, keeping each scenario's adjustment.
 // Every plan edit funnels through here — the one hook that arms SAVE.
-function reseedScenarios(){
-  planSaveDirty=true; saveFailed=false; syncSaveBtn();
+function reseedScenarios({ markDirty = true } = {}){
+  if(markDirty){ planSaveDirty=true; saveFailed=false; syncSaveBtn(); }
   const nb=defaultLevers();
   const LINKED=['retireAge','ssAge','spend','savings','pensionAge'];   // base-linked levers
   scenarios.forEach(s=>{
@@ -1015,7 +1016,7 @@ function wizFooter(){ return ensureHouseholdWizard().footer(hhStep); }
      switchHousehold() → loads another saved household by id. */
 function hhLoadRecord(status){
   planSaveDirty = false; saveFailed = false; syncSaveBtn();
-  uiState.baseSnapshot = defaultLevers();
+  reseedScenarios({ markDirty: false });
   hhStep = hhDefaultStep();
   hhAcctFormOwner = null;
   hhAddingKey = null;
