@@ -49,9 +49,11 @@ node scripts/verify.mjs                    # required for T4 adapter/UI-touching
 | T4.2 Social Security | **Done** #84 | `npm test` + `verify.mjs` |
 | T4.3 Gain fraction | **Done** #86 | `npm test` + `verify.mjs` |
 | T4.4 Zero-income / filler | **Done** #87 | `npm test` + `verify.mjs` |
-| **T4.5 Other-income taxablePct** | **Active** | `npm test` + `verify.mjs` |
-| T5 Sidecar + UI scope | Pending | `npm test` + `verify.mjs` |
-| T6 Engine vs federal truth | Gate | evidence |
+| T4.5 Other-income taxablePct | **Done** #89 | `npm test` + `verify.mjs` |
+| T4.6 Typical-path integration coverage | **Done** #90 | `npm test` + `verify.mjs` |
+| T5 Sidecar + Cash Flow scope | **Done** #91, #92, #95 | `npm test` + `verify.mjs` |
+| T6 Engine vs federal truth (single/story/historical paths) | **Done** #96-#99 | `npm test` + `verify.mjs` |
+| **T7 Full Monte Carlo federal row reporting** | **Implemented - awaiting PR** | `npm test` + `verify.mjs` |
 
 ## Benchmark (annual-08)
 
