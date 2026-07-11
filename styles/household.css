@@ -284,24 +284,6 @@
   margin: 0;
 }
 
-/* ---- Timeline ------------------------------------------------------------- */
-.page[data-page="household"] .hh-tl { margin-top: 26px; position: relative; }
-.page[data-page="household"] .hh-tl__track {
-  height: 6px; border-radius: 5px; background: var(--line-08); overflow: hidden;
-}
-.page[data-page="household"] .hh-tl__fill { height: 100%; }
-.page[data-page="household"] .hh-tl__knob {
-  position: absolute; top: -2px; width: 10px; height: 10px; border-radius: 50%;
-  background: var(--text-hi); transform: translateX(-50%);
-  box-shadow: 0 0 0 3px rgba(9,9,9,0.95);
-}
-.page[data-page="household"] .hh-tl__labels {
-  display: flex; justify-content: space-between; margin-top: 14px;
-  font-size: 12px; color: var(--text-3);
-}
-.page[data-page="household"] .hh-tl__hi { color: var(--text-1); }
-.page[data-page="household"] .hh-tl__acc { color: var(--gold); }
-
 /* ---- Meta row ------------------------------------------------------------- */
 .page[data-page="household"] .hh-meta-row {
   display: flex; gap: 48px; flex-wrap: wrap; align-items: flex-end;
@@ -330,8 +312,26 @@
   border-bottom: 1px solid var(--line-16); padding: 4px 2px; color: var(--text-hi);
   outline: none; width: 100%;
 }
+.page[data-page="household"] .hh-ledger-row__source {
+  display: flex; flex: 1; min-width: 0; flex-direction: column; align-items: flex-start; gap: 5px;
+}
+.page[data-page="household"] .hh-ledger-row__note {
+  color: var(--text-4); font-size: 12px; line-height: 1;
+}
 .page[data-page="household"] .hh-ledger-row__end {
   display: inline-flex; align-items: center; gap: 16px; flex: none;
+}
+.page[data-page="household"] .hh-ledger-row__ages {
+  display: inline-flex; align-items: flex-end; gap: 9px;
+}
+.page[data-page="household"] .hh-ledger-row__ages label {
+  display: inline-flex; flex-direction: column; align-items: flex-start; gap: 4px;
+}
+.page[data-page="household"] .hh-ledger-row__ages label > span {
+  color: var(--text-4); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase;
+}
+.page[data-page="household"] .hh-ledger-row__ages input[data-type="age"] {
+  width: 4ch; text-align: center;
 }
 .page[data-page="household"] .hh-ledger-row__amt {
   font-family: var(--font-serif); font-size: 20px; color: var(--text-hi);
@@ -412,7 +412,7 @@
 }
 .page[data-page="household"] .hh-text-add:hover { color: var(--gold-bright); }
 
-/* ---- Inline forms (accounts, children, income, spending, goals) ---------- */
+/* ---- Inline forms (accounts, children, income) --------------------------- */
 .page[data-page="household"] .hh-inline-form {
   display: flex; gap: 16px; align-items: flex-end; flex-wrap: wrap;
   border-left: 2px solid rgba(195,165,106,0.45); padding: 14px 0 14px 20px; margin: 6px 0;
