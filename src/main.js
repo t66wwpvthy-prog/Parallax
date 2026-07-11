@@ -15,6 +15,7 @@ import { buildPathRows, buildCashSummary, renderCashflow } from '../ui/cashflow.
 import { toneForProb, toneGlow, wdColor, ring, num as scenarioNum, renderCompare, renderFocus } from '../ui/scenarios.js';
 import { solvePanelHTML, goalParamsHtml, comboPillValue } from '../ui/solver.js';
 import { createHouseholdWizard } from '../ui/householdWizard.js';
+import { promoteTaxFundedProbability } from './scenarios/promoteTaxFundedProbability.js';
 import {
   investableTotal, realAssetsTotal, hhAllAccounts, hhDebtTotal, hhNetWorthTotal,
   hhAgeFromYear, hhInitial, hhMoney, hhShort, hhSelect, wizField,
@@ -2327,6 +2328,12 @@ document.querySelector('.page[data-page="household"] .hh-wizard')?.addEventListe
         const year = parseInt(String(document.querySelector('[data-hh-draft="year"]')?.value ?? hhDraftAmount ?? ''), 10);
         if(!plan.household.children) plan.household.children = [];
         plan.household.children.push({ name: label || 'Child', birthYear: isFinite(year) ? year : new Date().getFullYear() - 10 });
+      } else if(hhAddingKey === 'spending'){
+        if(!plan.expenses.extra) plan.expenses.extra = [];
+        const row = ROW_KINDS.expense.mk();
+        row.label = label || 'Category';
+        row.amount = Math.round(amt);
+        plan.expenses.extra.push(row);
       }
       hhAddingKey = null;
       hhDraftLabel = '';
@@ -2540,12 +2547,18 @@ function runAll(){
             scenarioId: s.name,
             filingStatus: p.meta?.filingStatus,
           };
-          // Add a federal-funded probability sidecar without replacing the
-          // shortcut successRate consumed by the current Scenarios UI.
+          // Promote the tax-funded run into the one probability consumed by
+          // Scenarios, Solver defaults, Compare deltas, and Cash Flow. Shortcut
+          // terminal/envelope aggregates remain available for their own views.
           try{
-            s.res = runMonteCarloWithFederalFunding(s.res, p, ov, taxOptions);
+            s.res = promoteTaxFundedProbability(
+              runMonteCarloWithFederalFunding(s.res, p, ov, taxOptions)
+            );
           }catch(fundingTaxErr){
-            s.res.federalSuccessRate = null;
+            s.res = promoteTaxFundedProbability({
+              ...s.res,
+              federalSuccessRate: null,
+            });
             console.warn('Federal success-rate rerun failed:', s.name, fundingTaxErr);
           }
           // Re-run every MC path with federal row taxes, then attach auditable

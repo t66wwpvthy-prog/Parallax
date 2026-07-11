@@ -166,9 +166,12 @@ function housingExpense(plan){
 }
 
 function fixedSpendingTotal(plan){
+  const extra = plan.expenses?.extra || [];
+  const housingInExtra = extra.some(x => (x.label || '').trim().toLowerCase() === 'housing');
   return (plan.expenses?.living || 0)
     + (plan.expenses?.healthcare || 0)
-    + (housingExpense(plan)?.amount || 0);
+    + extra.reduce((s, x) => s + (x.amount || 0), 0)
+    + (housingInExtra ? 0 : (plan.expenses?.housing || 0));
 }
 
 function deferredIncomeSum(plan){
@@ -324,10 +327,23 @@ export function createHouseholdWizard(deps){
         <span class="hh-ledger-row__name">${label}</span>
         <span class="hh-ledger-row__end"><span class="hh-ledger-row__amt hh-ledger-row__amt--cf">${deps.field(path, 'money')}</span></span>
       </div>`;
+    const extra = plan.expenses?.extra || [];
+    const housingIdx = extra.findIndex(x => (x.label || '').trim().toLowerCase() === 'housing');
+    const extraRow = i => {
+      const base = `expenses.extra.${i}`;
+      return `<div class="hh-ledger-row hh-ledger-row--cf">
+        <input type="text" class="hh-ledger-row__name hh-ledger-row__name--in" data-path="${base}.label" data-type="text" placeholder="Category" value="${escHtml(extra[i].label || '')}">
+        <span class="hh-ledger-row__end">
+          <span class="hh-ledger-row__amt hh-ledger-row__amt--cf">${deps.field(base + '.amount', 'money')}</span>
+          <button class="row-x" data-rmpath="${base}" title="Remove">×</button>
+        </span>
+      </div>`;
+    };
     let html = fixedRow('Living', 'expenses.living');
     html += fixedRow('Healthcare', 'expenses.healthcare');
     const housing = housingExpense(plan);
     if(housing) html += fixedRow('Housing', housing.path);
+    extra.forEach((_, i) => { if(i !== housingIdx) html += extraRow(i); });
     return html;
   }
 
@@ -366,6 +382,8 @@ export function createHouseholdWizard(deps){
         <div class="hh-col">
           <div class="hh-col__head hh-col__head--total hh-col__head--cf"><span class="hh-col__role">SPENDING</span><span class="hh-col__sum hh-col__sum--cf">${hhMoney(spendTotal)}</span></div>
           ${spendingRows(plan, deps)}
+          ${inlineAdd('spending', { label: 'Category', amount: true })}
+          ${state.hhAddingKey !== 'spending' ? `<button class="hh-text-add" type="button" data-hh-action="open-add" data-add-key="spending">+ Add category</button>` : ''}
         </div>
       </div>
     </div>`;
