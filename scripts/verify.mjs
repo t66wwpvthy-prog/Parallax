@@ -1268,6 +1268,7 @@ try {
     if(JSON.stringify(m.taxCompare.labels) !== JSON.stringify(['Federal Total', 'Engine Path', 'Delta'])) throw new Error(`tax comparison labels mismatch: ${JSON.stringify(m.taxCompare)}`);
     if(![m.taxCompare.federalTotal, m.taxCompare.enginePathTotal, m.taxCompare.delta].every(Number.isFinite)) throw new Error(`tax comparison totals are not numeric: ${JSON.stringify(m.taxCompare)}`);
     if(Math.abs((m.taxCompare.federalTotal - m.taxCompare.enginePathTotal) - m.taxCompare.delta) > 0.01) throw new Error(`tax comparison delta does not match supplied totals: ${JSON.stringify(m.taxCompare)}`);
+    if(Math.abs(m.taxCompare.delta) > 0.01) throw new Error(`typical path was not re-run with federal row taxes: ${JSON.stringify(m.taxCompare)}`);
     if(m.taxDisclosure?.state !== 'federal-sidecar' || !/federal tax scope:\s*income tax only/i.test(m.taxDisclosure?.scope || '')) throw new Error(`typical path federal scope disclosure missing: ${JSON.stringify(m.taxDisclosure)}`);
     if(m.taxDisclosure?.fallback) throw new Error(`typical path unexpectedly uses engine fallback: ${JSON.stringify(m.taxDisclosure)}`);
     if(m.cols.some(c => ['Withdraw', 'One-time', 'Return $', 'Starting value', 'Inflows', 'Outflows', 'Annual return', 'Ending value'].includes(c))) throw new Error(`old cash-flow columns still present: ${JSON.stringify(m.cols)}`);

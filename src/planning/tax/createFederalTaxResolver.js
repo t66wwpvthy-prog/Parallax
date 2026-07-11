@@ -10,7 +10,7 @@ import { TaxInputError } from '../../tax/core/errors.js';
  *
  * The engine remains unaware of federal modules. This planning-layer resolver
  * consumes only the completed annual row facts and returns Form 1040 line 24.
- * It is intentionally opt-in and single-path-only in T6.1.
+ * It is intentionally opt-in and used only for selected single paths.
  */
 export function createFederalTaxResolver(params, options = {}){
   const planMeta = buildPlanMetaFromEngineParams(params, options);
