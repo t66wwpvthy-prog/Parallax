@@ -1,4 +1,4 @@
-/* Attach federal 1040 tax summary for the typical (p50) scenario path only. */
+/* Attach a federal 1040 tax summary for a selected scenario story path. */
 
 import { ANNUAL_1040_MODULE_VERSION } from '../../tax/annual1040.js';
 import { TaxInputError } from '../../tax/core/errors.js';
@@ -35,11 +35,11 @@ function dedupeWarnings(warnings){
   });
 }
 
-function emptySummary(typical){
-  const engineLifetimeTax = typical.lifetimeTax ?? null;
+function emptySummary(selected, pathKey){
+  const engineLifetimeTax = selected.lifetimeTax ?? null;
   return {
-    path: 'p50',
-    simIndex: typical.simIndex ?? null,
+    path: pathKey,
+    simIndex: selected.simIndex ?? null,
     moduleVersion: ANNUAL_1040_MODULE_VERSION,
     years: [],
     totals: {
@@ -55,28 +55,31 @@ function emptySummary(typical){
 }
 
 /**
- * Run federal tax on analysis.paths.p50 retirement rows only.
+ * Run federal tax on one selected analysis path's retirement rows.
  * Returns a slim summary — does not mutate analysis or engine tax fields.
  */
-export function attachTypicalPathFederalTax(analysis, options = {}){
+export function attachPathFederalTax(analysis, pathKey, options = {}){
   assertAnalysis(analysis);
+  if(!['p10', 'p50', 'p90'].includes(pathKey)){
+    throw new TaxInputError('pathKey must be p10, p50, or p90');
+  }
 
-  const typical = analysis.paths?.p50;
-  if(!typical || !Array.isArray(typical.rows)){
-    throw new TaxInputError('analysis.paths.p50.rows is required');
+  const selected = analysis.paths?.[pathKey];
+  if(!selected || !Array.isArray(selected.rows)){
+    throw new TaxInputError(`analysis.paths.${pathKey}.rows is required`);
   }
 
   const params = analysis.params ?? {};
   const retirementAge = params.retirementAge ?? params.currentAge ?? null;
-  const rows = selectRetirementRows(typical.rows, retirementAge);
-  if(rows.length === 0) return emptySummary(typical);
+  const rows = selectRetirementRows(selected.rows, retirementAge);
+  if(rows.length === 0) return emptySummary(selected, pathKey);
 
   const planMeta = buildPlanMetaFromEngineParams(params, options);
   const baseRowPlanMeta = buildRowPlanMetaFromOptions(options);
   const rowPlanMeta = options.taxableGainFraction !== undefined
     ? baseRowPlanMeta
     : buildRowTaxableGainPlanMeta(baseRowPlanMeta);
-  const scenarioId = options.scenarioId ?? 'typical_path';
+  const scenarioId = options.scenarioId ?? `${pathKey}_path`;
 
   const { results } = runTaxForScenarioPath(rows, planMeta, {
     contextOverrides: { ...(options.contextOverrides ?? {}), scenarioId },
@@ -112,13 +115,13 @@ export function attachTypicalPathFederalTax(analysis, options = {}){
     });
   }
 
-  const engineLifetimeTax = typical.lifetimeTax ?? null;
+  const engineLifetimeTax = selected.lifetimeTax ?? null;
   const federalTaxLiability = round2(federalTotal);
   const enginePathTax = round2(enginePathTotal);
 
   return {
-    path: 'p50',
-    simIndex: typical.simIndex ?? null,
+    path: pathKey,
+    simIndex: selected.simIndex ?? null,
     moduleVersion: ANNUAL_1040_MODULE_VERSION,
     years,
     totals: {
@@ -133,4 +136,9 @@ export function attachTypicalPathFederalTax(analysis, options = {}){
     warnings: dedupeWarnings(warnings),
     scope,
   };
+}
+
+/** Backward-compatible p50 summary entry point. */
+export function attachTypicalPathFederalTax(analysis, options = {}){
+  return attachPathFederalTax(analysis, 'p50', options);
 }

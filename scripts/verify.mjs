@@ -1331,22 +1331,44 @@ try {
       seedInput: !!document.querySelector('#path-seed'),
     }));
     if(advanced.chooseOpt || advanced.indexInput || advanced.seedInput) throw new Error(`removed path #/seed controls still present: ${JSON.stringify(advanced)}`);
-    const hasFavorable = await page.evaluate(() => [...document.querySelectorAll('#path-mode option')].some(o => o.value === 'favorable'));
-    if(!hasFavorable) throw new Error('favorable option missing from path-mode select');
-    await page.select('#path-mode', 'favorable');
-    await new Promise(r => setTimeout(r, 400));
-    if(await waitCashRows(page, 10) < 10) throw new Error('favorable path emptied the cash-flow table');
-    const engineTaxHeader = await page.evaluate(() => {
-      const th = document.querySelector('#scn-view .cf-table__head .cf-th[data-tax-source]');
-      return th ? {
-        label: th.textContent.trim(),
-        source: th.dataset.taxSource || '',
-        scope: th.dataset.taxScope || '',
-      } : null;
-    });
-    if(engineTaxHeader?.label !== 'Tax' || engineTaxHeader?.source !== 'engine' || engineTaxHeader?.scope) throw new Error(`non-typical path tax scope is not engine-scoped: ${JSON.stringify(engineTaxHeader)}`);
-    if(await page.evaluate(() => !!document.querySelector('#scn-view [data-tax-compare]'))) throw new Error('federal-vs-engine summary must be hidden on non-typical paths');
-    if(await page.evaluate(() => !!document.querySelector('#scn-view [data-tax-disclosure]'))) throw new Error('federal tax disclosure must be hidden on non-typical paths');
+    const availableModes = await page.evaluate(() => [...document.querySelectorAll('#path-mode option')].map(o => o.value));
+    for(const [mode, expectedPath] of [['stressed', 'p10'], ['favorable', 'p90']]){
+      if(!availableModes.includes(mode)) throw new Error(`${mode} option missing from path-mode select`);
+      await page.select('#path-mode', mode);
+      await new Promise(r => setTimeout(r, 400));
+      if(await waitCashRows(page, 10) < 10) throw new Error(`${mode} path emptied the cash-flow table`);
+      const federalPath = await page.evaluate(() => {
+        const th = document.querySelector('#scn-view .cf-table__head .cf-th[data-tax-source]');
+        const compare = document.querySelector('#scn-view [data-tax-compare]');
+        const disclosure = document.querySelector('#scn-view [data-tax-disclosure]');
+        return {
+          mode: document.querySelector('#path-mode')?.value || '',
+          header: th ? {
+            label: th.textContent.trim(),
+            source: th.dataset.taxSource || '',
+            scope: th.dataset.taxScope || '',
+          } : null,
+          compare: compare ? {
+            path: compare.dataset.taxPath || '',
+            federalTotal: Number(compare.dataset.federalTotal),
+            enginePathTotal: Number(compare.dataset.enginePathTotal),
+            delta: Number(compare.dataset.delta),
+          } : null,
+          disclosure: disclosure ? {
+            state: disclosure.dataset.taxState || '',
+            scope: disclosure.querySelector('[data-tax-scope-disclosure]')?.textContent.trim() || '',
+          } : null,
+        };
+      });
+      if(federalPath.mode !== mode) throw new Error(`${mode} path mode did not stay selected: ${JSON.stringify(federalPath)}`);
+      if(federalPath.header?.label !== 'Tax' || federalPath.header?.source !== 'federal-sidecar' || federalPath.header?.scope !== 'INCOME_TAX_ONLY') throw new Error(`${mode} path tax scope is not federal: ${JSON.stringify(federalPath)}`);
+      if(federalPath.compare?.path !== expectedPath) throw new Error(`${mode} path sidecar mismatch: ${JSON.stringify(federalPath)}`);
+      if(![federalPath.compare?.federalTotal, federalPath.compare?.enginePathTotal, federalPath.compare?.delta].every(Number.isFinite)) throw new Error(`${mode} path tax totals are not numeric: ${JSON.stringify(federalPath)}`);
+      if(Math.abs(federalPath.compare.delta) > 0.01) throw new Error(`${mode} Cash Flow rows were not re-run with federal tax: ${JSON.stringify(federalPath)}`);
+      if(federalPath.disclosure?.state !== 'federal-sidecar' || !/income tax only/i.test(federalPath.disclosure?.scope || '')) throw new Error(`${mode} federal scope disclosure missing: ${JSON.stringify(federalPath)}`);
+      await new Promise(r => setTimeout(r, 700));
+      await page.screenshot({ path: join(OUT, `04-cashflow-${mode}.png`), fullPage: true });
+    }
     await page.select('#path-mode', 'typical');
     await new Promise(r => setTimeout(r, 300));
     const restoredTaxHeader = await page.evaluate(() => {
