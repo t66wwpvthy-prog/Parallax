@@ -1244,6 +1244,15 @@ try {
             values: [...el.querySelectorAll('.cf-stat__value')].map(value => value.textContent.trim()),
           } : null;
         })(),
+        taxDisclosure: (() => {
+          const el = v?.querySelector('[data-tax-disclosure]');
+          return el ? {
+            state: el.dataset.taxState || '',
+            scope: el.querySelector('[data-tax-scope-disclosure]')?.textContent.trim() || '',
+            fallback: el.querySelector('[data-tax-fallback]')?.textContent.trim() || '',
+            warnings: [...el.querySelectorAll('[data-tax-warnings] li')].map(item => item.textContent.trim()),
+          } : null;
+        })(),
         hasCaption: !!v?.querySelector('.cf__caption'),
         hasCfEyebrow: !!v?.querySelector('.cf__head .eyebrow'),
         hasSummaryName: !!v?.querySelector('.cf-summary__name'),
@@ -1259,6 +1268,8 @@ try {
     if(JSON.stringify(m.taxCompare.labels) !== JSON.stringify(['Federal Total', 'Engine Path', 'Delta'])) throw new Error(`tax comparison labels mismatch: ${JSON.stringify(m.taxCompare)}`);
     if(![m.taxCompare.federalTotal, m.taxCompare.enginePathTotal, m.taxCompare.delta].every(Number.isFinite)) throw new Error(`tax comparison totals are not numeric: ${JSON.stringify(m.taxCompare)}`);
     if(Math.abs((m.taxCompare.federalTotal - m.taxCompare.enginePathTotal) - m.taxCompare.delta) > 0.01) throw new Error(`tax comparison delta does not match supplied totals: ${JSON.stringify(m.taxCompare)}`);
+    if(m.taxDisclosure?.state !== 'federal-sidecar' || !/federal tax scope:\s*income tax only/i.test(m.taxDisclosure?.scope || '')) throw new Error(`typical path federal scope disclosure missing: ${JSON.stringify(m.taxDisclosure)}`);
+    if(m.taxDisclosure?.fallback) throw new Error(`typical path unexpectedly uses engine fallback: ${JSON.stringify(m.taxDisclosure)}`);
     if(m.cols.some(c => ['Withdraw', 'One-time', 'Return $', 'Starting value', 'Inflows', 'Outflows', 'Annual return', 'Ending value'].includes(c))) throw new Error(`old cash-flow columns still present: ${JSON.stringify(m.cols)}`);
     if(m.pills.length < 2) throw new Error(`scenario pills missing: ${JSON.stringify(m.pills)}`);
     if(!m.pathControls) throw new Error('path-replay controls not relocated into #scn-cf-path-controls');
@@ -1334,6 +1345,7 @@ try {
     });
     if(engineTaxHeader?.label !== 'Tax' || engineTaxHeader?.source !== 'engine' || engineTaxHeader?.scope) throw new Error(`non-typical path tax scope is not engine-scoped: ${JSON.stringify(engineTaxHeader)}`);
     if(await page.evaluate(() => !!document.querySelector('#scn-view [data-tax-compare]'))) throw new Error('federal-vs-engine summary must be hidden on non-typical paths');
+    if(await page.evaluate(() => !!document.querySelector('#scn-view [data-tax-disclosure]'))) throw new Error('federal tax disclosure must be hidden on non-typical paths');
     await page.select('#path-mode', 'typical');
     await new Promise(r => setTimeout(r, 300));
     const restoredTaxHeader = await page.evaluate(() => {
@@ -1342,6 +1354,45 @@ try {
     });
     if(restoredTaxHeader?.label !== 'Tax' || restoredTaxHeader?.source !== 'federal-sidecar') throw new Error(`typical path tax scope did not restore: ${JSON.stringify(restoredTaxHeader)}`);
     if(!await page.evaluate(() => !!document.querySelector('#scn-view [data-tax-compare]'))) throw new Error('federal-vs-engine summary did not restore on typical path');
+    if(!await page.evaluate(() => /income tax only/i.test(document.querySelector('#scn-view [data-tax-scope-disclosure]')?.textContent || ''))) throw new Error('readable federal scope disclosure did not restore on typical path');
+
+    // Exercise warning and attach-failure states directly through the production
+    // Cash Flow renderer. This avoids changing real scenario or Household state.
+    const disclosureStates = await page.evaluate(async () => {
+      const { renderCashflow } = await import('./ui/cashflow.js');
+      const row = { year: 2026, age: 66, accum: false, income: 50000, rmd: 0, essential: 40000, goals: 0, tax: 5000, draw: 0, ret: 0.04, wdRate: 4, ending: 900000, shortfall: false, startPort: 1000000, goalTag: null };
+      const raw = { res: { typicalPathFederalTax: {
+        years: [{ year: 2026, age: 66, federalTaxLiability: 4500 }],
+        totals: { federalTaxLiability: 4500, enginePathTax: 5000, deltaVsEnginePath: -500 },
+        scope: 'INCOME_TAX_ONLY',
+        warnings: [{ code: 'VERIFY_WARNING', message: 'A supplied tax fact needs review.' }],
+      } } };
+      const scn = { raw, id: '0', name: 'Baseline', tone: '#c6a662', prob: 80, probStr: '80', median: '$900K' };
+      const deps = {
+        pathRows: () => [row], cashSummary: () => ({}), cashFromRetirement: false,
+        isTypicalPath: () => true, typicalPathFederalTax: (s) => s.res.typicalPathFederalTax,
+        toneGlow: () => 'transparent', ring: () => '', wdColor: () => 'inherit', num: (n) => String(n),
+        esc: (value) => String(value).replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch])),
+        fmtMoney: (n) => '$' + Math.round(n).toLocaleString('en-US'),
+        cfCols: ['Year', 'Age', 'Income', 'RMD', 'Essential', 'Goals', 'Tax', 'Draw', 'Return', 'WD Rate', 'Ending'],
+      };
+      const inspect = () => {
+        const host = document.createElement('div');
+        host.innerHTML = renderCashflow(scn, [scn], deps);
+        return {
+          state: host.querySelector('[data-tax-disclosure]')?.dataset.taxState || '',
+          warning: host.querySelector('[data-tax-warnings] li')?.textContent.trim() || '',
+          fallback: host.querySelector('[data-tax-fallback]')?.textContent.trim() || '',
+          source: host.querySelector('.cf-th[data-tax-source]')?.dataset.taxSource || '',
+        };
+      };
+      const warned = inspect();
+      raw.res.typicalPathFederalTax = null;
+      const failed = inspect();
+      return { warned, failed };
+    });
+    if(disclosureStates.warned.state !== 'federal-sidecar' || disclosureStates.warned.warning !== 'A supplied tax fact needs review.') throw new Error(`sidecar warnings were not surfaced: ${JSON.stringify(disclosureStates)}`);
+    if(disclosureStates.failed.state !== 'engine-fallback' || disclosureStates.failed.source !== 'engine' || !/tax column uses engine estimates/i.test(disclosureStates.failed.fallback)) throw new Error(`sidecar attach-failure fallback is unclear: ${JSON.stringify(disclosureStates)}`);
     await page.screenshot({ path: join(OUT, '04-cashflow.png'), fullPage: true });
   });
 
