@@ -1216,7 +1216,7 @@ try {
     await new Promise(r => setTimeout(r, 600));
     await setCashFlow(page, true);
     await waitCashRows(page, 10);
-    const EXPECT = ['Year', 'Age', 'Income', 'RMD', 'Essential', 'Goals', 'Federal Income Tax', 'Draw', 'Return', 'WD Rate', 'Ending'];
+    const EXPECT = ['Year', 'Age', 'Income', 'RMD', 'Essential', 'Goals', 'Tax', 'Draw', 'Return', 'WD Rate', 'Ending'];
     const m = await page.evaluate(() => {
       const v = document.querySelector('#scn-view');
       return {
@@ -1237,6 +1237,16 @@ try {
             title: th.getAttribute('title') || '',
           } : null;
         })(),
+        taxCompare: (() => {
+          const el = v?.querySelector('[data-tax-compare]');
+          return el ? {
+            federalTotal: Number(el.dataset.federalTotal),
+            enginePathTotal: Number(el.dataset.enginePathTotal),
+            delta: Number(el.dataset.delta),
+            labels: [...el.querySelectorAll('.cf-stat__label')].map(label => label.textContent.trim()),
+            values: [...el.querySelectorAll('.cf-stat__value')].map(value => value.textContent.trim()),
+          } : null;
+        })(),
         hasCaption: !!v?.querySelector('.cf__caption'),
         hasCfEyebrow: !!v?.querySelector('.cf__head .eyebrow'),
         hasSummaryName: !!v?.querySelector('.cf-summary__name'),
@@ -1248,6 +1258,10 @@ try {
     if(m.cols.filter(c => /tax/i.test(c)).length !== 1) throw new Error(`cash flow must have exactly one scoped tax column: ${JSON.stringify(m.cols)}`);
     if(m.taxHeader?.source !== 'federal-sidecar' || m.taxHeader?.scope !== 'INCOME_TAX_ONLY') throw new Error(`typical path tax scope missing: ${JSON.stringify(m.taxHeader)}`);
     if(!/income tax only/i.test(m.taxHeader?.title || '')) throw new Error(`typical path tax tooltip missing scope: ${JSON.stringify(m.taxHeader)}`);
+    if(!m.taxCompare) throw new Error('typical path federal-vs-engine summary is missing');
+    if(JSON.stringify(m.taxCompare.labels) !== JSON.stringify(['Federal Total', 'Engine Path', 'Delta'])) throw new Error(`tax comparison labels mismatch: ${JSON.stringify(m.taxCompare)}`);
+    if(![m.taxCompare.federalTotal, m.taxCompare.enginePathTotal, m.taxCompare.delta].every(Number.isFinite)) throw new Error(`tax comparison totals are not numeric: ${JSON.stringify(m.taxCompare)}`);
+    if(Math.abs((m.taxCompare.federalTotal - m.taxCompare.enginePathTotal) - m.taxCompare.delta) > 0.01) throw new Error(`tax comparison delta does not match supplied totals: ${JSON.stringify(m.taxCompare)}`);
     if(m.cols.some(c => ['Withdraw', 'One-time', 'Return $', 'Starting value', 'Inflows', 'Outflows', 'Annual return', 'Ending value'].includes(c))) throw new Error(`old cash-flow columns still present: ${JSON.stringify(m.cols)}`);
     if(m.pills.length < 2) throw new Error(`scenario pills missing: ${JSON.stringify(m.pills)}`);
     if(!m.pathControls) throw new Error('path-replay controls not relocated into #scn-cf-path-controls');
@@ -1321,11 +1335,16 @@ try {
         scope: th.dataset.taxScope || '',
       } : null;
     });
-    if(engineTaxHeader?.label !== 'Engine Tax' || engineTaxHeader?.source !== 'engine' || engineTaxHeader?.scope) throw new Error(`non-typical path tax label is not engine-scoped: ${JSON.stringify(engineTaxHeader)}`);
+    if(engineTaxHeader?.label !== 'Tax' || engineTaxHeader?.source !== 'engine' || engineTaxHeader?.scope) throw new Error(`non-typical path tax scope is not engine-scoped: ${JSON.stringify(engineTaxHeader)}`);
+    if(await page.evaluate(() => !!document.querySelector('#scn-view [data-tax-compare]'))) throw new Error('federal-vs-engine summary must be hidden on non-typical paths');
     await page.select('#path-mode', 'typical');
     await new Promise(r => setTimeout(r, 300));
-    const restoredTaxLabel = await page.evaluate(() => document.querySelector('#scn-view .cf-table__head .cf-th[data-tax-source]')?.textContent.trim() || '');
-    if(restoredTaxLabel !== 'Federal Income Tax') throw new Error(`typical path tax label did not restore: "${restoredTaxLabel}"`);
+    const restoredTaxHeader = await page.evaluate(() => {
+      const th = document.querySelector('#scn-view .cf-table__head .cf-th[data-tax-source]');
+      return th ? { label: th.textContent.trim(), source: th.dataset.taxSource || '' } : null;
+    });
+    if(restoredTaxHeader?.label !== 'Tax' || restoredTaxHeader?.source !== 'federal-sidecar') throw new Error(`typical path tax scope did not restore: ${JSON.stringify(restoredTaxHeader)}`);
+    if(!await page.evaluate(() => !!document.querySelector('#scn-view [data-tax-compare]'))) throw new Error('federal-vs-engine summary did not restore on typical path');
     await page.screenshot({ path: join(OUT, '04-cashflow.png'), fullPage: true });
   });
 
