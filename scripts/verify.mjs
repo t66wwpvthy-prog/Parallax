@@ -1663,7 +1663,7 @@ try {
     if(hdr.height !== '56px') throw new Error(`Header height must be 56px, got ${hdr.height}`);
     if(hdr.borderBottom !== '1px') throw new Error(`Header must have 1px bottom hairline, got ${hdr.borderBottom}`);
     if(!hdr.logo.includes('parallax-logo.png')) throw new Error(`Header logo must use parallax-logo.png, got ${hdr.logo}`);
-    if(hdr.logoH !== '32px') throw new Error(`Logo must be 32px tall, got ${hdr.logoH}`);
+    if(hdr.logoH !== '48px') throw new Error(`Logo must be 48px tall, got ${hdr.logoH}`);
     if(hdr.bg !== 'rgba(0, 0, 0, 0)' && hdr.bg !== 'transparent')
       throw new Error(`Header must be flush/transparent, got ${hdr.bg}`);
     if(hdr.runBg !== 'rgba(0, 0, 0, 0)' && hdr.runBg !== 'transparent')
