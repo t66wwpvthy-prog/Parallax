@@ -1,6 +1,7 @@
 import { runSimulation, runHistoricalPath, generateReturnPath, resetSeed, annualMortgagePayment, LONGRUN_INFLATION, pathDigest, assessPlan, RISK_PROFILES, defaultPlan as plan } from '../engine.js';
 import { attachTypicalPathFederalTax } from './planning/tax/attachTypicalPathFederalTax.js';
 import { rerunTypicalPathWithFederalTax } from './planning/tax/rerunTypicalPathWithFederalTax.js';
+import { runHistoricalPathWithFederalTax } from './planning/tax/runHistoricalPathWithFederalTax.js';
 import { fmtM, fmtMoney, fmtMDelta, fmtPts, cfMoney, cfRetPct, cfGain } from '../ui/formatters.js';
 import { storyChart, seqChartSvg } from '../ui/charts.js?v=2';
 import { escHtml } from '../ui/dom.js';
@@ -2843,13 +2844,18 @@ function runSeq(){
   const accumYears=Math.max(0, retAge-curAge);
   const rp=retireNowClone(p, ov, curAge, retAge, accumYears, s.res && s.res.envelope);
   const ov2={...ov, retireDelay:0};                // retirement age is baked into the clone now
+  const historicalTaxOptions={
+    baseTaxYear:new Date().getFullYear(),
+    filingStatus:rp.meta?.filingStatus,
+    scenarioId:`sequencing_${s.name}`,
+  };
   const runs=SEQ_YEARS.filter(m=>m.on)
-                      .map(m=>({m, res:runHistoricalPath(rp, m.y, strat, undefined, ov2)}))
+                      .map(m=>({m, res:runHistoricalPathWithFederalTax(rp, m.y, strat, undefined, ov2, historicalTaxOptions)}))
                       .filter(r=>r.res && r.res.rows.length);
   if(!runs.length){ $('#seq-svg').innerHTML=''; $('#seq-prints').innerHTML=''; return; }
   drawSeqChart($('#seq-svg'), runs, retAge, seqChartSvg, { grid:GRID, axisInk:AXIS_INK });
   renderPrints($('#seq-prints'), runs, pathDigest);
-  seqContext={rp, strat, ov2};
+  seqContext={rp, strat, ov2, historicalTaxOptions};
   renderPlaybackCurrent();
   const n=runs.length;
   $('#seq-sub').textContent='Same plan, real markets';
@@ -2883,7 +2889,7 @@ function renderPlaybackCurrent(){
   renderPlayback({
     el:$('#playback-panel'), seqContext, playbackYear, pbDetailOpen,
     sequenceYears:SEQ_YEARS, playbackStrategies:PB_STRATS,
-    runHistoricalPath, pathDigest, eraFor,
+    runHistoricalPath:(...args)=>runHistoricalPathWithFederalTax(...args, seqContext?.historicalTaxOptions), pathDigest, eraFor,
     setPlaybackYear:value=>{ playbackYear=value; },
     togglePlaybackDetail:()=>{ pbDetailOpen=!pbDetailOpen; },
     rerender:renderPlaybackCurrent,

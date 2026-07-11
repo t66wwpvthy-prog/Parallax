@@ -1364,7 +1364,7 @@ function analyzeResults(sims, p){
 }
 
 
-function runHistoricalPath(plan, startYear, strategy, transform, overrides){
+function runHistoricalPath(plan, startYear, strategy, transform, overrides, options = {}){
   // `overrides` flows through the SAME resolveInputs lever mapping the Monte
   // Carlo path uses (retireDelay, ssDelayYears, spendBump, lumpSum, savingsBump,
   // pensionStartAge, …) so a chosen scenario is sequenced faithfully, not just
@@ -1406,7 +1406,7 @@ function runHistoricalPath(plan, startYear, strategy, transform, overrides){
 
   // Adjust horizon to actual data available
   const inputs = { ...rawInputs, horizonYears: ordered.length };
-  const result = runSinglePath(inputs, ordered);
+  const result = runSinglePath(inputs, ordered, options);
   result.actualYears  = ordered.length;
   result.requestedYrs = rawInputs.horizonYears;
   result.startYear    = startYear;

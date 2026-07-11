@@ -46,6 +46,20 @@ test('a known bad sequence (retire into 1973) is materially worse than average',
   assert.ok(hist && (hist.rows || hist).length > 0, 'historical path should produce rows');
 });
 
+test('default runHistoricalPath is identical to the explicit shortcut tax policy', () => {
+  const defaultResult = runHistoricalPath(defaultPlan, 1973, 'taxable-first');
+  const explicitShortcutResult = runHistoricalPath(
+    defaultPlan,
+    1973,
+    'taxable-first',
+    undefined,
+    undefined,
+    { taxPolicy: (_row, { shortcutTax }) => shortcutTax }
+  );
+
+  assert.deepStrictEqual(defaultResult, explicitShortcutResult);
+});
+
 // Sequence Stress must be measured from RETIREMENT start, not plan start. For a
 // still-working client (currentAge < retirementAge), the first accumulation years
 // carry no sequence-of-returns risk (no withdrawals), so they must NOT drive which
