@@ -318,8 +318,11 @@ export function createHouseholdWizard(deps){
       const nm = role === 'client' ? (plan.meta?.primaryName || 'Client 1') : (plan.meta?.spouseName || 'Client 2');
       const base = `income.socialSecurity.${key}`;
       rows.push(`<div class="hh-future-row">
-        <span class="hh-future-row__name">Social Security · ${escHtml(nm)} <span class="hh-future-row__note">· at ${block.claimAge ?? '—'}</span></span>
-        <span class="hh-future-row__amt">${deps.field(base + '.pia', 'money')}</span>
+        <span class="hh-future-row__name">Social Security · ${escHtml(nm)}</span>
+        <span class="hh-future-row__end">
+          <label class="hh-future-row__claim">Claim age ${deps.field(base + '.claimAge', 'age', { min: 62, max: 70 })}</label>
+          <span class="hh-future-row__amt">${deps.field(base + '.pia', 'money')}</span>
+        </span>
       </div>`);
     };
     addSs('client');

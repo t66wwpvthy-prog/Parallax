@@ -7,7 +7,7 @@ import { storyChart, seqChartSvg } from '../ui/charts.js?v=2';
 import { escHtml } from '../ui/dom.js';
 import { CHART_LAYOUT } from '../ui/chartLayout.js';
 import { GOAL_AREAS, GOAL_AREA_LBL, GOAL_ICONS_SVG, GOAL_COLOR_MAP } from '../ui/goalPalette.js';
-import { createDemoHousehold, createBlankHousehold, DEMO_SEED_VERSION } from '../ui/householdFactories.js';
+import { createDemoHousehold, createBlankHousehold } from '../ui/householdFactories.js';
 import { droppedGoals, goalAreaAges, renderGoalsPage, syncGoalSelection } from '../ui/goals.js';
 import { pathModeLabel, pathOutcomeText, drawSeqChart, renderPrints, normalizePlaybackStrategy, renderPlayback, syncPathControls, updatePathReplayMode } from '../ui/sequencing.js';
 import { buildPathRows, buildCashSummary, renderCashflow } from '../ui/cashflow.js';
@@ -29,9 +29,8 @@ import {
    ╚══════════════════════════════════════════════════════════════╝ */
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 /* ── Household model: pure factories + multi-household persistence ──────────
-   The app boots with a Demo Household but the advisor can create and switch to
-   their own households; the ACTIVE household is hydrated into the engine's live
-   `plan` binding, and demo values never overwrite a custom household on reload.
+   The app boots with one blank Demo Household slot. The advisor can create and
+   switch households; persisted values remain authoritative across reloads.
 
    `plan` is the engine's default plan object (imported live). It cannot be
    reassigned (const import binding), so hydratePlan() mutates it in place —
@@ -79,32 +78,62 @@ function saveActiveHousehold(){
   }
   return false;
 }
-function refreshStaleDemoRecord(db){
-  const cur = db && db.demo;
-  if(!cur || !cur.meta || !cur.meta.isDemo) return db;
-  if((cur.meta.demoSeedVersion || 0) >= DEMO_SEED_VERSION) return db;
-  const fresh = createDemoHousehold(PRISTINE_PLAN);
-  db.demo = fresh;
-  return db;
+function mergeMissingSchema(saved, defaults){
+  const merged = JSON.parse(JSON.stringify(saved));
+  const fill = (target, source) => {
+    Object.entries(source || {}).forEach(([key, value]) => {
+      if(!(key in target)){
+        target[key] = JSON.parse(JSON.stringify(value));
+      } else if(
+        target[key] && value
+        && typeof target[key] === 'object' && !Array.isArray(target[key])
+        && typeof value === 'object' && !Array.isArray(value)
+      ){
+        fill(target[key], value);
+      }
+    });
+  };
+  fill(merged, defaults);
+  return merged;
+}
+
+function mergeHouseholdSchema(record, id){
+  const year = new Date().getFullYear();
+  const defaults = id === 'demo'
+    ? createDemoHousehold(PRISTINE_PLAN, year)
+    : createBlankHousehold(PRISTINE_PLAN, id, year);
+  return mergeMissingSchema(record, defaults);
+}
+
+function ensureDemoRecord(){
+  if(!householdsDb.demo){
+    householdsDb.demo = createDemoHousehold(PRISTINE_PLAN, new Date().getFullYear());
+    persistHouseholdsDb();
+  }
+  return householdsDb.demo;
 }
 // First-load seed + reload hydrate + corruption recovery, all in one pass.
 function bootstrapHouseholds(){
-  const valid = r => r && r.meta && r.household && r.household.primary
-    && isFinite(r.household.primary.currentAge) && r.portfolio && r.portfolio.accounts;
   let db = loadHouseholdsDb();
   let id = null; try{ id = localStorage.getItem(ACTIVE_KEY); }catch(e){}
-  // No store yet, or a corrupt one → recreate a fresh Demo Household.
-  if(!db || !Object.keys(db).length || !Object.values(db).every(valid)){
-    const demo = createDemoHousehold(PRISTINE_PLAN);
+  // No store yet → create the single blank demo slot.
+  if(!db || !Object.keys(db).length){
+    const demo = createDemoHousehold(PRISTINE_PLAN, new Date().getFullYear());
     db = { [demo.meta.householdId]: demo };
     id = demo.meta.householdId;
   } else {
-    db = refreshStaleDemoRecord(db);
+    db = Object.fromEntries(Object.entries(db)
+      .filter(([, record]) => record && typeof record === 'object' && !Array.isArray(record))
+      .map(([recordId, record]) => [recordId, mergeHouseholdSchema(record, recordId)]));
   }
   // Missing/dangling active pointer → fall back to any household (or a new demo).
   if(!id || !db[id]){
     id = Object.keys(db)[0] || null;
-    if(!id){ const demo = createDemoHousehold(PRISTINE_PLAN); db[demo.meta.householdId] = demo; id = demo.meta.householdId; }
+    if(!id){
+      const demo = createDemoHousehold(PRISTINE_PLAN, new Date().getFullYear());
+      db[demo.meta.householdId] = demo;
+      id = demo.meta.householdId;
+    }
   }
   householdsDb = db;
   activeHouseholdId = id;
@@ -339,7 +368,7 @@ function solveLeverFor(baseLev, key, targetPct, score = trySuccess, band = null)
 const SOLVE_KEYS = ['retireAge','spend','savings','ssAge','pensionAge'];
 
 // ── Combo solver tuning (all adjustable — refine with use) ──────────────────
-// "Least disruptive" blends the three rules Nathan approved:
+// "Least disruptive" blends the three active product rules:
 //   1. minimize the BIGGEST single lever stretch (each move normalized to its
 //      own realistic band), so no one lever carries the whole load;
 //   2. weight spending CUTS heavier — protect lifestyle, so combos lean to
@@ -588,7 +617,7 @@ function demoScenarios(){
 }
 // Seed/hydrate the active household BEFORE scenarios seed, so lever defaults and
 // reseeding see the active household's inputs (never the demo, unless it IS the
-// active household). First load seeds a Demo Household; reloads hydrate whatever
+// active household). First load seeds a blank Demo Household; reloads hydrate whatever
 // household was active; a corrupt store safely recreates the demo.
 bootstrapHouseholds();
 uiState.scenarios = loadScenarios() || demoScenarios();
@@ -950,8 +979,7 @@ function wizFooter(){ return ensureHouseholdWizard().footer(hhStep); }
    All of these hydrate the live `plan`, re-scope scenarios to the active
    household, persist, and re-render through the full reseed/dirty/run flow.
      hhLoadRecord(rec, status)  → shared tail: hydrate + scenarios + render.
-     hhResetToDemo()   → restores the demo household (only when active IS demo).
-     hhClearHousehold()→ blanks the active household in place (keeps its slot).
+     loadDemoHousehold() → ensures and loads the persistent blank demo slot.
      newHousehold()    → creates a blank household, makes it active.
      switchHousehold() → loads another saved household by id. */
 function hhLoadRecord(status){
@@ -970,34 +998,15 @@ function hhLoadRecord(status){
   runAll();
   if(status) $('#status').textContent = status;
 }
-// Restore the demo household. Guarded to the demo record so a custom household
-// can never be clobbered by the demo; keeps the same store slot + id.
-function hhResetToDemo(){
-  if(!(plan.meta && plan.meta.isDemo)) return;   // only the demo can be reset
-  if(!confirm('Reset the demo household? All unsaved edits to it will be lost.')) return;
-  const demo = createDemoHousehold(PRISTINE_PLAN);
-  demo.meta.householdId = activeHouseholdId;      // reuse the active (demo) slot
-  hydratePlan(demo);
-  saveActiveHousehold();
-  uiState.scenarios = demoScenarios();
-  try{ localStorage.removeItem(scenKey()); }catch(e){}
-  saveScenarios();
-  hhLoadRecord('Demo household loaded');
-}
-// Blank the ACTIVE household in place — same id/slot, same demo-ness/name — so
-// the advisor can start over without creating a new record.
-function hhClearHousehold(){
-  if(!confirm('Clear all plan data? This cannot be undone.')) return;
-  const blank = createBlankHousehold(PRISTINE_PLAN, newHouseholdId(), new Date().getFullYear());
-  blank.meta.householdId = activeHouseholdId;
-  blank.meta.isDemo      = !!(plan.meta && plan.meta.isDemo);
-  blank.meta.name        = (plan.meta && plan.meta.name) || 'New Household';
-  hydratePlan(blank);
-  saveActiveHousehold();
-  uiState.scenarios = demoScenarios();
-  try{ localStorage.removeItem(scenKey()); }catch(e){}
-  saveScenarios();
-  hhLoadRecord('New household · fill in details');
+// Open the persistent demo slot. Create it blank only when it is missing.
+function loadDemoHousehold(){
+  ensureDemoRecord();
+  if(activeHouseholdId === 'demo'){
+    updateHouseholdControls();
+    $('#status').textContent = 'Loaded Demo Household';
+    return;
+  }
+  switchHousehold('demo');
 }
 // Create a brand-new blank household, persist it, and make it active with its
 // own fresh scenario set.
@@ -1026,8 +1035,7 @@ function switchHousehold(id){
   saveScenarios();
   hhLoadRecord('Loaded ' + ((plan.meta && plan.meta.name) || 'household'));
 }
-// Populate the switcher <select> and enable the Demo (reset) button only when
-// the active household is the demo.
+// Populate the saved-household switcher.
 function updateHouseholdControls(){
   const sel = $('#hh-switch');
   if(sel){
@@ -1039,14 +1047,6 @@ function updateHouseholdControls(){
       return `<option value="${escHtml(id)}" ${id===activeHouseholdId?'selected':''}>${escHtml(nm)}</option>`;
     }).join('');
     sel.value = activeHouseholdId;
-  }
-  const demoBtn = $('#hh-act-demo');
-  if(demoBtn){
-    const isDemo = !!(plan.meta && plan.meta.isDemo);
-    demoBtn.disabled = !isDemo;
-    demoBtn.classList.toggle('is-disabled', !isDemo);
-    demoBtn.title = isDemo ? 'Reset this demo household to its original values'
-                          : 'Only the demo household can be reset';
   }
 }
 
@@ -1093,7 +1093,7 @@ function bindHouseholdRailOnce(){
       hhBlueprintRan = false;
       syncHousehold();
     }));
-  // Tucked household menu (⋯): Switch / New / Demo / Clear.
+  // Tucked household menu (⋯): Open / New / Load demo.
   const menuBtn = $('#hh-menu-btn'), pop = $('#hh-menu-pop');
   if(menuBtn && pop){
     menuBtn.addEventListener('click', e => {
@@ -1108,15 +1108,13 @@ function bindHouseholdRailOnce(){
       }
     });
   }
-  const demoBtn  = $('#hh-act-demo');
-  const clearBtn = $('#hh-act-clear');
-  if(demoBtn)  demoBtn.addEventListener('click',  () => hhResetToDemo());
-  if(clearBtn) clearBtn.addEventListener('click', () => hhClearHousehold());
-  // Household selector + New Household (multi-household state management).
+  // Household selector + New Household + persistent blank demo slot.
   const switchSel = $('#hh-switch');
   const newBtn    = $('#hh-new');
+  const loadDemoBtn = $('#hh-load-demo');
   if(switchSel) switchSel.addEventListener('change', e => switchHousehold(e.target.value));
   if(newBtn)    newBtn.addEventListener('click', () => newHousehold());
+  if(loadDemoBtn) loadDemoBtn.addEventListener('click', () => loadDemoHousehold());
   hhStep = hhDefaultStep();   // land on Blueprint when the household has data
   updateHouseholdControls();
 }
@@ -1234,7 +1232,9 @@ function renderField(f, klass){
     return `<input type="number" data-path="${f.path}" data-type="rate" value="${v||0}" min="0" step="0.1">`;
   }
   // age
-  return `<input type="number" data-path="${f.path}" data-type="${f.type}" value="${v}" step="1">`;
+  const min = f.min != null ? ` min="${f.min}" data-min="${f.min}"` : '';
+  const max = f.max != null ? ` max="${f.max}" data-max="${f.max}"` : '';
+  return `<input type="number" data-path="${f.path}" data-type="${f.type}" value="${v}" step="1"${min}${max}>`;
 }
 
 /* ── Add-row sections ─────────────────────────────────────────────
@@ -2176,6 +2176,14 @@ $('#hh-view').addEventListener('change', e => {
   if(type==='money'){ v = Math.max(0, Math.round(v)); e.target.value = v.toLocaleString('en-US'); }
   if(type==='monthlyMoney'){ const m = Math.max(0, Math.round(v)); v = m*12; e.target.value = m.toLocaleString('en-US'); }
   if(type==='num')  v = Math.max(1, Math.round(v));
+  if(type==='age'){
+    v = Math.round(v);
+    const min = parseFloat(e.target.dataset.min);
+    const max = parseFloat(e.target.dataset.max);
+    if(isFinite(min)) v = Math.max(min, v);
+    if(isFinite(max)) v = Math.min(max, v);
+    e.target.value = String(v);
+  }
   // BORN (birth year): writes the year AND derives the person's current age —
   // the engine's actual input. 4-digit sanity clamp; age recomputed whole-year.
   if(type==='birthYear'){

@@ -112,13 +112,9 @@
           <button class="hh-menu__btn" id="hh-menu-btn" type="button"
                   aria-haspopup="true" aria-expanded="false" title="Household options">⋯</button>
           <div class="hh-menu__pop" id="hh-menu-pop" hidden>
-            <label class="hh-rail__switch-lbl" for="hh-switch">Household</label>
-            <select class="hh-rail__switch-sel" id="hh-switch" title="Switch household"></select>
+            <select class="hh-rail__switch-sel" id="hh-switch" title="Open household" aria-label="Open household"></select>
             <button class="hh-rail-act hh-rail-act--new" id="hh-new" type="button" title="Create a new blank household">New Household</button>
-            <div class="hh-menu__row">
-              <button class="hh-rail-act" id="hh-act-demo" type="button" title="Reset this demo household to its original values">Demo</button>
-              <button class="hh-rail-act hh-rail-act--clear" id="hh-act-clear" type="button" title="Clear all plan data and start fresh">Clear</button>
-            </div>
+            <button class="hh-rail-act" id="hh-load-demo" type="button" title="Open the blank demo household">Load Demo</button>
           </div>
         </div>
       </div>

@@ -115,24 +115,25 @@
 }
 .page[data-page="household"] .hh-menu__pop {
   position: absolute; top: 44px; right: 0; z-index: 30;
-  width: 240px; padding: 14px; display: flex; flex-direction: column; gap: 8px;
-  border-radius: 11px; border: 1px solid var(--line-10);
-  background: #121316; box-shadow: 0 22px 54px rgba(0,0,0,0.5);
+  width: 218px; padding: 6px; display: flex; flex-direction: column; gap: 2px;
+  border-radius: 10px; border: 1px solid var(--line-10);
+  background: #17181b; box-shadow: 0 18px 44px rgba(0,0,0,0.46);
 }
 .page[data-page="household"] .hh-menu__pop[hidden] { display: none; }
-.page[data-page="household"] .hh-menu__row { display: flex; gap: 6px; }
-.page[data-page="household"] .hh-rail__switch-lbl,
 .page[data-page="household"] .hh-rail-act,
 .page[data-page="household"] .hh-rail__switch-sel {
   font-family: var(--font-sans); font-size: 16px;
 }
-.page[data-page="household"] .hh-rail__switch-sel,
-.page[data-page="household"] .hh-rail-act {
-  width: 100%; padding: 7px 10px; border-radius: 8px;
-  border: 1px solid var(--line-10); background: rgba(255,255,255,0.03); color: var(--text-2);
+.page[data-page="household"] .hh-rail__switch-sel {
+  width: 100%; min-height: 38px; padding: 7px 30px 7px 10px; border-radius: 7px;
+  border: 1px solid var(--line-10); background: rgba(255,255,255,0.035); color: var(--text-2);
 }
-.page[data-page="household"] .hh-rail-act { cursor: pointer; }
-.page[data-page="household"] .hh-rail-act--new { width: 100%; }
+.page[data-page="household"] .hh-rail-act {
+  width: 100%; min-height: 38px; padding: 7px 10px; border-radius: 7px;
+  border: 0; background: transparent; color: var(--text-2); text-align: left;
+  cursor: pointer;
+}
+.page[data-page="household"] .hh-rail-act:hover { background: rgba(255,255,255,0.055); color: var(--text-hi); }
 
 /* ---- Stepper -------------------------------------------------------------- */
 .page[data-page="household"] .hh-stepper {
@@ -342,6 +343,16 @@
 }
 .page[data-page="household"] .hh-future-row__name { flex: 1; min-width: 0; font-size: 14px; color: var(--text-2); }
 .page[data-page="household"] .hh-future-row__note { color: var(--text-4); font-size: 14px; }
+.page[data-page="household"] .hh-future-row__end {
+  display: inline-flex; align-items: center; gap: 20px; flex: none;
+}
+.page[data-page="household"] .hh-future-row__claim {
+  display: inline-flex; align-items: center; gap: 7px;
+  color: var(--text-4); font-size: 14px;
+}
+.page[data-page="household"] .hh-future-row__claim input {
+  width: 58px; padding: 4px 6px; text-align: center;
+}
 .page[data-page="household"] .hh-ledger-row__amt--cf { font-size: 18px; }
 .page[data-page="household"] .hh-future-row__amt {
   flex: none; font-family: var(--font-serif); font-size: 17px; color: #9a968d;
