@@ -6,9 +6,10 @@ import { test } from 'node:test';
 import assert from 'node:assert';
 import {
   RETURN_DATA, RISK_PROFILES, generateReturnPath, runSimulation,
-  runHistoricalPath, resolveInputs, defaultPlan, LONGRUN_INFLATION,
+  runHistoricalPath, runSinglePath, analyzeResults, resolveInputs, defaultPlan, LONGRUN_INFLATION,
   annualMortgagePayment, resetSeed
 } from './engine.js';
+import { createFederalTaxResolver } from './src/planning/tax/createFederalTaxResolver.js';
 
 test('return data spans the full history', () => {
   assert.ok(RETURN_DATA.length >= 90, 'expected ~98 years of returns');
@@ -486,6 +487,65 @@ test('a partly tax-free stream is taxed less than a fully-taxable one (higher en
   assert.strictEqual(half.rows.find(r => r.age === 70).otherIncome,
                      fully.rows.find(r => r.age === 70).otherIncome,
     'taxablePct changes tax only, not the gross income shown');
+});
+
+test('default Monte Carlo is identical to the explicit shortcut tax policy', () => {
+  const p = structuredClone(defaultPlan);
+  const inputs = resolveInputs(p, {});
+  resetSeed(20260710);
+  const bundle = Array.from({ length: 40 }, () => generateReturnPath(inputs.horizonYears));
+
+  const defaultResult = runSimulation(p, {}, bundle);
+  const explicitSims = bundle.map((returnPath, simIndex) => {
+    const sim = runSinglePath(inputs, returnPath, {
+      taxPolicy: (_row, { shortcutTax }) => shortcutTax,
+    });
+    sim.simIndex = simIndex;
+    sim.returnPath = returnPath;
+    return sim;
+  });
+  const explicitShortcutResult = analyzeResults(explicitSims, inputs);
+
+  assert.deepStrictEqual(defaultResult, explicitShortcutResult,
+    'unused tax-policy seam must preserve the complete default MC result');
+});
+
+test('opt-in single path reports federal line 24 as row tax', () => {
+  const p = structuredClone(defaultPlan);
+  p.meta.filingStatus = 'single';
+  p.household.primary = { currentAge: 65, retirementAge: 65, planEndAge: 68 };
+  p.portfolio.accounts = {
+    taxable: { balance: 10000000, basisPct: 1 },
+    traditional: { balance: 0 },
+    roth: { balance: 0 },
+  };
+  p.income.socialSecurity = { primary: { pia: 0, claimAge: 67 }, spouse: null };
+  p.income.other = [{ label: 'Taxable income', amount: 100000, startAge: 65, endAge: 68, taxablePct: 1 }];
+  p.income.pension = { benefitByAge: {}, startAge: 65, colaPct: 0 };
+  p.expenses = { living: 0, housing: 0, debt: 0, healthcare: 0, healthcareRealGrowth: 0 };
+  p.goals = [];
+
+  const inputs = resolveInputs(p, {});
+  const returnPath = Array.from({ length: inputs.horizonYears }, (_, index) => ({
+    y: 2026 + index,
+    proxyReturn: 0,
+  }));
+  const shortcutPath = runSinglePath(inputs, returnPath);
+  const federalResolver = createFederalTaxResolver(inputs, {
+    filingStatus: 'single',
+    baseTaxYear: 2026,
+    scenarioId: 't6_engine_policy_test',
+  });
+  const expectedFederalTax = shortcutPath.rows.map((row) => federalResolver(row));
+  const federalPath = runSinglePath(inputs, returnPath, { taxPolicy: federalResolver });
+
+  assert.deepStrictEqual(federalPath.rows.map((row) => row.taxes), expectedFederalTax,
+    'every wired row tax must equal federal Form 1040 line 24');
+  assert.ok(federalPath.rows.some((row, index) => row.taxes !== shortcutPath.rows[index].taxes),
+    'fixture must prove the federal resolver differs from the shortcut');
+  assert.ok(Math.abs(
+    federalPath.lifetimeTax - federalPath.rows.reduce((sum, row) => sum + row.taxes, 0)
+  ) < 0.01, 'single-path lifetime tax must follow resolved federal row taxes');
 });
 
 test('engine rows expose taxable other income matching taxBySource', () => {

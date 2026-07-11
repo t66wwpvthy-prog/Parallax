@@ -854,7 +854,11 @@ function rmdDivisor(age){
   return UNIFORM_LIFETIME[Math.min(age, 120)];      // table floors at 120+
 }
 
-function runSinglePath(p, returnPath){
+function runSinglePath(p, returnPath, options = {}){
+  const taxPolicy = options.taxPolicy ?? null;
+  if(taxPolicy !== null && typeof taxPolicy !== 'function'){
+    throw new TypeError('options.taxPolicy must be a function');
+  }
   // Each path gets its own evolving account state — clone from inputs.
   const accounts = {
     taxable:     { balance: p.accounts.taxable.balance, basis: p.accounts.taxable.basis },
@@ -1112,7 +1116,8 @@ function runSinglePath(p, returnPath){
       if(dd > maxDrawdown) maxDrawdown = dd;
     }
 
-    rows.push({
+    const shortcutTax = totalTax + rmdTax;
+    const row = {
       year: y+1, age, source: rp.y, returnRate: r,
       returnDollars: startBalance * r,
       nominalReturn: (rp && rp.proxyNominalReturn != null) ? rp.proxyNominalReturn : null,
@@ -1121,7 +1126,7 @@ function runSinglePath(p, returnPath){
       socialSecurity: ssInc, otherIncome: oiInc, pension: penInc, withdrawal,
       ...(oiInc > 0 ? { otherIncomeTaxable: oiTaxable } : {}),
       rmd: rmdForced, assetSale: saleProceeds,
-      expenses, goals: goalsY, liabilities: liabCost, taxes: totalTax + rmdTax, lumpSum: lumpY,
+      expenses, goals: goalsY, liabilities: liabCost, taxes: shortcutTax, lumpSum: lumpY,
       startBalance, wdRate,
       netCashflow: (ssInc + oiInc + penInc + saleProceeds) - (expenses + goalsY + liabCost + totalTax + rmdTax),
       balance: endBalance, failed,
@@ -1137,7 +1142,26 @@ function runSinglePath(p, returnPath){
         traditional: funding.taxBySource.traditional,
         taxable: funding.taxBySource.taxable
       }
-    });
+    };
+
+    // T6 tax-policy seam: the engine supplies completed annual cash-flow facts;
+    // an opt-in planning resolver may replace only the reported annual tax.
+    // The default path does not call a resolver and remains the exact shortcut
+    // above. Funding/gross-up mechanics stay on that shortcut in this slice.
+    if(taxPolicy){
+      const resolvedTax = taxPolicy(row, { shortcutTax, yearIndex: y });
+      if(!Number.isFinite(resolvedTax) || resolvedTax < 0){
+        throw new TypeError('taxPolicy must return a finite non-negative tax');
+      }
+      if(resolvedTax !== shortcutTax){
+        lifetimeTax += resolvedTax - shortcutTax;
+        row.taxes = resolvedTax;
+        row.netCashflow = (ssInc + oiInc + penInc + saleProceeds)
+                          - (expenses + goalsY + liabCost + resolvedTax);
+      }
+    }
+
+    rows.push(row);
 
     if(failed){
       for(let z = y+1; z < p.horizonYears; z++){
