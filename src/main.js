@@ -244,12 +244,43 @@ let saveFailed=false;
 function savePlan(){ return saveActiveHousehold(); }
 function syncSaveBtn(state){
   const b=$('#save-btn'); if(!b) return;
-  if(state==='confirm'){ b.disabled=true; b.textContent='Saved \u2713'; b.classList.remove('save-btn--dirty','save-btn--failed'); return; }
-  if(saveFailed){ b.disabled=false; b.textContent='Retry save'; b.classList.add('save-btn--failed'); b.classList.remove('save-btn--dirty'); return; }
+  if(state==='confirm'){ b.disabled=true; b.textContent='Saved \u2713'; b.classList.remove('save-btn--dirty','save-btn--failed'); syncHeaderCluster(); return; }
+  if(saveFailed){ b.disabled=false; b.textContent='Retry save'; b.classList.add('save-btn--failed'); b.classList.remove('save-btn--dirty'); syncHeaderCluster(); return; }
   b.disabled=!planSaveDirty;
   b.textContent=planSaveDirty?'Save':'Saved';
   b.classList.toggle('save-btn--dirty', planSaveDirty);
   b.classList.remove('save-btn--failed');
+  syncHeaderCluster();
+}
+function deriveHeaderClusterState(text){
+  const msg = text ?? ($('#status')?.textContent || '');
+  if(saveFailed) return 'needs-run';
+  if(/Running|Error|Check plan|Save failed|could not run|storage blocked/i.test(msg)) return 'needs-run';
+  if(uiState.plansDirty || /Run to update|open Scenarios/i.test(msg)) return 'needs-run';
+  if(planSaveDirty || /edited|Adjusted/i.test(msg)) return 'edited';
+  return 'saved';
+}
+function syncHeaderCluster(){
+  const el = $('#status');
+  const cluster = document.querySelector('.app-header .cluster');
+  if(!el) return;
+  el.title = el.textContent;
+  const state = deriveHeaderClusterState(el.textContent);
+  if(cluster) cluster.dataset.state = state;
+}
+function syncHeaderStatus(message){
+  const el = $('#status');
+  if(!el) return;
+  if(message != null) el.textContent = message;
+  syncHeaderCluster();
+}
+function syncHeaderTabs(activeTab){
+  $$('.htab').forEach(t => {
+    const on = t === activeTab;
+    t.classList.toggle('on', on);
+    if(on) t.setAttribute('aria-current', 'page');
+    else t.removeAttribute('aria-current');
+  });
 }
 // Add a new scenario (clones the current baseline's levers so it starts as a
 // neutral copy the advisor then adjusts). Capped at MAX_SCENARIOS.
@@ -869,7 +900,7 @@ let acctSel = null;   // type currently armed in the add picker
 // Post-edit refresh (mirrors the balance-sheet field commit, minus setPath).
 function commitPlanEdit(){
   reseedScenarios(); uiState.sharedPaths=null; uiState.plansDirty=true; renderInputs();
-  $('#status').textContent='Plan edited · open Scenarios';
+  syncHeaderStatus('Plan edited · open Scenarios');
 }
 // Real assets are current balance-sheet values. The Household module keeps
 // recurring payment streams out of strict net-worth liability totals.
@@ -943,13 +974,11 @@ let hhAcctFormOwner = null;
 let hhAddingKey = null;
 let hhDraftLabel = '';
 let hhDraftAmount = '';
-let hhBlueprintRan = false;
 const hhUiState = {
   get hhAcctFormOwner(){ return hhAcctFormOwner; },
   get hhAddingKey(){ return hhAddingKey; },
   get hhDraftLabel(){ return hhDraftLabel; },
   get hhDraftAmount(){ return hhDraftAmount; },
-  get hhBlueprintRan(){ return hhBlueprintRan; },
 };
 let householdWizard;
 function ensureHouseholdWizard(){
@@ -991,20 +1020,19 @@ function hhLoadRecord(status){
   hhAddingKey = null;
   hhDraftLabel = '';
   hhDraftAmount = '';
-  hhBlueprintRan = false;
   uiState.plansDirty = true; uiState.sharedPaths = null;
   syncHousehold();
   updateHouseholdControls();
   renderInputs();
   runAll();
-  if(status) $('#status').textContent = status;
+  if(status) syncHeaderStatus(status);
 }
 // Open the persistent demo slot. Create it blank only when it is missing.
 function loadDemoHousehold(){
   ensureDemoRecord();
   if(activeHouseholdId === 'demo'){
     updateHouseholdControls();
-    $('#status').textContent = 'Loaded Demo Household';
+    syncHeaderStatus('Loaded Demo Household');
     return;
   }
   switchHousehold('demo');
@@ -1091,7 +1119,6 @@ function bindHouseholdRailOnce(){
       hhStep = +btn.dataset.step || 1;
       hhAddingKey = null;
       hhAcctFormOwner = null;
-      hhBlueprintRan = false;
       syncHousehold();
     }));
   // Tucked household menu (⋯): Open / New / Load demo.
@@ -1702,7 +1729,7 @@ const GL_PROD = {
   // re-render (renderInputs) — the focused field must survive the keystroke.
   arm: () => {
   reseedScenarios(); uiState.sharedPaths = null; uiState.plansDirty = true;
-    $('#status').textContent = 'Plan edited \u00b7 open Scenarios';
+    syncHeaderStatus('Plan edited \u00b7 open Scenarios');
   },
   esc:     (s) => escHtml(s),
   compact: (n) => fmtM(n),                      // $120K / $1.2M
@@ -2023,7 +2050,7 @@ $('#np-content').addEventListener('click', e => {
     reseedScenarios(); 
   uiState.sharedPaths = null; uiState.plansDirty = true;
     renderInputs();
-    $('#status').textContent='Plan edited · open Scenarios';
+    syncHeaderStatus('Plan edited · open Scenarios');
     return;
   }
   // "+ add …" — push a default row onto the backing array, then re-render.
@@ -2081,7 +2108,7 @@ $('#np-content').addEventListener('change', e => {
     if(type==='text' || type==='strategy'){            // free-text row labels or select values
       setPath(plan, path, raw);
   reseedScenarios(); uiState.sharedPaths=null; uiState.plansDirty=true; renderInputs();
-      $('#status').textContent='Plan edited · open Scenarios';
+      syncHeaderStatus('Plan edited · open Scenarios');
       return;
     }
     let v;
@@ -2111,7 +2138,7 @@ $('#np-content').addEventListener('change', e => {
     uiState.sharedPaths = null;
     uiState.plansDirty = true;
     renderInputs();
-    $('#status').textContent='Plan edited · open Scenarios';
+    syncHeaderStatus('Plan edited · open Scenarios');
     return;
   }
   // Extra-account balance edit
@@ -2134,7 +2161,7 @@ $('#np-content').addEventListener('change', e => {
 function hhCommit(){
   reseedScenarios(); uiState.sharedPaths=null; uiState.plansDirty=true;
   syncHousehold();
-  $('#status').textContent='Plan edited · open Scenarios';
+  syncHeaderStatus('Plan edited · open Scenarios');
 }
 $('#hh-view').addEventListener('input', e => {
   if(e.target.dataset.type === 'money' || e.target.dataset.type === 'monthlyMoney') liveCommas(e.target);
@@ -2305,9 +2332,6 @@ document.querySelector('.page[data-page="household"] .hh-wizard')?.addEventListe
       hhDraftLabel = '';
       hhDraftAmount = '';
       hhCommit();
-    } else if(action === 'run-blueprint'){
-      hhBlueprintRan = true;
-      syncHousehold();
     } else if(action === 'add-home'){
       // Primary home slot: created WITHOUT a mortgage — the mortgage is its own
       // nested add so wizHome() can key its render off structural presence.
@@ -2321,17 +2345,12 @@ document.querySelector('.page[data-page="household"] .hh-wizard')?.addEventListe
       hhStep = Math.max(1, hhStep - 1);
       hhAddingKey = null;
       hhAcctFormOwner = null;
-      hhBlueprintRan = false;
       syncHousehold();
     } else if(action === 'step-next'){
       hhStep = Math.min(4, hhStep + 1);
       hhAddingKey = null;
       hhAcctFormOwner = null;
-      hhBlueprintRan = false;
       syncHousehold();
-    } else if(action === 'goto-planning'){
-      const tab = document.querySelector('.htab[data-page="scenarios"]');
-      if(tab) tab.click();
     } else if(action === 'add-pension-age'){
       if(!plan.income.pension) plan.income.pension = { benefitByAge:{}, startAge:65, colaPct:0 };
       if(!plan.income.pension.benefitByAge) plan.income.pension.benefitByAge = {};
@@ -2489,7 +2508,7 @@ function computeHistoricalStress(s, p, ov){
 }
 function runAll(){
   if(running) return; running=true;
-  const btn=$('#run-btn'); btn.disabled=true; $('#status').textContent='Running…';
+  const btn=$('#run-btn'); btn.disabled=true; syncHeaderStatus('Running…');
   setTimeout(()=>{
     try{
       // SHARED PATHS: one bundle of return paths, reused across scenarios AND
@@ -2502,7 +2521,7 @@ function runAll(){
       // current age) can't be simulated. Surface a clear reason and bail
       // WITHOUT nuking the last good results, so the views don't go blank.
       if(!(horizon > 0)){
-        $('#status').textContent='Check plan: end age must be after current age';
+        syncHeaderStatus('Check plan: end age must be after current age');
         btn.disabled=false; running=false; return;
       }
       ensureSharedPaths();
@@ -2555,8 +2574,9 @@ function runAll(){
       });
       renderSolvePanel(); buildSeqSelect(); runSeq();
       if(window.ScenariosUI) window.ScenariosUI.sync();   // one authoritative Scenarios renderer
-      $('#status').textContent = failed ? `Complete · ${failed} scenario${failed>1?'s':''} could not run` : 'Complete';
-    }catch(e){ $('#status').textContent='Error'; console.error(e); }
+      syncHeaderStatus(failed ? `Complete · ${failed} scenario${failed>1?'s':''} could not run` : 'Complete');
+      uiState.plansDirty = false;
+    }catch(e){ syncHeaderStatus('Error'); console.error(e); }
     btn.disabled=false; running=false;
   },20);
 }
@@ -2900,13 +2920,13 @@ function renderPlaybackCurrent(){
 
 /* ── tab switch + boot ── */
 $$('.htab').forEach(t=>t.onclick=()=>{
-  $$('.htab').forEach(x=>x.classList.remove('on'));
+  syncHeaderTabs(t);
   $$('.page').forEach(x=>x.classList.remove('on'));
   if(t.dataset.subTarget){
     activeSub = t.dataset.subTarget;
     try { localStorage.setItem(SUB_KEY, activeSub); } catch {}
   }
-  t.classList.add('on'); $(`.page[data-page="${t.dataset.page}"]`).classList.add('on');
+  $(`.page[data-page="${t.dataset.page}"]`).classList.add('on');
   document.body.classList.toggle('scn-active', t.dataset.page==='scenarios');
   // Returning to Scenarios after a base-plan edit re-runs the engine so the
   // columns reflect the new source; otherwise just redraw.
@@ -2929,10 +2949,10 @@ let saveConfirmTimer=null;
 $('#save-btn').onclick=()=>{
   const ok=savePlan();
   saveScenarios();
-  if(!ok){ saveFailed=true; syncSaveBtn(); $('#status').textContent='Save failed \u00b7 storage blocked or full'; return; }
+  if(!ok){ saveFailed=true; syncSaveBtn(); syncHeaderStatus('Save failed \u00b7 storage blocked or full'); return; }
   saveFailed=false; planSaveDirty=false;
   syncSaveBtn('confirm');
-  $('#status').textContent='Plan saved';
+  syncHeaderStatus('Plan saved');
   clearTimeout(saveConfirmTimer);
   saveConfirmTimer=setTimeout(syncSaveBtn, 1400);
 };
@@ -3166,7 +3186,7 @@ $('#path-mode').onchange=e=>{
     if (key === 'pensionAge') L.pensionAuto = false;
     if (key === 'retireAge' && L.pensionAuto) syncPension(L);
     saveScenarios();
-    const st = document.getElementById('status'); if (st) st.textContent = 'Adjusted · Run to update';
+    syncHeaderStatus('Adjusted · Run to update');
   }
   // Commit a typed value from a .cmp-lev-in input in the Compare view.
   // Mirrors the parse/clamp logic from the scenario lever edit contract.
@@ -3192,7 +3212,7 @@ $('#path-mode').onchange=e=>{
       if (isFinite(a)) L.eventAge = Math.max(lo, Math.min(hi, a));
     }
     saveScenarios();
-    const st = document.getElementById('status'); if (st) st.textContent = 'Adjusted · Run to update';
+    syncHeaderStatus('Adjusted · Run to update');
     syncScenariosView();
   }
   // Commit a typed per-scenario GOAL override (amount / startAge / endAge / onceAge).
@@ -3232,7 +3252,7 @@ $('#path-mode').onchange=e=>{
     if (ov.amount == null && ov.startAge == null && ov.endAge == null) delete sc.lev.goalOv[idx];
     if (sc.lev.goalOv && Object.keys(sc.lev.goalOv).length === 0) delete sc.lev.goalOv;
     saveScenarios();
-    const st = document.getElementById('status'); if (st) st.textContent = 'Adjusted · Run to update';
+    syncHeaderStatus('Adjusted · Run to update');
     syncScenariosView();
   }
 
@@ -3487,6 +3507,7 @@ bindHouseholdRailOnce();   // chapter rail (Demographics / Net Worth / Cash Flow
 syncHousehold();           // render the editable landing Household page from `plan`
 document.body.classList.toggle('scn-active', document.querySelector('.page.on')?.dataset.page==='scenarios');
 runAll();   // first iteration runs immediately so the tool opens populated
+syncHeaderCluster();
 
 // ── STICKY NOTES OVERLAY ─────────────────────────────────────────────────────
 (function(){

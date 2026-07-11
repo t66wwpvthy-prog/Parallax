@@ -182,11 +182,16 @@ function deferredIncomeSum(plan){
 function blueprintFlowRows(plan, spendTotal){
   const income = workingIncomeSum(plan);
   const ss = deferredIncomeSum(plan);
+  const savings = plan.savings?.annual || 0;
   return `<div class="hh-bp-flow">
     <div class="hh-bp-flow__row">
       <span class="hh-bp-flow__label">Income</span>
       <b class="hh-bp-flow__val">${hhMoney(income)}</b>
     </div>
+    ${savings > 0 ? `<div class="hh-bp-flow__row">
+      <span class="hh-bp-flow__label">Annual savings</span>
+      <b class="hh-bp-flow__val hh-bp-flow__val--sage">${hhMoney(savings)}</b>
+    </div>` : ''}
     <div class="hh-bp-flow__row">
       <span class="hh-bp-flow__label">Spending</span>
       <b class="hh-bp-flow__val">${hhMoney(spendTotal)}</b>
@@ -350,6 +355,11 @@ export function createHouseholdWizard(deps){
           ${incomeRows(plan, deps)}
           ${inlineAdd('income', { label: 'Source', amount: true })}
           ${state.hhAddingKey !== 'income' ? `<button class="hh-text-add" type="button" data-hh-action="open-add" data-add-key="income">+ Add income</button>` : ''}
+          <div class="hh-subhead">Saving</div>
+          <div class="hh-ledger-row hh-ledger-row--cf hh-ledger-row--savings">
+            <span class="hh-ledger-row__name">Annual savings</span>
+            <span class="hh-ledger-row__end"><span class="hh-ledger-row__amt hh-ledger-row__amt--cf">${deps.field('savings.annual', 'money')}</span></span>
+          </div>
           <div class="hh-subhead">Begins at retirement</div>
           ${futureIncomeRows(plan)}
         </div>
@@ -382,14 +392,6 @@ export function createHouseholdWizard(deps){
         <span class="hh-bp-alloc__nums"><span class="hh-bp-alloc__pct">${pct}%</span><span class="hh-bp-alloc__amt">${hhMoney(a.balance)}</span></span>
       </div>`;
     }).join('');
-    const cta = state.hhBlueprintRan
-      ? `<div class="hh-bp-cta hh-bp-cta--done">
-          <span class="hh-bp-cta__chip" aria-hidden="true">✓</span>
-          <span class="hh-bp-cta__status">Generated</span>
-          <span class="hh-bp-cta__sep" aria-hidden="true"></span>
-          <button class="hh-bp-cta__link" type="button" data-hh-action="goto-planning">VIEW PLAN →</button>
-        </div>`
-      : `<button class="hh-bp-cta hh-bp-cta--run" type="button" data-hh-action="run-blueprint">RUN BLUEPRINT →</button>`;
     const cInit = deps.initial(pn, 'C');
     const sInit = deps.initial(sn, 'CC');
     return `<div class="hh-step-pane hh-step-pane--bp">
@@ -423,7 +425,6 @@ export function createHouseholdWizard(deps){
           <div class="hh-bp-alloc-list" aria-label="Account allocation">${alloc}</div>
         </div>
       </div>
-      ${cta}
     </div>`;
   }
 
