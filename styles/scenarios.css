@@ -19,10 +19,6 @@
 
 /* ---- Tokens + page base (scenarios route only) ---------------------------- */
 .page[data-page="scenarios"] {
-  /* Type */
-  --font-sans: 'Hanken Grotesk', system-ui, -apple-system, sans-serif;
-  --font-serif: 'Spectral', Georgia, serif;
-
   /* Page background (fixed, behind the floating glass) */
   --bg-deep:   #0f1216;
   --bg-top:    #15181d;

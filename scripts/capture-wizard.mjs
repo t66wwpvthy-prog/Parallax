@@ -41,18 +41,6 @@ await sleep(600);
 
 await page.screenshot({ path: join(OUT, 'wizard-step4-blueprint.png'), fullPage: true });
 
-const runBtn = await page.$('[data-hh-action="run-blueprint"]');
-if (runBtn) {
-  await runBtn.click();
-  await sleep(600);
-  await page.screenshot({ path: join(OUT, 'wizard-step4-generated.png'), fullPage: true });
-  await page.evaluate(() => document.querySelector('.hh-bp-cta--done')?.scrollIntoView({ block: 'center' }));
-  await sleep(300);
-  await page.screenshot({ path: join(OUT, 'wizard-step4-continue-cta.png'), fullPage: false });
-} else {
-  await page.screenshot({ path: join(OUT, 'wizard-step4-generated.png'), fullPage: true });
-}
-
 for (const n of [1, 2, 3]) {
   await page.click('#hh-step-' + n);
   await sleep(500);

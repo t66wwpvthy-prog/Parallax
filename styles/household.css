@@ -4,9 +4,6 @@
    ============================================================================= */
 
 .page[data-page="household"] {
-  --font-sans: 'Hanken Grotesk', system-ui, sans-serif;
-  --font-serif: 'Spectral', Georgia, serif;
-
   --gold: #c3a56a;
   --gold-bright: #cdb079;
   --gold-ink: #1c1a15;
@@ -574,53 +571,6 @@
 }
 .page[data-page="household"] .hh-bp-alloc__pct { font-size: 10.5px; color: var(--text-2); }
 .page[data-page="household"] .hh-bp-alloc__amt { font-family: var(--font-serif); font-size: 17px; color: var(--text-hi); }
-
-.page[data-page="household"] .hh-bp-cta {
-  display: flex; align-items: center; justify-content: flex-end;
-  margin-top: 24px; width: 100%;
-}
-.page[data-page="household"] .hh-bp-cta--run {
-  margin-left: auto;
-  font-family: var(--font-sans);
-  font-size: 11px; font-weight: 500;
-  letter-spacing: 0.22em; text-transform: uppercase;
-  color: var(--gold);
-  background: transparent;
-  border: 1px solid rgba(195,165,106,0.45);
-  border-radius: 7px;
-  padding: 12px 28px;
-  cursor: pointer;
-  transition: background 0.2s, border-color 0.2s, color 0.2s;
-}
-.page[data-page="household"] .hh-bp-cta--run:hover {
-  background: rgba(195,165,106,0.08);
-  border-color: var(--gold);
-}
-.page[data-page="household"] .hh-bp-cta--done {
-  margin-left: auto;
-  display: inline-flex; align-items: center; gap: 12px;
-  padding: 0;
-  border: 0;
-  border-radius: 0;
-  font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
-  color: var(--sage);
-}
-.page[data-page="household"] .hh-bp-cta__chip {
-  width: 20px; height: 20px; border-radius: 50%;
-  background: rgba(135,154,134,0.2);
-  display: inline-flex; align-items: center; justify-content: center;
-  color: var(--sage-dim); font-size: 11px; flex: none;
-}
-.page[data-page="household"] .hh-bp-cta__status { color: var(--sage); }
-.page[data-page="household"] .hh-bp-cta__sep {
-  width: 1px; height: 14px; background: rgba(255,255,255,0.15); margin: 0 4px; flex: none;
-}
-.page[data-page="household"] .hh-bp-cta__link {
-  background: none; border: 0; color: var(--gold); cursor: pointer;
-  font: inherit; letter-spacing: 0.14em; text-transform: uppercase;
-  padding: 0;
-}
-.page[data-page="household"] .hh-bp-cta__link:hover { color: var(--gold-bright); text-decoration: underline; }
 
 /* ---- Inputs --------------------------------------------------------------- */
 .page[data-page="household"] input,

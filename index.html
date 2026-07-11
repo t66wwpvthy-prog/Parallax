@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <!-- Scenarios redesign type: Spectral (serif numerals/headlines) + Hanken Grotesk (UI). -->
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@300;400;500;600;700&family=Spectral:wght@200;300;400;500&display=swap"/>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:ital,wght@0,300..700;1,300..700&amp;family=Spectral:ital,wght@0,200;0,300;0,400;0,500;0,600;0,700;1,200;1,300;1,400;1,500;1,600;1,700&amp;display=swap"/>
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3E%3Crect%20width='64'%20height='64'%20rx='12'%20fill='%231e3d2b'/%3E%3Cpath%20d='M16%2038c8-20%2024-20%2032%200'%20fill='none'%20stroke='%23d9a07e'%20stroke-width='6'%20stroke-linecap='round'/%3E%3Ccircle%20cx='32'%20cy='32'%20r='7'%20fill='%23e5d9c4'/%3E%3C/svg%3E"/>
 <!-- ?v= cache-buster: bump on any CSS change so browsers fetch the new file
      instead of serving a stale cached copy (GitHub Pages caches CSS hard). -->
@@ -15,74 +15,29 @@
 <link rel="stylesheet" href="styles/household.css?v=33"/>
 <link rel="stylesheet" href="styles/scenarios.css?v=13"/>
 <link rel="stylesheet" href="styles/goals.css?v=6"/>
+<link rel="stylesheet" href="styles/header.css?v=1"/>
 </head>
 <body>
 <div class="wrap">
-  <header class="hdr">
-    <svg class="brand-logo" viewBox="0 0 140 96" role="img" aria-label="Parallax" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <linearGradient id="pxRim" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stop-color="#f6fbff"/>
-          <stop offset="0.52" stop-color="#bfd0df"/>
-          <stop offset="1" stop-color="#70879a"/>
-        </linearGradient>
-        <linearGradient id="pxWord" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stop-color="#f7fbff"/>
-          <stop offset="0.46" stop-color="#c6d8e6"/>
-          <stop offset="1" stop-color="#7f98ab"/>
-        </linearGradient>
-        <radialGradient id="pxGlow" cx="0.36" cy="0.45" r="0.72">
-          <stop offset="0" stop-color="#f7fbff" stop-opacity="0.42"/>
-          <stop offset="0.36" stop-color="#bdd0df" stop-opacity="0.15"/>
-          <stop offset="1" stop-color="#07121d" stop-opacity="0.30"/>
-        </radialGradient>
-        <radialGradient id="pxFlare" cx="0.5" cy="0.5" r="0.5">
-          <stop offset="0" stop-color="#ffffff"/>
-          <stop offset="0.35" stop-color="#dbe9f4" stop-opacity="0.88"/>
-          <stop offset="1" stop-color="#8aa3b7" stop-opacity="0"/>
-        </radialGradient>
-        <linearGradient id="pxLine" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0" stop-color="#7890a3" stop-opacity="0"/>
-          <stop offset="0.38" stop-color="#f9fdff" stop-opacity="0.92"/>
-          <stop offset="0.62" stop-color="#c3d5e4" stop-opacity="0.74"/>
-          <stop offset="1" stop-color="#7890a3" stop-opacity="0"/>
-        </linearGradient>
-      </defs>
-      <!-- etched brand lockup: offset phase rings, sight-line glint, small rim markers -->
-      <circle cx="78" cy="25" r="19.5" fill="url(#pxGlow)" stroke="url(#pxRim)" stroke-width="0.72" opacity="0.72"/>
-      <circle cx="71" cy="25" r="20.7" fill="url(#pxGlow)" stroke="url(#pxRim)" stroke-width="0.82" opacity="0.84"/>
-      <circle cx="63" cy="25" r="21.8" fill="url(#pxGlow)" stroke="url(#pxRim)" stroke-width="0.92"/>
-      <path d="M63 3.2a21.8 21.8 0 0 1 21.3 17.2" fill="none" stroke="#f9fdff" stroke-width="0.7" opacity="0.78" stroke-linecap="round"/>
-      <path d="M71 4.3a20.7 20.7 0 0 1 19.7 14.2" fill="none" stroke="#d9e6ef" stroke-width="0.58" opacity="0.56" stroke-linecap="round"/>
-      <line x1="13" y1="25" x2="128" y2="25" stroke="url(#pxLine)" stroke-width="0.62" opacity="0.76"/>
-      <circle cx="55" cy="25" r="7.6" fill="url(#pxFlare)"/>
-      <circle cx="55" cy="25" r="1.45" fill="#ffffff"/>
-      <ellipse cx="55" cy="25" rx="16.5" ry="1" fill="url(#pxFlare)" opacity="0.92"/>
-      <circle cx="84.5" cy="25" r="0.95" fill="#edf6fc" opacity="0.95"/>
-      <circle cx="91" cy="25" r="0.84" fill="#c6d8e6" opacity="0.74"/>
-      <circle cx="97.5" cy="25" r="0.74" fill="#8da5b8" opacity="0.56"/>
-      <!-- wordmark: wide, etched geometric letterforms to match the reference lockup -->
-      <g fill="none" stroke="url(#pxWord)" stroke-width="0.84" stroke-linecap="square" stroke-linejoin="miter" opacity="0.96" transform="translate(6,57.2) scale(0.82)">
-        <path d="M0,16 V0 h8.2 c3.6,0 5.7,1.9 5.7,4.9 c0,3.1 -2.1,5 -5.7,5 H0"/>
-        <path d="M21.5,16 L27.4,0 L33.3,16"/>
-        <path d="M42,16 V0 h8.1 c3.6,0 5.7,1.9 5.7,4.9 c0,3.1 -2.1,5 -5.7,5 H42 M49.2,9.9 L56.1,16"/>
-        <path d="M64.1,16 L70,0 L75.9,16"/>
-        <path d="M84.4,0 V16 h12.4"/>
-        <path d="M105.1,0 V16 h12.4"/>
-        <path d="M125.6,16 L131.5,0 L137.4,16"/>
-        <path d="M145.8,0 L158,16 M158,0 L145.8,16"/>
-      </g>
-    </svg>
-    <div class="hdr-tabs">
-      <button class="htab on" data-page="household">Household</button>
-      <button class="htab htab-secondary" data-page="net-worth" data-sub-target="goals">Goals</button>
-      <button class="htab" data-page="scenarios">Scenarios</button>
-      <button class="htab" data-page="sequencing">Sequencing</button>
+  <header class="hdr app-header">
+    <div class="hdr__logo">
+      <img class="brand-logo" src="assets/parallax-logo.png" alt="Parallax" width="978" height="647">
     </div>
-    <div class="hdr-right">
-      <button class="save-btn" id="save-btn" disabled>Saved</button>
-      <span class="status" id="status">Ready</span>
-      <button class="run-btn" id="run-btn">Run</button>
+    <nav class="hdr-tabs hdr__tabs" aria-label="Primary planning sections">
+      <button class="htab on" type="button" data-page="household" aria-current="page">Household</button>
+      <button class="htab" type="button" data-page="net-worth" data-sub-target="goals">Goals</button>
+      <button class="htab" type="button" data-page="scenarios">Scenarios</button>
+      <button class="htab" type="button" data-page="sequencing">Sequencing</button>
+    </nav>
+    <div class="hdr-right hdr__right">
+      <div class="cluster" data-state="saved">
+        <span class="cluster__stat">
+          <span class="dot" aria-hidden="true"></span>
+          <span id="status" class="status" role="status" aria-live="polite">Ready</span>
+        </span>
+        <button id="save-btn" class="save-btn cluster__save" type="button" disabled>Saved</button>
+        <button id="run-btn" class="run-btn cluster__run" type="button">Run</button>
+      </div>
     </div>
   </header>
 

@@ -82,15 +82,6 @@ select option{background:#14161b;color:var(--text-2,#d9d4c9)}
   box-shadow:0 22px 48px -24px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.14), inset 0 0 0 1px rgba(255,255,255,.05);
 }
 
-.hdr{display:flex;align-items:center;gap:18px;padding:13px 28px;border-bottom:1px solid var(--rule);background:rgba(24,17,11,.42);backdrop-filter:blur(20px) saturate(1.1);-webkit-backdrop-filter:blur(20px) saturate(1.1);flex:0 0 auto;position:relative;z-index:50}
-.wordmark{font-size:15px;font-weight:600;letter-spacing:.30em;text-transform:uppercase;color:var(--ink-bright)}
-.hdr-tabs{display:flex;margin-left:24px}
-.htab{background:none;border:none;border-bottom:2px solid transparent;color:var(--ink-mute);cursor:pointer;font-family:var(--font-sans);font-size:14px;letter-spacing:.2em;text-transform:uppercase;padding:6px 20px;font-weight:500;transition:color .2s,border-color .2s}
-.htab:hover{color:var(--ink)} .htab.on{color:var(--ink-bright);font-weight:600;border-bottom-color:var(--accent)}
-.hdr-right{margin-left:auto;display:flex;align-items:center;gap:16px}
-.status{font-size:14px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-mute)}
-.run-btn{padding:9px 22px;background:var(--btn);color:var(--btn-ink);border:none;border-radius:3px;font-family:var(--font-sans);font-weight:700;font-size:14px;letter-spacing:.26em;text-transform:uppercase;cursor:pointer;box-shadow:0 6px 18px -8px var(--accent-glow)}
-.run-btn:active{transform:translateY(1px)} .run-btn:disabled{filter:saturate(.3) brightness(.7);cursor:wait}
 
 .page{flex:1 1 auto;min-height:0;display:none;flex-direction:column;padding:0 28px 22px}
 .page.on{display:flex}
@@ -99,7 +90,7 @@ select option{background:#14161b;color:var(--text-2,#d9d4c9)}
 
 /* SCENARIOS */
 .page[data-page="scenarios"]{overflow-y:auto;overflow-x:hidden}
-.scn-band{position:sticky;top:53px;z-index:20;display:grid;grid-template-columns:148px repeat(3,1fr);column-gap:14px}
+.scn-band{position:sticky;top:56px;z-index:20;display:grid;grid-template-columns:148px repeat(3,1fr);column-gap:14px}
 /* Opaque backdrop behind the WHOLE sticky band (not just a 10px lip) so scrolling
    lever rows can't bleed through the translucent glass column-cards. */
 .scn-band::before{content:'';position:absolute;left:0;right:0;top:-10px;bottom:0;background:var(--bg);z-index:-1}
@@ -630,12 +621,7 @@ select option{background:#14161b;color:var(--text-2,#d9d4c9)}
   html,body{overflow:auto;font-size:15px;-webkit-text-size-adjust:100%}
   .wrap{height:auto;min-height:100vh;overflow:visible}
 
-  /* Header wraps; tabs become a scrollable row; Run stays reachable. */
-  .hdr{flex-wrap:wrap;gap:10px 14px;padding:12px 16px;position:sticky;top:var(--frame-inset,0px);z-index:60}
-  .hdr-tabs{margin-left:0;order:3;width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
-  .htab{padding:8px 16px;font-size:14px;white-space:nowrap}
-  .hdr-right{gap:12px}
-  .run-btn{padding:11px 20px;font-size:14px}
+  /* Header responsive rules live in styles/header.css. */
 
   .page{padding:0 14px 28px}
   .page[data-page="scenarios"]{overflow-x:visible}
@@ -871,9 +857,6 @@ select option{background:#14161b;color:var(--text-2,#d9d4c9)}
 }
 @media (max-width:760px){
   :root{--frame-inset:8px;--frame-radius:20px}
-  .hdr{padding:10px 16px;gap:12px}
-  .brand-logo{width:118px;height:48px}
-  .htab{font-size:14px;padding:10px 14px}
   .np-page,.np-page.np-bal{max-width:none}
 }
 
@@ -911,7 +894,6 @@ body::before{filter:blur(12px);opacity:.72}
 body::after{inset:var(--frame-inset);border-radius:var(--frame-radius);border-color:rgba(231,222,201,.12);box-shadow:inset 0 1px 0 rgba(255,255,255,.12),inset 0 -1px 0 rgba(255,255,255,.06),0 0 30px rgba(20,22,26,.30)}
 .wrap::before{opacity:.66}
 
-.hdr,
 .solve-panel,
 .acct-picker,
 .metric,
@@ -934,41 +916,6 @@ body::after{inset:var(--frame-inset);border-radius:var(--frame-radius);border-co
     var(--glass-shadow) !important;
   backdrop-filter:blur(var(--glass-blur)) saturate(1.16) !important;
   -webkit-backdrop-filter:blur(var(--glass-blur)) saturate(1.16) !important;
-}
-
-.hdr{
-  min-height:70px;
-  padding:8px var(--page-x);
-  gap:27px;
-  border-left:0!important;
-  border-right:0!important;
-  border-top:0!important;
-  /* Top corners follow the decorative frame the header now nests inside. */
-  border-radius:var(--frame-radius) var(--frame-radius) 0 0;
-}
-.brand-logo{
-  width:138px;
-  height:56px;
-  object-fit:contain;
-  object-position:center;
-  image-rendering:auto;
-  filter:drop-shadow(0 0 18px rgba(228,189,130,.20));
-}
-.hdr-tabs{gap:22px;margin-left:18px}
-.htab{
-  font-size:14px;
-  letter-spacing:.22em;
-  padding:14px 5px 12px;
-  line-height:1;
-}
-.status{font-size:14px;letter-spacing:.18em}
-.run-btn{
-  min-height:38px;
-  padding:10px 22px;
-  border-radius:10px;
-  font-size:14px;
-  letter-spacing:.24em;
-  box-shadow:0 16px 34px -18px rgba(228,189,130,.60),inset 0 1px 0 rgba(255,244,218,.42);
 }
 
 .page{padding:0 var(--page-x) 26px}
@@ -1121,8 +1068,6 @@ body::after{inset:var(--frame-inset);border-radius:var(--frame-radius);border-co
 
 @media (min-width:2400px){
   :root{--page-x:42px}
-  .hdr{min-height:74px}
-  .brand-logo{width:146px;height:60px}
   .np-page.np-bal{max-width:1760px}
   .np-page{max-width:1500px}
   .seq-chart{min-height:570px}
@@ -1130,9 +1075,6 @@ body::after{inset:var(--frame-inset);border-radius:var(--frame-radius);border-co
 }
 @media (max-width:760px){
   :root{--page-x:16px}
-  .hdr{padding:9px var(--page-x);gap:12px}
-  .brand-logo{width:118px;height:48px}
-  .htab{font-size:14px;padding:10px 14px}
   .bs-row{grid-template-columns:max-content minmax(20px,1fr) minmax(104px,max-content)}
 }
 
@@ -1237,57 +1179,6 @@ body .page input{
   -webkit-text-fill-color:var(--ng-ink-value);
   caret-color:var(--ng-ink);
 }
-body .hdr{
-  min-height:99px;margin:20px 30px 0;padding:10px 36px;border:1px solid rgba(231,222,201,.08)!important;border-radius:13px!important;
-  /* Charcoal glass header (Goals recipe): charcoal base + a faint warm-champagne
-     note top-right near the RUN button + a white low-alpha sheen. No navy/steel. */
-  background:
-    radial-gradient(130% 240% at 86% -80%, rgba(198,166,98,.12), rgba(198,166,98,0) 55%),
-    linear-gradient(120deg, rgba(255,255,255,.045) 0%, rgba(231,222,201,.04) 40%, rgba(11,13,17,.55) 100%)!important;
-  backdrop-filter:blur(22px) saturate(1.30);-webkit-backdrop-filter:blur(22px) saturate(1.30);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.10),inset 0 -1px 0 rgba(0,0,0,.10),0 24px 70px -58px rgba(0,0,0,.64)!important;
-}
-body svg.brand-logo{width:154px;height:74px;mix-blend-mode:normal;filter:drop-shadow(0 0 12px rgba(224,212,178,.20))}
-body .hdr-tabs{margin-left:2px;padding-left:32px;gap:38px;border-left:1px solid rgba(231,222,201,.10)}
-body .htab{font-family:var(--font-sans);font-size:14px;font-weight:400;letter-spacing:.15em;padding:12px 0 17px;color:var(--ng-ink-muted);text-shadow:none}
-body .htab:hover { color: var(--ng-ink); }
-body .htab.on{color:var(--ng-ink);border-bottom-color:var(--ng-accent);box-shadow:0 10px 26px -18px rgba(231,201,135,.78)}
-body .hdr-right{gap:30px}
-body .status{font-size:14px;letter-spacing:.20em;color:var(--ng-ink-muted)}
-body .run-btn{min-width:123px;min-height:40px;border-radius:10px;background:var(--btn);color:var(--btn-ink);box-shadow:inset 0 1px 0 rgba(255,255,255,.40),0 13px 30px -20px rgba(198,166,98,.55)}
-
-/* Manual SAVE — secondary sibling of RUN: flat charcoal-glass pill, champagne
-   accent when armed, dimmed when the working plan matches the saved snapshot.
-   States are driven by index.html's syncSaveBtn(): disabled "Saved" (clean),
-   armed "Save" (dirty), "Saved ✓" (brief confirmation), "Retry save" (failed
-   storage write — never a fake success). */
-body .save-btn{
-  min-height:40px;
-  padding:10px 18px;
-  border-radius:10px;
-  border:1px solid rgba(231,222,201,.10);
-  background:rgba(231,222,201,.03);
-  color:#b8ad92;
-  font-family:var(--font-sans);
-  font-weight:600;
-  font-size:14px;
-  letter-spacing:.22em;
-  text-transform:uppercase;
-  cursor:default;
-  transition:color .2s ease,border-color .2s ease,background .2s ease;
-}
-body .save-btn--dirty{
-  border-color:rgba(198,166,98,.38);
-  color:var(--accent);
-  cursor:pointer;
-}
-body .save-btn--dirty:hover{background:rgba(198,166,98,.08)}
-body .save-btn--dirty:active{transform:translateY(1px)}
-body .save-btn--failed{
-  border-color:rgba(205,154,82,.48);
-  color:var(--warn);
-  cursor:pointer;
-}
 
 body .page[data-page="net-worth"],
 body .page[data-page="sequencing"]{
@@ -1386,53 +1277,6 @@ body .stmt th{
   body::before{
     filter:blur(3px) saturate(1.04) brightness(1.02);
     opacity:.72;
-  }
-  body .hdr{
-    display:grid;
-    grid-template-columns:1fr auto;
-    align-items:center;
-    min-height:0;
-    margin:16px 22px 0;
-    padding:12px 14px 10px;
-    gap:10px 16px;
-    border-radius:18px!important;
-  }
-  body svg.brand-logo{
-    grid-column:1 / -1;
-    width:152px;
-    height:76px;
-    justify-self:center;
-  }
-  body .hdr-tabs{
-    grid-column:1 / -1;
-    order:0;
-    width:100%;
-    margin:0;
-    padding:8px 0 0;
-    border-left:0;
-    border-top:1px solid rgba(231,222,201,.10);
-    flex-wrap:wrap;
-    gap:12px 22px;
-    justify-content:center;
-    overflow:visible;
-  }
-  body .htab{
-    padding:9px 0 13px;
-    font-size:14px;
-    letter-spacing:.18em;
-  }
-  body .hdr-right{
-    grid-column:1 / -1;
-    justify-content:center;
-    gap:28px;
-  }
-  body .status{
-    font-size:14px;
-    letter-spacing:.22em;
-  }
-  body .run-btn{
-    min-width:164px;
-    min-height:46px;
   }
   body .page[data-page="net-worth"],
   body .page[data-page="sequencing"]{

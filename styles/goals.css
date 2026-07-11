@@ -26,7 +26,7 @@
     0 50px 130px rgba(0,0,0,0.65),
     inset 0 1px 0 rgba(255,255,255,0.045);
   border: 1px solid rgba(255,255,255,0.05);
-  font-family: 'Hanken Grotesk', system-ui, sans-serif;
+  font-family: var(--font-sans);
   color: #9097a0;
   box-sizing: border-box;
 }
@@ -61,7 +61,7 @@
 .glh-pill {
   padding: 7px 15px;
   border-radius: 30px;
-  font: 600 14px/1 'Hanken Grotesk', sans-serif;
+  font: 600 14px/1 var(--font-sans);
   letter-spacing: 0.16em;
   text-transform: uppercase;
   cursor: pointer;
@@ -96,7 +96,7 @@
 }
 
 .glh-eyebrow {
-  font: 600 14px/1 'Hanken Grotesk', sans-serif;
+  font: 600 14px/1 var(--font-sans);
   letter-spacing: 0.30em;
   color: #c6a662;
   margin-bottom: 14px;
@@ -104,7 +104,7 @@
 }
 
 .glh-h1 {
-  font-family: 'Spectral', Georgia, serif;
+  font-family: var(--font-serif);
   font-weight: 500;
   font-size: 46px;
   line-height: 1;
@@ -125,7 +125,7 @@
 }
 
 .glh-card-label {
-  font: 600 14px/1 'Hanken Grotesk', sans-serif;
+  font: 600 14px/1 var(--font-sans);
   letter-spacing: 0.22em;
   color: #7d848c;
   text-transform: uppercase;
@@ -133,7 +133,7 @@
 }
 
 .glh-card-value {
-  font-family: 'Spectral', Georgia, serif;
+  font-family: var(--font-serif);
   font-size: 28px;
   font-weight: 500;
   color: #e7dec9;
@@ -147,7 +147,7 @@
 }
 
 .glh-card-meta {
-  font: 500 14px/1.45 'Hanken Grotesk', sans-serif;
+  font: 500 14px/1.45 var(--font-sans);
   color: #8b9298;
   margin-top: 8px;
 }
@@ -201,7 +201,7 @@
   position: absolute;
   top: 0;
   transform: translateX(-50%);
-  font: 600 14px/1 'Hanken Grotesk', sans-serif;
+  font: 600 14px/1 var(--font-sans);
   color: #7d848c;
   white-space: nowrap;
   user-select: none;
@@ -278,13 +278,13 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font: 600 17px/1 'Hanken Grotesk', sans-serif;
+  font: 600 17px/1 var(--font-sans);
   color: #ddd5c4;
 }
 
 .glh-goal-meta {
   margin-top: 5px;
-  font: 500 14px/1 'Hanken Grotesk', sans-serif;
+  font: 500 14px/1 var(--font-sans);
   color: #878e96;
   white-space: nowrap;
   overflow: hidden;
@@ -297,7 +297,7 @@
 }
 
 .glh-area-tag {
-  font: 600 14px/1 'Hanken Grotesk', sans-serif;
+  font: 600 14px/1 var(--font-sans);
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: #7d848c;
@@ -353,7 +353,7 @@
 
 .glh-diamond-label {
   padding-left: 16px;
-  font: 500 14px/1 'Hanken Grotesk', sans-serif;
+  font: 500 14px/1 var(--font-sans);
   color: #9aa0a6;
   white-space: nowrap;
 }
@@ -361,7 +361,7 @@
 /* Empty / filter-zero state */
 .glh-empty {
   padding: 28px 0 28px 320px;
-  font: 400 14px/1 'Hanken Grotesk', sans-serif;
+  font: 400 14px/1 var(--font-sans);
   color: #6b727a;
   font-style: italic;
 }
@@ -390,7 +390,7 @@
   align-items: center;
   gap: 8px;
   cursor: pointer;
-  font: 600 14px/1 'Hanken Grotesk', sans-serif;
+  font: 600 14px/1 var(--font-sans);
   color: #b3a888;
   transition: color 0.18s;
   border: none;
@@ -434,7 +434,7 @@
   margin: 0 -52px -30px;
   border-top: 1px solid rgba(255,255,255,0.06);
   background: linear-gradient(180deg, rgba(255,255,255,0.02), transparent);
-  font: 500 14px/1 'Hanken Grotesk', sans-serif;
+  font: 500 14px/1 var(--font-sans);
   color: #7d848c;
   flex-wrap: wrap;
 }
@@ -459,7 +459,7 @@
 }
 
 .glh-edit-head {
-  font: 600 14px/1 'Hanken Grotesk', sans-serif;
+  font: 600 14px/1 var(--font-sans);
   letter-spacing: 0.26em;
   text-transform: uppercase;
   color: #5d646c;
@@ -538,7 +538,7 @@
   max-width: 1620px;
   margin: 0 auto;
   padding: 0 0 46px;
-  font-family: 'Hanken Grotesk', system-ui, sans-serif;
+  font-family: var(--font-sans);
   color: #b8ad92;
   box-sizing: border-box;
 }
@@ -553,7 +553,7 @@
 
 .glx-h1 {
   margin: 30px 0 0;
-  font-family: 'Spectral', Georgia, serif;
+  font-family: var(--font-serif);
   font-weight: 500;
   font-size: 48px;
   line-height: 1;
@@ -588,7 +588,7 @@
 }
 
 .glx-cap {
-  font: 600 16px/1 'Hanken Grotesk', sans-serif;
+  font: 600 16px/1 var(--font-sans);
   letter-spacing: 0.14em;
   color: #7d848c;
 }
@@ -615,7 +615,7 @@
   padding: 9px 11px;
   margin-left: -11px;
   outline: none;
-  font: 600 20px/1.2 'Hanken Grotesk', sans-serif;
+  font: 600 20px/1.2 var(--font-sans);
   color: #d8cfb8;
   -webkit-text-fill-color: #d8cfb8;
   caret-color: #c6a662;
@@ -642,7 +642,7 @@
   cursor: pointer;
   color: #c6a662;
   -webkit-text-fill-color: #c6a662;
-  font: 600 21px/1 'Hanken Grotesk', sans-serif;
+  font: 600 21px/1 var(--font-sans);
   background: rgba(255,255,255,0.02);
   user-select: none;
   flex-shrink: 0;
@@ -669,7 +669,7 @@
 
 .glx-dollar {
   color: #b8944d;
-  font: 500 16px/1 'Hanken Grotesk', sans-serif;
+  font: 500 16px/1 var(--font-sans);
 }
 
 .glx-amt {
@@ -682,7 +682,7 @@
   color: #d8cfb8;
   -webkit-text-fill-color: #d8cfb8;
   caret-color: #c6a662;
-  font: 600 18px/1 'Hanken Grotesk', sans-serif;
+  font: 600 18px/1 var(--font-sans);
   font-variant-numeric: tabular-nums;
 }
 
@@ -698,7 +698,7 @@
 
 .glx-seg {
   padding: 11px 16px;
-  font: 600 16px/1 'Hanken Grotesk', sans-serif;
+  font: 600 16px/1 var(--font-sans);
   cursor: pointer;
   color: #8b9298;
   background: transparent;
@@ -724,7 +724,7 @@
   cursor: pointer;
   white-space: nowrap;
   user-select: none;
-  font: 600 16px/1 'Hanken Grotesk', sans-serif;
+  font: 600 16px/1 var(--font-sans);
   border: 1px solid rgba(255,255,255,0.1);
   color: #8b9298;
   background: rgba(255,255,255,0.03);
@@ -760,14 +760,14 @@
   color: #d8cfb8;
   -webkit-text-fill-color: #d8cfb8;
   caret-color: #c6a662;
-  font: 600 17px/1 'Hanken Grotesk', sans-serif;
+  font: 600 17px/1 var(--font-sans);
   font-variant-numeric: tabular-nums;
 }
 
 .glx-ain:focus { border-color: rgba(198,166,98,0.55); }
 
 .glx-dash {
-  font: 500 16px/1 'Hanken Grotesk', sans-serif;
+  font: 500 16px/1 var(--font-sans);
   color: #7d848c;
 }
 
@@ -779,14 +779,14 @@
 }
 
 .glx-agelbl {
-  font: 500 16px/1 'Hanken Grotesk', sans-serif;
+  font: 500 16px/1 var(--font-sans);
   color: #b8ad92;
 }
 
 .glx-ageval {
   min-width: 36px;
   text-align: center;
-  font: 600 19px/1 'Hanken Grotesk', sans-serif;
+  font: 600 19px/1 var(--font-sans);
   color: #d8cfb8;
   font-variant-numeric: tabular-nums;
 }
@@ -800,7 +800,7 @@
   justify-content: center;
   cursor: pointer;
   color: #5f666e;
-  font: 400 20px/1 'Hanken Grotesk', sans-serif;
+  font: 400 20px/1 var(--font-sans);
   user-select: none;
 }
 
@@ -823,7 +823,7 @@
   align-items: center;
   gap: 9px;
   cursor: pointer;
-  font: 600 18px/1 'Hanken Grotesk', sans-serif;
+  font: 600 18px/1 var(--font-sans);
   color: #c6a662;
   -webkit-text-fill-color: #c6a662;
   background: none;
@@ -833,7 +833,7 @@
 
 .glx-add-btn:hover { color: #e7c883; -webkit-text-fill-color: #e7c883; }
 
-.glx-add-plus { font: 600 20px/1 'Hanken Grotesk', sans-serif; }
+.glx-add-plus { font: 600 20px/1 var(--font-sans); }
 
 .glx-adds-sep {
   width: 1px; height: 16px;
@@ -857,7 +857,7 @@
 }
 
 .glx-qa-name {
-  font: 600 18px/1 'Hanken Grotesk', sans-serif;
+  font: 600 18px/1 var(--font-sans);
   color: #b3a888;
   -webkit-text-fill-color: #b3a888;
 }
@@ -877,37 +877,37 @@
 }
 
 .glx-f-cap {
-  font: 600 16px/1 'Hanken Grotesk', sans-serif;
+  font: 600 16px/1 var(--font-sans);
   letter-spacing: 0.16em;
   color: #7d848c;
 }
 
 .glx-f-lbl {
-  font: 500 16px/1 'Hanken Grotesk', sans-serif;
+  font: 500 16px/1 var(--font-sans);
   color: #b8ad92;
 }
 
 .glx-f-val {
-  font: 600 17px/1 'Hanken Grotesk', sans-serif;
+  font: 600 17px/1 var(--font-sans);
   color: #d8cfb8;
   font-variant-numeric: tabular-nums;
 }
 
 .glx-f-dot {
   color: rgba(255,255,255,0.14);
-  font: 400 16px/1 'Hanken Grotesk', sans-serif;
+  font: 400 16px/1 var(--font-sans);
 }
 
 .glx-f-space { flex: 1; }
 
 .glx-f-life {
-  font: 600 20px/1 'Hanken Grotesk', sans-serif;
+  font: 600 20px/1 var(--font-sans);
   color: #e7dec9;
   font-variant-numeric: tabular-nums;
 }
 
 .glx-f-note {
-  font: 500 16px/1 'Hanken Grotesk', sans-serif;
+  font: 500 16px/1 var(--font-sans);
   color: #5f666e;
 }
 

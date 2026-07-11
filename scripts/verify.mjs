@@ -26,6 +26,7 @@ function contentType(filePath){
   return ext === 'html' ? 'text/html'
     : ext === 'js' ? 'text/javascript'
     : ext === 'css' ? 'text/css'
+    : ext === 'png' ? 'image/png'
     : 'application/octet-stream';
 }
 
@@ -127,19 +128,20 @@ function verifyHousehold(){
   // Blueprint wizard module + step wiring (renderers live in ui/householdWizard.js).
   ok(/ui\/householdWizard\.js/.test(source), 'ui/householdWizard.js import missing');
   ok(/ensureHouseholdWizard/.test(source), 'ensureHouseholdWizard() wiring missing');
-  ok(/data-hh-action="goto-planning"/.test(source), 'Continue to planning action missing');
-  ok(/data-hh-action="run-blueprint"/.test(source), 'RUN BLUEPRINT action missing');
+  ok(!/data-hh-action="run-blueprint"/.test(source), 'RUN BLUEPRINT action must be removed');
+  ok(!/data-hh-action="goto-planning"/.test(source), 'goto-planning action must be removed');
+  ok(/styles\/header\.css/.test(html), 'styles/header.css must be linked');
 
-  // Wizard data additions: addable children (engine-inert context); working
-  // income must NOT render as a wizard input. Home/mortgage/pension/annual
-  // savings UI are deferred in the blueprint wizard.
+  // Wizard data additions: addable children (engine-inert context) and annual
+  // savings; working income must NOT render as a separate wizard input.
+  // Home/mortgage/pension UI remains deferred in the blueprint wizard.
   ok(/household\.children/.test(source), 'household.children[] (addable children) missing');
   ok(/data-add-key="income"/.test(source), 'income add flow missing');
   ok(!/data-add-key="spending"/.test(source), 'wizard must not offer discretionary spending adds');
   ok(!/data-add-key="goal"/.test(source), 'wizard must not offer goal adds');
   ok(!/function goalRows\b/.test(source), 'goals must render in the Goals ledger, not the wizard');
   ok(!/class="hh-tl/.test(source) && !/\.hh-tl/.test(css), 'retired person timeline bars must be removed');
-  ok(!/hhField\('savings\.annual','money'\)/.test(source), 'deferred annual savings field must not render in balance-sheet step');
+  ok(/field\(['"]savings\.annual['"],\s*['"]money['"]\)/.test(source), 'annual savings field missing from wizard cash flow step');
   ok(!/hhField\('income\.workingIncome'/.test(source), 'working income must not render as a wizard input (engine-inert today)');
 
   // EDITABLE console: inline data-path inputs + a #hh-view delegate that writes
@@ -428,11 +430,11 @@ try {
     const bp = await page.evaluate(() => ({
       controls: document.querySelectorAll('#hh-view input, #hh-view select').length,
       gaugeVal: document.querySelector('#hh-view .hh-bp-gauge__v')?.textContent.trim() || '',
-      runBtn: !!document.querySelector('#hh-view [data-hh-action="run-blueprint"]'),
+      cta: !!document.querySelector('#hh-view .hh-bp-cta, #hh-view [data-hh-action="run-blueprint"], #hh-view [data-hh-action="goto-planning"]'),
     }));
     if(bp.controls !== 0) throw new Error(`Blueprint must be read-only, found ${bp.controls} controls`);
     if(!/\$[\d.,MK]/.test(bp.gaugeVal)) throw new Error(`Blueprint gauge net worth not formatted: "${bp.gaugeVal}"`);
-    if(!bp.runBtn) throw new Error('RUN BLUEPRINT button missing');
+    if(bp.cta) throw new Error('Run Blueprint CTA must not render');
     await page.screenshot({ path: join(OUT, '01-household.png'), fullPage: true });
 
     // Step 1 · Household: names, Born (drives age), filing, state, addable children.
@@ -503,6 +505,7 @@ try {
         .map(el => ({ path: el.dataset.path, value: el.value, min: el.min, max: el.max })),
       living: !!document.querySelector('#hh-view input[data-path="expenses.living"]'),
       health: !!document.querySelector('#hh-view input[data-path="expenses.healthcare"]'),
+      savings: document.querySelector('#hh-view input[data-path="savings.annual"]')?.value ?? null,
       addIncome: !!document.querySelector('#hh-view [data-hh-action="open-add"][data-add-key="income"]'),
       incomeStartAges: [...document.querySelectorAll('#hh-view input[data-path^="income.other."][data-path$=".startAge"]')].map(el => el.value),
       incomeEndAges: [...document.querySelectorAll('#hh-view input[data-path^="income.other."][data-path$=".endAge"]')].map(el => el.value),
@@ -522,6 +525,7 @@ try {
     if(s3.claimAges.length !== 2 || s3.claimAges.some(field => field.value !== '67' || field.min !== '62' || field.max !== '70'))
       throw new Error(`SS claim-age inputs missing/defaulted incorrectly: ${JSON.stringify(s3.claimAges)}`);
     if(!s3.living || !s3.health) throw new Error('core spending inputs missing from cash flow step');
+    if(s3.savings !== '0') throw new Error(`annual savings must render with the saved blank default, got "${s3.savings}"`);
     if(!s3.addIncome) throw new Error('"+ Add income" missing');
     if(JSON.stringify(s3.incomeStartAges) !== JSON.stringify(['64','63']) || JSON.stringify(s3.incomeEndAges) !== JSON.stringify(['66','65']))
       throw new Error(`income start/end fields missing or wrong: ${JSON.stringify(s3)}`);
@@ -535,6 +539,15 @@ try {
     if(s3.extraExpensesPreserved !== 2) throw new Error('hiding discretionary expenses in the wizard must not alter plan.expenses.extra');
     if(s3.working) throw new Error('working income input must not render in the wizard');
     if(!/\$180,000/.test(s3.incomeHdr)) throw new Error(`cash flow income total must be working income only ($180,000), got "${s3.incomeHdr}"`);
+
+    await page.evaluate(() => {
+      const el = document.querySelector('#hh-view input[data-path="savings.annual"]');
+      el.value = '12,000';
+      el.dispatchEvent(new Event('change', { bubbles:true }));
+    });
+    await new Promise(r => setTimeout(r, 300));
+    const editedAnnual = await page.evaluate(() => document.querySelector('#hh-view input[data-path="savings.annual"]')?.value || '');
+    if(editedAnnual !== '12,000') throw new Error(`annual savings edit did not reach the live plan: "${editedAnnual}"`);
 
     // Wizard quick-add uses the wages-like window: current age through retirement.
     await page.click('#hh-view [data-hh-action="open-add"][data-add-key="income"]'); await new Promise(r => setTimeout(r, 200));
@@ -568,7 +581,7 @@ try {
     await page.click('#hh-step-4'); await new Promise(r => setTimeout(r, 350));
     const s4 = await page.evaluate(() => ({
       gauge: !!document.querySelector('#hh-view .hh-bp-gauge'),
-      run: !!document.querySelector('#hh-view [data-hh-action="run-blueprint"]'),
+      cta: !!document.querySelector('#hh-view .hh-bp-cta, #hh-view [data-hh-action="run-blueprint"], #hh-view [data-hh-action="goto-planning"]'),
       footNote: document.querySelector('#hh-wiz-footer .hh-wiz-foot-note')?.textContent.trim() || '',
       incomeVal: document.querySelector('#hh-view .hh-bp-flow__row:first-child .hh-bp-flow__val')?.textContent.trim() || '',
       ssRow: [...document.querySelectorAll('#hh-view .hh-bp-flow__row')].some(row =>
@@ -579,18 +592,32 @@ try {
       spendingVal: [...document.querySelectorAll('#hh-view .hh-bp-flow__row')].find(row =>
         /^Spending$/i.test(row.querySelector('.hh-bp-flow__label')?.textContent.trim() || ''))
         ?.querySelector('.hh-bp-flow__val')?.textContent.trim() || '',
+      savingsVal: [...document.querySelectorAll('#hh-view .hh-bp-flow__row')].find(row =>
+        /^Annual savings$/i.test(row.querySelector('.hh-bp-flow__label')?.textContent.trim() || ''))
+        ?.querySelector('.hh-bp-flow__val')?.textContent.trim() || '',
       allocLegend: document.querySelectorAll('#hh-view .hh-bp-alloc').length,
       gaugeLabel: document.querySelector('#hh-view .hh-bp-gauge__k')?.textContent.trim() || '',
     }));
     if(!s4.gauge) throw new Error('Blueprint gauge missing on step 4');
-    if(!s4.run) throw new Error('RUN BLUEPRINT missing');
+    if(s4.cta) throw new Error('Run Blueprint CTA must not render on step 4');
     if(s4.footNote !== 'Step 4 of 4') throw new Error(`footer note mismatch: "${s4.footNote}"`);
     if(!/\$180,000/.test(s4.incomeVal)) throw new Error(`Blueprint income must show working income, got "${s4.incomeVal}"`);
     if(!s4.ssRow) throw new Error('Blueprint must show a separate Social Security row');
     if(!/\$62,000/.test(s4.ssVal)) throw new Error(`Blueprint Social Security must total $62,000, got "${s4.ssVal}"`);
     if(!/\$90,000/.test(s4.spendingVal)) throw new Error(`Blueprint spending must be fixed baseline only ($90,000), got "${s4.spendingVal}"`);
+    if(!/\$12,000/.test(s4.savingsVal)) throw new Error(`Blueprint must summarize entered annual savings, got "${s4.savingsVal}"`);
     if(s4.allocLegend < 3) throw new Error(`Blueprint account legend must list demo accounts, got ${s4.allocLegend}`);
     if(s4.gaugeLabel !== 'NET WORTH') throw new Error(`gauge label must read NET WORTH, got "${s4.gaugeLabel}"`);
+
+    // Restore the shared demo fixture for downstream engine and persistence checks.
+    await page.click('#hh-step-3'); await new Promise(r => setTimeout(r, 250));
+    await page.evaluate(() => {
+      const el = document.querySelector('#hh-view input[data-path="savings.annual"]');
+      el.value = '0';
+      el.dispatchEvent(new Event('change', { bubbles:true }));
+    });
+    await new Promise(r => setTimeout(r, 300));
+    await page.click('#hh-step-4'); await new Promise(r => setTimeout(r, 250));
   });
 
   await step('type floor: wizard values >= 16px; tracked labels may use micro type', async () => {
@@ -611,8 +638,7 @@ try {
           'hh-meta__k','hh-subhead','hh-link-btn','hh-inline-form__k',
           'hh-grand-total__k','hh-grand-total__sub','hh-bp-eyebrow','hh-bp-filing',
           'hh-bp-facts__k','hh-bp-flow__label','hh-bp-flow__sub','hh-bp-gauge__k','hh-bp-gauge__sub',
-          'hh-bp-alloc__pct','hh-bp-alloc__name','hh-wiz-foot-note','hh-bp-cta--run','hh-bp-cta--done',
-          'hh-bp-cta__chip','hh-bp-cta__status','hh-bp-cta__sep','hh-bp-cta__link',
+          'hh-bp-alloc__pct','hh-bp-alloc__name','hh-wiz-foot-note',
           'hh-empty','hh-future-row__note','hh-future-row__name','hh-future-row__claim','hh-ledger-row__name',
           'hh-ledger-row__note','hh-ledger-row__age-label',
           'hh-dash-btn','hh-text-add','pre','hh-av','hh-avatar',
@@ -1390,6 +1416,12 @@ try {
             warnings: [...el.querySelectorAll('[data-tax-warnings] li')].map(item => item.textContent.trim()),
           } : null;
         })(),
+        accumTax: (() => {
+          const row = [...(v?.querySelectorAll('.cf-row') || [])].find(el =>
+            el.querySelector('.cf-cell--age')?.textContent.trim() === '64'
+          );
+          return row?.querySelector('.cf-cell--tax')?.textContent.trim() || '';
+        })(),
         hasCaption: !!v?.querySelector('.cf__caption'),
         hasCfEyebrow: !!v?.querySelector('.cf__head .eyebrow'),
         hasSummaryName: !!v?.querySelector('.cf-summary__name'),
@@ -1408,6 +1440,7 @@ try {
     if(Math.abs(m.taxCompare.delta) > 0.01) throw new Error(`typical path was not re-run with federal row taxes: ${JSON.stringify(m.taxCompare)}`);
     if(m.taxDisclosure?.state !== 'federal-sidecar' || !/federal tax scope:\s*income tax only/i.test(m.taxDisclosure?.scope || '')) throw new Error(`typical path federal scope disclosure missing: ${JSON.stringify(m.taxDisclosure)}`);
     if(m.taxDisclosure?.fallback) throw new Error(`typical path unexpectedly uses engine fallback: ${JSON.stringify(m.taxDisclosure)}`);
+    if(!/^\$[\d,]+/.test(m.accumTax)) throw new Error(`accumulation-year Tax cell is not populated: "${m.accumTax}"`);
     if(m.cols.some(c => ['Withdraw', 'One-time', 'Return $', 'Starting value', 'Inflows', 'Outflows', 'Annual return', 'Ending value'].includes(c))) throw new Error(`old cash-flow columns still present: ${JSON.stringify(m.cols)}`);
     if(m.pills.length < 2) throw new Error(`scenario pills missing: ${JSON.stringify(m.pills)}`);
     if(!m.pathControls) throw new Error('path-replay controls not relocated into #scn-cf-path-controls');
@@ -1605,36 +1638,40 @@ try {
   // with a champagne accent. The retired Household warm bronze AND the old navy
   // (#111E31 = 17,30,49) must BOTH be gone everywhere. Computed-style assertions so a
   // navy/bronze regression fails loudly instead of relying on a human reading a screenshot.
-  await step('visual contract: header is charcoal glass and tabs are correct', async () => {
+  await step('visual contract: flush 56px header rail and tabs are correct', async () => {
     const sleep = ms => new Promise(r => setTimeout(r, ms));
     await page.click('button[data-page="scenarios"]'); await sleep(400);
-    const hdrBg = await page.evaluate(() => getComputedStyle(document.querySelector('.hdr')).backgroundImage);
-    const WARM_BROWN = '28, 19, 11';  // rgba(28,19,11,...) old warm header colour
-    const WARM_HDR   = '28, 17, 10';  // another warm header variant
-    const NAVY       = '17, 30, 49';  // #111E31 — the retired navy glass base, must be gone
-    const CHARCOAL   = '11, 13, 17';  // #0b0d11 — charcoal glass base (header gradient floor)
-    const CHAMPAGNE  = '198, 166, 98';// #c6a662 — champagne accent note (top-right of header)
-    if(hdrBg.includes(WARM_BROWN) || hdrBg.includes(WARM_HDR))
-      throw new Error(`Header still uses warm-brown background: ${hdrBg}`);
-    if(hdrBg.includes(NAVY))
-      throw new Error(`Header still uses retired navy glass (${NAVY}) in backgroundImage: ${hdrBg}`);
-    if(!hdrBg.includes(CHARCOAL))
-      throw new Error(`Header is not on the charcoal base (${CHARCOAL}) in backgroundImage: ${hdrBg}`);
-    if(!hdrBg.includes(CHAMPAGNE))
-      throw new Error(`Header is missing the champagne accent note (${CHAMPAGNE}) in backgroundImage: ${hdrBg}`);
-    // Run button should be champagne, not warm-brown or navy.
-    const runBg = await page.evaluate(() => getComputedStyle(document.querySelector('.run-btn')).backgroundImage);
-    if(!runBg || !runBg.includes(CHAMPAGNE)) throw new Error(`Run button is not champagne (${CHAMPAGNE}): ${runBg}`);
-    // Active tab should use the champagne underline accent.
-    const activeTab = await page.evaluate(() => {
-      const el = document.querySelector('.htab.on');
+    const hdr = await page.evaluate(() => {
+      const el = document.querySelector('.hdr');
       if(!el) return null;
-      return { border: getComputedStyle(el).borderBottomColor };
+      const cs = getComputedStyle(el);
+      const logo = document.querySelector('.hdr__logo img, .brand-logo');
+      const tab = document.querySelector('.htab.on');
+      const tabAfter = tab ? getComputedStyle(tab, '::after') : null;
+      return {
+        height: cs.height,
+        bg: cs.backgroundColor,
+        borderBottom: cs.borderBottomWidth,
+        logo: logo?.getAttribute('src') || '',
+        logoH: logo ? getComputedStyle(logo).height : '',
+        runBg: getComputedStyle(document.querySelector('.run-btn')).backgroundColor,
+        runColor: getComputedStyle(document.querySelector('.run-btn')).color,
+        tabAfterBg: tabAfter?.backgroundColor || '',
+      };
     });
-    if(!activeTab) throw new Error('No active tab found');
-    // Champagne is rgb(198, 166, 98) — warm, not pure white and not navy (blue channel low).
-    const [r,g,b] = (activeTab.border.match(/\d+/g)||[]).map(Number);
-    if(!(r > 180 && g > 130 && b < 140)) throw new Error(`Active tab border-bottom-color is not champagne: ${activeTab.border}`);
+    if(!hdr) throw new Error('Header element missing');
+    if(hdr.height !== '56px') throw new Error(`Header height must be 56px, got ${hdr.height}`);
+    if(hdr.borderBottom !== '1px') throw new Error(`Header must have 1px bottom hairline, got ${hdr.borderBottom}`);
+    if(!hdr.logo.includes('parallax-logo.png')) throw new Error(`Header logo must use parallax-logo.png, got ${hdr.logo}`);
+    if(hdr.logoH !== '32px') throw new Error(`Logo must be 32px tall, got ${hdr.logoH}`);
+    if(hdr.bg !== 'rgba(0, 0, 0, 0)' && hdr.bg !== 'transparent')
+      throw new Error(`Header must be flush/transparent, got ${hdr.bg}`);
+    if(hdr.runBg !== 'rgba(0, 0, 0, 0)' && hdr.runBg !== 'transparent')
+      throw new Error(`Run button must be unboxed (transparent bg), got ${hdr.runBg}`);
+    const [r,g,b] = (hdr.runColor.match(/\d+/g)||[]).map(Number);
+    if(!(r > 180 && g > 130 && b < 140)) throw new Error(`Run button text must be champagne: ${hdr.runColor}`);
+    const [ar,ag,ab] = (hdr.tabAfterBg.match(/\d+/g)||[]).map(Number);
+    if(!(ar > 180 && ag > 130 && ab < 140)) throw new Error(`Active tab underline must be champagne: ${hdr.tabAfterBg}`);
   });
   await step('theme: Goals + Sequencing + Household all sit on the shared charcoal background', async () => {
     const CHARCOAL = '11, 13, 17';  // #0b0d11 — shared --page-bg gradient floor (scenarios + household)
