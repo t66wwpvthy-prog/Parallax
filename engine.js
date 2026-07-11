@@ -854,6 +854,32 @@ function rmdDivisor(age){
   return UNIFORM_LIFETIME[Math.min(age, 120)];      // table floors at 120+
 }
 
+function externalIncomeAtAge(p, age){
+  let ssInc = 0;
+  for(const b of p.ss){ if(age >= b.startAge) ssInc += b.amount; }
+  let oiInc = 0, oiTaxable = 0;
+  for(const o of p.otherIncome){
+    if(age >= o.startAge && age <= o.endAge){
+      const amt = o.amount * Math.pow(1 + o.realGrowth, age - o.startAge);
+      oiInc     += amt;
+      oiTaxable += amt * o.taxablePct;
+    }
+  }
+  const penInc = (p.pension && age >= p.pension.startAge)
+    ? p.pension.amount * Math.pow(1 + (p.pension.colaReal || 0), age - p.pension.startAge) : 0;
+  return { ssInc, oiInc, oiTaxable, penInc };
+}
+
+function shortcutTaxOnExternalIncome(p, { ssInc, oiTaxable, penInc }){
+  const taxOnSS  = ssInc * 0.85 * p.taxRates.ordinary;
+  const taxOnOI  = oiTaxable * p.taxRates.ordinary;
+  const taxOnPen = penInc * p.taxRates.ordinary;
+  return {
+    taxOnSS, taxOnOI, taxOnPen,
+    shortcutTax: taxOnSS + taxOnOI + taxOnPen,
+  };
+}
+
 function runSinglePath(p, returnPath, options = {}){
   const taxPolicy = options.taxPolicy ?? null;
   const fundTaxPolicyDelta = options.fundTaxPolicyDelta === true;
@@ -902,9 +928,11 @@ function runSinglePath(p, returnPath, options = {}){
 
     // ── ACCUMULATION PHASE (age < retirementAge) ──────────────────────────
     // Still working: portfolio grows and receives savings; no retirement
-    // spending, withdrawals, income, or tax events yet. Contributions land in
-    // the traditional (pre-tax) sleeve. No-op at default (retirementAge==currentAge).
+    // spending or withdrawals yet. Timed external income (wages, etc.) is
+    // reported on rows for Cash Flow; recurring living costs are still assumed
+    // covered off-books while working. No-op at default (retirementAge==currentAge).
     if(age < p.retirementAge){
+      const { ssInc, oiInc, oiTaxable, penInc } = externalIncomeAtAge(p, age);
       returnProduct *= (1 + r);
       if(y < 10) first10Product *= (1 + r);
       const accFactor = Math.abs(r) < 1e-7 ? 12 : r / (Math.pow(1 + r, 1/12) - 1);
@@ -947,37 +975,36 @@ function runSinglePath(p, returnPath, options = {}){
       if(endBalanceA < minBalance) minBalance = endBalanceA;
       if(endBalanceA > peakBalance) peakBalance = endBalanceA;
       if(peakBalance > 0){ const dd = (peakBalance - endBalanceA) / peakBalance; if(dd > maxDrawdown) maxDrawdown = dd; }
-      rows.push({
+      const { taxOnSS, taxOnOI, taxOnPen, shortcutTax } = shortcutTaxOnExternalIncome(p, { ssInc, oiTaxable, penInc });
+      const row = {
         year: y+1, age, source: rp.y, returnRate: r, phase: 'accum',
         returnDollars: startBalanceA * r,
-        socialSecurity: 0, otherIncome: 0, pension: 0, withdrawal: 0, assetSale: saleProceeds,
-        expenses: 0, goals: goalsA, liabilities: 0, taxes: 0, savings: p.savingsAnnual, lumpSum: lumpA,
+        socialSecurity: ssInc, otherIncome: oiInc, pension: penInc, withdrawal: 0, assetSale: saleProceeds,
+        ...(oiInc > 0 ? { otherIncomeTaxable: oiTaxable } : {}),
+        expenses: 0, goals: goalsA, liabilities: 0, taxes: shortcutTax, savings: p.savingsAnnual, lumpSum: lumpA,
         startBalance: startBalanceA, wdRate: 0,
-        netCashflow: p.savingsAnnual - lumpA - goalsA + saleProceeds,
+        netCashflow: saleProceeds - lumpA - goalsA,
         balance: endBalanceA, failed: false,
         accountBreakdown: { taxable: 0, traditional: 0, roth: 0 },
         accountBalances: { taxable: accounts.taxable.balance, traditional: accounts.traditional.balance, roth: accounts.roth.balance },
-        taxBySource: { ss: 0, oi: 0, traditional: 0, taxable: 0 }
-      });
+        taxBySource: { ss: taxOnSS, oi: taxOnOI, traditional: 0, taxable: 0 }
+      };
+      // Reporting-only federal reruns (T7/T8). Income tax during working years is
+      // display-only — it does not fund from the portfolio and fundTaxPolicyDelta
+      // remains retirement-only.
+      if(taxPolicy && !fundTaxPolicyDelta){
+        const reportingTax = taxPolicy(row, { shortcutTax, yearIndex: y });
+        if(!Number.isFinite(reportingTax) || reportingTax < 0){
+          throw new TypeError('taxPolicy must return a finite non-negative tax');
+        }
+        row.taxes = reportingTax;
+        lifetimeTax += reportingTax;
+      }
+      rows.push(row);
       continue;
     }
 
-    // External income (today's dollars — no COLA). SS is the sum of each
-    // person's benefit that has started by this age (primary + spouse).
-    let ssInc = 0;
-    for(const b of p.ss){ if(age >= b.startAge) ssInc += b.amount; }
-    // Each stream grows in REAL terms from its own startAge (0 = flat real,
-    // negative = phases down) and contributes only its taxable share to tax.
-    let oiInc = 0, oiTaxable = 0;
-    for(const o of p.otherIncome){
-      if(age >= o.startAge && age <= o.endAge){
-        const amt = o.amount * Math.pow(1 + o.realGrowth, age - o.startAge);
-        oiInc     += amt;
-        oiTaxable += amt * o.taxablePct;
-      }
-    }
-    const penInc = (p.pension && age >= p.pension.startAge)
-                   ? p.pension.amount * Math.pow(1 + (p.pension.colaReal || 0), age - p.pension.startAge) : 0;
+    const { ssInc, oiInc, oiTaxable, penInc } = externalIncomeAtAge(p, age);
     const ltcCost = (p.ltc && age >= p.ltc.onsetAge) ? p.ltc.amount : 0;
     let extraExp = 0;
     for(const e of p.expenses.extra){ if(age >= e.startAge && age <= e.endAge) extraExp += e.amount; }
