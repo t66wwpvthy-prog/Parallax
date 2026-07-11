@@ -199,6 +199,100 @@ test('a recurring liability lowers retirement wealth and stops at endAge', () =>
 // ── Multi-row income / expenses / goals (the add-row data model) ─────────────
 // income.other is now an ARRAY of timed streams: each is summed only while active,
 // and a legacy single object is still accepted.
+test('annual savings increases terminal wealth during accumulation', () => {
+  const p = JSON.parse(JSON.stringify(defaultPlan));
+  p.household.primary = { currentAge: 40, retirementAge: 65, planEndAge: 95 };
+  p.portfolio.accounts = { taxable: { balance: 500000, basisPct: 1 }, traditional: { balance: 0 }, roth: { balance: 0 } };
+  p.goals = [];
+  p.savings.annual = 0;
+  const base = runHistoricalPath(p, 1995, 'taxable-first');
+  p.savings.annual = 50000;
+  const saving = runHistoricalPath(p, 1995, 'taxable-first');
+  assert.ok(saving.terminalBalance > base.terminalBalance + 1,
+    'annual savings must raise ending wealth during working years');
+});
+
+test('other income streams report during accumulation years', () => {
+  const p = JSON.parse(JSON.stringify(defaultPlan));
+  p.household.primary = { currentAge: 40, retirementAge: 65, planEndAge: 95 };
+  p.income.other = [{ label: 'Wages', amount: 150000, startAge: 40, endAge: 64 }];
+  const m = runHistoricalPath(p, 1995, 'taxable-first');
+  const at45 = m.rows.find(r => r.age === 45);
+  const at64 = m.rows.find(r => r.age === 64);
+  const at65 = m.rows.find(r => r.age === 65);
+  assert.strictEqual(at45.phase, 'accum');
+  assert.strictEqual(at45.otherIncome, 150000);
+  assert.strictEqual(at64.otherIncome, 150000);
+  assert.strictEqual(at65.otherIncome, 0, 'wages ended the year before retirement');
+});
+
+test('accumulation rows report shortcut tax without funding from the portfolio', () => {
+  const p = JSON.parse(JSON.stringify(defaultPlan));
+  p.household.primary = { currentAge: 40, retirementAge: 65, planEndAge: 95 };
+  p.portfolio.accounts = { taxable: { balance: 500000, basisPct: 1 }, traditional: { balance: 0 }, roth: { balance: 0 } };
+  p.income.other = [{ label: 'Wages', amount: 200000, startAge: 40, endAge: 64, taxablePct: 1 }];
+  p.savings.annual = 0;
+  p.goals = [];
+  const taxed = runHistoricalPath(p, 1995, 'taxable-first');
+  p.income.other = [];
+  const untaxed = runHistoricalPath(p, 1995, 'taxable-first');
+  const row = taxed.rows.find(r => r.age === 50);
+  assert.strictEqual(row.phase, 'accum');
+  assert.ok(row.taxes > 0, 'working-year wages must produce shortcut income tax on the row');
+  assert.strictEqual(row.netCashflow, 0, 'implicit spending stays off-books');
+  assert.ok(Math.abs(row.taxBySource.oi - row.taxes) < 0.01, 'wage tax must land in taxBySource.oi');
+  const taxedBal = taxed.rows.find(r => r.age === 64).balance;
+  const untaxedBal = untaxed.rows.find(r => r.age === 64).balance;
+  assert.ok(Math.abs(taxedBal - untaxedBal) < 1,
+    'display-only accumulation tax must not change portfolio balances');
+});
+
+test('reporting-only federal policy sets accumulation row taxes to Form 1040 line 24', () => {
+  const p = structuredClone(defaultPlan);
+  p.meta.filingStatus = 'marriedFilingJointly';
+  p.household.primary = { currentAge: 64, retirementAge: 66, planEndAge: 68 };
+  p.household.spouse = { currentAge: 63, retirementAge: 65 };
+  p.portfolio.accounts = {
+    taxable: { balance: 1000000, basisPct: 1 },
+    traditional: { balance: 0 },
+    roth: { balance: 0 },
+  };
+  p.income.socialSecurity = { primary: { pia: 0, claimAge: 67 }, spouse: { pia: 0, claimAge: 67 } };
+  p.income.other = [
+    { label: 'Client wages', amount: 90000, startAge: 64, endAge: 65, taxablePct: 1 },
+    { label: 'Co-client wages', amount: 90000, startAge: 63, endAge: 64, taxablePct: 1 },
+  ];
+  p.income.pension = { benefitByAge: {}, startAge: 65, colaPct: 0 };
+  p.expenses = { living: 0, housing: 0, debt: 0, healthcare: 0, healthcareRealGrowth: 0 };
+  p.goals = [];
+
+  const inputs = resolveInputs(p, {});
+  const returnPath = Array.from({ length: inputs.horizonYears }, (_, index) => ({
+    y: 2026 + index,
+    proxyReturn: 0,
+  }));
+  const shortcutPath = runSinglePath(inputs, returnPath);
+  const federalResolver = createFederalTaxResolver(inputs, {
+    filingStatus: 'marriedFilingJointly',
+    baseTaxYear: 2026,
+    scenarioId: 'accum_federal_reporting_test',
+  });
+  const federalPath = runSinglePath(inputs, returnPath, { taxPolicy: federalResolver });
+  const accumRows = federalPath.rows.filter((row) => row.phase === 'accum' && row.otherIncome > 0);
+
+  assert.ok(accumRows.length >= 2, 'fixture must include multiple accumulation income years');
+  for(const row of accumRows){
+    const expected = federalResolver(row);
+    assert.ok(Math.abs(row.taxes - expected) < 0.01,
+      `age ${row.age} must report federal line 24 on accumulation rows`);
+    assert.ok(row.taxes > 0, `age ${row.age} must carry a positive federal tax`);
+  }
+  assert.ok(
+    federalPath.rows.some((row, index) => row.taxes !== shortcutPath.rows[index].taxes),
+    'federal reporting must differ from shortcut on at least one accumulation row'
+  );
+});
+
 test('other income: multiple timed streams sum while active and stop at endAge', () => {
   const p = JSON.parse(JSON.stringify(defaultPlan));
   p.household.primary = { currentAge: 65, retirementAge: 65, planEndAge: 95 };

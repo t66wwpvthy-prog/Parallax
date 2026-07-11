@@ -15,6 +15,8 @@ const PATH_KEYS = ['p10', 'p25', 'p50', 'p75', 'p90'];
 function fixture(){
   const plan = structuredClone(defaultPlan);
   plan.meta.filingStatus = 'single';
+  plan.household.primary = { currentAge: 60, retirementAge: 65, planEndAge: 95 };
+  plan.income.other = [{ label: 'Wages', amount: 120000, startAge: 60, endAge: 64, taxablePct: 1 }];
   const horizon = plan.household.primary.planEndAge - plan.household.primary.currentAge;
   resetSeed(20260711);
   const returnPaths = Array.from({ length: 40 }, () => generateReturnPath(horizon));
@@ -51,7 +53,7 @@ function fundingSnapshot(sim){
   }));
 }
 
-test('all 40 Monte Carlo sims report federal Form 1040 line 24 as retirement row tax', () => {
+test('all 40 Monte Carlo sims report federal Form 1040 line 24 on accumulation and retirement rows', () => {
   const { analysis, federalAnalysis, options } = fixture();
   const resolveFederalTax = createFederalTaxResolver(analysis.params, options);
 
@@ -66,7 +68,7 @@ test('all 40 Monte Carlo sims report federal Form 1040 line 24 as retirement row
     for(let rowIndex = 0; rowIndex < shortcutSim.rows.length; rowIndex++){
       const shortcutRow = shortcutSim.rows[rowIndex];
       const federalRow = federalSim.rows[rowIndex];
-      if(shortcutRow.phase === 'accum' || shortcutRow.source == null){
+      if(shortcutRow.source == null){
         assert.strictEqual(federalRow.taxes, shortcutRow.taxes);
         continue;
       }
