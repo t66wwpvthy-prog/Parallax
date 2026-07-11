@@ -26,18 +26,23 @@
   box-shadow: none;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
+  overflow: visible;
 }
 .app-header .hdr__logo {
   flex: 0 0 auto;
   display: flex;
   align-items: center;
-  height: 32px;
+  /* Use most of the 56px rail so orb + wordmark read clearly. */
+  height: 48px;
+  position: relative;
+  z-index: 2;
 }
 .app-header .hdr__logo img {
   display: block;
   width: auto;
   height: 100%;
   object-fit: contain;
+  object-position: left center;
   filter: none;
 }
 .app-header .hdr__tabs {
@@ -215,7 +220,7 @@
     gap: 10px 14px;
   }
   .app-header .hdr__logo {
-    height: 32px;
+    height: 40px;
   }
   .app-header .cluster {
     gap: 16px;
