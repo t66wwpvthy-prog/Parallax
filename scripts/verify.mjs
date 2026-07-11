@@ -9,6 +9,8 @@ import { createServer } from 'node:http';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { join, resolve, sep } from 'node:path';
+import { generateReturnPath, resetSeed, runSimulation } from '../engine.js';
+import { runMonteCarloWithFederalFunding } from '../src/planning/tax/runMonteCarloWithFederalFunding.js';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const OUT = join(ROOT, 'verify-out');
@@ -137,7 +139,7 @@ function verifyHousehold(){
   // Home/mortgage/pension UI remains deferred in the blueprint wizard.
   ok(/household\.children/.test(source), 'household.children[] (addable children) missing');
   ok(/data-add-key="income"/.test(source), 'income add flow missing');
-  ok(!/data-add-key="spending"/.test(source), 'wizard must not offer discretionary spending adds');
+  ok(/data-add-key="spending"/.test(source), 'spending category add flow missing');
   ok(!/data-add-key="goal"/.test(source), 'wizard must not offer goal adds');
   ok(!/function goalRows\b/.test(source), 'goals must render in the Goals ledger, not the wizard');
   ok(!/class="hh-tl/.test(source) && !/\.hh-tl/.test(css), 'retired person timeline bars must be removed');
@@ -281,7 +283,7 @@ rmSync(OUT, { recursive: true, force: true });
 mkdirSync(OUT, { recursive: true });
 
 console.log('full test suite (npm test)');
-const test = spawnSync(process.execPath, ['--test', 'engine.test.js', 'src/tax/federal/rules/ordinaryIncomeTax.test.js', 'src/tax/federal/rules/standardDeduction.test.js', 'src/tax/federal/rules/traditionalIraDeductibility.test.js', 'src/tax/federal/rules/capitalGainsStacking.test.js', 'src/tax/federal/rules/taxableSocialSecurity.test.js', 'src/tax/federal/composers/form1040Spine.test.js', 'src/tax/tests/integration.test.js', 'src/tax/tests/golden1040.test.js', 'src/tax/tests/intakeCompleteness.test.js', 'src/tax/tests/annual1040Fixtures.test.js', 'src/tax/tests/law2025.test.js', 'src/tax/tests/engineYearTo1040Input.test.js', 'src/tax/tests/demoWagesRegression.test.js', 'src/tax/tests/marginalRateSummary.test.js', 'src/planning/tax/runTaxForScenarioPath.test.js', 'src/planning/tax/attachTypicalPathFederalTax.test.js'], { cwd: ROOT, stdio: 'inherit' });
+const test = spawnSync(process.execPath, ['--test', 'engine.test.js', 'src/tax/federal/rules/ordinaryIncomeTax.test.js', 'src/tax/federal/rules/standardDeduction.test.js', 'src/tax/federal/rules/traditionalIraDeductibility.test.js', 'src/tax/federal/rules/capitalGainsStacking.test.js', 'src/tax/federal/rules/taxableSocialSecurity.test.js', 'src/tax/federal/composers/form1040Spine.test.js', 'src/tax/tests/integration.test.js', 'src/tax/tests/golden1040.test.js', 'src/tax/tests/intakeCompleteness.test.js', 'src/tax/tests/annual1040Fixtures.test.js', 'src/tax/tests/law2025.test.js', 'src/tax/tests/engineYearTo1040Input.test.js', 'src/tax/tests/demoWagesRegression.test.js', 'src/tax/tests/marginalRateSummary.test.js', 'src/planning/tax/runTaxForScenarioPath.test.js', 'src/planning/tax/attachTypicalPathFederalTax.test.js', 'src/scenarios/promoteTaxFundedProbability.test.js'], { cwd: ROOT, stdio: 'inherit' });
 if(test.status !== 0){ console.error('npm test failed'); process.exit(1); }
 
 console.log('household contract (static)');
@@ -531,12 +533,16 @@ try {
       throw new Error(`income start/end fields missing or wrong: ${JSON.stringify(s3)}`);
     if(JSON.stringify(s3.incomeNotes) !== JSON.stringify(['· 64–66','· 63–65']))
       throw new Error(`income active-window notes wrong: ${JSON.stringify(s3.incomeNotes)}`);
-    if(JSON.stringify(s3.spendingLabels) !== JSON.stringify(['Living','Healthcare','Housing']))
-      throw new Error(`wizard spending must be fixed baseline only: ${JSON.stringify(s3.spendingLabels)}`);
-    if(!/\$90,000/.test(s3.spendingHdr)) throw new Error(`fixed-spending total must be $90,000, got "${s3.spendingHdr}"`);
-    if(s3.addCategory || s3.addGoal || s3.goalRows || s3.goalsHeading) throw new Error(`discretionary adds/goals still render in wizard: ${JSON.stringify(s3)}`);
+    if(!s3.spendingLabels.includes('Living') || !s3.spendingLabels.includes('Healthcare') || !s3.spendingLabels.includes('Housing'))
+      throw new Error(`essential spending rows missing: ${JSON.stringify(s3.spendingLabels)}`);
+    if(!/\$90,000/.test(s3.spendingHdr)) throw new Error(`spending total must be $90,000, got "${s3.spendingHdr}"`);
+    if(!s3.addCategory) throw new Error('"+ Add category" missing from spending column');
+    if(s3.addGoal || s3.goalRows || s3.goalsHeading) throw new Error(`goals must not render in wizard: ${JSON.stringify(s3)}`);
     if(s3.goalsPreserved !== 1) throw new Error('removing goals from wizard must not alter plan.goals');
-    if(s3.extraExpensesPreserved !== 2) throw new Error('hiding discretionary expenses in the wizard must not alter plan.expenses.extra');
+    if(s3.extraExpensesPreserved !== 2) throw new Error('wizard must preserve plan.expenses.extra');
+    const extraRows = await page.evaluate(() =>
+      document.querySelectorAll('#hh-view input[data-path^="expenses.extra."][data-path$=".label"]').length);
+    if(extraRows < 1) throw new Error(`discretionary spending rows must render in wizard, got ${extraRows}`);
     if(s3.working) throw new Error('working income input must not render in the wizard');
     if(!/\$180,000/.test(s3.incomeHdr)) throw new Error(`cash flow income total must be working income only ($180,000), got "${s3.incomeHdr}"`);
 
@@ -1745,6 +1751,121 @@ try {
     await setHh('household.primary.retirementAge', '66');
     await setHh('household.spouse.retirementAge', '65');
     await sleep(250);
+  });
+
+  await step('tax-funded probability is the only probability shown after Run', async () => {
+    const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+    const controlledPlan = await page.evaluate(() => {
+      const storageKey = 'parallax.households.v1';
+      const db = JSON.parse(localStorage.getItem(storageKey) || '{}');
+      const plan = db.demo;
+      if(!plan) throw new Error('demo household is unavailable for the probability fixture');
+
+      const currentYear = new Date().getFullYear();
+      plan.meta = { ...(plan.meta || {}), primaryName: 'Probability Fixture', spouseName: '', filingStatus: 'single' };
+      plan.household = {
+        primary: { currentAge: 65, retirementAge: 65, planEndAge: 66, birthYear: currentYear - 65 },
+        spouse: null,
+        children: [],
+      };
+      plan.portfolio = {
+        ...(plan.portfolio || {}),
+        riskProfile: 3,
+        withdrawalStrategy: 'taxable-first',
+        accounts: {
+          taxable: { balance: 0, basisPct: 1 },
+          traditional: { balance: 400000 },
+          roth: { balance: 0 },
+        },
+        extraAccounts: [],
+      };
+      plan.savings = { ...(plan.savings || {}), annual: 0 };
+      plan.income = {
+        socialSecurity: { primary: { pia: 0, claimAge: 67 }, spouse: null },
+        pension: { benefitByAge: {}, base: 0, startAge: 65, colaPct: 0 },
+        other: [],
+      };
+      plan.expenses = {
+        living: 300000,
+        housing: 0,
+        debt: 0,
+        healthcare: 0,
+        healthcareRealGrowth: 0,
+        extra: [],
+      };
+      plan.liabilities = [];
+      plan.properties = [];
+      plan.goals = [];
+      plan.ltc = { amount: 0, onsetAge: 85 };
+      plan.taxes = { ordinary: 22, capitalGains: 15 };
+      plan.simulation = { ...(plan.simulation || {}), iterations: 40 };
+
+      db.demo = plan;
+      localStorage.setItem(storageKey, JSON.stringify(db));
+      localStorage.setItem('parallax.activeHouseholdId', 'demo');
+      localStorage.removeItem('parallax.scenarios.demo.v1');
+      localStorage.removeItem('parallax.pathReplay.v1');
+      return plan;
+    });
+
+    resetSeed(20260609);
+    const returnPaths = Array.from({ length: 40 }, () => generateReturnPath(1));
+    const shortcut = runSimulation(controlledPlan, {}, returnPaths);
+    const funded = runMonteCarloWithFederalFunding(shortcut, controlledPlan, {}, {
+      filingStatus: 'single',
+      baseTaxYear: new Date().getFullYear(),
+      scenarioId: 'verify_t9_probability',
+    });
+    if(shortcut.successRate === funded.federalSuccessRate)
+      throw new Error(`probability fixture did not diverge (${shortcut.successRate})`);
+
+    await page.reload({ waitUntil: 'networkidle0' });
+    await sleep(1200);
+    await page.waitForSelector('#run-btn:not([disabled])', { timeout: 10000 });
+    await page.click('#run-btn');
+    await page.waitForFunction(() => /Complete/i.test(document.querySelector('#status')?.textContent || ''), { timeout: 30000 });
+    await page.click('button[data-page="scenarios"]');
+    await sleep(600);
+    await page.click('#scn-seg-compare');
+    await sleep(400);
+
+    const expected = Number(funded.federalSuccessRate.toFixed(1));
+    const oldShortcut = Number(shortcut.successRate.toFixed(1));
+    const compareProb = await page.evaluate(() => {
+      const baseline = [...document.querySelectorAll('#scn-view .scol')]
+        .find(column => /Baseline/i.test(column.querySelector('.scol__name')?.textContent || ''));
+      return Number.parseFloat(baseline?.querySelector('.scol__prob')?.textContent || '');
+    });
+    if(compareProb !== expected) throw new Error(`Compare probability ${compareProb} does not match tax-funded ${expected}`);
+    if(compareProb === oldShortcut) throw new Error(`Compare still shows shortcut-only probability ${oldShortcut}`);
+
+    await page.click('#scn-seg-focus');
+    await sleep(400);
+    const focus = await page.evaluate(() => ({
+      hero: Number.parseFloat(document.querySelector('#scn-view .hero__numeral')?.textContent || ''),
+      rail: Number.parseFloat([...document.querySelectorAll('#scn-view .rail-card')]
+        .find(card => /Baseline/i.test(card.textContent || ''))?.querySelector('.rail-card__prob')?.textContent || ''),
+    }));
+    if(focus.hero !== expected || focus.rail !== expected)
+      throw new Error(`Focus probabilities do not match tax-funded ${expected}: ${JSON.stringify(focus)}`);
+
+    await setCashFlow(page, true);
+    await waitCashRows(page, 1);
+    const cashFlowProb = await page.evaluate(() =>
+      Number.parseFloat(document.querySelector('#scn-view .cf-summary__id .numeral')?.textContent || ''));
+    if(cashFlowProb !== expected) throw new Error(`Cash Flow probability ${cashFlowProb} does not match tax-funded ${expected}`);
+    await setCashFlow(page, false);
+    await sleep(300);
+
+    await page.click('#scn-solve');
+    await page.waitForSelector('#sf-pct', { visible: true });
+    const solverTarget = await page.$eval('#sf-pct', input => Number(input.value));
+    const expectedTarget = Math.min(95, Math.ceil((expected + 1) / 5) * 5);
+    const shortcutTarget = Math.min(95, Math.ceil((oldShortcut + 1) / 5) * 5);
+    if(solverTarget !== expectedTarget)
+      throw new Error(`Solver target ${solverTarget} does not derive from tax-funded ${expected} (expected ${expectedTarget})`);
+    if(solverTarget === shortcutTarget)
+      throw new Error(`Solver target still derives from shortcut-only probability ${oldShortcut}`);
   });
 
   // ── Multi-household persistence & bootstrapping ────────────────────────────
