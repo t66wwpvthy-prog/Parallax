@@ -1,6 +1,6 @@
 import { runSimulation, runHistoricalPath, generateReturnPath, resetSeed, annualMortgagePayment, LONGRUN_INFLATION, pathDigest, assessPlan, RISK_PROFILES, defaultPlan as plan } from '../engine.js';
 import { attachPathFederalTax } from './planning/tax/attachTypicalPathFederalTax.js';
-import { rerunTypicalPathWithFederalTax } from './planning/tax/rerunTypicalPathWithFederalTax.js';
+import { rerunMonteCarloWithFederalTax } from './planning/tax/rerunMonteCarloWithFederalTax.js';
 import { runHistoricalPathWithFederalTax } from './planning/tax/runHistoricalPathWithFederalTax.js';
 import { fmtM, fmtMoney, fmtMDelta, fmtPts, cfMoney, cfRetPct, cfGain } from '../ui/formatters.js';
 import { storyChart, seqChartSvg } from '../ui/charts.js?v=2';
@@ -2521,15 +2521,15 @@ function runAll(){
           const p=planForScenario(s.lev);
           const ov=leversToOverrides(s.lev);
           s.res=runSimulation(p, ov, sharedPaths);
-          // Re-run only the selected p10/p50/p90 story paths with federal row
-          // taxes, then attach auditable summaries. MC aggregates stay shortcut.
+          // Re-run every MC path with federal row taxes, then attach auditable
+          // p10/p50/p90 summaries. All shortcut MC aggregates stay authoritative.
           try{
             const taxOptions = {
               baseTaxYear,
               scenarioId: s.name,
               filingStatus: p.meta?.filingStatus,
             };
-            const federalResult = rerunTypicalPathWithFederalTax(s.res, taxOptions);
+            const federalResult = rerunMonteCarloWithFederalTax(s.res, taxOptions);
             federalResult.pathFederalTax = Object.fromEntries(
               ['p10', 'p50', 'p90'].map((pathKey) => [
                 pathKey,
@@ -2539,9 +2539,10 @@ function runAll(){
             federalResult.typicalPathFederalTax = federalResult.pathFederalTax.p50;
             s.res = federalResult;
           }catch(taxErr){
+            s.res.federalMedianLifetimeTax = null;
             s.res.typicalPathFederalTax = null;
             s.res.pathFederalTax = null;
-            console.warn('Federal story-path rerun failed:', s.name, taxErr);
+            console.warn('Federal Monte Carlo rerun failed:', s.name, taxErr);
           }
           // Historical Stress (Focus rail): engine-derived per-scenario eras.
           // Isolated so a stress hiccup never blanks the scenario's main result.
