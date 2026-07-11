@@ -654,7 +654,6 @@ function demoScenarios(){
 // household was active; a corrupt store safely recreates the demo.
 bootstrapHouseholds();
 uiState.scenarios = loadScenarios() || demoScenarios();
-reseedScenarios({ markDirty: false });   // align baseline levers with hydrated plan (saved levers can be stale)
 // Solver UI state. solverFormOpen toggles the inline "Solve…" form in the band
 // gutter; solving guards against re-entry while a solve is in flight.
 
@@ -3518,6 +3517,7 @@ renderSolvePanel();
 syncPathControls();
 renderInputs();
 bindHouseholdRailOnce();   // chapter rail (Demographics / Net Worth / Cash Flow) view switch
+reseedScenarios({ markDirty: false });   // align baseline levers with hydrated plan (saved levers can be stale)
 syncHousehold();           // render the editable landing Household page from `plan`
 document.body.classList.toggle('scn-active', document.querySelector('.page.on')?.dataset.page==='scenarios');
 runAll();   // first iteration runs immediately so the tool opens populated
