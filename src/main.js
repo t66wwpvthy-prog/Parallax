@@ -5,7 +5,7 @@ import { storyChart, seqChartSvg } from '../ui/charts.js?v=2';
 import { escHtml } from '../ui/dom.js';
 import { CHART_LAYOUT } from '../ui/chartLayout.js';
 import { GOAL_AREAS, GOAL_AREA_LBL, GOAL_ICONS_SVG, GOAL_COLOR_MAP } from '../ui/goalPalette.js';
-import { createDemoHousehold, createBlankHousehold } from '../ui/householdFactories.js';
+import { createDemoHousehold, createBlankHousehold, DEMO_SEED_VERSION } from '../ui/householdFactories.js';
 import { droppedGoals, goalAreaAges, renderGoalsPage, syncGoalSelection } from '../ui/goals.js';
 import { pathModeLabel, pathOutcomeText, drawSeqChart, renderPrints, normalizePlaybackStrategy, renderPlayback, syncPathControls, updatePathReplayMode } from '../ui/sequencing.js';
 import { buildPathRows, buildCashSummary, renderCashflow } from '../ui/cashflow.js';
@@ -14,7 +14,7 @@ import { solvePanelHTML, goalParamsHtml, comboPillValue } from '../ui/solver.js'
 import { createHouseholdWizard } from '../ui/householdWizard.js';
 import {
   investableTotal, realAssetsTotal, hhAllAccounts, hhDebtTotal, hhNetWorthTotal,
-  hhAgeFromYear, hhFilingLine, hhInitial, hhMoney, hhShort, hhSelect, wizField,
+  hhAgeFromYear, hhInitial, hhMoney, hhShort, hhSelect, wizField,
 } from '../ui/household.js';
 import {
   scenarios, sharedPaths, plansDirty, baseSnapshot,
@@ -77,6 +77,14 @@ function saveActiveHousehold(){
   }
   return false;
 }
+function refreshStaleDemoRecord(db){
+  const cur = db && db.demo;
+  if(!cur || !cur.meta || !cur.meta.isDemo) return db;
+  if((cur.meta.demoSeedVersion || 0) >= DEMO_SEED_VERSION) return db;
+  const fresh = createDemoHousehold(PRISTINE_PLAN);
+  db.demo = fresh;
+  return db;
+}
 // First-load seed + reload hydrate + corruption recovery, all in one pass.
 function bootstrapHouseholds(){
   const valid = r => r && r.meta && r.household && r.household.primary
@@ -88,6 +96,8 @@ function bootstrapHouseholds(){
     const demo = createDemoHousehold(PRISTINE_PLAN);
     db = { [demo.meta.householdId]: demo };
     id = demo.meta.householdId;
+  } else {
+    db = refreshStaleDemoRecord(db);
   }
   // Missing/dangling active pointer → fall back to any household (or a new demo).
   if(!id || !db[id]){
@@ -1044,13 +1054,12 @@ function updateHouseholdControls(){
    delegate re-renders through here). */
 function syncHousehold(){
   const view = $('#hh-view'); if(!view) return;
-  const nm = $('#hh-rail-name'), fl = $('#hh-rail-filing');
+  const nm = $('#hh-rail-name');
   if(nm){
     const pn = plan.meta.primaryName||'Client';
     const sn = plan.meta.spouseName||'Co-Client';
     nm.textContent = plan.household.spouse ? (pn + ' & ' + sn) : pn;
   }
-  if(fl) fl.textContent = hhFilingLine(plan);
   if($('#hh-avatar-c')) $('#hh-avatar-c').textContent = hhInitial(plan.meta.primaryName,'C');
   if($('#hh-avatar-s')) $('#hh-avatar-s').textContent =
     (!plan.meta.spouseName || plan.meta.spouseName === 'Co-Client') ? 'CC' : hhInitial(plan.meta.spouseName,'CC');

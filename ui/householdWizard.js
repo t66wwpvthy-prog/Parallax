@@ -109,12 +109,14 @@ function personColumn(role, plan, deps){
   const nameP = isC ? 'meta.primaryName' : 'meta.spouseName';
   const born = p.birthYear || (p.currentAge != null ? new Date().getFullYear() - p.currentAge : '');
   const init = deps.initial(getPath(plan, nameP), isC ? 'C' : 'CC');
+  const derivedIn = (val) =>
+    `<input type="text" class="hh-derived-in" readonly tabindex="-1" aria-readonly="true" value="${val ?? '—'}">`;
   const rows = [
     ['Name', deps.field(nameP, 'text', { ph: isC ? 'Client name' : 'Co-client name' })],
     ['Born', `<input type="number" data-path="${base}.birthYear" data-type="birthYear" value="${born}" step="1" class="hh-born-in">`],
-    ['Age', `<span class="hh-derived">${p.currentAge ?? '—'}</span>`],
+    ['Age', derivedIn(p.currentAge)],
     ['Retires at', deps.field(base + '.retirementAge', 'age')],
-    ['Plan to age', isC ? deps.field('household.primary.planEndAge', 'age') : `<span class="hh-derived">${plan.household.primary?.planEndAge ?? '—'}</span>`],
+    ['Plan to age', isC ? deps.field('household.primary.planEndAge', 'age') : derivedIn(plan.household.primary?.planEndAge)],
   ];
   const rowHtml = rows.map(([k, v], i) =>
     `<div class="hh-kv${i < rows.length - 1 ? ' hh-kv--rule' : ''}"><span class="hh-kv__k">${k}</span><span class="hh-kv__v">${v}</span></div>`

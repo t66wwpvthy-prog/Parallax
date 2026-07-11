@@ -103,15 +103,8 @@
 }
 .page[data-page="household"] .hh-av--lg { width: 30px; height: 30px; font-size: 14px; }
 .page[data-page="household"] .hh-av--overlap { margin-left: -9px; }
-.page[data-page="household"] .hh-wiz-id__eyebrow {
-  font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--text-4);
-}
 .page[data-page="household"] .hh-wiz-id__name {
   font-family: var(--font-serif); font-size: 22px; color: var(--text-hi); line-height: 1.15;
-}
-.page[data-page="household"] .hh-wiz-id__filing {
-  font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
-  color: var(--text-2); margin-top: 6px;
 }
 
 .page[data-page="household"] .hh-menu { position: relative; flex: none; }
@@ -241,35 +234,69 @@
 .page[data-page="household"] .hh-link-btn:hover { color: var(--down); }
 
 /* ---- Key-value rows (step 1) ---------------------------------------------- */
-.page[data-page="household"] .hh-kv-stack { margin-bottom: 4px; }
+.page[data-page="household"] .hh-kv-stack {
+  margin-bottom: 4px;
+  --hh-kv-val-w: 14ch;
+}
 .page[data-page="household"] .hh-kv {
-  display: flex; align-items: baseline; justify-content: space-between; gap: 16px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--hh-kv-val-w);
+  align-items: baseline;
+  gap: 16px;
   padding: 11px 2px;
 }
 .page[data-page="household"] .hh-kv--rule { border-bottom: 1px solid var(--line-06); }
 .page[data-page="household"] .hh-kv__k {
   font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: #7f7f82;
+  white-space: nowrap;
 }
 .page[data-page="household"] .hh-kv__v {
-  font-family: var(--font-serif); font-size: 21px; color: var(--text-hi); line-height: 1;
-  display: inline-flex; align-items: baseline; gap: 8px;
+  font-family: var(--font-serif); font-size: 16px; color: var(--text-hi); line-height: 1;
+  width: 100%;
+  text-align: right;
+  justify-self: end;
+  font-variant-numeric: tabular-nums;
 }
-.page[data-page="household"] .hh-derived { color: #9a968d; }
+.page[data-page="household"] .hh-kv__v input,
+.page[data-page="household"] .hh-kv__v .hh-derived-in {
+  width: 100%;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.page[data-page="household"] .hh-kv__v .hh-derived-in {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  padding: 0 1px 4px;
+  outline: none;
+  font-size: 16px;
+  color: #9a968d;
+  cursor: default;
+  pointer-events: none;
+}
+.page[data-page="household"] .hh-kv__v input[type="number"] {
+  -moz-appearance: textfield;
+}
+.page[data-page="household"] .hh-kv__v input[type="number"]::-webkit-outer-spin-button,
+.page[data-page="household"] .hh-kv__v input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
 
 /* ---- Timeline ------------------------------------------------------------- */
 .page[data-page="household"] .hh-tl { margin-top: 26px; position: relative; }
 .page[data-page="household"] .hh-tl__track {
-  height: 5px; border-radius: 4px; background: var(--line-08); overflow: hidden;
+  height: 6px; border-radius: 5px; background: var(--line-08); overflow: hidden;
 }
 .page[data-page="household"] .hh-tl__fill { height: 100%; }
 .page[data-page="household"] .hh-tl__knob {
-  position: absolute; top: -3px; width: 9px; height: 9px; border-radius: 50%;
+  position: absolute; top: -2px; width: 10px; height: 10px; border-radius: 50%;
   background: var(--text-hi); transform: translateX(-50%);
   box-shadow: 0 0 0 3px rgba(9,9,9,0.95);
 }
 .page[data-page="household"] .hh-tl__labels {
-  display: flex; justify-content: space-between; margin-top: 13px;
-  font-size: 10.5px; color: var(--text-3);
+  display: flex; justify-content: space-between; margin-top: 14px;
+  font-size: 12px; color: var(--text-3);
 }
 .page[data-page="household"] .hh-tl__hi { color: var(--text-1); }
 .page[data-page="household"] .hh-tl__acc { color: var(--gold); }
@@ -374,25 +401,71 @@
 }
 .page[data-page="household"] .hh-text-add:hover { color: var(--gold-bright); }
 
-/* ---- Inline forms --------------------------------------------------------- */
+/* ---- Inline forms (accounts, children, income, spending, goals) ---------- */
 .page[data-page="household"] .hh-inline-form {
   display: flex; gap: 16px; align-items: flex-end; flex-wrap: wrap;
   border-left: 2px solid rgba(195,165,106,0.45); padding: 14px 0 14px 20px; margin: 6px 0;
 }
-.page[data-page="household"] .hh-inline-form--slim { gap: 10px; padding: 12px 0 12px 16px; }
+.page[data-page="household"] .hh-inline-form--slim {
+  gap: 10px;
+  padding: 12px 0 12px 16px;
+  margin: 10px 0 0;
+  align-items: flex-end;
+}
+.page[data-page="household"] .hh-inline-form .hh-btn {
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  padding: 9px 18px;
+  border-radius: 7px;
+  flex: none;
+}
+.page[data-page="household"] .hh-inline-form .hh-btn--ghost {
+  padding: 9px 8px;
+  color: var(--text-3);
+}
+.page[data-page="household"] .hh-inline-form__acts {
+  display: flex; align-items: center; gap: 6px; flex: none;
+}
 .page[data-page="household"] .hh-inline-form__k {
   display: block; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase;
   color: var(--text-4); margin-bottom: 8px;
 }
 .page[data-page="household"] .hh-inline-form__field { flex: 0 1 220px; min-width: 160px; }
+.page[data-page="household"] .hh-inline-form__field:first-of-type { flex: 0 1 300px; min-width: 200px; }
+.page[data-page="household"] .hh-inline-form__field:nth-of-type(2) { flex: 0 1 180px; min-width: 130px; }
+.page[data-page="household"] .hh-inline-form .hh-sel,
+.page[data-page="household"] .hh-inline-form .hh-form-val {
+  font-size: 15px;
+}
 .page[data-page="household"] .hh-inline-form__money {
   display: flex; align-items: center; gap: 4px;
   background: rgba(0,0,0,0.24); border: 1px solid var(--line-16); border-radius: 8px; padding: 0 12px;
 }
+.page[data-page="household"] .hh-inline-form .hh-form-val {
+  padding: 10px 6px;
+}
+.page[data-page="household"] .hh-inline-form--slim .hh-inline-form__money {
+  flex: 0 0 120px;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--line-16);
+  border-radius: 0;
+  padding: 0 2px;
+}
 .page[data-page="household"] .hh-inline-input {
-  font-family: var(--font-sans); font-size: 16px; color: var(--text-hi);
+  font-family: var(--font-sans); font-size: 15px; color: var(--text-hi);
   background: transparent; border: 0; border-bottom: 1px solid var(--line-16);
   padding: 6px 2px; outline: none; min-width: 0; flex: 1;
+}
+.page[data-page="household"] .hh-inline-form--slim .hh-inline-input {
+  flex: 1 1 140px;
+  min-width: 120px;
+}
+.page[data-page="household"] .hh-inline-form--slim input.hh-born-in {
+  flex: 0 0 7ch;
+  width: 7ch;
+  min-width: 7ch;
+  text-align: right;
 }
 .page[data-page="household"] .hh-form-val { border: none; background: transparent; color: var(--text-hi); font-size: 16px; padding: 10px 6px; min-width: 0; flex: 1; outline: none; }
 
@@ -549,12 +622,19 @@
 }
 .page[data-page="household"] input[data-path]:focus { border-bottom-color: var(--gold); }
 .page[data-page="household"] input[data-type="text"] { width: 14ch; }
+.page[data-page="household"] .hh-kv__v input[data-type="text"] { width: 100%; text-align: right; }
 .page[data-page="household"] input[data-type="money"] { width: 10ch; text-align: right; }
 .page[data-page="household"] input[data-type="age"],
 .page[data-page="household"] input[data-type="num"] { width: 4.5ch; text-align: right; }
+.page[data-page="household"] .hh-kv__v input[data-type="age"],
+.page[data-page="household"] .hh-kv__v input[data-type="num"] { width: 100%; }
 .page[data-page="household"] input.hh-born-in {
   width: 7ch; min-width: 7ch; text-align: left;
   -moz-appearance: textfield;
+}
+.page[data-page="household"] .hh-kv__v input.hh-born-in {
+  width: 100%;
+  text-align: right;
 }
 .page[data-page="household"] input.hh-born-in::-webkit-outer-spin-button,
 .page[data-page="household"] input.hh-born-in::-webkit-inner-spin-button {

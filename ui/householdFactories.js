@@ -1,14 +1,18 @@
 const clonePristinePlan = pristinePlan => JSON.parse(JSON.stringify(pristinePlan));
 
-/* Demo Household: Client 1 (64) and Client 2 (63), 2026, VA, MFJ.
+/** Bump when demo seed content changes so persisted localStorage refreshes on load. */
+export const DEMO_SEED_VERSION = 2;
+
+/* Demo Household: Nathan (64) and Maci (63), 2026, VA, MFJ.
    Matches blueprint wizard handoff demo data. */
 export function createDemoHousehold(pristinePlan){
   const p = clonePristinePlan(pristinePlan);
   p.meta.householdId = 'demo';
   p.meta.name        = 'Demo Household';
   p.meta.isDemo      = true;
-  p.meta.primaryName = 'Client 1';
-  p.meta.spouseName  = 'Client 2';
+  p.meta.demoSeedVersion = DEMO_SEED_VERSION;
+  p.meta.primaryName = 'Nathan';
+  p.meta.spouseName  = 'Maci';
   p.meta.filingStatus = 'marriedFilingJointly';
   p.meta.state       = 'VA';
   p.household.primary = { currentAge: 64, retirementAge: 66, planEndAge: 95, birthYear: 1962 };
@@ -36,8 +40,8 @@ export function createDemoHousehold(pristinePlan){
   p.income.socialSecurity.spouse  = { pia: 28000, claimAge: 65 };
   p.income.pension = { benefitByAge: {}, base: 0, startAge: 65, colaPct: 0 };
   p.income.other   = [
-    { label:'Client 1 · wages', amount: 120000, startAge: 64, endAge: 66, realGrowth: 0, taxablePct: 1 },
-    { label:'Client 2 · wages', amount:  60000, startAge: 63, endAge: 65, realGrowth: 0, taxablePct: 1 },
+    { label:'Nathan · wages', amount: 120000, startAge: 64, endAge: 66, realGrowth: 0, taxablePct: 1 },
+    { label:'Maci · wages', amount:  60000, startAge: 63, endAge: 65, realGrowth: 0, taxablePct: 1 },
   ];
   p.goals = [
     { name:'Travel & leisure', amount: 30000, startAge: 66, endAge: 81 },
