@@ -73,13 +73,24 @@ export function taxSidecarFor(scn, { isTypicalPath, typicalPathFederalTax }) {
       byAge: byAge,
       byYear: byYear,
       scope: Array.isArray(raw) ? null : (raw.scope ?? null),
+      totals: Array.isArray(raw) ? null : (raw.totals ?? null),
     };
+  }
+
+export function taxComparisonFor(sidecar) {
+    const totals = sidecar?.totals;
+    if (!totals) return null;
+    const federalTotal = totals.federalTaxLiability;
+    const enginePathTotal = totals.enginePathTax;
+    const delta = totals.deltaVsEnginePath;
+    if (![federalTotal, enginePathTotal, delta].every(Number.isFinite)) return null;
+    return { federalTotal, enginePathTotal, delta };
   }
 
 export function taxColumnMeta(sidecar) {
     if (!sidecar) {
       return {
-        label: 'Engine Tax',
+        label: 'Tax',
         source: 'engine',
         scope: null,
         title: 'Engine row tax estimate',
@@ -87,14 +98,14 @@ export function taxColumnMeta(sidecar) {
     }
     if (sidecar.scope === 'INCOME_TAX_ONLY') {
       return {
-        label: 'Federal Income Tax',
+        label: 'Tax',
         source: 'federal-sidecar',
         scope: sidecar.scope,
         title: 'Federal sidecar · income tax only',
       };
     }
     return {
-      label: 'Federal Tax',
+      label: 'Tax',
       source: 'federal-sidecar',
       scope: sidecar.scope,
       title: sidecar.scope === 'FULL_1040'
@@ -114,6 +125,12 @@ export function resolveRowTax(row, sidecar) {
 export function fmtParenMoney(n, fmtMoney) {
     const m = fmtMoney(n);
     return m === '—' ? m : '(' + m + ')';
+  }
+
+export function fmtSignedMoney(n, fmtMoney) {
+    if (!Number.isFinite(n)) return '—';
+    if (n === 0) return '$0';
+    return (n < 0 ? '−' : '+') + fmtMoney(Math.abs(n));
   }
 
 export function groupPhases(rows) {
@@ -136,8 +153,10 @@ export function renderCashflow(scn, allScns, {
     const rows = cashFromRetirement ? allRows.filter((r) => !r.accum) : allRows;
     const hasWorking = allRows.some((r) => r.accum);
     const summary = cashSummary(scn.raw);
+    const typicalPath = isTypicalPath();
     const sidecar = taxSidecarFor(scn.raw, { isTypicalPath, typicalPathFederalTax });
     const taxColumn = taxColumnMeta(sidecar);
+    const taxComparison = typicalPath ? taxComparisonFor(sidecar) : null;
 
     const pills = allScns.map((s) => (
       '<button class="cf-pill ' + (s.id === scn.id ? 'is-active' : '') + '" type="button" data-cash-pick="' + esc(s.id) + '" aria-pressed="' + (s.id === scn.id ? 'true' : 'false') + '" style="--tone:' + s.tone + ';">' +
@@ -148,6 +167,17 @@ export function renderCashflow(scn, allScns, {
     const retStartAge = rows.find((r) => !r.accum)?.age ?? null;
     const RMD_START_AGE = 73;
     const rmdStartAge = rows.find((r) => r.age >= RMD_START_AGE)?.age ?? null;
+
+    const taxComparisonHtml = taxComparison ? (
+      '<div class="cf-tax-compare" data-tax-compare style="display:contents;"' +
+        ' data-federal-total="' + taxComparison.federalTotal + '"' +
+        ' data-engine-path-total="' + taxComparison.enginePathTotal + '"' +
+        ' data-delta="' + taxComparison.delta + '">' +
+        '<div class="cf-stat"><div class="cf-stat__label">Federal Total</div><div class="cf-stat__value">' + (taxComparison.federalTotal === 0 ? '$0' : fmtMoney(taxComparison.federalTotal)) + '</div></div>' +
+        '<div class="cf-stat"><div class="cf-stat__label">Engine Path</div><div class="cf-stat__value">' + (taxComparison.enginePathTotal === 0 ? '$0' : fmtMoney(taxComparison.enginePathTotal)) + '</div></div>' +
+        '<div class="cf-stat"><div class="cf-stat__label">Delta</div><div class="cf-stat__value">' + fmtSignedMoney(taxComparison.delta, fmtMoney) + '</div></div>' +
+      '</div>'
+    ) : '';
 
     const summaryStrip = (
       '<div class="cf-summary" style="--tone:' + scn.tone + ';--tone-glow:' + toneGlow(scn.tone) + ';">' +
@@ -160,6 +190,7 @@ export function renderCashflow(scn, allScns, {
           '<div class="cf-stat"><div class="cf-stat__label">Peak Withdrawal</div>' +
             '<div class="cf-stat__peak"><span class="cf-stat__value" style="color:' + wdColor(summary.peakWdRate, false) + ';">' + (summary.peakWdRate ? num(summary.peakWdRate, 1) + '%' : '—') + '</span><span class="cf-stat__peak-age">' + (summary.peakWdAge ? 'age ' + summary.peakWdAge : '') + '</span></div>' +
           '</div>' +
+          taxComparisonHtml +
         '</div>' +
       '</div>'
     );
