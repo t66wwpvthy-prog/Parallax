@@ -1,5 +1,6 @@
 import { runSimulation, runHistoricalPath, generateReturnPath, resetSeed, annualMortgagePayment, LONGRUN_INFLATION, pathDigest, assessPlan, RISK_PROFILES, defaultPlan as plan } from '../engine.js';
 import { attachTypicalPathFederalTax } from './planning/tax/attachTypicalPathFederalTax.js';
+import { rerunTypicalPathWithFederalTax } from './planning/tax/rerunTypicalPathWithFederalTax.js';
 import { fmtM, fmtMoney, fmtMDelta, fmtPts, cfMoney, cfRetPct, cfGain } from '../ui/formatters.js';
 import { storyChart, seqChartSvg } from '../ui/charts.js?v=2';
 import { escHtml } from '../ui/dom.js';
@@ -2511,16 +2512,23 @@ function runAll(){
           const p=planForScenario(s.lev);
           const ov=leversToOverrides(s.lev);
           s.res=runSimulation(p, ov, sharedPaths);
-          // Sidecar: real 1040 on median path only — compare vs engine shortcut; no UI yet.
+          // Re-run only the selected p50 with federal row taxes, then attach its
+          // auditable summary. MC sims and aggregates remain on the shortcut.
           try{
-            s.res.typicalPathFederalTax = attachTypicalPathFederalTax(s.res, {
+            const federalResult = rerunTypicalPathWithFederalTax(s.res, {
               baseTaxYear,
               scenarioId: s.name,
               filingStatus: p.meta?.filingStatus,
             });
+            federalResult.typicalPathFederalTax = attachTypicalPathFederalTax(federalResult, {
+              baseTaxYear,
+              scenarioId: s.name,
+              filingStatus: p.meta?.filingStatus,
+            });
+            s.res = federalResult;
           }catch(taxErr){
             s.res.typicalPathFederalTax = null;
-            console.warn('Federal tax attach failed:', s.name, taxErr);
+            console.warn('Federal typical-path rerun failed:', s.name, taxErr);
           }
           // Historical Stress (Focus rail): engine-derived per-scenario eras.
           // Isolated so a stress hiccup never blanks the scenario's main result.
