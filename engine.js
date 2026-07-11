@@ -547,7 +547,7 @@ function weightedAssetReturn(row, weights){
 }
 
 
-function runSimulation(plan, overrides = {}, returnPaths = null){
+function runSimulation(plan, overrides = {}, returnPaths = null, options = {}){
   const inputs = resolveInputs(plan, overrides);
   const sims = [];
   // When a return-path bundle is supplied it is authoritative: iterate over
@@ -558,7 +558,7 @@ function runSimulation(plan, overrides = {}, returnPaths = null){
     const returnPath = returnPaths
       ? returnPaths[s]
       : generateReturnPath(inputs.horizonYears);
-    const sim = runSinglePath(inputs, returnPath);
+    const sim = runSinglePath(inputs, returnPath, options);
     sim.simIndex = s;  // anchor for path-coherent cross-strategy comparison
     sim.returnPath = returnPath;  // preserve coherent path for summary resilience / elasticity diagnostics
     sims.push(sim);
@@ -856,6 +856,7 @@ function rmdDivisor(age){
 
 function runSinglePath(p, returnPath, options = {}){
   const taxPolicy = options.taxPolicy ?? null;
+  const fundTaxPolicyDelta = options.fundTaxPolicyDelta === true;
   if(taxPolicy !== null && typeof taxPolicy !== 'function'){
     throw new TypeError('options.taxPolicy must be a function');
   }
@@ -1015,11 +1016,11 @@ function runSinglePath(p, returnPath, options = {}){
       ? fundGap(accounts, gap, p.taxRates, p.withdrawalStrategy)
       : { totalWithdrawn: 0, totalTax: 0, breakdown: { taxable: 0, traditional: 0, roth: 0 }, taxBySource: { taxable: 0, traditional: 0 }, shortfall: 0 };
 
-    const withdrawal = funding.totalWithdrawn;
+    let withdrawal = funding.totalWithdrawn;
     const totalTax   = taxOnInc + funding.totalTax;
     lifetimeTax     += totalTax;
-    const wdRate = (startBalance > 0.01 && withdrawal > 0)
-                   ? (withdrawal / startBalance) * 100 : 0;
+    let wdRate = (startBalance > 0.01 && withdrawal > 0)
+                 ? (withdrawal / startBalance) * 100 : 0;
 
     returnProduct *= (1 + r);
     if(y < 10) first10Product *= (1 + r);
@@ -1056,7 +1057,7 @@ function runSinglePath(p, returnPath, options = {}){
 
     // Start-of-year gain share for adapter/tax attach — read-only fact, not tax math.
     const taxableWithdrawal = funding.breakdown.taxable;
-    const taxableGainFraction = taxableWithdrawal > 0.01
+    let taxableGainFraction = taxableWithdrawal > 0.01
       ? (taxStartBal > 0.01
           ? Math.max(0, Math.min(1, (taxStartBal - taxStartBasis) / taxStartBal))
           : 0)
@@ -1079,6 +1080,96 @@ function runSinglePath(p, returnPath, options = {}){
         accounts.taxable.balance += reinvest;
         accounts.taxable.basis   += reinvest;        // after-tax dollars carry full basis
         lifetimeTax += rmdTax;
+      }
+    }
+
+    const shortcutTax = totalTax + rmdTax;
+    let resolvedTax = shortcutTax;
+
+    // T8 funding mode: resolve the caller-supplied tax before depletion is
+    // finalized. Only a positive delta creates an additional portfolio need;
+    // lower resolved tax remains reporting-only (no refund/redeposit model).
+    // T7's direct runSinglePath reruns omit fundTaxPolicyDelta and therefore
+    // keep the original reporting-only behavior and identical funding paths.
+    if(taxPolicy && fundTaxPolicyDelta){
+      const policyRow = {
+        year: y+1, age, source: rp.y, returnRate: r,
+        returnDollars: startBalance * r,
+        nominalReturn: (rp && rp.proxyNominalReturn != null) ? rp.proxyNominalReturn : null,
+        inflationRate: (rp && rp.proxyInflationRate != null) ? rp.proxyInflationRate : null,
+        realReturnUsed: r,
+        socialSecurity: ssInc, otherIncome: oiInc, pension: penInc, withdrawal,
+        ...(oiInc > 0 ? { otherIncomeTaxable: oiTaxable } : {}),
+        rmd: rmdForced, assetSale: saleProceeds,
+        expenses, goals: goalsY, liabilities: liabCost, taxes: shortcutTax, lumpSum: lumpY,
+        startBalance, wdRate,
+        netCashflow: (ssInc + oiInc + penInc + saleProceeds)
+                     - (expenses + goalsY + liabCost + shortcutTax),
+        balance: totalBalance(), failed: false,
+        accountBreakdown: { ...funding.breakdown },
+        accountBalances: {
+          taxable: accounts.taxable.balance,
+          traditional: accounts.traditional.balance,
+          roth: accounts.roth.balance
+        },
+        ...(taxableGainFraction !== undefined ? { taxableGainFraction } : {}),
+        taxBySource: {
+          ss: taxOnSS, oi: taxOnOI,
+          traditional: funding.taxBySource.traditional,
+          taxable: funding.taxBySource.taxable
+        }
+      };
+
+      resolvedTax = taxPolicy(policyRow, { shortcutTax, yearIndex: y });
+      if(!Number.isFinite(resolvedTax) || resolvedTax < 0){
+        throw new TypeError('taxPolicy must return a finite non-negative tax');
+      }
+      lifetimeTax += resolvedTax - shortcutTax;
+
+      const taxDelta = resolvedTax - shortcutTax;
+      if(taxDelta > 0.01){
+        // fundGap applies the same account ordering and tax gross-up mechanics
+        // used for the ordinary spending gap. This second draw occurs against
+        // the post-spending/RMD account state and before failure is decided.
+        const extraTaxStartBal = accounts.taxable.balance;
+        const extraTaxStartBasis = accounts.taxable.basis;
+        const additionalFunding = fundGap(
+          accounts,
+          taxDelta,
+          p.taxRates,
+          p.withdrawalStrategy
+        );
+
+        accounts.taxable.balance -= (additionalFunding.breakdown.taxable / 12) * factor;
+        accounts.traditional.balance -= (additionalFunding.breakdown.traditional / 12) * factor;
+        accounts.roth.balance -= (additionalFunding.breakdown.roth / 12) * factor;
+
+        if(additionalFunding.breakdown.taxable > 0 && extraTaxStartBal > 0.01){
+          const gainFraction = Math.max(0, Math.min(
+            1,
+            (extraTaxStartBal - extraTaxStartBasis) / extraTaxStartBal
+          ));
+          if(taxableGainFraction === undefined) taxableGainFraction = gainFraction;
+          const basisFraction = extraTaxStartBasis / extraTaxStartBal;
+          accounts.taxable.basis = Math.max(
+            0,
+            extraTaxStartBasis - additionalFunding.breakdown.taxable * basisFraction
+          );
+        }
+
+        funding.totalWithdrawn += additionalFunding.totalWithdrawn;
+        funding.totalTax += additionalFunding.totalTax;
+        funding.shortfall += additionalFunding.shortfall;
+        for(const type of ['taxable', 'traditional', 'roth']){
+          funding.breakdown[type] += additionalFunding.breakdown[type];
+        }
+        for(const type of ['taxable', 'traditional']){
+          funding.taxBySource[type] += additionalFunding.taxBySource[type];
+        }
+        withdrawal = funding.totalWithdrawn;
+        wdRate = (startBalance > 0.01 && withdrawal > 0)
+          ? (withdrawal / startBalance) * 100
+          : 0;
       }
     }
 
@@ -1116,7 +1207,6 @@ function runSinglePath(p, returnPath, options = {}){
       if(dd > maxDrawdown) maxDrawdown = dd;
     }
 
-    const shortcutTax = totalTax + rmdTax;
     const row = {
       year: y+1, age, source: rp.y, returnRate: r,
       returnDollars: startBalance * r,
@@ -1126,9 +1216,10 @@ function runSinglePath(p, returnPath, options = {}){
       socialSecurity: ssInc, otherIncome: oiInc, pension: penInc, withdrawal,
       ...(oiInc > 0 ? { otherIncomeTaxable: oiTaxable } : {}),
       rmd: rmdForced, assetSale: saleProceeds,
-      expenses, goals: goalsY, liabilities: liabCost, taxes: shortcutTax, lumpSum: lumpY,
+      expenses, goals: goalsY, liabilities: liabCost, taxes: resolvedTax, lumpSum: lumpY,
       startBalance, wdRate,
-      netCashflow: (ssInc + oiInc + penInc + saleProceeds) - (expenses + goalsY + liabCost + totalTax + rmdTax),
+      netCashflow: (ssInc + oiInc + penInc + saleProceeds)
+                   - (expenses + goalsY + liabCost + resolvedTax),
       balance: endBalance, failed,
       accountBreakdown: { ...funding.breakdown },
       accountBalances: {
@@ -1144,20 +1235,18 @@ function runSinglePath(p, returnPath, options = {}){
       }
     };
 
-    // T6 tax-policy seam: the engine supplies completed annual cash-flow facts;
-    // an opt-in planning resolver may replace only the reported annual tax.
-    // The default path does not call a resolver and remains the exact shortcut
-    // above. Funding/gross-up mechanics stay on that shortcut in this slice.
-    if(taxPolicy){
-      const resolvedTax = taxPolicy(row, { shortcutTax, yearIndex: y });
-      if(!Number.isFinite(resolvedTax) || resolvedTax < 0){
+    // Reporting-only mode remains the T6/T7 default. T8 opts into the earlier
+    // funding branch explicitly, so existing callers retain identical paths.
+    if(taxPolicy && !fundTaxPolicyDelta){
+      const reportingTax = taxPolicy(row, { shortcutTax, yearIndex: y });
+      if(!Number.isFinite(reportingTax) || reportingTax < 0){
         throw new TypeError('taxPolicy must return a finite non-negative tax');
       }
-      if(resolvedTax !== shortcutTax){
-        lifetimeTax += resolvedTax - shortcutTax;
-        row.taxes = resolvedTax;
+      if(reportingTax !== shortcutTax){
+        lifetimeTax += reportingTax - shortcutTax;
+        row.taxes = reportingTax;
         row.netCashflow = (ssInc + oiInc + penInc + saleProceeds)
-                          - (expenses + goalsY + liabCost + resolvedTax);
+                          - (expenses + goalsY + liabCost + reportingTax);
       }
     }
 

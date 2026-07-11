@@ -510,6 +510,10 @@ test('default Monte Carlo is identical to the explicit shortcut tax policy', () 
   const bundle = Array.from({ length: 40 }, () => generateReturnPath(inputs.horizonYears));
 
   const defaultResult = runSimulation(p, {}, bundle);
+  const explicitNullResult = runSimulation(p, {}, bundle, {
+    taxPolicy: null,
+    fundTaxPolicyDelta: true,
+  });
   const explicitSims = bundle.map((returnPath, simIndex) => {
     const sim = runSinglePath(inputs, returnPath, {
       taxPolicy: (_row, { shortcutTax }) => shortcutTax,
@@ -522,6 +526,8 @@ test('default Monte Carlo is identical to the explicit shortcut tax policy', () 
 
   assert.deepStrictEqual(defaultResult, explicitShortcutResult,
     'unused tax-policy seam must preserve the complete default MC result');
+  assert.deepStrictEqual(defaultResult, explicitNullResult,
+    'null tax policy must remain byte-identical even when funding mode is requested');
 });
 
 test('opt-in single path reports federal line 24 as row tax', () => {
@@ -560,6 +566,78 @@ test('opt-in single path reports federal line 24 as row tax', () => {
   assert.ok(Math.abs(
     federalPath.lifetimeTax - federalPath.rows.reduce((sum, row) => sum + row.taxes, 0)
   ) < 0.01, 'single-path lifetime tax must follow resolved federal row taxes');
+});
+
+test('tax-policy funding mode grosses up a positive delta before depletion', () => {
+  const build = (balance, living, bucket = 'taxable') => {
+    const p = structuredClone(defaultPlan);
+    p.meta.filingStatus = 'single';
+    p.household.primary = { currentAge: 65, retirementAge: 65, planEndAge: 66 };
+    p.household.spouse = null;
+    p.portfolio.accounts = {
+      taxable: { balance: bucket === 'taxable' ? balance : 0, basisPct: 1 },
+      traditional: { balance: bucket === 'traditional' ? balance : 0 },
+      roth: { balance: 0 },
+    };
+    p.portfolio.extraAccounts = [];
+    p.income.socialSecurity = { primary: { pia: 0, claimAge: 67 }, spouse: null };
+    p.income.other = [];
+    p.income.pension = { benefitByAge: {}, base: 0, startAge: 65, colaPct: 0 };
+    p.expenses = {
+      living,
+      housing: 0,
+      debt: 0,
+      healthcare: 0,
+      healthcareRealGrowth: 0,
+      extra: [],
+    };
+    p.liabilities = [];
+    p.properties = [];
+    p.goals = [];
+    p.ltc = { amount: 0, onsetAge: 85 };
+    return resolveInputs(p, {});
+  };
+  const returnPath = [{ y: 2026, proxyReturn: 0 }];
+
+  const ampleInputs = build(100000, 10000);
+  const shortcut = runSinglePath(ampleInputs, returnPath);
+  const reportingOnly = runSinglePath(ampleInputs, returnPath, {
+    taxPolicy: (_row, { shortcutTax }) => shortcutTax + 5000,
+  });
+  const funded = runSinglePath(ampleInputs, returnPath, {
+    taxPolicy: (_row, { shortcutTax }) => shortcutTax + 5000,
+    fundTaxPolicyDelta: true,
+  });
+
+  assert.strictEqual(reportingOnly.rows[0].withdrawal, shortcut.rows[0].withdrawal,
+    'reporting-only T7 mode must keep shortcut funding unchanged');
+  assert.strictEqual(reportingOnly.terminalBalance, shortcut.terminalBalance);
+  assert.strictEqual(funded.rows[0].withdrawal, shortcut.rows[0].withdrawal + 5000,
+    'positive resolved-tax delta must create an additional portfolio withdrawal');
+  assert.strictEqual(funded.terminalBalance, shortcut.terminalBalance - 5000);
+  assert.strictEqual(funded.rows[0].taxes, shortcut.rows[0].taxes + 5000);
+
+  const traditionalInputs = build(100000, 10000, 'traditional');
+  const traditionalShortcut = runSinglePath(traditionalInputs, returnPath);
+  const traditionalFunded = runSinglePath(traditionalInputs, returnPath, {
+    taxPolicy: (_row, { shortcutTax }) => shortcutTax + 5000,
+    fundTaxPolicyDelta: true,
+  });
+  const extraGross = traditionalFunded.rows[0].withdrawal
+    - traditionalShortcut.rows[0].withdrawal;
+  assert.ok(extraGross > 5000, 'traditional funding must gross up the federal delta');
+  assert.ok(Math.abs(extraGross * (1 - traditionalInputs.taxRates.ordinary) - 5000) < 0.01,
+    'additional traditional withdrawal must net the resolved-tax delta after shortcut tax');
+
+  const tightInputs = build(12000, 10000);
+  const tightShortcut = runSinglePath(tightInputs, returnPath);
+  const tightFunded = runSinglePath(tightInputs, returnPath, {
+    taxPolicy: (_row, { shortcutTax }) => shortcutTax + 3000,
+    fundTaxPolicyDelta: true,
+  });
+  assert.strictEqual(tightShortcut.failed, false, 'shortcut fixture must survive');
+  assert.strictEqual(tightFunded.failed, true,
+    'unfunded federal-tax delta must be able to change the path outcome');
 });
 
 test('engine rows expose taxable other income matching taxBySource', () => {

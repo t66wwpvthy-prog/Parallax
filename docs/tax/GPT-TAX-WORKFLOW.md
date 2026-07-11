@@ -53,7 +53,8 @@ node scripts/verify.mjs                    # required for T4 adapter/UI-touching
 | T4.6 Typical-path integration coverage | **Done** #90 | `npm test` + `verify.mjs` |
 | T5 Sidecar + Cash Flow scope | **Done** #91, #92, #95 | `npm test` + `verify.mjs` |
 | T6 Engine vs federal truth (single/story/historical paths) | **Done** #96-#99 | `npm test` + `verify.mjs` |
-| **T7 Full Monte Carlo federal row reporting** | **Implemented - awaiting PR** | `npm test` + `verify.mjs` |
+| T7 Full Monte Carlo federal row reporting | **Done** #101 | `npm test` + `verify.mjs` |
+| **T8 Federal Monte Carlo success-rate sidecar** | **Implemented - awaiting PR** | `npm test` + `verify.mjs` |
 
 ## Benchmark (annual-08)
 
