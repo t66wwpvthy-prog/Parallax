@@ -6,16 +6,16 @@ import { CHART_LAYOUT } from './chartLayout.js';
 
 
 
-export function selectedPathIndex(res, findSimByTerminalBalance){
+export function selectedPathIndex(res){
   if(!res || !Array.isArray(res.sims) || !res.sims.length) return 0;
   if(pathReplay.mode === 'typical'){
     return (res.paths && res.paths.p50 && res.paths.p50.simIndex != null) ? res.paths.p50.simIndex : 0;
   }
   if(pathReplay.mode === 'stressed'){
-    return res.terminal && Number.isFinite(res.terminal.p10) ? findSimByTerminalBalance(res, res.terminal.p10) : 0;
+    return (res.paths && res.paths.p10 && res.paths.p10.simIndex != null) ? res.paths.p10.simIndex : 0;
   }
   if(pathReplay.mode === 'favorable'){
-    return res.terminal && Number.isFinite(res.terminal.p90) ? findSimByTerminalBalance(res, res.terminal.p90) : 0;
+    return (res.paths && res.paths.p90 && res.paths.p90.simIndex != null) ? res.paths.p90.simIndex : 0;
   }
   if(pathReplay.mode === 'sequence-stress'){
     return (res.paths && res.paths.p10 && res.paths.p10.simIndex != null) ? res.paths.p10.simIndex : 0;

@@ -6,7 +6,7 @@ import {
   resetSeed,
   runSimulation,
 } from '../../../engine.js';
-import { attachTypicalPathFederalTax } from './attachTypicalPathFederalTax.js';
+import { attachPathFederalTax } from './attachTypicalPathFederalTax.js';
 import { rerunTypicalPathWithFederalTax } from './rerunTypicalPathWithFederalTax.js';
 
 function fixture(){
@@ -38,53 +38,74 @@ function aggregateSnapshot(analysis){
   };
 }
 
-test('p50 retirement row taxes equal federal Form 1040 line 24', () => {
+test('p10, p50, and p90 retirement row taxes equal federal Form 1040 line 24', () => {
   const { federalAnalysis, options } = fixture();
-  const summary = attachTypicalPathFederalTax(federalAnalysis, options);
-
-  assert.ok(summary.years.length > 0);
-  assert.ok(summary.years.every((year) =>
-    Math.abs(year.engineTax - year.federalTaxLiability) < 0.01
-  ));
+  for(const pathKey of ['p10', 'p50', 'p90']){
+    const summary = attachPathFederalTax(federalAnalysis, pathKey, options);
+    assert.strictEqual(summary.path, pathKey);
+    assert.ok(summary.years.length > 0);
+    assert.ok(summary.years.every((year) =>
+      Math.abs(year.engineTax - year.federalTaxLiability) < 0.01
+    ));
+  }
 });
 
-test('p50 federal rerun leaves Monte Carlo simulations and aggregates unchanged', () => {
+test('story-path federal reruns patch matching sims while leaving MC aggregates unchanged', () => {
   const { analysis, federalAnalysis } = fixture();
+  const federalKeys = ['p10', 'p50', 'p90'];
+  const federalIndexes = new Set(federalKeys.map((key) => analysis.paths[key].simIndex));
 
   assert.notStrictEqual(federalAnalysis, analysis);
-  assert.notStrictEqual(federalAnalysis.paths.p50, analysis.paths.p50);
-  assert.strictEqual(federalAnalysis.paths.p50.simIndex, analysis.paths.p50.simIndex);
-  assert.strictEqual(federalAnalysis.paths.p50.returnPath, analysis.paths.p50.returnPath);
-  assert.strictEqual(federalAnalysis.sims, analysis.sims);
-  for(const key of ['p10', 'p25', 'p75', 'p90']){
+  assert.notStrictEqual(federalAnalysis.sims, analysis.sims);
+  for(const key of federalKeys){
+    assert.notStrictEqual(federalAnalysis.paths[key], analysis.paths[key]);
+    assert.strictEqual(federalAnalysis.paths[key].simIndex, analysis.paths[key].simIndex);
+    assert.strictEqual(federalAnalysis.paths[key].returnPath, analysis.paths[key].returnPath);
+    assert.strictEqual(
+      federalAnalysis.sims.find((sim) => sim.simIndex === analysis.paths[key].simIndex),
+      federalAnalysis.paths[key]
+    );
+  }
+  for(const key of ['p25', 'p75']){
     assert.strictEqual(federalAnalysis.paths[key], analysis.paths[key]);
   }
+  for(const sim of analysis.sims){
+    if(!federalIndexes.has(sim.simIndex)){
+      assert.strictEqual(
+        federalAnalysis.sims.find((candidate) => candidate.simIndex === sim.simIndex),
+        sim
+      );
+    }
+  }
   assert.deepStrictEqual(aggregateSnapshot(federalAnalysis), aggregateSnapshot(analysis));
-  assert.deepStrictEqual(
-    federalAnalysis.paths.p50.rows.map((row) => ({
-      withdrawal: row.withdrawal,
-      rmd: row.rmd,
-      balance: row.balance,
-      accountBreakdown: row.accountBreakdown,
-      accountBalances: row.accountBalances,
-    })),
-    analysis.paths.p50.rows.map((row) => ({
-      withdrawal: row.withdrawal,
-      rmd: row.rmd,
-      balance: row.balance,
-      accountBreakdown: row.accountBreakdown,
-      accountBalances: row.accountBalances,
-    })),
-    'federal reporting must not change shortcut funding, gross-up, RMDs, or balances'
-  );
+  for(const pathKey of federalKeys){
+    assert.deepStrictEqual(
+      federalAnalysis.paths[pathKey].rows.map((row) => ({
+        withdrawal: row.withdrawal,
+        rmd: row.rmd,
+        balance: row.balance,
+        accountBreakdown: row.accountBreakdown,
+        accountBalances: row.accountBalances,
+      })),
+      analysis.paths[pathKey].rows.map((row) => ({
+        withdrawal: row.withdrawal,
+        rmd: row.rmd,
+        balance: row.balance,
+        accountBreakdown: row.accountBreakdown,
+        accountBalances: row.accountBalances,
+      })),
+      `${pathKey} federal reporting must not change shortcut funding, gross-up, RMDs, or balances`
+    );
+  }
 });
 
-test('attached federal-vs-path delta is approximately zero after p50 rerun', () => {
+test('attached federal-vs-path deltas are approximately zero after story-path reruns', () => {
   const { analysis, federalAnalysis, options } = fixture();
-  const before = attachTypicalPathFederalTax(analysis, options);
-  const after = attachTypicalPathFederalTax(federalAnalysis, options);
-
-  assert.ok(Math.abs(before.totals.deltaVsEnginePath) > 0.01,
-    'fixture must begin with a real shortcut-vs-federal delta');
-  assert.ok(Math.abs(after.totals.deltaVsEnginePath) < 0.01);
+  for(const pathKey of ['p10', 'p50', 'p90']){
+    const before = attachPathFederalTax(analysis, pathKey, options);
+    const after = attachPathFederalTax(federalAnalysis, pathKey, options);
+    assert.ok(Math.abs(before.totals.deltaVsEnginePath) > 0.01,
+      `${pathKey} fixture must begin with a real shortcut-vs-federal delta`);
+    assert.ok(Math.abs(after.totals.deltaVsEnginePath) < 0.01);
+  }
 });

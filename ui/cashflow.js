@@ -17,10 +17,10 @@ export function goalTagFor(plan, r, age) {
   }
 
 export function buildPathRows(s, {
-    simByIndex, baselineResult, findSimByTerminalBalance, plan, currentYear,
+    simByIndex, baselineResult, plan, currentYear,
   }) {
     if (!s.res) return [];
-    const sim = simByIndex(s.res, selectedPathIndex(baselineResult(), findSimByTerminalBalance));
+    const sim = simByIndex(s.res, selectedPathIndex(baselineResult()));
     if (!sim || !Array.isArray(sim.rows)) return [];
     const curAge = plan.household.primary.currentAge;
     const baseYear = currentYear;
@@ -47,18 +47,20 @@ export function buildPathRows(s, {
   }
 
 export function buildCashSummary(s, {
-    simByIndex, baselineResult, findSimByTerminalBalance, pathDigest,
+    simByIndex, baselineResult, pathDigest,
   }) {
     if (!s.res) return {};
-    const sim = simByIndex(s.res, selectedPathIndex(baselineResult(), findSimByTerminalBalance));
+    const sim = simByIndex(s.res, selectedPathIndex(baselineResult()));
     if (!sim) return {};
     let d = {};
     try { d = (typeof pathDigest === 'function') ? pathDigest(sim) : {}; } catch (e) { d = {}; }
     return { peakWdRate: d.peakWdRate, peakWdAge: d.peakWdAge };
   }
 
-export function taxSidecarFor(scn, { isTypicalPath, typicalPathFederalTax }) {
-    const raw = isTypicalPath() ? typicalPathFederalTax(scn) : (scn.res && scn.res.pathFederalTax);
+export function taxSidecarFor(scn, { isTypicalPath, typicalPathFederalTax, pathFederalTax }) {
+    const raw = typeof pathFederalTax === 'function'
+      ? pathFederalTax(scn)
+      : (isTypicalPath() ? typicalPathFederalTax(scn) : (scn.res && scn.res.pathFederalTax));
     if (!raw) return null;
     const byAge = new Map(), byYear = new Map();
     const list = Array.isArray(raw) ? raw : (raw.years || raw.rows || []);
@@ -73,6 +75,7 @@ export function taxSidecarFor(scn, { isTypicalPath, typicalPathFederalTax }) {
       byAge: byAge,
       byYear: byYear,
       scope: Array.isArray(raw) ? null : (raw.scope ?? null),
+      path: Array.isArray(raw) ? null : (raw.path ?? null),
       totals: Array.isArray(raw) ? null : (raw.totals ?? null),
       warnings: Array.isArray(raw) ? [] : (Array.isArray(raw.warnings) ? raw.warnings : []),
     };
@@ -157,7 +160,7 @@ export function groupPhases(rows) {
   }
 
 export function renderCashflow(scn, allScns, {
-    pathRows, cashSummary, cashFromRetirement, isTypicalPath, typicalPathFederalTax,
+    pathRows, cashSummary, cashFromRetirement, isTypicalPath, typicalPathFederalTax, pathFederalTax,
     toneGlow, ring, wdColor, num, esc, fmtMoney, cfCols,
   }) {
     const allRows = pathRows(scn.raw);
@@ -168,9 +171,9 @@ export function renderCashflow(scn, allScns, {
     const hasWorking = allRows.some((r) => r.accum);
     const summary = cashSummary(scn.raw);
     const typicalPath = isTypicalPath();
-    const sidecar = taxSidecarFor(scn.raw, { isTypicalPath, typicalPathFederalTax });
+    const sidecar = taxSidecarFor(scn.raw, { isTypicalPath, typicalPathFederalTax, pathFederalTax });
     const taxColumn = taxColumnMeta(sidecar);
-    const taxComparison = typicalPath ? taxComparisonFor(sidecar) : null;
+    const taxComparison = taxComparisonFor(sidecar);
     const federalAttachFailed = typicalPath && !!scn.raw.res && !sidecar;
 
     const pills = allScns.map((s) => (
@@ -185,6 +188,7 @@ export function renderCashflow(scn, allScns, {
 
     const taxComparisonHtml = taxComparison ? (
       '<div class="cf-tax-compare" data-tax-compare style="display:contents;"' +
+        (sidecar?.path ? ' data-tax-path="' + esc(sidecar.path) + '"' : '') +
         ' data-federal-total="' + taxComparison.federalTotal + '"' +
         ' data-engine-path-total="' + taxComparison.enginePathTotal + '"' +
         ' data-delta="' + taxComparison.delta + '">' +
@@ -210,7 +214,7 @@ export function renderCashflow(scn, allScns, {
       '</div>'
     );
 
-    const taxDisclosure = typicalPath && scn.raw.res ? (
+    const taxDisclosure = (typicalPath || sidecar) && scn.raw.res ? (
       '<div class="cf-tax-disclosure" data-tax-disclosure data-tax-state="' + (federalAttachFailed ? 'engine-fallback' : 'federal-sidecar') + '">' +
         (federalAttachFailed
           ? '<div class="cf-tax-fallback" data-tax-fallback role="status">Federal tax detail isn\'t available for this run. The Tax column uses engine estimates.</div>'

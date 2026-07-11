@@ -1,5 +1,5 @@
 import { runSimulation, runHistoricalPath, generateReturnPath, resetSeed, annualMortgagePayment, LONGRUN_INFLATION, pathDigest, assessPlan, RISK_PROFILES, defaultPlan as plan } from '../engine.js';
-import { attachTypicalPathFederalTax } from './planning/tax/attachTypicalPathFederalTax.js';
+import { attachPathFederalTax } from './planning/tax/attachTypicalPathFederalTax.js';
 import { rerunTypicalPathWithFederalTax } from './planning/tax/rerunTypicalPathWithFederalTax.js';
 import { runHistoricalPathWithFederalTax } from './planning/tax/runHistoricalPathWithFederalTax.js';
 import { fmtM, fmtMoney, fmtMDelta, fmtPts, cfMoney, cfRetPct, cfGain } from '../ui/formatters.js';
@@ -2513,23 +2513,27 @@ function runAll(){
           const p=planForScenario(s.lev);
           const ov=leversToOverrides(s.lev);
           s.res=runSimulation(p, ov, sharedPaths);
-          // Re-run only the selected p50 with federal row taxes, then attach its
-          // auditable summary. MC sims and aggregates remain on the shortcut.
+          // Re-run only the selected p10/p50/p90 story paths with federal row
+          // taxes, then attach auditable summaries. MC aggregates stay shortcut.
           try{
-            const federalResult = rerunTypicalPathWithFederalTax(s.res, {
+            const taxOptions = {
               baseTaxYear,
               scenarioId: s.name,
               filingStatus: p.meta?.filingStatus,
-            });
-            federalResult.typicalPathFederalTax = attachTypicalPathFederalTax(federalResult, {
-              baseTaxYear,
-              scenarioId: s.name,
-              filingStatus: p.meta?.filingStatus,
-            });
+            };
+            const federalResult = rerunTypicalPathWithFederalTax(s.res, taxOptions);
+            federalResult.pathFederalTax = Object.fromEntries(
+              ['p10', 'p50', 'p90'].map((pathKey) => [
+                pathKey,
+                attachPathFederalTax(federalResult, pathKey, taxOptions),
+              ])
+            );
+            federalResult.typicalPathFederalTax = federalResult.pathFederalTax.p50;
             s.res = federalResult;
           }catch(taxErr){
             s.res.typicalPathFederalTax = null;
-            console.warn('Federal typical-path rerun failed:', s.name, taxErr);
+            s.res.pathFederalTax = null;
+            console.warn('Federal story-path rerun failed:', s.name, taxErr);
           }
           // Historical Stress (Focus rail): engine-derived per-scenario eras.
           // Isolated so a stress hiccup never blanks the scenario's main result.
@@ -2648,21 +2652,6 @@ function simByIndex(res, idx){
 }
 function baselineResult(){
   return (scenarios.find(s=>s.base) || scenarios[0] || {}).res || null;
-}
-function findSimByTerminalBalance(res, targetBalance){
-  if(!res || !Array.isArray(res.sims) || !res.sims.length) return 0;
-  if(!Number.isFinite(targetBalance)) return 0;
-  let closest = res.sims[0];
-  let minDiff = Infinity;
-  for(const sim of res.sims){
-    if(!Number.isFinite(sim.terminalBalance)) continue;
-    const diff = Math.abs(sim.terminalBalance - targetBalance);
-    if(diff < minDiff){
-      minDiff = diff;
-      closest = sim;
-    }
-  }
-  return closest?.simIndex ?? 0;
 }
 
 
@@ -2950,7 +2939,7 @@ $('#path-mode').onchange=e=>{
 /* ===========================================================================
    ScenariosUI — the single Scenarios view layer (Compare / Focus / Cash Flow).
    Presentation only: it formats and selects numbers PRODUCTION already produced
-   (scenarios, s.res, s.lev, path replay, s.res.typicalPathFederalTax). It never
+   (scenarios, s.res, s.lev, path replay, s.res.pathFederalTax). It never
    computes a planning/projection/RMD/withdrawal/success-rate/tax number.
    The PROD object is the only coupling to production; it reads module symbols
    directly (this IIFE shares the module scope).
@@ -2993,13 +2982,20 @@ $('#path-mode').onchange=e=>{
     goals:     (s) => goalsVM(s),
     stress:    (s) => (s.res && s.res.stress) || [],   // populated by computeHistoricalStress in runAll (engine-derived)
     pathRows:  (s) => buildPathRows(s, {
-      simByIndex, baselineResult, findSimByTerminalBalance, plan,
+      simByIndex, baselineResult, plan,
       currentYear: new Date().getFullYear(),
     }),
     cashSummary: (s) => buildCashSummary(s, {
-      simByIndex, baselineResult, findSimByTerminalBalance, pathDigest,
+      simByIndex, baselineResult, pathDigest,
     }),
     typicalPathFederalTax: (s) => s.res && s.res.typicalPathFederalTax,
+    pathFederalTax: (s) => {
+      const pathKey = pathReplay.mode === 'favorable' ? 'p90'
+        : pathReplay.mode === 'typical' ? 'p50'
+        : (pathReplay.mode === 'stressed' || pathReplay.mode === 'sequence-stress') ? 'p10'
+        : null;
+      return pathKey ? s.res?.pathFederalTax?.[pathKey] : null;
+    },
     householdName: () => (plan.meta && (plan.meta.primaryName || plan.meta.household)) || '',
   };
 
@@ -3271,6 +3267,7 @@ $('#path-mode').onchange=e=>{
       cashFromRetirement: state.cashFromRetirement,
       isTypicalPath: PROD.isTypicalPath,
       typicalPathFederalTax: PROD.typicalPathFederalTax,
+      pathFederalTax: PROD.pathFederalTax,
       toneGlow, ring, wdColor, num:scenarioNum, esc, fmtMoney, cfCols: CF_COLS,
     });
   }

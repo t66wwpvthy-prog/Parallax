@@ -1,13 +1,13 @@
-/* Planning-owned p50 rerun: preserve MC analysis, replace only the typical path. */
+/* Planning-owned story-path rerun: preserve MC aggregates, replace p10/p50/p90. */
 
 import { runSinglePath } from '../../../engine.js';
 import { TaxInputError } from '../../tax/core/errors.js';
 import { createFederalTaxResolver } from './createFederalTaxResolver.js';
 
 /**
- * Re-run the already-selected Monte Carlo p50 return path with federal line 24
- * as its reported row tax. All Monte Carlo simulations and aggregates retain
- * their original shortcut-tax results.
+ * Re-run the selected Monte Carlo p10/p50/p90 return paths with federal line 24
+ * as their reported row tax. Only their matching sims entries are replaced;
+ * Monte Carlo aggregates retain their original shortcut results.
  */
 export function rerunTypicalPathWithFederalTax(analysis, options = {}){
   if(analysis === null || typeof analysis !== 'object' || Array.isArray(analysis)){
@@ -17,21 +17,36 @@ export function rerunTypicalPathWithFederalTax(analysis, options = {}){
     throw new TaxInputError('analysis.params is required');
   }
 
-  const typical = analysis.paths?.p50;
-  if(!typical || !Array.isArray(typical.returnPath)){
-    throw new TaxInputError('analysis.paths.p50.returnPath is required');
+  if(!Array.isArray(analysis.sims)){
+    throw new TaxInputError('analysis.sims is required');
   }
 
   const taxPolicy = createFederalTaxResolver(analysis.params, options);
-  const federalTypical = runSinglePath(analysis.params, typical.returnPath, { taxPolicy });
-  federalTypical.simIndex = typical.simIndex;
-  federalTypical.returnPath = typical.returnPath;
+  const pathKeys = ['p10', 'p50', 'p90'];
+  const federalPaths = {};
+  const federalBySimIndex = new Map();
+
+  for(const pathKey of pathKeys){
+    const selected = analysis.paths?.[pathKey];
+    if(!selected || !Array.isArray(selected.returnPath)){
+      throw new TaxInputError(`analysis.paths.${pathKey}.returnPath is required`);
+    }
+    let federalPath = federalBySimIndex.get(selected.simIndex);
+    if(!federalPath){
+      federalPath = runSinglePath(analysis.params, selected.returnPath, { taxPolicy });
+      federalPath.simIndex = selected.simIndex;
+      federalPath.returnPath = selected.returnPath;
+      federalBySimIndex.set(selected.simIndex, federalPath);
+    }
+    federalPaths[pathKey] = federalPath;
+  }
 
   return {
     ...analysis,
     paths: {
       ...analysis.paths,
-      p50: federalTypical,
+      ...federalPaths,
     },
+    sims: analysis.sims.map((sim) => federalBySimIndex.get(sim.simIndex) ?? sim),
   };
 }
