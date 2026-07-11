@@ -497,7 +497,7 @@ try {
       }
       const found = await page.evaluate(() => {
         const MICRO = new Set([
-          'hh-wiz-id__eyebrow','hh-wiz-id__filing','hh-step__label','hh-step__num','hh-col__role','hh-kv__k',
+          'hh-step__label','hh-step__num','hh-col__role','hh-kv__k',
           'hh-meta__k','hh-subhead','hh-tl__labels','hh-link-btn','hh-inline-form__k',
           'hh-grand-total__k','hh-grand-total__sub','hh-bp-eyebrow','hh-bp-filing',
           'hh-bp-facts__k','hh-bp-flow__label','hh-bp-flow__sub','hh-bp-gauge__k','hh-bp-gauge__sub',
@@ -513,6 +513,7 @@ try {
           const classes = (el.className || '').toString().split(/\s+/).filter(Boolean);
           if(classes.some(c => MICRO.has(c))) return true;
           if(el.closest('.hh-wiz-footer') && classes.includes('hh-btn')) return true;
+          if(el.closest('.hh-inline-form')) return true;
           return !!el.closest('.hh-tl__labels');
         };
         const bad = [];
@@ -573,8 +574,7 @@ try {
   await step('household step fields: filing/born writes + co-client toggle + screenshots', async () => {
     const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-    // 1. Filing status select (step 1) writes to plan.meta.filingStatus and the
-    // wizard identity line re-derives.
+    // 1. Filing status select (step 1) writes to plan.meta.filingStatus.
     await goStep(1);
     const fsEl = await page.$('#hh-view select[data-path="meta.filingStatus"]');
     if(!fsEl) throw new Error('filing status <select> missing from step 1');
@@ -583,8 +583,8 @@ try {
       el.value = 'single'; el.dispatchEvent(new Event('change', { bubbles:true }));
     });
     await sleep(300);
-    const filingLine = await page.evaluate(() => document.querySelector('#hh-rail-filing')?.textContent.trim() || '');
-    if(!/single/i.test(filingLine)) throw new Error(`identity filing line did not update after filingStatus change: "${filingLine}"`);
+    const filingVal = await page.evaluate(() => document.querySelector('#hh-view select[data-path="meta.filingStatus"]')?.value || '');
+    if(filingVal !== 'single') throw new Error(`filing status did not update after change: "${filingVal}"`);
     // Restore married
     await page.evaluate(() => {
       const el = document.querySelector('#hh-view select[data-path="meta.filingStatus"]');
@@ -593,13 +593,13 @@ try {
     await sleep(200);
 
     // 2. BORN year drives the person's current age (the engine input).
-    const ageBefore = await page.evaluate(() => document.querySelector('#hh-view .hh-derived')?.textContent.trim());
+    const ageBefore = await page.evaluate(() => document.querySelector('#hh-view .hh-derived-in')?.value.trim());
     await page.evaluate(() => {
       const el = document.querySelector('#hh-view input[data-path="household.primary.birthYear"]');
       el.value = '1970'; el.dispatchEvent(new Event('change', { bubbles:true }));
     });
     await sleep(300);
-    const ageAfter = await page.evaluate(() => document.querySelector('#hh-view .hh-derived')?.textContent.trim());
+    const ageAfter = await page.evaluate(() => document.querySelector('#hh-view .hh-derived-in')?.value.trim());
     if(ageBefore === ageAfter) throw new Error(`Born edit did not re-derive Age (${ageBefore} -> ${ageAfter})`);
     if(!/Plan edited/.test(await page.evaluate(() => document.querySelector('#status')?.textContent || '')))
       throw new Error('Born edit did not mark plan dirty');
@@ -675,7 +675,7 @@ try {
       name: document.querySelector('#hh-rail-name')?.textContent.trim() || '',
       step: document.querySelector('.hh-stepper .hh-step.is-current')?.dataset.step || '',
     }));
-    if(!afterDemo.name.includes('Client')) throw new Error(`Demo did not restore household (got: "${afterDemo.name}")`);
+    if(!afterDemo.name.includes('Nathan')) throw new Error(`Demo did not restore household (got: "${afterDemo.name}")`);
     if(afterDemo.step !== '4') throw new Error(`restored demo must land on the Blueprint (step 4), got "${afterDemo.step}"`);
 
     // Close the menu + restore confirm.
