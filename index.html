@@ -12,7 +12,7 @@
 <!-- ?v= cache-buster: bump on any CSS change so browsers fetch the new file
      instead of serving a stale cached copy (GitHub Pages caches CSS hard). -->
 <link rel="stylesheet" href="styles/main.css?v=14"/>
-<link rel="stylesheet" href="styles/household.css?v=24"/>
+<link rel="stylesheet" href="styles/household.css?v=25"/>
 <link rel="stylesheet" href="styles/scenarios.css?v=13"/>
 <link rel="stylesheet" href="styles/goals.css?v=6"/>
 </head>
@@ -97,38 +97,35 @@
        ===================================================================== -->
   <section class="page on" data-page="household">
     <div class="hh-stage">
-      <div class="hh-wizard">
-
-        <!-- Wizard header: household identity (filled on every sync) + the
-             tucked household controls menu (Switch / New / Demo / Clear). The
-             menu keeps the multi-household control IDs that
-             bindHouseholdRailOnce() and updateHouseholdControls() own. -->
-        <div class="hh-wiz-top">
-          <div class="hh-wiz-id">
-            <div class="hh-avatars">
-              <div class="hh-avatar hh-avatar--c" id="hh-avatar-c" aria-hidden="true">C</div>
-              <div class="hh-avatar hh-avatar--s" id="hh-avatar-s" aria-hidden="true">S</div>
-            </div>
-            <div class="hh-wiz-id__text">
-              <div class="hh-wiz-id__eyebrow">Household</div>
-              <div class="hh-wiz-id__name" id="hh-rail-name" data-hh-name></div>
-              <div class="hh-wiz-id__filing" id="hh-rail-filing" data-hh-filing></div>
-            </div>
+      <!-- Household controls sit above the card shell (spec: card = stepper + workspace + footer). -->
+      <div class="hh-wiz-top">
+        <div class="hh-wiz-id">
+          <div class="hh-avatars">
+            <div class="hh-avatar hh-avatar--c" id="hh-avatar-c" aria-hidden="true">C</div>
+            <div class="hh-avatar hh-avatar--s" id="hh-avatar-s" aria-hidden="true">S</div>
           </div>
-          <div class="hh-menu">
-            <button class="hh-menu__btn" id="hh-menu-btn" type="button"
-                    aria-haspopup="true" aria-expanded="false" title="Household options">⋯</button>
-            <div class="hh-menu__pop" id="hh-menu-pop" hidden>
-              <label class="hh-rail__switch-lbl" for="hh-switch">Household</label>
-              <select class="hh-rail__switch-sel" id="hh-switch" title="Switch household"></select>
-              <button class="hh-rail-act hh-rail-act--new" id="hh-new" type="button" title="Create a new blank household">New Household</button>
-              <div class="hh-menu__row">
-                <button class="hh-rail-act" id="hh-act-demo" type="button" title="Reset this demo household to its original values">Demo</button>
-                <button class="hh-rail-act hh-rail-act--clear" id="hh-act-clear" type="button" title="Clear all plan data and start fresh">Clear</button>
-              </div>
+          <div class="hh-wiz-id__text">
+            <div class="hh-wiz-id__eyebrow">Household</div>
+            <div class="hh-wiz-id__name" id="hh-rail-name" data-hh-name></div>
+            <div class="hh-wiz-id__filing" id="hh-rail-filing" data-hh-filing></div>
+          </div>
+        </div>
+        <div class="hh-menu">
+          <button class="hh-menu__btn" id="hh-menu-btn" type="button"
+                  aria-haspopup="true" aria-expanded="false" title="Household options">⋯</button>
+          <div class="hh-menu__pop" id="hh-menu-pop" hidden>
+            <label class="hh-rail__switch-lbl" for="hh-switch">Household</label>
+            <select class="hh-rail__switch-sel" id="hh-switch" title="Switch household"></select>
+            <button class="hh-rail-act hh-rail-act--new" id="hh-new" type="button" title="Create a new blank household">New Household</button>
+            <div class="hh-menu__row">
+              <button class="hh-rail-act" id="hh-act-demo" type="button" title="Reset this demo household to its original values">Demo</button>
+              <button class="hh-rail-act hh-rail-act--clear" id="hh-act-clear" type="button" title="Clear all plan data and start fresh">Clear</button>
             </div>
           </div>
         </div>
+      </div>
+
+      <div class="hh-wizard">
 
         <!-- Gold progress stepper = the view switch. The view layer toggles
              .is-current / .is-done and renders the matching step into #hh-view. -->

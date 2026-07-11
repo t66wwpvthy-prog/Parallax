@@ -117,14 +117,10 @@ function verifyHousehold(){
   ok(!/function renderHhFulcrum\b/.test(source) && !/function renderHhPillar\b/.test(source), 'retired equilibrium renderers still present (fulcrum/pillar)');
   ok(/id=["']hh-view["']/.test(html), 'Household document mount (#hh-view) is missing');
   ok(/data-page=["']household["']/.test(html), 'Household container must carry data-page="household"');
-  // Account Type Bank present with the required types (529 intentionally excluded for now)
-  ok(/HH_ACCOUNT_TYPES/.test(source), 'Account Type Bank (HH_ACCOUNT_TYPES) missing');
-  ['Checking','Savings','Money Market','CD','Brokerage (taxable)','Joint brokerage','Trust brokerage',
-   'Traditional IRA','Rollover IRA','Roth IRA','401(k)','Roth 401(k)','403(b)','457','SEP IRA','SIMPLE IRA',
-   'Solo 401(k)','Qualified Plan'].forEach(t => {
-    ok(source.includes(`'${t}'`), `Account Type Bank missing type: ${t}`);
+  ok(/HH_WIZARD_ACCOUNT_TYPES/.test(source), 'Wizard account types (HH_WIZARD_ACCOUNT_TYPES) missing');
+  ['Traditional IRA','Roth IRA','Brokerage (taxable)','401(k)','HSA'].forEach(t => {
+    ok(source.includes(`'${t}'`), `Wizard account types missing: ${t}`);
   });
-  ok(!source.includes(`'529'`), 'retired 529 account type still present in the bank');
   ok(!/meta\.inflationPct/.test(source), 'engine-inert Inflation field must not ship in the wizard');
   ok(/\['trust','Trust'\]/.test(source), 'Trust ownership option missing from HH_OWNERS');
 
@@ -421,17 +417,16 @@ try {
     const onStep2 = await page.evaluate(() => document.querySelector('.hh-stepper .hh-step.is-current')?.dataset.step);
     if(onStep2 !== '2') throw new Error(`Continue did not advance to step 2 (got ${onStep2})`);
 
-    // Step 2 · Balance Sheet: typed account rows per owner group + joint block.
+    // Step 2 · Balance Sheet: two-column layout per handoff spec.
     const s2 = await page.evaluate(() => ({
       acctInputs: document.querySelectorAll('#hh-view input[data-path^="portfolio.extraAccounts."][data-path$=".balance"]').length,
       addAccountBtns: document.querySelectorAll('#hh-view [data-hh-action="open-account-form"]').length,
       grandTotal: document.querySelector('#hh-view .hh-grand-total__v')?.textContent.trim() || '',
-      jointBlock: /Joint/i.test(document.querySelector('#hh-view')?.textContent || ''),
     }));
     if(s2.acctInputs < 3) throw new Error(`typed account balances must be editable, got ${s2.acctInputs}`);
     if(s2.addAccountBtns < 2) throw new Error(`"+ Add account" buttons missing, got ${s2.addAccountBtns}`);
     if(!/\$[\d,]/.test(s2.grandTotal)) throw new Error(`grand total not formatted: "${s2.grandTotal}"`);
-    if(!s2.jointBlock) throw new Error('joint accounts section missing');
+    if(!/\$2,800,000/.test(s2.grandTotal)) throw new Error(`demo grand total must be $2,800,000, got "${s2.grandTotal}"`);
 
     await page.click('#hh-view [data-hh-action="open-account-form"][data-owner="client"]');
     await new Promise(r => setTimeout(r, 300));
@@ -439,7 +434,7 @@ try {
     await page.evaluate(() => {
       const f = document.querySelector('#hh-acct-form');
       const typeSel = f.querySelector('.hh-form-type');
-      typeSel.value = String([...typeSel.options].findIndex(o => o.textContent.trim() === 'Savings'));
+      typeSel.value = String([...typeSel.options].findIndex(o => o.textContent.trim() === 'Brokerage (taxable)'));
       f.querySelector('.hh-form-val').value = '50,000';
       f.querySelector('[data-hh-action="save-account"]').click();
     });
@@ -456,36 +451,36 @@ try {
       goals: document.querySelectorAll('#hh-view [data-rmpath^="goals."]').length,
       working: !!document.querySelector('#hh-view input[data-path="income.workingIncome"]'),
       incomeHdr: document.querySelector('#hh-view .hh-col .hh-col__sum')?.textContent.trim() || '',
-      noWorkingNote: (document.querySelector('#hh-view')?.textContent || '').includes('No working income'),
     }));
     if(s3.pia < 1) throw new Error(`SS benefit inputs missing, got ${s3.pia}`);
     if(!s3.living || !s3.health) throw new Error('core spending inputs missing from cash flow step');
     if(!s3.addIncome) throw new Error('"+ Add income" missing');
     if(s3.goals < 1) throw new Error('demo goals should render in cash flow step');
     if(s3.working) throw new Error('working income input must not render in the wizard');
-    if(s3.noWorkingNote) throw new Error('cash flow income header must not show "No working income"');
-    if(!/\$73,200/.test(s3.incomeHdr)) throw new Error(`cash flow income total must include deferred SS, got "${s3.incomeHdr}"`);
+    if(!/\$180,000/.test(s3.incomeHdr)) throw new Error(`cash flow income total must be working income only ($180,000), got "${s3.incomeHdr}"`);
 
     await page.click('#hh-step-4'); await new Promise(r => setTimeout(r, 350));
     const s4 = await page.evaluate(() => ({
       gauge: !!document.querySelector('#hh-view .hh-bp-gauge'),
       run: !!document.querySelector('#hh-view [data-hh-action="run-blueprint"]'),
       footNote: document.querySelector('#hh-wiz-footer .hh-wiz-foot-note')?.textContent.trim() || '',
-      incomeVal: document.querySelector('#hh-view .hh-bp-flow__val--gold')?.textContent.trim() || '',
-      surplus: document.querySelector('#hh-view .hh-bp-flow__val--pos, #hh-view .hh-bp-flow__val--neg')?.textContent.trim() || '',
+      incomeVal: document.querySelector('#hh-view .hh-bp-flow__row:first-child .hh-bp-flow__val')?.textContent.trim() || '',
       ssRow: [...document.querySelectorAll('#hh-view .hh-bp-flow__row')].some(row =>
         /^Social Security$/i.test(row.querySelector('.hh-bp-flow__label')?.textContent.trim() || '')),
+      ssVal: [...document.querySelectorAll('#hh-view .hh-bp-flow__row')].find(row =>
+        /^Social Security$/i.test(row.querySelector('.hh-bp-flow__label')?.textContent.trim() || ''))
+        ?.querySelector('.hh-bp-flow__val')?.textContent.trim() || '',
       allocLegend: document.querySelectorAll('#hh-view .hh-bp-alloc').length,
       gaugeLabel: document.querySelector('#hh-view .hh-bp-gauge__k')?.textContent.trim() || '',
     }));
     if(!s4.gauge) throw new Error('Blueprint gauge missing on step 4');
     if(!s4.run) throw new Error('RUN BLUEPRINT missing');
     if(s4.footNote !== 'Step 4 of 4') throw new Error(`footer note mismatch: "${s4.footNote}"`);
-    if(!/\$73,200/.test(s4.incomeVal)) throw new Error(`Blueprint income must roll up deferred income, got "${s4.incomeVal}"`);
-    if(!/[\+\-–]\$[\d,]+/.test(s4.surplus)) throw new Error(`Blueprint annual surplus missing, got "${s4.surplus}"`);
-    if(s4.ssRow) throw new Error('Blueprint must not show a separate Social Security row');
-    if(s4.allocLegend < 1) throw new Error('Blueprint account legend missing beside gauge');
-    if(s4.gaugeLabel !== 'Allocation') throw new Error(`gauge label must read Allocation, got "${s4.gaugeLabel}"`);
+    if(!/\$180,000/.test(s4.incomeVal)) throw new Error(`Blueprint income must show working income, got "${s4.incomeVal}"`);
+    if(!s4.ssRow) throw new Error('Blueprint must show a separate Social Security row');
+    if(!/\$62,000/.test(s4.ssVal)) throw new Error(`Blueprint Social Security must total $62,000, got "${s4.ssVal}"`);
+    if(s4.allocLegend < 3) throw new Error(`Blueprint account legend must list demo accounts, got ${s4.allocLegend}`);
+    if(s4.gaugeLabel !== 'NET WORTH') throw new Error(`gauge label must read NET WORTH, got "${s4.gaugeLabel}"`);
   });
 
   await step('type floor: wizard values >= 16px; tracked labels may use micro type', async () => {
@@ -502,19 +497,22 @@ try {
       }
       const found = await page.evaluate(() => {
         const MICRO = new Set([
-          'hh-wiz-id__eyebrow','hh-step__label','hh-step__num','hh-col__role','hh-kv__k',
+          'hh-wiz-id__eyebrow','hh-wiz-id__filing','hh-step__label','hh-step__num','hh-col__role','hh-kv__k',
           'hh-meta__k','hh-subhead','hh-tl__labels','hh-link-btn','hh-inline-form__k',
           'hh-grand-total__k','hh-grand-total__sub','hh-bp-eyebrow','hh-bp-filing',
           'hh-bp-facts__k','hh-bp-flow__label','hh-bp-flow__sub','hh-bp-gauge__k','hh-bp-gauge__sub',
-          'hh-bp-alloc__pct','hh-wiz-foot-note','hh-bp-cta--run','hh-bp-cta--done',
+          'hh-bp-alloc__pct','hh-bp-alloc__name','hh-wiz-foot-note','hh-bp-cta--run','hh-bp-cta--done',
           'hh-bp-cta__chip','hh-bp-cta__status','hh-bp-cta__sep','hh-bp-cta__link',
           'hh-empty','hh-future-row__note','hh-future-row__name','hh-ledger-row__name',
-          'hh-dash-btn','hh-link-add','pre','hh-av','hh-avatar',
+          'hh-dash-btn','hh-text-add','pre','hh-av','hh-avatar',
         ]);
         const allowMicro = el => {
-          if(!el.closest('.hh-wizard')) return false;
+          const inWizard = el.closest('.hh-wizard');
+          const inChrome = el.closest('.hh-wiz-top') || el.closest('.hh-wiz-footer');
+          if(!inWizard && !inChrome) return false;
           const classes = (el.className || '').toString().split(/\s+/).filter(Boolean);
           if(classes.some(c => MICRO.has(c))) return true;
+          if(el.closest('.hh-wiz-footer') && classes.includes('hh-btn')) return true;
           return !!el.closest('.hh-tl__labels');
         };
         const bad = [];
@@ -809,13 +807,13 @@ try {
     });
     if(baseSuccess == null) throw new Error('Could not read baseline success rate for living-expense test');
 
-    // Quadruple living expenses: from demo $48k to $192k — plan should suffer.
+    // Quadruple living expenses: from demo $38k to $152k — plan should suffer.
     // Essential expenses live on wizard step 3 (Cash Flow).
     await goStep(3);
     await page.evaluate(() => {
       const el = document.querySelector('#hh-view input[data-path="expenses.living"]');
       if(!el) throw new Error('expenses.living input missing');
-      el.value = '192,000'; el.dispatchEvent(new Event('change', { bubbles:true }));
+      el.value = '152,000'; el.dispatchEvent(new Event('change', { bubbles:true }));
     });
     await sleep(300);
 
@@ -831,11 +829,11 @@ try {
     if(highExpSuccess >= baseSuccess) throw new Error(
       `High living expenses did not lower success rate: base=${baseSuccess}%, high-exp=${highExpSuccess}%`);
 
-    // Restore expenses to demo value ($48k)
+    // Restore expenses to demo value ($38k)
     await goStep(3);
     await page.evaluate(() => {
       const el = document.querySelector('#hh-view input[data-path="expenses.living"]');
-      el.value = '48,000'; el.dispatchEvent(new Event('change', { bubbles:true }));
+      el.value = '38,000'; el.dispatchEvent(new Event('change', { bubbles:true }));
     });
     await sleep(200);
   });
@@ -868,10 +866,9 @@ try {
         quickAdds: document.querySelectorAll('.glx-qa').length,
         footer: (document.querySelector('.glx-footer')?.textContent || '').replace(/\s+/g, ' '),
         composersGone: !document.querySelector('.glc-csw, #glc-composer-a, #glc-composer-b, .glc-ed, .glc-card'),
-        glebeChips: (() => {
-          // Glebe Fee 71-95: Chapter I partial (dashed), II + III full (lit).
+        travelChips: (() => {
           const row = [...document.querySelectorAll('.glx-row')]
-            .find(r => (r.querySelector('.glx-name')?.value || '').includes('Glebe'));
+            .find(r => (r.querySelector('.glx-name')?.value || '').includes('Travel'));
           return row ? [...row.querySelectorAll('.glx-chip')].map(c =>
             c.classList.contains('glx-chip--on') ? 'on' :
             c.classList.contains('glx-chip--part') ? 'part' : 'off').join(',') : '';
@@ -887,8 +884,8 @@ try {
     const wantCaps = ['GOAL','AMOUNT','HOW OFTEN','WHICH YEARS'];
     if(!wantCaps.every(c => m.caps.includes(c)))
       throw new Error(`ledger column captions wrong: ${JSON.stringify(m.caps)}`);
-    if(m.rows < 2) throw new Error(`expected the 2 demo goal rows, got ${m.rows}`);
-    if(!m.names.some(n => n.includes('Glebe'))) throw new Error('demo goal name missing from name inputs');
+    if(m.rows < 1) throw new Error(`expected the demo goal row, got ${m.rows}`);
+    if(!m.names.some(n => n.includes('Travel'))) throw new Error('demo goal name missing from name inputs');
     if(m.chipsPerRow !== 3) throw new Error(`expected 3 chapter chips per recurring row, got ${m.chipsPerRow}`);
     if(m.segs < m.rows * 2) throw new Error('cadence segments missing from rows');
     if(m.quickAdds !== 4) throw new Error(`expected 4 quick adds, got ${m.quickAdds}`);
@@ -896,8 +893,8 @@ try {
       throw new Error(`footer chapters not derived 66-75/76-85/86-95: "${m.footer}"`);
     if(!/Lifetime/.test(m.footer) || !/sum of entered goals/.test(m.footer))
       throw new Error(`footer must label sums honestly: "${m.footer}"`);
-    if(m.glebeChips !== 'part,on,on')
-      throw new Error(`Glebe Fee 71\u201395 chips should be part,on,on \u2014 got "${m.glebeChips}"`);
+    if(m.travelChips !== 'on,part,off')
+      throw new Error(`Travel & leisure 66\u201381 chips should be on,part,off \u2014 got "${m.travelChips}"`);
     if(m.fontFloor < 16) throw new Error(`ledger type floor broken: ${m.fontFloor}px < 16px`);
     if(m.textLen < 40) throw new Error(`Goals page appears blank (textLen=${m.textLen})`);
     await page.screenshot({ path: join(OUT, '02-goals.png'), fullPage: true });
@@ -1042,7 +1039,7 @@ try {
       return m ? +m[1] : null;
     };
 
-    // Baseline scenario goal count with the 2 demo goals.
+    // Baseline scenario goal count with the demo goal.
     const before = await goalPillCount();
     if(before == null) throw new Error('Scenarios goal pill missing (precondition)');
 
@@ -1116,7 +1113,7 @@ try {
     await page.click('.htab[data-sub-target="goals"]'); await sleep(400);
     const restored = await page.evaluate(() =>
       [...document.querySelectorAll('.glx-name')].map(el => el.value));
-    if(!restored.some(n => n.includes('Glebe')))
+    if(!restored.some(n => n.includes('Travel')))
       throw new Error(`demo restore did not bring the seed goals back (${JSON.stringify(restored)})`);
   });
 
@@ -1603,7 +1600,7 @@ try {
       active: localStorage.getItem('parallax.activeHouseholdId'),
     }));
     // Demo restored to its factory living expense…
-    if(after.db.demo.expenses.living !== 48000) throw new Error(`reset demo did not restore living expense (got ${after.db.demo.expenses.living})`);
+    if(after.db.demo.expenses.living !== 38000) throw new Error(`reset demo did not restore living expense (got ${after.db.demo.expenses.living})`);
     // …and the custom household is untouched and still present.
     if(!after.db[customId]) throw new Error('reset demo destroyed the custom household record');
     if(after.db[customId].meta.isDemo !== false) throw new Error('reset demo altered the custom household');
