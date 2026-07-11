@@ -134,7 +134,11 @@ function verifyHousehold(){
   // income must NOT render as a wizard input. Home/mortgage/pension/annual
   // savings UI are deferred in the blueprint wizard.
   ok(/household\.children/.test(source), 'household.children[] (addable children) missing');
-  ok(/data-hh-action="open-add"/.test(source), 'child/income/spending add flow missing');
+  ok(/data-add-key="income"/.test(source), 'income add flow missing');
+  ok(!/data-add-key="spending"/.test(source), 'wizard must not offer discretionary spending adds');
+  ok(!/data-add-key="goal"/.test(source), 'wizard must not offer goal adds');
+  ok(!/function goalRows\b/.test(source), 'goals must render in the Goals ledger, not the wizard');
+  ok(!/class="hh-tl/.test(source) && !/\.hh-tl/.test(css), 'retired person timeline bars must be removed');
   ok(!/hhField\('savings\.annual','money'\)/.test(source), 'deferred annual savings field must not render in balance-sheet step');
   ok(!/hhField\('income\.workingIncome'/.test(source), 'working income must not render as a wizard input (engine-inert today)');
 
@@ -351,7 +355,10 @@ try {
       ];
       demo.expenses.living = 38000;
       demo.expenses.healthcare = 18000;
-      demo.expenses.extra = [{ label:'Housing', amount:34000, startAge:64, endAge:95 }];
+      demo.expenses.extra = [
+        { label:'Housing', amount:34000, startAge:64, endAge:95 },
+        { label:'Vacation budget', amount:0, startAge:66, endAge:80 },
+      ];
       demo.income.socialSecurity.primary = { pia:34000, claimAge:67 };
       demo.income.socialSecurity.spouse = { pia:28000, claimAge:67 };
       demo.income.other = [
@@ -437,6 +444,7 @@ try {
       stateSel: !!document.querySelector('#hh-view select[data-path="meta.state"]'),
       coClientText: /co-client/i.test(document.querySelector('#hh-view')?.textContent || ''),
       addChild: !!document.querySelector('#hh-view [data-hh-action="open-add"][data-add-key="child"]'),
+      personTimelines: document.querySelectorAll('#hh-view .hh-tl').length,
       back: !!document.querySelector('#hh-wiz-footer [data-hh-action="step-back"]'),
       next: !!document.querySelector('#hh-wiz-footer [data-hh-action="step-next"]'),
     }));
@@ -446,6 +454,7 @@ try {
     if(!s1.stateSel) throw new Error('State dropdown missing');
     if(!s1.coClientText) throw new Error('step 1 does not say co-client');
     if(!s1.addChild) throw new Error('"+ Add child" missing');
+    if(s1.personTimelines) throw new Error(`step 1 still renders ${s1.personTimelines} person timeline bars`);
     if(s1.back) throw new Error('Back button must not render on step 1');
     if(!s1.next) throw new Error('Continue button missing on step 1');
 
@@ -495,7 +504,17 @@ try {
       living: !!document.querySelector('#hh-view input[data-path="expenses.living"]'),
       health: !!document.querySelector('#hh-view input[data-path="expenses.healthcare"]'),
       addIncome: !!document.querySelector('#hh-view [data-hh-action="open-add"][data-add-key="income"]'),
-      goals: document.querySelectorAll('#hh-view [data-rmpath^="goals."]').length,
+      incomeStartAges: [...document.querySelectorAll('#hh-view input[data-path^="income.other."][data-path$=".startAge"]')].map(el => el.value),
+      incomeEndAges: [...document.querySelectorAll('#hh-view input[data-path^="income.other."][data-path$=".endAge"]')].map(el => el.value),
+      incomeNotes: [...document.querySelectorAll('#hh-view .hh-ledger-row--income .hh-ledger-row__note')].map(el => el.textContent.trim()),
+      spendingLabels: [...document.querySelectorAll('#hh-view .hh-col:nth-child(2) .hh-ledger-row__name')].map(el => el.textContent.trim()),
+      spendingHdr: document.querySelectorAll('#hh-view .hh-col__sum')[1]?.textContent.trim() || '',
+      addCategory: !!document.querySelector('#hh-view [data-add-key="spending"]'),
+      addGoal: !!document.querySelector('#hh-view [data-add-key="goal"]'),
+      goalRows: document.querySelectorAll('#hh-view [data-rmpath^="goals."]').length,
+      goalsHeading: [...document.querySelectorAll('#hh-view .hh-subhead')].some(el => /^Goals$/i.test(el.textContent.trim())),
+      goalsPreserved: JSON.parse(localStorage.getItem('parallax.households.v1') || '{}').demo?.goals?.length || 0,
+      extraExpensesPreserved: JSON.parse(localStorage.getItem('parallax.households.v1') || '{}').demo?.expenses?.extra?.length || 0,
       working: !!document.querySelector('#hh-view input[data-path="income.workingIncome"]'),
       incomeHdr: document.querySelector('#hh-view .hh-col .hh-col__sum')?.textContent.trim() || '',
     }));
@@ -504,9 +523,47 @@ try {
       throw new Error(`SS claim-age inputs missing/defaulted incorrectly: ${JSON.stringify(s3.claimAges)}`);
     if(!s3.living || !s3.health) throw new Error('core spending inputs missing from cash flow step');
     if(!s3.addIncome) throw new Error('"+ Add income" missing');
-    if(s3.goals < 1) throw new Error('demo goals should render in cash flow step');
+    if(JSON.stringify(s3.incomeStartAges) !== JSON.stringify(['64','63']) || JSON.stringify(s3.incomeEndAges) !== JSON.stringify(['66','65']))
+      throw new Error(`income start/end fields missing or wrong: ${JSON.stringify(s3)}`);
+    if(JSON.stringify(s3.incomeNotes) !== JSON.stringify(['· 64–66','· 63–65']))
+      throw new Error(`income active-window notes wrong: ${JSON.stringify(s3.incomeNotes)}`);
+    if(JSON.stringify(s3.spendingLabels) !== JSON.stringify(['Living','Healthcare','Housing']))
+      throw new Error(`wizard spending must be fixed baseline only: ${JSON.stringify(s3.spendingLabels)}`);
+    if(!/\$90,000/.test(s3.spendingHdr)) throw new Error(`fixed-spending total must be $90,000, got "${s3.spendingHdr}"`);
+    if(s3.addCategory || s3.addGoal || s3.goalRows || s3.goalsHeading) throw new Error(`discretionary adds/goals still render in wizard: ${JSON.stringify(s3)}`);
+    if(s3.goalsPreserved !== 1) throw new Error('removing goals from wizard must not alter plan.goals');
+    if(s3.extraExpensesPreserved !== 2) throw new Error('hiding discretionary expenses in the wizard must not alter plan.expenses.extra');
     if(s3.working) throw new Error('working income input must not render in the wizard');
     if(!/\$180,000/.test(s3.incomeHdr)) throw new Error(`cash flow income total must be working income only ($180,000), got "${s3.incomeHdr}"`);
+
+    // Wizard quick-add uses the wages-like window: current age through retirement.
+    await page.click('#hh-view [data-hh-action="open-add"][data-add-key="income"]'); await new Promise(r => setTimeout(r, 200));
+    await page.click('#hh-view [data-hh-action="commit-add"]'); await new Promise(r => setTimeout(r, 350));
+    const addedIncome = await page.evaluate(() => {
+      const rows = [...document.querySelectorAll('#hh-view .hh-ledger-row--income')];
+      const row = rows.at(-1);
+      return {
+        count: rows.length,
+        start: row?.querySelector('input[data-path$=".startAge"]')?.value,
+        end: row?.querySelector('input[data-path$=".endAge"]')?.value,
+        note: row?.querySelector('.hh-ledger-row__note')?.textContent.trim(),
+      };
+    });
+    if(addedIncome.count !== 3 || addedIncome.start !== '64' || addedIncome.end !== '66' || addedIncome.note !== '· 64–66')
+      throw new Error(`quick-added income window must default 64–66: ${JSON.stringify(addedIncome)}`);
+
+    await page.evaluate(() => {
+      const inputs = [...document.querySelectorAll('#hh-view input[data-path$=".startAge"]')];
+      const el = inputs.at(-1); el.value = '58'; el.dispatchEvent(new Event('change', { bubbles:true }));
+    });
+    await new Promise(r => setTimeout(r, 300));
+    await page.evaluate(() => {
+      const inputs = [...document.querySelectorAll('#hh-view input[data-path$=".endAge"]')];
+      const el = inputs.at(-1); el.value = '65'; el.dispatchEvent(new Event('change', { bubbles:true }));
+    });
+    await new Promise(r => setTimeout(r, 300));
+    const editedWindow = await page.evaluate(() => [...document.querySelectorAll('#hh-view .hh-ledger-row--income')].at(-1)?.querySelector('.hh-ledger-row__note')?.textContent.trim() || '');
+    if(editedWindow !== '· 58–65') throw new Error(`edited income window note did not update: "${editedWindow}"`);
 
     await page.click('#hh-step-4'); await new Promise(r => setTimeout(r, 350));
     const s4 = await page.evaluate(() => ({
@@ -519,6 +576,9 @@ try {
       ssVal: [...document.querySelectorAll('#hh-view .hh-bp-flow__row')].find(row =>
         /^Social Security$/i.test(row.querySelector('.hh-bp-flow__label')?.textContent.trim() || ''))
         ?.querySelector('.hh-bp-flow__val')?.textContent.trim() || '',
+      spendingVal: [...document.querySelectorAll('#hh-view .hh-bp-flow__row')].find(row =>
+        /^Spending$/i.test(row.querySelector('.hh-bp-flow__label')?.textContent.trim() || ''))
+        ?.querySelector('.hh-bp-flow__val')?.textContent.trim() || '',
       allocLegend: document.querySelectorAll('#hh-view .hh-bp-alloc').length,
       gaugeLabel: document.querySelector('#hh-view .hh-bp-gauge__k')?.textContent.trim() || '',
     }));
@@ -528,6 +588,7 @@ try {
     if(!/\$180,000/.test(s4.incomeVal)) throw new Error(`Blueprint income must show working income, got "${s4.incomeVal}"`);
     if(!s4.ssRow) throw new Error('Blueprint must show a separate Social Security row');
     if(!/\$62,000/.test(s4.ssVal)) throw new Error(`Blueprint Social Security must total $62,000, got "${s4.ssVal}"`);
+    if(!/\$90,000/.test(s4.spendingVal)) throw new Error(`Blueprint spending must be fixed baseline only ($90,000), got "${s4.spendingVal}"`);
     if(s4.allocLegend < 3) throw new Error(`Blueprint account legend must list demo accounts, got ${s4.allocLegend}`);
     if(s4.gaugeLabel !== 'NET WORTH') throw new Error(`gauge label must read NET WORTH, got "${s4.gaugeLabel}"`);
   });
@@ -547,12 +608,13 @@ try {
       const found = await page.evaluate(() => {
         const MICRO = new Set([
           'hh-step__label','hh-step__num','hh-col__role','hh-kv__k',
-          'hh-meta__k','hh-subhead','hh-tl__labels','hh-link-btn','hh-inline-form__k',
+          'hh-meta__k','hh-subhead','hh-link-btn','hh-inline-form__k',
           'hh-grand-total__k','hh-grand-total__sub','hh-bp-eyebrow','hh-bp-filing',
           'hh-bp-facts__k','hh-bp-flow__label','hh-bp-flow__sub','hh-bp-gauge__k','hh-bp-gauge__sub',
           'hh-bp-alloc__pct','hh-bp-alloc__name','hh-wiz-foot-note','hh-bp-cta--run','hh-bp-cta--done',
           'hh-bp-cta__chip','hh-bp-cta__status','hh-bp-cta__sep','hh-bp-cta__link',
           'hh-empty','hh-future-row__note','hh-future-row__name','hh-future-row__claim','hh-ledger-row__name',
+          'hh-ledger-row__note','hh-ledger-row__age-label',
           'hh-dash-btn','hh-text-add','pre','hh-av','hh-avatar',
         ]);
         const allowMicro = el => {
@@ -562,8 +624,7 @@ try {
           const classes = (el.className || '').toString().split(/\s+/).filter(Boolean);
           if(classes.some(c => MICRO.has(c))) return true;
           if(el.closest('.hh-wiz-footer') && classes.includes('hh-btn')) return true;
-          if(el.closest('.hh-inline-form')) return true;
-          return !!el.closest('.hh-tl__labels');
+          return !!el.closest('.hh-inline-form');
         };
         const bad = [];
         document.querySelectorAll('.page[data-page="household"] *').forEach(el => {

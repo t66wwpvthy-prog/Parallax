@@ -1246,7 +1246,7 @@ function renderField(f, klass){
    row's defaults. (Goals share one array; recurring vs one-time is decided by
    the window: a one-time goal is a single-year window, startAge===endAge.) */
 const ROW_KINDS = {
-  income:    { arr:'income.other',   mk:()=>({ label:'', amount:0, startAge:65, endAge:75, realGrowth:0, taxablePct:1 }) },
+  income:    { arr:'income.other',   mk:()=>({ label:'', amount:0, startAge:plan.household.primary.currentAge, endAge:plan.household.primary.retirementAge, realGrowth:0, taxablePct:1 }) },
   expense:   { arr:'expenses.extra', mk:()=>({ label:'', amount:0, startAge:65, endAge:80 }) },
   liability: { arr:'liabilities',    mk:()=>({ label:'', amount:0, startAge:65, endAge:75, colaPct:0 }) },
   goalRec:   { arr:'goals',          mk:()=>({ name:'',  amount:0, startAge:plan.household.primary.retirementAge, endAge:plan.household.primary.planEndAge }) },
@@ -2295,13 +2295,7 @@ document.querySelector('.page[data-page="household"] .hh-wizard')?.addEventListe
       const amt = parseFloat(String(amtRaw).replace(/[^0-9.]/g, '')) || 0;
       if(hhAddingKey === 'income'){
         if(!plan.income.other) plan.income.other = [];
-        plan.income.other.push({ label: label || 'Income', amount: Math.round(amt), startAge: plan.household.primary.retirementAge, endAge: plan.household.primary.planEndAge, realGrowth: 0, taxablePct: 1 });
-      } else if(hhAddingKey === 'spending'){
-        if(!plan.expenses.extra) plan.expenses.extra = [];
-        plan.expenses.extra.push({ label: label || 'Expense', amount: Math.round(amt), startAge: plan.household.primary.retirementAge, endAge: plan.household.primary.planEndAge });
-      } else if(hhAddingKey === 'goal'){
-        if(!plan.goals) plan.goals = [];
-        plan.goals.push({ name: label || 'Goal', amount: 0, startAge: plan.household.primary.retirementAge, endAge: plan.household.primary.planEndAge });
+        plan.income.other.push({ label: label || 'Income', amount: Math.round(amt), startAge: plan.household.primary.currentAge, endAge: plan.household.primary.retirementAge, realGrowth: 0, taxablePct: 1 });
       } else if(hhAddingKey === 'child'){
         const year = parseInt(String(document.querySelector('[data-hh-draft="year"]')?.value ?? hhDraftAmount ?? ''), 10);
         if(!plan.household.children) plan.household.children = [];
