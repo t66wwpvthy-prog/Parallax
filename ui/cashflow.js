@@ -74,6 +74,7 @@ export function taxSidecarFor(scn, { isTypicalPath, typicalPathFederalTax }) {
       byYear: byYear,
       scope: Array.isArray(raw) ? null : (raw.scope ?? null),
       totals: Array.isArray(raw) ? null : (raw.totals ?? null),
+      warnings: Array.isArray(raw) ? [] : (Array.isArray(raw.warnings) ? raw.warnings : []),
     };
   }
 
@@ -133,6 +134,19 @@ export function fmtSignedMoney(n, fmtMoney) {
     return (n < 0 ? '−' : '+') + fmtMoney(Math.abs(n));
   }
 
+export function federalScopeLabel(scope) {
+    if (scope === 'INCOME_TAX_ONLY') return 'income tax only';
+    if (scope === 'FULL_1040') return 'full Form 1040';
+    return 'scope not specified';
+  }
+
+export function federalWarningMessage(warning) {
+    if (typeof warning === 'string') return warning;
+    if (warning && typeof warning.message === 'string') return warning.message;
+    if (warning && typeof warning.code === 'string') return warning.code;
+    return 'Federal tax calculation warning';
+  }
+
 export function groupPhases(rows) {
     if (!rows.length) return [];
     const RMD_START_AGE = 73;
@@ -157,6 +171,7 @@ export function renderCashflow(scn, allScns, {
     const sidecar = taxSidecarFor(scn.raw, { isTypicalPath, typicalPathFederalTax });
     const taxColumn = taxColumnMeta(sidecar);
     const taxComparison = typicalPath ? taxComparisonFor(sidecar) : null;
+    const federalAttachFailed = typicalPath && !!scn.raw.res && !sidecar;
 
     const pills = allScns.map((s) => (
       '<button class="cf-pill ' + (s.id === scn.id ? 'is-active' : '') + '" type="button" data-cash-pick="' + esc(s.id) + '" aria-pressed="' + (s.id === scn.id ? 'true' : 'false') + '" style="--tone:' + s.tone + ';">' +
@@ -194,6 +209,20 @@ export function renderCashflow(scn, allScns, {
         '</div>' +
       '</div>'
     );
+
+    const taxDisclosure = typicalPath && scn.raw.res ? (
+      '<div class="cf-tax-disclosure" data-tax-disclosure data-tax-state="' + (federalAttachFailed ? 'engine-fallback' : 'federal-sidecar') + '">' +
+        (federalAttachFailed
+          ? '<div class="cf-tax-fallback" data-tax-fallback role="status">Federal tax detail isn\'t available for this run. The Tax column uses engine estimates.</div>'
+          : '<div class="cf-tax-scope" data-tax-scope-disclosure>Federal tax scope: ' + esc(federalScopeLabel(sidecar.scope)) + '.</div>' +
+            (sidecar.warnings.length
+              ? '<div class="cf-tax-warnings" data-tax-warnings role="status" aria-label="Federal tax warnings">' +
+                  '<div class="cf-tax-warnings__label">Federal tax warnings</div>' +
+                  '<ul>' + sidecar.warnings.map((warning) => '<li>' + esc(federalWarningMessage(warning)) + '</li>').join('') + '</ul>' +
+                '</div>'
+              : '')) +
+      '</div>'
+    ) : '';
 
     const rowHtml = (r) => {
       const tax = resolveRowTax(r, sidecar);
@@ -254,6 +283,7 @@ export function renderCashflow(scn, allScns, {
             : '') +
         '</div>' +
         summaryStrip +
+        taxDisclosure +
         '<div class="cf-table">' +
           '<div class="cf-table__head cf-grid">' + headCells + '</div>' +
           (empty || phases) +

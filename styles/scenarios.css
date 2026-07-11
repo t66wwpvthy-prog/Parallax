@@ -545,6 +545,27 @@
 .page[data-page="scenarios"] .cf-stat__peak { display: flex; align-items: baseline; gap: 7px; margin-top: 5px; }
 .page[data-page="scenarios"] .cf-stat__peak-age { font-size: 14px; color: var(--text-5); }
 
+.page[data-page="scenarios"] .cf-tax-disclosure {
+  display: grid;
+  gap: 8px;
+  margin: -6px 4px 16px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--text-4);
+}
+.page[data-page="scenarios"] .cf-tax-scope { color: var(--text-5); }
+.page[data-page="scenarios"] .cf-tax-warnings,
+.page[data-page="scenarios"] .cf-tax-fallback {
+  padding: 10px 12px;
+  border: 1px solid rgba(198, 166, 98, 0.24);
+  border-radius: 10px;
+  background: rgba(198, 166, 98, 0.06);
+  color: var(--text-3);
+}
+.page[data-page="scenarios"] .cf-tax-warnings__label { margin-bottom: 3px; color: var(--gold-bright); }
+.page[data-page="scenarios"] .cf-tax-warnings ul { margin: 0; padding-left: 18px; }
+.page[data-page="scenarios"] .cf-tax-warnings li + li { margin-top: 3px; }
+
 /* the ledger table */
 .page[data-page="scenarios"] .cf-table { border-radius: var(--r-panel); overflow: hidden; background: var(--glass-table); border: 1px solid var(--line-11); box-shadow: var(--shadow-table); backdrop-filter: var(--blur-table); -webkit-backdrop-filter: var(--blur-table); font-variant-numeric: tabular-nums; }
 /* shared 11-column grid for header + every data row. Each numeric column gets
