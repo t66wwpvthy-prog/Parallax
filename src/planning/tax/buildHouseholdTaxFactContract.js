@@ -1,4 +1,4 @@
-import { getAccountTypeById, isValidValuationDate } from '../../household/accountTypes.js';
+import { getAccountTypeById } from '../../household/accountTypes.js';
 import {
   validateBasisEnvelope,
   validateFactEnvelope,
@@ -8,6 +8,14 @@ import {
   resolveAccountTaxReportingGap,
   resolveTaxableStartingBasis,
 } from '../../household/resolveTaxableStartingBasis.js';
+import {
+  DESIGNATED_ROTH_FACTS,
+  EMPLOYER_FACTS,
+  PROFILE_FACTS,
+  ROTH_IRA_FACTS,
+  TRADITIONAL_IRA_FACTS,
+  semanticValueIsValid,
+} from '../../household/taxFactDefinitions.js';
 import { FILING_STATUSES } from '../../tax/core/constants.js';
 
 const INDIVIDUAL_ACCOUNT_CHARACTERS = new Set([
@@ -20,41 +28,6 @@ const INDIVIDUAL_ACCOUNT_CHARACTERS = new Set([
   'hsa',
 ]);
 
-const PROFILE_FACTS = Object.freeze([
-  Object.freeze({ path: ['birthDate'], semantic: 'date', rule: 'OWNER_PROFILE_RULE_PENDING' }),
-  Object.freeze({ path: ['blind'], semantic: 'boolean', rule: 'STANDARD_DEDUCTION_AGE_BLIND_RULE_PENDING' }),
-  Object.freeze({ path: ['disabled'], semantic: 'boolean', rule: 'OWNER_PROFILE_RULE_PENDING' }),
-]);
-
-const TRADITIONAL_IRA_FACTS = Object.freeze([
-  'priorYearCarryforwardBasis',
-  'currentYearNondeductibleContributions',
-  'yearEndAggregateValueOverride',
-  'outstandingRolloversAtYearEnd',
-  'otherForm8606Adjustments',
-].map(key => Object.freeze({
-  path: ['traditionalIra', key],
-  semantic: key === 'otherForm8606Adjustments' ? 'finite-number' : 'nonnegative-number',
-  rule: 'FORM_8606_DISTRIBUTION_RULE_PENDING',
-})));
-
-const ROTH_IRA_FACTS = Object.freeze([
-  Object.freeze({ path: ['rothIra', 'firstContributionYear'], semantic: 'year', rule: 'ROTH_DISTRIBUTION_RULE_PENDING' }),
-  Object.freeze({ path: ['rothIra', 'contributionBasis'], semantic: 'nonnegative-number', rule: 'ROTH_DISTRIBUTION_RULE_PENDING' }),
-  Object.freeze({ path: ['rothIra', 'conversionCohorts'], semantic: 'array', rule: 'ROTH_DISTRIBUTION_RULE_PENDING' }),
-]);
-
-const EMPLOYER_FACTS = Object.freeze([
-  Object.freeze({ key: 'afterTaxContributionBasis', semantic: 'nonnegative-number', rule: 'EMPLOYER_AFTER_TAX_BASIS_RULE_PENDING' }),
-  Object.freeze({ key: 'planSubtypeConfirmed', semantic: 'boolean', rule: 'EMPLOYER_PLAN_SUBTYPE_RULE_PENDING' }),
-]);
-
-const DESIGNATED_ROTH_FACTS = Object.freeze([
-  Object.freeze({ key: 'firstContributionYear', semantic: 'year', rule: 'DESIGNATED_ROTH_DISTRIBUTION_RULE_PENDING' }),
-  Object.freeze({ key: 'contributionBasis', semantic: 'nonnegative-number', rule: 'DESIGNATED_ROTH_DISTRIBUTION_RULE_PENDING' }),
-  Object.freeze({ key: 'inPlanRolloverCohorts', semantic: 'array', rule: 'DESIGNATED_ROTH_DISTRIBUTION_RULE_PENDING' }),
-]);
-
 function cloneFreeze(value){
   if(Array.isArray(value)){
     return Object.freeze(value.map(cloneFreeze));
@@ -65,18 +38,6 @@ function cloneFreeze(value){
     ));
   }
   return value;
-}
-
-function semanticValueIsValid(value, semantic){
-  switch(semantic){
-    case 'boolean': return typeof value === 'boolean';
-    case 'date': return typeof value === 'string' && isValidValuationDate(value);
-    case 'year': return Number.isInteger(value) && value > 0;
-    case 'nonnegative-number': return typeof value === 'number' && Number.isFinite(value) && value >= 0;
-    case 'finite-number': return typeof value === 'number' && Number.isFinite(value);
-    case 'array': return Array.isArray(value);
-    default: return false;
-  }
 }
 
 function makeGap(code, kind, path, details = {}){

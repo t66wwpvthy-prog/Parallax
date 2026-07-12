@@ -1,5 +1,6 @@
 import { escHtml } from './dom.js';
 import { accountDisplayTreatment } from '../src/household/accountTypes.js';
+import { renderHouseholdTaxFacts } from './householdTaxFacts.js';
 
 const FS_LABELS = {
   marriedFilingJointly: 'Married filing jointly',
@@ -270,6 +271,7 @@ export function createHouseholdWizard(deps){
         <div><div class="hh-grand-total__k">Total investable</div><div class="hh-grand-total__sub">${count} account${count === 1 ? '' : 's'}</div></div>
         <div class="hh-grand-total__v">${hhMoney(total)}</div>
       </div>
+      ${renderHouseholdTaxFacts(plan, deps)}
     </div>`;
   }
 

@@ -220,9 +220,15 @@ function verifyHousehold(){
   ok(!/id=.hh-act-demo|id=.hh-act-clear|class=.hh-menu__row/.test(html), 'retired Demo reset / Clear menu controls must be gone');
   ok(!/<label[^>]+for=.hh-switch/.test(html), 'redundant Household label must be removed from the menu');
   ok(/meta\.filingStatus/.test(source), 'Filing status field (meta.filingStatus) missing from Household');
-  // NO basis input: the taxable cost-basis % is an engine default now, never an
-  // advisor-facing wizard field.
-  ok(!/hhField\('portfolio\.accounts\.taxable\.basisPct'/.test(source), 'taxable cost-basis input must NOT ship in the wizard');
+  // Tax facts are edited through their atomic Household gateway. The retired
+  // aggregate basisPct remains an engine fallback only and must never return as
+  // an advisor-facing field.
+  ok(!/hhField\('portfolio\.accounts\.taxable\.basisPct'/.test(source), 'legacy taxable basisPct input must NOT ship in the wizard');
+  ok(/data-hh-tax-details-root/.test(source), 'Household Tax details disclosure is missing');
+  ok(/['"]data-hh-tax-edit['"]\s*:\s*['"]basis['"]/.test(source), 'account cost-basis controls are missing');
+  ok(/applyHouseholdTaxFactEdit/.test(source) && /taxFactEditFromControl/.test(source), 'Household tax facts must use the atomic edit API');
+  const taxFactsUi = read(join(ROOT, 'ui', 'householdTaxFacts.js'));
+  ok(!/key:\s*['"](?:conversionCohorts|inPlanRolloverCohorts)['"]/.test(taxFactsUi), 'cohort-array controls must remain deferred');
   ok(/colaPct/.test(source), 'Pension colaPct must remain in plan factories (UI deferred)');
 
   // index.html must stay markup-only — no inline app JS or stale household imports.
@@ -666,6 +672,164 @@ try {
     await page.click('#hh-step-4'); await new Promise(r => setTimeout(r, 250));
   });
 
+  await step('household tax details: accessible basis edits persist and reach engine truth', async () => {
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
+    await goStep(2);
+    const detailsSelector = '#hh-view [data-hh-tax-details-root]';
+    if(!await page.$(detailsSelector)) throw new Error('Tax details disclosure missing from Balance Sheet');
+    if(!await page.$eval(detailsSelector, el => el.open)){
+      await page.click(`${detailsSelector} > summary`);
+      await sleep(250);
+    }
+
+    const contract = await page.evaluate(selector => {
+      const details = document.querySelector(selector);
+      const controls = [...details.querySelectorAll('[data-hh-tax-edit]')];
+      const labels = [...details.querySelectorAll('label')];
+      const ids = controls.map(el => el.id).filter(Boolean);
+      const describedByMissing = controls.flatMap(el => (
+        (el.getAttribute('aria-describedby') || '').split(/\s+/).filter(Boolean)
+          .filter(id => !document.getElementById(id))
+      ));
+      const unlabelled = controls.filter(el => (
+        !el.id || !labels.some(label => label.htmlFor === el.id)
+      )).map(el => el.id || el.dataset.hhTaxEdit || el.tagName);
+      return {
+        open: details.open,
+        summaryFocusable: details.querySelector(':scope > summary')?.tabIndex >= 0,
+        fieldsets: details.querySelectorAll('fieldset > legend').length,
+        controls: controls.length,
+        basis: [...details.querySelectorAll('[data-hh-tax-edit="basis"]')].map(el => ({
+          accountId: el.dataset.hhTaxAccountId,
+          value: el.value,
+        })),
+        duplicateIds: ids.filter((id, index) => ids.indexOf(id) !== index),
+        describedByMissing,
+        unlabelled,
+        cohortControls: details.querySelectorAll('[data-hh-tax-key="conversionCohorts"], [data-hh-tax-key="inPlanRolloverCohorts"]').length,
+      };
+    }, detailsSelector);
+    if(!contract.open || !contract.summaryFocusable) throw new Error(`Tax details disclosure accessibility failed: ${JSON.stringify(contract)}`);
+    if(!contract.fieldsets || !contract.controls || !contract.basis.length) throw new Error(`Tax details fields are incomplete: ${JSON.stringify(contract)}`);
+    if(contract.duplicateIds.length || contract.describedByMissing.length || contract.unlabelled.length)
+      throw new Error(`Tax details labels/descriptions are invalid: ${JSON.stringify(contract)}`);
+    if(contract.cohortControls) throw new Error('Deferred cohort-array controls rendered in Household');
+    if(contract.basis.some(item => !item.accountId)) throw new Error(`Basis control is missing a stable account ID: ${JSON.stringify(contract.basis)}`);
+
+    const targets = contract.basis.map((item, index) => ({
+      accountId: item.accountId,
+      value: (index + 1) * 10000,
+    }));
+    for(const target of targets){
+      await page.evaluate(item => {
+        const input = [...document.querySelectorAll('[data-hh-tax-edit="basis"]')]
+          .find(el => el.dataset.hhTaxAccountId === item.accountId);
+        if(!input) throw new Error(`Basis input disappeared for ${item.accountId}`);
+        input.value = String(item.value);
+        input.dispatchEvent(new Event('change', { bubbles:true }));
+      }, target);
+      await sleep(250);
+    }
+
+    const dirty = await page.evaluate(() => ({
+      status: document.querySelector('#status')?.textContent.trim() || '',
+      saveDisabled: document.querySelector('#save-btn')?.disabled,
+      saveText: document.querySelector('#save-btn')?.textContent.trim() || '',
+    }));
+    if(!/Plan edited/.test(dirty.status) || dirty.saveDisabled || !/^Save$/.test(dirty.saveText))
+      throw new Error(`Tax detail edit did not arm Save and stale scenarios: ${JSON.stringify(dirty)}`);
+    await page.screenshot({ path: join(OUT, '01b-household-tax-details.png'), fullPage: true });
+
+    await page.click('#save-btn');
+    await sleep(400);
+    const saved = await page.evaluate(items => {
+      const db = JSON.parse(localStorage.getItem('parallax.households.v1') || 'null');
+      const active = localStorage.getItem('parallax.activeHouseholdId');
+      const accounts = db?.[active]?.portfolio?.extraAccounts || [];
+      return items.map(item => ({
+        expected: item,
+        basis: accounts.find(account => account.id === item.accountId)?.basis || null,
+      }));
+    }, targets);
+    for(const item of saved){
+      const basis = item.basis;
+      if(!basis
+        || basis.amount !== item.expected.value
+        || basis.method !== 'reported-cost-basis'
+        || basis.status !== 'confirmed'
+        || basis.source !== 'household-entry'
+        || basis.version !== 1
+        || typeof basis.confirmedAt !== 'string'
+        || !Number.isFinite(Date.parse(basis.confirmedAt))){
+        throw new Error(`Saved basis envelope is invalid: ${JSON.stringify(item)}`);
+      }
+    }
+
+    await stableReload({ waitUntil: 'networkidle2', timeout: 20000 });
+    await sleep(900);
+    await goStep(2);
+    if(!await page.$eval(detailsSelector, el => el.open)){
+      await page.click(`${detailsSelector} > summary`);
+      await sleep(250);
+    }
+    const reloaded = await page.evaluate(items => items.map(item => {
+      const input = [...document.querySelectorAll('[data-hh-tax-edit="basis"]')]
+        .find(el => el.dataset.hhTaxAccountId === item.accountId);
+      return {
+        accountId: item.accountId,
+        expected: item.value,
+        actual: Number(String(input?.value || '').replace(/[^0-9.-]/g, '')),
+      };
+    }), targets);
+    if(reloaded.some(item => item.actual !== item.expected))
+      throw new Error(`Saved basis values did not survive reload: ${JSON.stringify(reloaded)}`);
+
+    const engineBasis = await page.evaluate(async items => {
+      const db = JSON.parse(localStorage.getItem('parallax.households.v1') || 'null');
+      const active = localStorage.getItem('parallax.activeHouseholdId');
+      const savedPlan = db?.[active];
+      const { resolveInputs } = await import('/engine.js');
+      const params = resolveInputs(savedPlan, {});
+      return {
+        actual: params.accounts.taxable.basis,
+        expected: items.reduce((sum, item) => sum + item.value, 0),
+        fallback: params.accounts.taxable.balance * savedPlan.portfolio.accounts.taxable.basisPct,
+      };
+    }, targets);
+    if(engineBasis.actual !== engineBasis.expected || engineBasis.actual === engineBasis.fallback)
+      throw new Error(`Engine did not consume the complete confirmed basis override: ${JSON.stringify(engineBasis)}`);
+
+    // Restore the shared fixture: clearing replaces each envelope atomically
+    // with unknown metadata, then Save makes that restoration durable.
+    for(const target of targets){
+      await page.evaluate(accountId => {
+        const input = [...document.querySelectorAll('[data-hh-tax-edit="basis"]')]
+          .find(el => el.dataset.hhTaxAccountId === accountId);
+        if(!input) throw new Error(`Basis input disappeared for ${accountId}`);
+        input.value = '';
+        input.dispatchEvent(new Event('change', { bubbles:true }));
+      }, target.accountId);
+      await sleep(200);
+    }
+    await page.click('#save-btn');
+    await sleep(400);
+    const cleared = await page.evaluate(items => {
+      const db = JSON.parse(localStorage.getItem('parallax.households.v1') || 'null');
+      const active = localStorage.getItem('parallax.activeHouseholdId');
+      const accounts = db?.[active]?.portfolio?.extraAccounts || [];
+      return items.map(item => accounts.find(account => account.id === item.accountId)?.basis || null);
+    }, targets);
+    if(cleared.some(basis => !basis
+      || basis.amount !== null
+      || basis.method !== 'unknown'
+      || basis.status !== 'unknown'
+      || basis.source !== null
+      || basis.confirmedAt !== null
+      || basis.version !== 1)){
+      throw new Error(`Cleared basis facts did not restore unknown envelopes: ${JSON.stringify(cleared)}`);
+    }
+  });
+
   await step('type floor: wizard values >= 16px; tracked labels may use micro type', async () => {
     // Inside .hh-wizard: running values, inputs, and buttons stay >= 16px.
     // Tracked uppercase micro-labels (9–13px) are allowed — decorative hierarchy only.
@@ -688,6 +852,8 @@ try {
           'hh-empty','hh-future-row__note','hh-future-row__name','hh-future-row__claim','hh-ledger-row__name',
           'hh-ledger-row__note','hh-ledger-row__age-label',
           'hh-dash-btn','hh-text-add','pre','hh-av','hh-avatar',
+          'hh-tax-microcopy','hh-tax-details__state','hh-tax-fieldset__eyebrow',
+          'hh-tax-badge','hh-tax-limit__eyebrow',
         ]);
         const allowMicro = el => {
           const inWizard = el.closest('.hh-wizard');
@@ -695,6 +861,11 @@ try {
           if(!inWizard && !inChrome) return false;
           const classes = (el.className || '').toString().split(/\s+/).filter(Boolean);
           if(classes.some(c => MICRO.has(c))) return true;
+          if(el.closest('.hh-tax-details') && (
+            el.matches('.hh-tax-field > label')
+            || el.matches('.hh-tax-limit strong')
+            || el.matches('.hh-tax-money > span')
+          )) return true;
           if(el.closest('.hh-wiz-footer') && classes.includes('hh-btn')) return true;
           return !!el.closest('.hh-inline-form');
         };
@@ -2217,6 +2388,8 @@ try {
       if(status !== blocked) throw new Error(`${label}: blocked status was not pinned (got "${status}")`);
     };
     await assertPinned('initial load');
+    const blockedTaxEditor = await page.$('#hh-view [data-hh-tax-details-root], #hh-view [data-hh-tax-edit]');
+    if(blockedTaxEditor) throw new Error('blocked Household surface exposed the Tax details editor');
 
     const blockedControls = await page.evaluate(() => {
       const disabled = selector => {
@@ -2460,8 +2633,12 @@ try {
       rowRemoveDisabled:[...document.querySelectorAll('#hh-view .row-x[data-rmpath^="portfolio.extraAccounts."]')].every(el => el.disabled),
       addCount:document.querySelectorAll('#hh-view [data-hh-action="open-account-form"]').length,
       addDisabled:[...document.querySelectorAll('#hh-view [data-hh-action="open-account-form"]')].every(el => el.disabled),
+      taxCount:document.querySelectorAll('#hh-view [data-hh-tax-edit="basis"]').length,
+      taxDisabled:[...document.querySelectorAll('#hh-view [data-hh-tax-edit]')].every(el => el.disabled),
+      taxValue:document.querySelector('#hh-view [data-hh-tax-edit="basis"]')?.value || '',
     }));
-    if(!accountBefore.rows || !accountBefore.rowRemoveDisabled || !accountBefore.addCount || !accountBefore.addDisabled){
+    if(!accountBefore.rows || !accountBefore.rowRemoveDisabled || !accountBefore.addCount || !accountBefore.addDisabled
+      || !accountBefore.taxCount || !accountBefore.taxDisabled){
       throw new Error(`read-only account controls are not disabled: ${JSON.stringify(accountBefore)}`);
     }
     await page.evaluate(() => {
@@ -2469,17 +2646,23 @@ try {
         ?.dispatchEvent(new MouseEvent('click', { bubbles:true }));
       document.querySelector('#hh-view [data-hh-action="open-account-form"]')
         ?.dispatchEvent(new MouseEvent('click', { bubbles:true }));
+      const taxInput = document.querySelector('#hh-view [data-hh-tax-edit="basis"]');
+      if(taxInput){
+        taxInput.value = '999';
+        taxInput.dispatchEvent(new Event('change', { bubbles:true }));
+      }
     });
     await goStep(1); await goStep(2);
     const accountAfter = await page.evaluate(() => ({
       rows:document.querySelectorAll('#hh-view input[data-path^="portfolio.extraAccounts."][data-path$=".balance"]').length,
       form:!!document.querySelector('#hh-acct-form'),
+      taxValue:document.querySelector('#hh-view [data-hh-tax-edit="basis"]')?.value || '',
     }));
-    if(accountAfter.rows !== accountBefore.rows || accountAfter.form){
-      throw new Error(`read-only account add/remove changed immediate state: ${JSON.stringify({ accountBefore, accountAfter })}`);
+    if(accountAfter.rows !== accountBefore.rows || accountAfter.form || accountAfter.taxValue !== accountBefore.taxValue){
+      throw new Error(`read-only account/tax edit changed immediate state: ${JSON.stringify({ accountBefore, accountAfter })}`);
     }
-    await assertPinned('account add/remove');
-    await assertBytesUnchanged('account add/remove');
+    await assertPinned('account add/remove and tax edit');
+    await assertBytesUnchanged('account add/remove and tax edit');
 
     await goStep(1);
     const removeSpouseDisabled = await page.$eval('#hh-view [data-hh-action="remove-spouse"]', el => el.disabled);
