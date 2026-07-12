@@ -4,39 +4,41 @@
    ============================================================================= */
 
 .page[data-page="household"] {
-  --gold: #c3a56a;
-  --gold-bright: #cdb079;
-  --gold-ink: #1c1a15;
-  --gold-dim: rgba(195,165,106,0.45);
+  --gold: var(--accent);
+  --gold-bright: var(--accent-bright);
+  --gold-ink: var(--btn-ink);
+  --gold-dim: var(--line-accent);
 
-  --text-hi: #ece7db;
-  --text-1: #cfcabf;
-  --text-2: #8a8880;
-  --text-3: #7a7a7c;
-  --text-4: #6f6f72;
-  --text-5: #63625d;
+  --text-hi: var(--ink-bright);
+  --text-1: var(--ink);
+  --text-2: var(--ink-body);
+  --text-3: var(--ink-mute);
+  --text-4: var(--ink-faint);
+  --text-5: var(--ink-ghost);
 
-  --sage: #96a394;
-  --sage-dim: #879a86;
+  --sage: var(--status-positive);
+  --sage-dim: var(--status-positive-bright);
   --slate: #7688a0;
-  --down: #c07a63;
+  --down: var(--negative);
 
-  --line-06: rgba(255,255,255,0.06);
-  --line-07: rgba(255,255,255,0.07);
-  --line-08: rgba(255,255,255,0.08);
-  --line-10: rgba(255,255,255,0.10);
-  --line-12: rgba(255,255,255,0.12);
-  --line-16: rgba(255,255,255,0.16);
+  --line-06: rgba(231,222,201,0.055);
+  --line-07: rgba(231,222,201,0.07);
+  --line-08: rgba(231,222,201,0.08);
+  --line-10: rgba(231,222,201,0.10);
+  --line-12: rgba(231,222,201,0.12);
+  --line-16: rgba(231,222,201,0.16);
 
-  --card-bg: rgba(255,255,255,0.012);
-  --sheet-bg: #0b0b0d;
-  --max-w: 1120px;
+  --card-bg:
+    radial-gradient(110% 85% at 0% 0%, rgba(231,222,201,0.018), transparent 48%),
+    rgba(14,16,19,0.94);
+  --sheet-bg: transparent;
+  --max-w: 1320px;
 
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   color: var(--text-1);
-  background: #060606;
-  background-image: radial-gradient(130% 100% at 50% -6%, #0e0e11 0%, #080808 56%, #050505 100%);
+  background: var(--app-page-bg);
+  background-attachment: fixed;
   min-height: 100vh;
   overflow-y: auto;
 }
@@ -49,16 +51,19 @@
   width: 100%;
   max-width: var(--max-w);
   margin: 0 auto;
-  padding: 26px 26px 60px;
+  padding: 28px 0 52px;
   display: flex;
   flex-direction: column;
   min-height: calc(100vh - 52px);
 }
 
 .page[data-page="household"] .hh-wizard {
-  border: 1px solid var(--line-07);
-  border-radius: 20px;
+  border: 1px solid var(--line-10);
+  border-radius: 16px;
   background: var(--card-bg);
+  box-shadow: 0 24px 54px -48px rgba(0,0,0,0.78), inset 0 1px 0 rgba(231,222,201,0.035);
+  backdrop-filter: blur(18px) saturate(105%);
+  -webkit-backdrop-filter: blur(18px) saturate(105%);
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -72,7 +77,7 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  padding: 0 4px 22px;
+  padding: 0 4px 24px;
   flex: none;
 }
 .page[data-page="household"] .hh-wiz-id { display: flex; align-items: center; gap: 13px; min-width: 0; }
@@ -101,20 +106,20 @@
 .page[data-page="household"] .hh-av--lg { width: 30px; height: 30px; font-size: 14px; }
 .page[data-page="household"] .hh-av--overlap { margin-left: -9px; }
 .page[data-page="household"] .hh-wiz-id__name {
-  font-family: var(--font-serif); font-size: 22px; color: var(--text-hi); line-height: 1.15;
+  font-family: var(--font-serif); font-size: 24px; font-weight: 300; color: var(--text-hi); line-height: 1.15;
 }
 
 .page[data-page="household"] .hh-menu { position: relative; flex: none; }
 .page[data-page="household"] .hh-menu__btn {
   width: 36px; height: 36px; border-radius: 8px;
-  border: 1px solid var(--line-10); background: rgba(255,255,255,0.03);
+  border: 1px solid var(--line-10); background: rgba(231,222,201,0.02);
   color: var(--text-2); font-size: 20px; cursor: pointer;
 }
 .page[data-page="household"] .hh-menu__pop {
   position: absolute; top: 44px; right: 0; z-index: 30;
   width: 218px; padding: 6px; display: flex; flex-direction: column; gap: 2px;
   border-radius: 10px; border: 1px solid var(--line-10);
-  background: #17181b; box-shadow: 0 18px 44px rgba(0,0,0,0.46);
+  background: rgba(18,20,23,0.98); box-shadow: 0 18px 44px -30px rgba(0,0,0,0.72);
 }
 .page[data-page="household"] .hh-menu__pop[hidden] { display: none; }
 .page[data-page="household"] .hh-rail-act,
@@ -123,27 +128,32 @@
 }
 .page[data-page="household"] .hh-rail__switch-sel {
   width: 100%; min-height: 38px; padding: 7px 30px 7px 10px; border-radius: 7px;
-  border: 1px solid var(--line-10); background: rgba(255,255,255,0.035); color: var(--text-2);
+  border: 1px solid var(--line-10); background: rgba(231,222,201,0.025); color: var(--text-2);
 }
 .page[data-page="household"] .hh-rail-act {
   width: 100%; min-height: 38px; padding: 7px 10px; border-radius: 7px;
   border: 0; background: transparent; color: var(--text-2); text-align: left;
   cursor: pointer;
 }
-.page[data-page="household"] .hh-rail-act:hover { background: rgba(255,255,255,0.055); color: var(--text-hi); }
+.page[data-page="household"] .hh-rail-act:hover { background: rgba(231,222,201,0.045); color: var(--text-hi); }
 
 /* ---- Stepper -------------------------------------------------------------- */
 .page[data-page="household"] .hh-stepper {
   display: grid;
   grid-template-columns: auto 1fr auto 1fr auto 1fr auto;
   align-items: center;
-  max-width: 640px;
+  max-width: 700px;
   margin: 0 auto;
-  padding: 30px 52px 4px;
+  padding: 34px 52px 8px;
 }
 .page[data-page="household"] .hh-step {
   display: inline-flex; align-items: center; gap: 9px;
   background: transparent; border: 0; padding: 0; cursor: pointer;
+}
+.page[data-page="household"] .hh-step:focus-visible {
+  outline: 1px solid var(--gold);
+  outline-offset: 4px;
+  border-radius: 6px;
 }
 .page[data-page="household"] .hh-step__num {
   width: 26px; height: 26px; border-radius: 50%;
@@ -155,12 +165,12 @@
   font-size: 11px; letter-spacing: 0.14em; color: var(--text-4); white-space: nowrap;
 }
 .page[data-page="household"] .hh-step.is-current .hh-step__num {
-  background: linear-gradient(180deg, #cdb079, #9c7d44);
+  background: var(--gold);
   border-color: transparent; color: var(--gold-ink); font-weight: 500;
 }
 .page[data-page="household"] .hh-step.is-current .hh-step__label { color: var(--text-hi); }
 .page[data-page="household"] .hh-step.is-done .hh-step__num {
-  background: rgba(195,165,106,0.16); border-color: var(--gold-dim); color: var(--gold);
+  background: rgba(198,166,98,0.10); border-color: var(--gold-dim); color: var(--gold);
   font-size: 13px; font-family: var(--font-sans);
 }
 .page[data-page="household"] .hh-step.is-done .hh-step__label { color: var(--text-1); }
@@ -171,14 +181,14 @@
 
 /* ---- Workspace + footer --------------------------------------------------- */
 .page[data-page="household"] .hh-wiz-workspace {
-  padding: 16px 52px 44px;
+  padding: 18px 52px 48px;
   flex: 1;
   min-height: 0;
   overflow-y: auto;
 }
 .page[data-page="household"] .hh-wiz-footer {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 20px 52px; border-top: 1px solid var(--line-07);
+  padding: 22px 52px; border-top: 1px solid var(--line-07);
   flex: none;
 }
 .page[data-page="household"] .hh-wiz-footer .hh-btn {
@@ -188,15 +198,15 @@
 .page[data-page="household"] .hh-wiz-foot-note { font-size: 12px; color: var(--text-4); letter-spacing: 0.06em; }
 
 .page[data-page="household"] .hh-step-title {
-  font-family: var(--font-serif); font-size: 31px; font-weight: 400;
-  color: var(--text-hi); line-height: 1; margin: 20px 0 24px;
+  font-family: var(--font-serif); font-size: 38px; font-weight: 300;
+  color: var(--text-hi); line-height: 1.05; margin: 22px 0 32px;
 }
 
 /* ---- Two-column layouts --------------------------------------------------- */
 .page[data-page="household"] .hh-cols { display: flex; align-items: stretch; }
 .page[data-page="household"] .hh-cols--split .hh-col { flex: 1; min-width: 0; }
-.page[data-page="household"] .hh-cols--split .hh-col:first-child { padding-right: 44px; }
-.page[data-page="household"] .hh-cols--split .hh-col:last-child { padding-left: 44px; }
+.page[data-page="household"] .hh-cols--split .hh-col:first-child { padding-right: 52px; }
+.page[data-page="household"] .hh-cols--split .hh-col:last-child { padding-left: 52px; }
 .page[data-page="household"] .hh-cols__div { width: 1px; background: var(--line-08); flex: none; }
 .page[data-page="household"] .hh-cols--gap { gap: 56px; flex-wrap: wrap; }
 .page[data-page="household"] .hh-cols--gap .hh-col { flex: 1; min-width: 280px; }
@@ -207,7 +217,7 @@
 
 .page[data-page="household"] .hh-col__head {
   display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: 24px; gap: 12px;
+  margin-bottom: 28px; gap: 12px;
 }
 .page[data-page="household"] .hh-col__head--total {
   padding-bottom: 14px; margin-bottom: 0; border-bottom: 1px solid var(--line-10);
@@ -215,7 +225,7 @@
 .page[data-page="household"] .hh-col__head--cf { padding-bottom: 12px; }
 .page[data-page="household"] .hh-col__id { display: inline-flex; align-items: center; gap: 11px; min-width: 0; }
 .page[data-page="household"] .hh-col__role {
-  font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold);
+  font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--gold);
 }
 .page[data-page="household"] .hh-col__sum {
   font-family: var(--font-serif); font-size: 20px; color: var(--gold);
@@ -241,15 +251,15 @@
   grid-template-columns: minmax(0, 1fr) var(--hh-kv-val-w);
   align-items: baseline;
   gap: 16px;
-  padding: 11px 2px;
+  padding: 15px 2px;
 }
 .page[data-page="household"] .hh-kv--rule { border-bottom: 1px solid var(--line-06); }
 .page[data-page="household"] .hh-kv__k {
-  font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: #7f7f82;
+  font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-4);
   white-space: nowrap;
 }
 .page[data-page="household"] .hh-kv__v {
-  font-family: var(--font-serif); font-size: 16px; color: var(--text-hi); line-height: 1;
+  font-family: var(--font-serif); font-size: 17px; color: var(--text-hi); line-height: 1;
   width: 100%;
   text-align: right;
   justify-self: end;
@@ -283,12 +293,12 @@
 
 /* ---- Meta row ------------------------------------------------------------- */
 .page[data-page="household"] .hh-meta-row {
-  display: flex; gap: 48px; flex-wrap: wrap; align-items: flex-end;
-  margin-top: 34px; padding-top: 28px; border-top: 1px solid var(--line-07);
+  display: flex; gap: 56px; flex-wrap: wrap; align-items: flex-end;
+  margin-top: 30px; padding-top: 26px; border-top: 1px solid var(--line-06);
 }
 .page[data-page="household"] .hh-meta { flex: 1; min-width: 200px; }
 .page[data-page="household"] .hh-meta__k {
-  display: block; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+  display: block; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
   color: var(--text-4); margin-bottom: 10px;
 }
 .page[data-page="household"] .hh-meta__v {
@@ -382,13 +392,14 @@
   background: linear-gradient(180deg, #cdb079, #9c7d44); color: var(--gold-ink); border: 0;
 }
 .page[data-page="household"] .hh-wiz-footer .hh-btn--primary {
-  background: linear-gradient(180deg, #cdb079, #9c7d44);
-  color: var(--gold-ink);
-  border: 0;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.28), 0 10px 24px -16px rgba(198,166,98,0.55);
+  background: rgba(198,166,98,0.025);
+  color: var(--gold-bright);
+  border: 1px solid rgba(198,166,98,0.42);
+  box-shadow: inset 0 1px 0 rgba(231,222,201,0.025);
 }
 .page[data-page="household"] .hh-wiz-footer .hh-btn--primary:hover {
-  filter: brightness(1.06);
+  background: rgba(198,166,98,0.075);
+  border-color: rgba(198,166,98,0.58);
 }
 .page[data-page="household"] .hh-btn--outline {
   background: transparent; border-color: var(--line-16); color: var(--text-1);
@@ -447,7 +458,7 @@
 }
 .page[data-page="household"] .hh-inline-form__money {
   display: flex; align-items: center; gap: 4px;
-  background: rgba(0,0,0,0.24); border: 1px solid var(--line-16); border-radius: 8px; padding: 0 12px;
+  background: rgba(231,222,201,0.02); border: 1px solid var(--line-16); border-radius: 8px; padding: 0 12px;
 }
 .page[data-page="household"] .hh-inline-form .hh-form-val {
   padding: 10px 6px;
@@ -480,11 +491,11 @@
 /* ---- Blueprint sheet ------------------------------------------------------ */
 .page[data-page="household"] .hh-bp-sheet {
   position: relative; background: var(--sheet-bg);
-  border: 1px solid var(--line-06); border-radius: 14px;
-  padding: 46px 50px; display: flex; gap: 52px; align-items: stretch; overflow: hidden;
+  border: 0; border-radius: 0;
+  padding: 34px 8px 22px; display: flex; gap: 76px; align-items: stretch; overflow: hidden;
 }
 .page[data-page="household"] .hh-bp-corner {
-  position: absolute; width: 13px; height: 13px; pointer-events: none;
+  display: none;
 }
 .page[data-page="household"] .hh-bp-corner--tl { top: 14px; left: 14px; border-top: 1px solid var(--gold-dim); border-left: 1px solid var(--gold-dim); }
 .page[data-page="household"] .hh-bp-corner--tr { top: 14px; right: 14px; border-top: 1px solid var(--gold-dim); border-right: 1px solid var(--gold-dim); }
@@ -502,7 +513,7 @@
 }
 .page[data-page="household"] .hh-bp-avs { display: inline-flex; align-items: center; flex: none; }
 .page[data-page="household"] .hh-bp-house__name {
-  font-family: var(--font-serif); font-size: 29px; color: var(--text-hi); white-space: nowrap;
+  font-family: var(--font-serif); font-size: 34px; font-weight: 300; color: var(--text-hi); white-space: nowrap;
 }
 .page[data-page="household"] .hh-bp-filing {
   font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-2); margin-top: 12px;
@@ -515,7 +526,7 @@
   font-family: var(--font-serif); font-size: 20px; color: var(--text-1); line-height: 1;
 }
 .page[data-page="household"] .hh-bp-flow {
-  margin-top: auto; padding-top: 44px; width: 100%; max-width: 300px;
+  margin-top: auto; padding-top: 52px; width: 100%; max-width: 330px;
   display: flex; flex-direction: column; gap: 16px;
 }
 .page[data-page="household"] .hh-bp-flow__row {
@@ -531,7 +542,7 @@
 .page[data-page="household"] .hh-bp-flow__val--sage { color: var(--sage); }
 
 .page[data-page="household"] .hh-bp-inst {
-  flex: none; width: 370px; max-width: 100%;
+  flex: none; width: 420px; max-width: 100%;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
 }
 .page[data-page="household"] .hh-bp-gauge {
@@ -606,7 +617,7 @@
 .page[data-page="household"] select.hh-sel,
 .page[data-page="household"] .hh-sel {
   font-size: 16px; color: var(--text-hi);
-  background: rgba(0,0,0,0.24); border: 1px solid var(--line-16); border-radius: 8px;
+  background: rgba(231,222,201,0.02); border: 1px solid var(--line-16); border-radius: 8px;
   padding: 10px 34px 10px 12px; cursor: pointer; outline: none;
   appearance: none; max-width: 100%;
 }
@@ -623,7 +634,7 @@
   margin-top: 22px;
   border: 1px solid var(--line-08);
   border-radius: 14px;
-  background: rgba(255,255,255,0.012);
+  background: rgba(231,222,201,0.012);
   overflow: hidden;
 }
 .page[data-page="household"] .hh-tax-details > summary {
@@ -638,7 +649,7 @@
   user-select: none;
 }
 .page[data-page="household"] .hh-tax-details > summary:hover {
-  background: rgba(255,255,255,0.018);
+  background: rgba(231,222,201,0.018);
 }
 .page[data-page="household"] .hh-tax-details > summary:focus-visible {
   outline: 1px solid var(--gold);
@@ -683,7 +694,7 @@
   padding: 17px;
   border: 1px solid var(--line-08);
   border-radius: 12px;
-  background: rgba(0,0,0,0.14);
+  background: rgba(231,222,201,0.008);
 }
 .page[data-page="household"] .hh-tax-fieldset legend {
   width: 100%;
@@ -761,7 +772,7 @@
   min-height: 38px;
   border: 1px solid var(--line-12);
   border-radius: 8px;
-  background: rgba(0,0,0,.24);
+  background: rgba(231,222,201,.018);
   color: var(--text-hi);
   font: 500 16px/1.2 var(--font-sans);
   padding: 9px 10px;
@@ -780,7 +791,7 @@
   align-items: center;
   border: 1px solid var(--line-12);
   border-radius: 8px;
-  background: rgba(0,0,0,.24);
+  background: rgba(231,222,201,.018);
   color: var(--text-4);
   padding-left: 10px;
 }

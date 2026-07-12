@@ -107,4 +107,65 @@ Scenarios phase result: passed
 - `node scripts/verify.mjs`: passed all browser checks, including Goals rendering, interactions, type floor, cross-page updates, persistence, shared background, and header contracts.
 - Console: no browser-console failure was reported by the verification run.
 
+Goals phase result: passed
+
+---
+
+# Household Visual Consistency QA
+
+## Comparison target
+
+- Source visual truth: `C:\Dev\Parallax\verify-out\qa-reference-household-people.png`.
+- Browser-rendered implementation: `C:\Dev\Parallax\verify-out\qa-implementation-household-people.png`.
+- Additional rendered states:
+  - `C:\Dev\Parallax\verify-out\01-household.png`
+  - `C:\Dev\Parallax\verify-out\01b-household-accounts.png`
+  - `C:\Dev\Parallax\verify-out\01b-household-tax-details.png`
+  - `C:\Dev\Parallax\verify-out\01c-household-income.png`
+- Viewports: source 1535 x 932; in-app comparison capture 1493 x 906 after browser-chrome adjustment; project verification states 1920 x 1080.
+- States: People & Timeline, Balance Sheet with add-account form and tax details, Cash Flow, and Blueprint.
+
+## Full-view comparison evidence
+
+- Household now uses the same centered 1320px stage and subdued near-black surface as the source instead of the prior narrow, isolated wizard card.
+- The progress rail, two-column form rhythm, Spectral heading, muted gold current step, champagne rules, and outline Continue control follow the source hierarchy.
+- The Blueprint screen now relies on the single outer Household surface; its competing nested glass sheet and ornamental corner marks were removed.
+- Production-only identity controls, account entry, tax details, live values, and persistence affordances remain because the implementation brief keeps production behavior authoritative.
+
+## Focused region comparison evidence
+
+- Stepper: checked current, completed, and future states; connector weight; circle size; gold opacity; label spacing; and keyboard focus treatment.
+- People & Timeline: checked paired client columns, role badges, label/value baselines, row rules, meta fields, and lower action alignment.
+- Balance Sheet and Cash Flow: checked serif totals, account/income ledger rows, inline forms, section dividers, and muted-gold add actions.
+- Blueprint: checked title hierarchy, household facts, financial figures, allocation colors, gauge placement, and removal of nested surface competition.
+- No separate asset crop was needed because the only image asset is the unchanged production logo; the important fidelity work is visible in the full forms and focused control regions above.
+
+## Findings
+
+- No actionable P0, P1, or P2 visual mismatches remain.
+- The implementation retains the production household identity row and overflow menu above the wizard. These do not appear in the source screenshot but are intentional production controls and were styled to remain quiet.
+- The in-app comparison viewport is 42px narrower and 26px shorter than the source because of browser chrome. The centered 1320px content measure and internal geometry remain directly comparable; the 1920 x 1080 verification captures confirm no clipping at the project desktop viewport.
+- No new image assets, replacement icons, or visual shortcuts were introduced.
+
+## Required fidelity surfaces
+
+- Fonts and typography: Spectral remains the display and financial-number face; Hanken Grotesk remains the UI face. Headings use lighter optical weight, tracked labels remain restrained, and verified editable values meet the application type floor.
+- Spacing and layout rhythm: the stage widened from 1120px to 1320px, column gutters increased, title and step spacing were normalized, and the Blueprint nested card was flattened. Desktop verification shows no overlap or clipped persistent controls.
+- Colors and visual tokens: Household now consumes the shared application champagne, muted gold, sage, ink, hairline, and charcoal roles. Pure-black/pure-white local glass values were replaced with the shared warm charcoal contract.
+- Image quality and asset fidelity: the production Parallax logo remains unchanged and sharp; Household contains no additional content imagery.
+- Copy and content: all production Household labels, values, account types, tax disclosures, and wizard copy remain intact.
+- Accessibility and interaction states: semantic step tabs and controls remain keyboard reachable; focus is now a restrained gold outline. People edits, filing/state controls, co-client toggle, account add/remove, tax details, Cash Flow edits, step navigation, persistence, and downstream Scenarios updates passed.
+
+## Comparison history
+
+1. Initial comparison found a P2 visual mismatch: Household was substantially narrower than the source, used a heavier isolated card, retained a competing nested Blueprint sheet, and used filled gold footer CTAs.
+2. Fix applied: the stage was widened to 1320px; Household colors were mapped to shared tokens; glass/shadows were softened; footer CTAs became outline controls; step states were muted; Blueprint's nested sheet and corner decoration were removed.
+3. Post-fix evidence: the implementation captures listed above show the wider, quieter hierarchy across all four production states. The full browser suite passed without functional regressions or layout-contract failures.
+
+## Verification
+
+- `npm test`: 347 tests, 346 passed, 1 skipped, 0 failed.
+- `node scripts/verify.mjs`: passed Household structure, all four wizard steps, type floor, inline edits, account creation, tax details, persistence, downstream Scenarios propagation, shared theme, and header contracts.
+- In-app browser console: no errors or warnings.
+
 final result: passed
