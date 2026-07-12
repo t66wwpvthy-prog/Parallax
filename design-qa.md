@@ -168,4 +168,63 @@ Goals phase result: passed
 - `node scripts/verify.mjs`: passed Household structure, all four wizard steps, type floor, inline edits, account creation, tax details, persistence, downstream Scenarios propagation, shared theme, and header contracts.
 - In-app browser console: no errors or warnings.
 
+Household phase result: passed
+
+---
+
+# Sequencing Visual Consistency QA
+
+## Comparison target
+
+- Source visual truth: `C:\Users\amans\AppData\Local\Temp\codex-clipboard-f32e4297-4dcf-44d1-af8f-d6bdd00e2787.png`.
+- Browser-rendered implementation:
+  - `C:\Dev\Parallax\verify-out\05-sequencing.png`
+  - `C:\Dev\Parallax\verify-out\06-playback.png`
+- Source viewport: 1535 x 916. Project verification viewport: 1920 x 1080; the focused Sequencing capture is the browser-rendered 1320 x 444 chart surface at device scale.
+- States: all historical eras enabled on Resilience, plus Playback for the 2000 sequence with advisor detail expanded.
+
+## Full-view comparison evidence
+
+- Sequencing uses the source's centered 1320px stage, compact two-row era controls, one quiet Resilience surface, and five equal fingerprint cards at desktop width.
+- The source's charcoal foundation, champagne typography, muted-gold selected chips, thin warm rules, sage/blue/gold/rust path accents, and restrained glass treatment carry through without changing production data.
+- Playback follows the same open-ledger treatment as the reference Cash Flow screen: its verdict, strategy comparison, and year table sit directly on the page with hairline divisions instead of a competing enclosing glass card.
+- The production header, engine-derived paths, plan selector, era controls, and Playback data remain authoritative.
+
+## Focused region comparison evidence
+
+- Resilience chart: checked the 1320 x 444 proportion, 16px radius, title/subtitle hierarchy, plot padding, grid contrast, age labels, currency labels, line weights, endpoints, and surface depth against the supplied reference.
+- Era controls: checked plan selector height, chip spacing, capsule borders, muted-gold fade, colored era dots, active checks, wrapping behavior, and helper-copy spacing.
+- Fingerprint cards: checked the five-column desktop grid, title baseline, path swatches, row rules, serif financial values, drawdown indicators, and consistent card heights.
+- Playback ledger: checked verdict hierarchy, year tabs, comparison columns, positive/negative colors, numeric alignment, row density, and expanded-detail readability.
+
+## Findings
+
+- No actionable P0, P1, or P2 visual mismatches remain.
+- The implementation chart contains the live production paths and therefore has different line geometry and starting values from the static mock. This is expected and was not restyled into fake data.
+- The source screenshot shows only the upper portions of the fingerprint cards, while the production browser capture checks the complete chart and the separate full Playback state. No clipping or overlap was observed by the full browser verification.
+- No new visual assets, icons, or functional controls were introduced.
+
+## Required fidelity surfaces
+
+- Fonts and typography: Spectral drives the Resilience title, verdict, and financial emphasis; Hanken Grotesk drives controls, labels, tables, and helpers. Tracking and optical weight match the reference's editorial hierarchy.
+- Spacing and layout rhythm: the chart is fixed to the source-like 444px desktop height inside a 1320px stage; controls wrap above it and five cards align below it. Responsive rules collapse the cards and restore automatic chart height on narrow screens.
+- Colors and visual tokens: Sequencing consumes the shared champagne, muted gold, sage, blue, rust, hairline, and charcoal roles. Active chips use the same subtle directional gold fade as Scenarios Focus.
+- Glass and line treatment: one low-contrast chart surface and quiet fingerprint cards replace the previous layered generic glass rules; Playback remains an open ledger.
+- Copy and content: production labels, era names, generated metrics, Playback verdict, and tables remain unchanged.
+- Accessibility and interaction states: focus-visible treatment remains; plan selection, independent era toggles, Playback year selection, advisor detail, and all browser contracts passed.
+
+## Comparison history
+
+1. Initial inspection found a P2 consistency issue: Sequencing presentation was split across multiple competing `main.css` passes, producing an oversized chart, heavier generic glass, and inconsistent card geometry.
+2. Fix applied: the legacy Sequencing/Playback selector blocks were removed from `main.css`; `styles/sequencing.css` became the single presentation owner with the shared 1320px stage, source-like 444px chart, five-column card grid, subtle selected-chip fades, and open Playback ledger.
+3. The first consolidated pass still rendered the chart taller than the source. Its desktop height was corrected to 444px, then the complete test and browser verification suite was rerun.
+4. Post-fix evidence: the source and final browser-rendered chart/Playback captures were reviewed together. The structural proportions, surface hierarchy, typography, line treatment, and color roles align without replacing live data or behavior.
+
+## Verification
+
+- `node scripts/verify.mjs`: passed.
+- Tests: 347 total, 346 passed, 1 skipped, 0 failed.
+- Browser checks: Sequencing all-era state, Playback verdict and tables, shared theme, header, Household, Goals, Scenarios, persistence, and cross-page behavior all passed.
+- Console: no browser-console failure was reported by the verification run.
+
 final result: passed

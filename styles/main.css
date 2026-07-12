@@ -277,36 +277,9 @@ select option{background:#14161b;color:var(--text-2,#d9d4c9)}
 .chart-body svg{width:100%;height:100%;display:block}
 
 /* SEQUENCING */
-.page[data-page="sequencing"]{padding-top:20px;overflow-y:auto}
-.seq-bar{flex:0 0 auto;display:flex;align-items:center;gap:14px;margin:14px 0}
-.seq-pick{display:flex;align-items:center;gap:10px;border-radius:10px;padding:8px 14px}
-.seq-pick .k{font-size:14px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-mute);font-weight:500}
-.seq-pick select{background:var(--surface-2);border:1px solid var(--rule-bright);color:var(--ink-bright);font-family:var(--font-sans);font-size:14px;font-weight:500;letter-spacing:.04em;padding:6px 30px 6px 12px;border-radius:3px;outline:none;appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M0 0 L5 6 L10 0' fill='%23878e96'/></svg>");background-repeat:no-repeat;background-position:right 11px center;cursor:pointer}
-.seq-legend{margin-left:auto;display:flex;gap:16px;flex-wrap:wrap}
-.seq-legend .lg{display:flex;align-items:center;gap:7px;font-size:14px;color:var(--ink-mute);font-family:var(--font-sans);letter-spacing:.03em}
-.seq-legend .sw{display:inline-block;width:22px;border-top:3px solid;border-radius:2px}
-.seq-legend .sw.dash{border-top-style:dashed}
-.seq-chips{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-left:6px}
-.seq-chip{display:inline-flex;align-items:center;gap:7px;background:var(--surface);border:1px solid var(--rule);color:var(--ink-mute);font-family:var(--font-sans);font-size:14px;letter-spacing:.03em;padding:6px 11px;border-radius:14px;cursor:pointer;transition:opacity .12s,border-color .12s;opacity:.45}
-.seq-chip .cdot{width:9px;height:9px;border-radius:50%;flex:none}
-.seq-chip.on{opacity:1;border-color:var(--rule-bright);color:var(--ink-bright)}
-.seq-chip:hover{opacity:.85}
-.seq-chart{flex:0 0 auto;border-radius:16px;padding:16px 22px 12px;display:flex;flex-direction:column}
-.seq-chart .chart-body{flex:1 1 auto;min-height:300px}
 /* Two path FINGERPRINTS, side by side: forward vs reversed. Each line is a
    direct read of the engine's single-path result — no UI-computed metrics. */
-.seq-prints{flex:0 0 auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:12px;margin-top:16px}
-.seq-print{border-radius:12px;padding:13px 15px 6px}
-.seq-print h4{display:flex;align-items:center;gap:9px;margin:0 0 8px;font-family:var(--font-sans);font-size:14px;letter-spacing:.16em;text-transform:uppercase;font-weight:600;color:var(--ink-bright)}
-.seq-print h4 .dot{display:inline-block;width:20px;border-top:3px solid;border-radius:2px}
-.seq-print h4 .dot.dash{border-top-style:dashed}
-.seq-print .pr-row{display:flex;justify-content:space-between;align-items:baseline;padding:7px 0;border-bottom:1px solid var(--rule-faint);font-size:14px}
-.seq-print .pr-row:last-child{border-bottom:none}
-.seq-print .pr-k{color:var(--ink-mute);font-family:var(--font-sans)}
-.seq-print .pr-v{font-family:var(--font-sans);font-weight:600;color:var(--ink-bright);font-variant-numeric:tabular-nums}
 /* Damage window: how LONG the bad stretch lasts (short shock vs long grind). */
-.seq-print .dw-bar{height:4px;border-radius:3px;background:var(--rule-faint);margin:5px 0 9px;overflow:hidden}
-.seq-print .dw-fill{height:100%;border-radius:3px;min-width:2px}
 /* Net Worth — the household sheet, split into four sub-pages by a sub-nav
    beneath the main tabs. Balance Sheet uses the STATEMENT layout (leader-dotted
    rows under thin accent section heads, like a printed financial statement).
@@ -542,30 +515,6 @@ select option{background:#14161b;color:var(--text-2,#d9d4c9)}
    directly on the page in one open stat line with hairline dividers, a
    full-bleed unframed chart, annotated readings separated by rules, and a
    two-column dotted-leader ledger. Role tokens only. */
-.story-wrap{max-width:1180px;width:100%;margin:0 auto}
-.story-sec{display:flex;align-items:baseline;gap:18px;margin:34px 0 6px}
-.story-sec span{font-family:var(--font-sans);font-size:14px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-mute);font-weight:600;white-space:nowrap}
-.story-sec::after{content:'';flex:1;border-top:1px solid var(--rule-faint);transform:translateY(-3px)}
-.story-pick{display:flex;align-items:baseline;gap:26px;margin:14px 0 4px;flex-wrap:wrap}
-.story-pick .pk-l{font-family:var(--font-sans);font-size:14px;letter-spacing:.06em;color:var(--ink-faint)}
-.story-pick button{background:none;border:none;padding:0 0 3px;cursor:pointer;font-family:var(--font-sans);font-size:14px;color:var(--ink-faint);border-bottom:1.5px solid transparent}
-.story-pick button.on{color:var(--ink-bright);font-weight:700;border-bottom-color:var(--accent)}
-.story-pick .pk-note{margin-left:auto;font-family:var(--font-serif);font-style:italic;font-size:14px;color:var(--ink-faint)}
-.story-head{font-family:var(--font-serif);font-size:27px;line-height:1.25;color:var(--ink-bright);margin:18px 0 4px}
-.story-sub{font-family:var(--font-serif);font-style:italic;font-size:15px;color:var(--ink-mute);margin-bottom:26px}
-.story-stats{display:flex;flex-wrap:wrap;margin:0 0 8px}
-.story-stat{flex:1 1 0;min-width:150px;padding:4px 22px 10px 0}
-.story-stat+.story-stat{border-left:1px solid var(--rule);padding-left:22px}
-.story-stat b{display:block;font-family:var(--font-serif);font-size:29px;font-weight:400;color:var(--value-highlight);font-variant-numeric:tabular-nums;letter-spacing:0}
-.story-stat i{display:block;font-style:normal;font-family:var(--font-sans);font-size:14px;color:var(--ink-faint);margin-top:5px}
-.story-rule{border:none;border-top:1px solid var(--rule);margin:10px 0 26px}
-.story-chart-l{font-family:var(--font-sans);font-size:14px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-faint);font-weight:600;margin-bottom:8px}
-.story-chart svg{display:block;width:100%;height:auto}
-.story-read{display:flex;gap:26px;align-items:baseline;padding:16px 0}
-.story-read+.story-read{border-top:1px solid var(--rule-faint)}
-.story-read b{flex:0 0 150px;font-family:var(--font-serif);font-size:25px;font-weight:400;color:var(--value-highlight);font-variant-numeric:tabular-nums}
-.story-read .rd-h{display:block;font-family:var(--font-sans);font-size:14px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-mute);font-weight:600;margin-bottom:5px}
-.story-read .rd-b{font-family:var(--font-sans);font-size:14px;color:var(--ink);line-height:1.5}
 .ledger{display:grid;grid-template-columns:1fr 1fr;gap:8px 70px;margin:16px 0 8px}
 .ledger h5{grid-row:1;font-family:var(--font-serif);font-style:italic;font-size:14.5px;font-weight:600;color:var(--ink-bright);margin-bottom:8px}
 .led-row{display:flex;align-items:baseline;padding:7px 0;font-family:var(--font-sans);font-size:14px;color:var(--ink-mute)}
@@ -575,25 +524,9 @@ select option{background:#14161b;color:var(--text-2,#d9d4c9)}
 @media (max-width:760px){
   .ledger{grid-template-columns:1fr}
   .ledger h5{grid-row:auto}
-  .story-stat{flex:1 1 40%}
 }
 /* Playback (Sequencing) — same statement language. Verdict is a serif
    sentence; comparisons and the year-by-year are hairline tables. */
-.pb-verdict{font-family:var(--font-serif);font-size:34px;line-height:1.2;color:var(--ink-bright);margin:20px 0 6px}
-.pb-sub{font-family:var(--font-serif);font-style:italic;font-size:15px;color:var(--ink-mute);margin-bottom:20px}
-.pb-sub b{font-style:normal;font-family:var(--font-sans);font-weight:600;color:var(--value-highlight)}
-.stmt{width:100%;border-collapse:collapse;margin:10px 0 6px}
-.stmt th{font-family:var(--font-sans);font-size:14px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-mute);font-weight:600;text-align:right;padding:6px 0 8px;border-bottom:1px solid var(--rule)}
-.stmt th:first-child,.stmt td:first-child{text-align:left}
-.stmt th.l,.stmt td.l{text-align:left}
-.stmt td{font-family:var(--font-sans);font-size:14px;color:var(--ink);font-variant-numeric:tabular-nums;text-align:right;padding:8px 0;border-bottom:1px solid var(--rule-faint)}
-.stmt td.l{font-family:var(--font-sans);color:var(--ink-mute)}
-.stmt td.era{font-family:var(--font-serif);font-style:italic;font-size:14px;color:var(--ink-mute);padding-left:18px}
-.stmt tr.plan td{color:var(--ink-bright);font-weight:600}
-.stmt td.end{color:var(--value-highlight);font-weight:600}
-.stmt td.neg{color:var(--negative-bright)}
-.pb-detail-btn{background:none;border:none;cursor:pointer;font-family:var(--font-serif);font-style:italic;font-size:14px;color:var(--ink-mute);padding:4px 0}
-.pb-detail-btn:hover{color:var(--accent-bright)}
 
 .cf-toggle{margin:18px 0 12px;display:flex;justify-content:flex-end;align-items:center;gap:10px;flex-wrap:wrap;flex-shrink:0}
 .cf-toggle button{background:transparent;border:1px solid var(--rule);color:var(--ink-mute);font-family:var(--font-sans);font-size:14px;letter-spacing:.16em;text-transform:uppercase;padding:8px 16px;border-radius:5px;cursor:pointer}
@@ -641,12 +574,6 @@ select option{background:#14161b;color:var(--text-2,#d9d4c9)}
   .stab,.subnav-title{white-space:nowrap}
   .subnav-title{border-right:none;padding-right:12px;margin-right:12px}
   .inp-row input,.inp-row select{font-size:16px;width:120px} /* 16px avoids iOS zoom-on-focus */
-
-  /* Sequencing: selector + stats stack. */
-  .seq-bar{flex-wrap:wrap}
-  .seq-legend{margin-left:0;width:100%;flex-wrap:wrap;gap:10px 16px}
-  .seq-chart{min-height:340px}
-  .seq-stats{grid-template-columns:repeat(2,1fr)}
 
   /* Cash-flow drawer scrolls both axes on a phone. */
   .cf-scroll{max-height:none}
@@ -759,7 +686,7 @@ select option{background:#14161b;color:var(--text-2,#d9d4c9)}
   color:var(--ink-bright);
   caret-color:var(--accent-bright);
 }
-.bs-row select,.seq-pick select{
+.bs-row select{
   background-color:transparent!important;
   color:var(--ink-bright);
 }
@@ -790,14 +717,6 @@ select option{background:#14161b;color:var(--text-2,#d9d4c9)}
   color:var(--ink-bright);
   font-size:21px;
 }
-.seq-bar{margin:18px 0}
-.seq-chart{
-  border-radius:22px;
-  min-height:590px;
-}
-.seq-chart .chart-body{min-height:470px}
-.seq-prints{gap:14px}
-.seq-print{border-radius:18px}
 .band-cell:not(.label),.lev-cell,.foot-cell,.goal-cell{
   background:rgba(231,222,201,.05);
 }
@@ -900,7 +819,6 @@ body{
 .acct-picker{padding:15px 17px;border-radius:var(--panel-radius)}
 .acct-chip,
 .cf-toggle button,
-.seq-chip,
 .fold-tab{
   background:var(--surface-2)!important;
   border-color:var(--line)!important;
@@ -963,17 +881,9 @@ body{
 .cf-drawer{border-radius:var(--panel-radius)}
 .cf-drawer-head{padding:11px 16px;font-size:14px}
 
-.seq-bar{margin:16px 0}
-.seq-pick{padding:7px 13px;border-radius:12px}
-.seq-pick select{background-color:rgba(255,244,218,.052);font-size:14px}
-.seq-chip{font-size:14px;padding:5.5px 10px;border-radius:999px}
-.seq-chart{min-height:545px;border-radius:20px;padding:15px 20px 11px}
-.seq-chart .chart-body{min-height:435px}
 .chart-title{font-size:19px}
 .chart-sub{font-size:14px}
-.seq-print{padding:12px 14px 6px;border-radius:16px}
-.seq-print h4{font-size:14px}
-.seq-print .pr-row{font-size:14px;padding:6.5px 0}
+
 
 
 
@@ -989,8 +899,6 @@ body{
   :root{--page-x:42px}
   .np-page.np-bal{max-width:1760px}
   .np-page{max-width:1500px}
-  .seq-chart{min-height:570px}
-  .seq-chart .chart-body{min-height:455px}
 }
 @media (max-width:760px){
   :root{--page-x:16px}
@@ -1037,10 +945,6 @@ body .page[data-page="net-worth"]:has(.gl-ledger){
   background-attachment:fixed;
 }
 body .subnav,
-body .seq-pick,
-body .seq-chart,
-body .seq-print,
-body .story-wrap,
 body .cf-drawer,
 body .np-snapshot-page .snap,
 body .metric,
@@ -1064,11 +968,7 @@ body .subnav{
 }
 body .np-page,
 body .np-page.np-bal,
-body .gl-wrap,
-body .seq-bar,
-body .seq-chart,
-body .seq-prints,
-body .story-wrap{
+body .gl-wrap{
   /* width:100% keeps these flex-column panels filling the page up to the cap;
      without it the auto side-margins below collapse them to content width and
      center them as narrow cards (e.g. the Sequencing Resilience chart). */
@@ -1078,22 +978,14 @@ body .story-wrap{
   margin-right:auto;
 }
 body .np-gutter .big-num,
-body .m-hero,
-body .story-stat b,
-body .story-read b,
-body .pb-sub b,
-body .stmt td.end{
+body .m-hero{
   color:var(--ink-bright)!important;
 }
-body .bs-title,
-body .story-head,
-body .pb-verdict{
+body .bs-title{
   color:var(--ink)!important;
 }
 body .bs-row label,
-body .hp-item .nm,
-body .stmt td,
-body .story-read .rd-b{
+body .hp-item .nm{
   color:var(--ink)!important;
 }
 body .bs-row input,
@@ -1106,10 +998,7 @@ body .prop-f input{
 }
 body .bs-head,
 body .hp-col h4,
-body .m-eye,
-body .story-sec span,
-body .story-chart-l,
-body .stmt th{
+body .m-eye{
   color:var(--ink-mute)!important;
 }
 
@@ -1166,27 +1055,7 @@ body .stmt th{
     width:88px;
   }
   body .snap,
-  body .ledger,
-  body .seq-prints{
+  body .ledger{
     grid-template-columns:1fr;
-  }
-  body .seq-bar{
-    align-items:stretch;
-  }
-  body .seq-pick,
-  body .seq-chips{
-    width:100%;
-  }
-  body .seq-chart{
-    min-height:420px;
-    padding:16px 14px 12px;
-  }
-  body .story-wrap{
-    padding:0;
-    background:transparent!important;
-    border-color:transparent!important;
-    box-shadow:none!important;
-    backdrop-filter:none;
-    -webkit-backdrop-filter:none;
   }
 }
