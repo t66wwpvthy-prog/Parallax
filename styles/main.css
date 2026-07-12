@@ -525,9 +525,6 @@ select option{background:#14161b;color:var(--text-2,#d9d4c9)}
   .ledger{grid-template-columns:1fr}
   .ledger h5{grid-row:auto}
 }
-/* Playback (Sequencing) — same statement language. Verdict is a serif
-   sentence; comparisons and the year-by-year are hairline tables. */
-
 .cf-toggle{margin:18px 0 12px;display:flex;justify-content:flex-end;align-items:center;gap:10px;flex-wrap:wrap;flex-shrink:0}
 .cf-toggle button{background:transparent;border:1px solid var(--rule);color:var(--ink-mute);font-family:var(--font-sans);font-size:14px;letter-spacing:.16em;text-transform:uppercase;padding:8px 16px;border-radius:5px;cursor:pointer}
 .cf-toggle button:hover{color:var(--accent);border-color:var(--accent)}

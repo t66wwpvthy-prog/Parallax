@@ -1942,36 +1942,17 @@ try {
     await el.screenshot({ path: join(OUT, '05-sequencing.png') });
   });
 
-  await step('playback verdict, strategy comparison and year table', async () => {
-    await page.evaluate(() => [...document.querySelectorAll('[data-pb-year]')].find(b => b.textContent === '2000')?.click());
-    await new Promise(r => setTimeout(r, 400));
-    const m = await page.evaluate(() => ({
-      verdict: document.querySelector('#pb-verdict')?.textContent || '',
-      sub: document.querySelector('#playback-panel .pb-sub')?.textContent || '',
-      stratRows: document.querySelectorAll('#pb-strats tr').length,
-      stratText: document.querySelector('#pb-strats')?.textContent || '',
-      years: [...document.querySelectorAll('[data-pb-year]')].map(b => b.textContent.trim()),
+  await step('sequencing excludes deferred Playback', async () => {
+    const playbackSelectors = await page.evaluate(() => ({
+      panel: Boolean(document.querySelector('#playback-panel')),
+      verdict: Boolean(document.querySelector('#pb-verdict')),
+      yearPicker: Boolean(document.querySelector('[data-pb-year]')),
+      detail: Boolean(document.querySelector('#pb-detail-btn')),
     }));
-    if(!/(survives 2000|2000 breaks the plan at age \d+)/.test(m.verdict)) throw new Error(`playback verdict wrong: "${m.verdict}"`);
-    if(!/\$/.test(m.sub) && !/exhausted/.test(m.sub)) throw new Error(`playback subline missing figures: "${m.sub}"`);
-    if(m.stratRows !== 4) throw new Error(`expected header + 3 strategy rows, got ${m.stratRows}`);
-    if(!/the plan’s strategy/.test(m.stratText) || !/baseline/.test(m.stratText)) throw new Error('plan strategy row not marked as baseline');
-    if(m.years.length < 6) throw new Error(`playback year picker too small: ${JSON.stringify(m.years)}`);
-    await page.click('#pb-detail-btn');
-    await new Promise(r => setTimeout(r, 300));
-    const t = await page.evaluate(() => ({
-      rows: document.querySelectorAll('#pb-table tr').length,
-      heads: [...document.querySelectorAll('#pb-table th')].map(th => th.textContent.trim()),
-      money: [...document.querySelectorAll('#pb-table td.end')].slice(0, 3).map(td => td.textContent.trim()),
-    }));
-    if(t.rows < 20) throw new Error(`year table too short (${t.rows} rows)`);
-    for(const h of ['Age','Era','Return','Return $','Drawn','End']){
-      if(!t.heads.includes(h)) throw new Error(`year table header missing: ${h} (${JSON.stringify(t.heads)})`);
+    if(Object.values(playbackSelectors).some(Boolean)){
+      throw new Error(`deferred Playback rendered unexpectedly: ${JSON.stringify(playbackSelectors)}`);
     }
-    if(!t.money.every(v => v.startsWith('$'))) throw new Error(`year table end balances not dollars: ${JSON.stringify(t.money)}`);
-    await page.evaluate(() => document.querySelector('#playback-panel').scrollIntoView({ block: 'start' }));
-    await new Promise(r => setTimeout(r, 250));
-    await page.screenshot({ path: join(OUT, '06-playback.png') });
+    await page.screenshot({ path: join(OUT, '06-sequencing-full.png'), fullPage: true });
   });
 
   // Objective theme contract: the page BACKGROUND (not just foreground tokens) must be

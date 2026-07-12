@@ -1,6 +1,6 @@
 import { pathReplay, savePathReplay } from '../src/state.js';
 
-import { fmtM, cfMoney, cfRetPct, cfGain } from './formatters.js';
+import { fmtM } from './formatters.js';
 
 import { CHART_LAYOUT } from './chartLayout.js';
 
@@ -36,7 +36,7 @@ export function pathOutcomeText(sim){
   if(!sim) return '';
   return sim.failed
     ? `Ran dry at age ${sim.depletionAge || 'n/a'}`
-    : `Survived with ${cfMoney(sim.terminalBalance || 0)}`;
+    : `Survived with ${fmtM(sim.terminalBalance || 0)}`;
 }
 
 export function drawSeqChart(svg, runs, retAge, seqChartSvg, { grid, axisInk }){
@@ -79,88 +79,6 @@ export function renderPrints(container, runs, pathDigest){
   container.innerHTML=runs.map(r=>card(r.m, r.res)).join('');
 }
 
-export function normalizePlaybackStrategy(strategy, playbackStrategies){
-  return playbackStrategies.some(([k])=>k===strategy) ? strategy : 'taxable-first';
-}
-
-export function renderPlayback({
-  el, seqContext, playbackYear, pbDetailOpen, sequenceYears, playbackStrategies,
-  runHistoricalPath, pathDigest, eraFor, setPlaybackYear, togglePlaybackDetail, rerender,
-}){
-  if(!el) return;
-  if(!seqContext){ el.innerHTML=''; return; }
-  const {rp, ov2}=seqContext;
-  const strat=normalizePlaybackStrategy(seqContext.strat, playbackStrategies);
-  const years=sequenceYears.map(m=>m.y);
-  if(!years.includes(playbackYear)){
-    playbackYear=years[0];
-    setPlaybackYear(playbackYear);
-  }
-  const runs=playbackStrategies
-    .map(([k,label])=>({k,label,res:runHistoricalPath(rp,playbackYear,k,undefined,ov2)}))
-    .filter(r=>r.res && r.res.rows.length);
-  if(!runs.length){ el.innerHTML=''; return; }
-  const main=runs.find(r=>r.k===strat)||runs[0];
-  const d=pathDigest(main.res);
-  const verdict = d.failed
-    ? `${playbackYear} breaks the plan at age ${d.depletionAge}.`
-    : `The plan survives ${playbackYear}.`;
-  const sub = d.failed
-    ? `Retire ${playbackYear} and the portfolio is exhausted at age ${d.depletionAge} — the sequence, not the average, does the damage.`
-    : `${main.res.actualYears} historical years — retire ${playbackYear}, plan through ${main.res.endYear} — end with <b>${fmtM(d.endBalance)}</b> in today's dollars.`;
-  const picks=years.map(y=>`<button class="${y===playbackYear?'on':''}" data-pb-year="${y}">${y}</button>`).join('');
-  const stratRows=runs.map(r=>{
-    const rd=pathDigest(r.res);
-    const isPlan=r.k===strat;
-    const delta=isPlan?'baseline':cfGain(r.res.lifetimeTax-main.res.lifetimeTax);
-    const out=rd.failed?`Depleted · age ${rd.depletionAge}`:'Survived';
-    return `<tr class="${isPlan?'plan':''}">
-      <td class="l">${r.label}${isPlan?' — the plan’s strategy':''}</td>
-      <td class="l">${out}</td>
-      <td class="end">${fmtM(rd.endBalance)}</td>
-      <td>${(rd.realCagr*100).toFixed(1)}%</td>
-      <td>${fmtM(r.res.lifetimeTax)}</td>
-      <td>${delta}</td></tr>`;
-  }).join('');
-  const real=main.res.rows.filter(r=>r.source!=null);
-  const yearRows=real.map(r=>{
-    const neg=r.returnRate<0;
-    return `<tr>
-      <td class="l" style="width:34px">${r.year}</td>
-      <td>${r.age}</td>
-      <td class="era l">${r.source} · ${eraFor(r.source)}</td>
-      <td class="${neg?'neg':''}">${cfRetPct(r.returnRate)}</td>
-      <td>${fmtM(r.startBalance)}</td>
-      <td class="${r.returnDollars<0?'neg':''}">${cfGain(r.returnDollars)}</td>
-      <td>${cfMoney(r.withdrawal)}</td>
-      <td class="${(r.balance-r.startBalance)<0?'neg':''}">${cfGain(r.balance-r.startBalance)}</td>
-      <td class="end">${fmtM(r.balance)}</td></tr>`;
-  }).join('');
-  const detail = pbDetailOpen ? `
-    <div class="story-chart-l" style="margin-top:26px">Year by year · retire ${playbackYear} · engine rows, era labels for context only</div>
-    <table class="stmt" id="pb-table">
-      <tr><th class="l">Yr</th><th>Age</th><th class="l">Era</th><th>Return</th><th>Start</th><th>Return $</th><th>Drawn</th><th>Net</th><th>End</th></tr>
-      ${yearRows}
-    </table>` : '';
-  el.innerHTML=`
-    <div class="story-sec"><span>Playback · same plan, real markets</span></div>
-    <div class="story-pick"><span class="pk-l">Retire in:</span>${picks}</div>
-    <div class="pb-verdict" id="pb-verdict">${verdict}</div>
-    <div class="pb-sub">${sub}</div>
-    <hr class="story-rule">
-    <div class="story-chart-l">Same ${playbackYear} sequence, three sourcing orders</div>
-    <table class="stmt" id="pb-strats">
-      <tr><th class="l"></th><th class="l">Outcome</th><th>Terminal</th><th>Real CAGR</th><th>Lifetime taxes</th><th>vs plan</th></tr>
-      ${stratRows}
-    </table>
-    <button class="pb-detail-btn" id="pb-detail-btn">${pbDetailOpen?'hide advisor detail ▴':'advisor detail · year by year ▾'}</button>
-    ${detail}`;
-  el.querySelectorAll('[data-pb-year]').forEach(b=>b.onclick=()=>{
-    setPlaybackYear(parseInt(b.dataset.pbYear,10)); rerender();
-  });
-  el.querySelector('#pb-detail-btn').onclick=()=>{ togglePlaybackDetail(); rerender(); };
-}
-
 export function syncPathControls(){
   const mode=document.querySelector('#path-mode');
   if(mode) mode.value = pathReplay.mode;
@@ -170,4 +88,3 @@ export function updatePathReplayMode(mode){
   pathReplay.mode=mode;
   savePathReplay();
 }
-
