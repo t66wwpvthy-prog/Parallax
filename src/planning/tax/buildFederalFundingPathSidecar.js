@@ -1,6 +1,7 @@
 import { resolveInputs } from '../../../engine.js';
 import { resolvePortfolioAccounts } from '../../household/resolvePortfolioAccounts.js';
 import { TaxInputError } from '../../tax/core/errors.js';
+import { buildHouseholdTaxFactContract } from './buildHouseholdTaxFactContract.js';
 
 const PATH_KEYS = Object.freeze(['p10', 'p25', 'p50', 'p75', 'p90']);
 const BUCKET_KEYS = Object.freeze(['taxable', 'traditional', 'roth']);
@@ -375,6 +376,7 @@ export function buildFederalFundingPathSidecar(
     semantics: SEMANTICS,
     startingBalances: buildStartingBalances(shortcutAnalysis.params),
     projectionScope: buildProjectionScope(plan),
+    taxFacts: buildHouseholdTaxFactContract(plan),
     paths: Object.freeze(paths),
   });
 }

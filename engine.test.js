@@ -10,6 +10,7 @@ import {
   annualMortgagePayment, resetSeed
 } from './engine.js';
 import { createFederalTaxResolver } from './src/planning/tax/createFederalTaxResolver.js';
+import { createAccount } from './src/household/createAccount.js';
 import { resolvePortfolioAccounts } from './src/household/resolvePortfolioAccounts.js';
 
 test('return data spans the full history', () => {
@@ -512,6 +513,40 @@ test('extra typed accounts sum into their bucket; empty = unchanged', () => {
   const rt = resolveInputs(withTax, {});
   assert.strictEqual(rt.accounts.taxable.balance, baseR.accounts.taxable.balance + 100000, 'taxable add folds into taxable balance');
   assert.ok(rt.accounts.taxable.basis > baseR.accounts.taxable.basis, 'taxable add lifts basis');
+});
+
+test('confirmed taxable account basis replaces the legacy percentage only when coverage is complete', () => {
+  const p = structuredClone(defaultPlan);
+  p.portfolio.accounts = {
+    taxable: { balance: 0, basisPct: 0.6 },
+    traditional: { balance: 0 },
+    roth: { balance: 0 },
+  };
+  const brokerage = createAccount('brokerage_taxable', { owner: 'client', balance: 100000 });
+  brokerage.id = 'confirmed-brokerage';
+  brokerage.basis = {
+    amount: 25000,
+    method: 'reported-cost-basis',
+    status: 'confirmed',
+    source: 'household-entry',
+    confirmedAt: '2026-07-12T12:00:00Z',
+    version: 1,
+  };
+  p.portfolio.extraAccounts = [brokerage];
+
+  assert.strictEqual(resolveInputs(p, {}).accounts.taxable.basis, 25000,
+    'complete confirmed account basis reaches engine starting basis');
+
+  brokerage.basis = {
+    amount: null,
+    method: 'unknown',
+    status: 'unknown',
+    source: null,
+    confirmedAt: null,
+    version: 1,
+  };
+  assert.strictEqual(resolveInputs(p, {}).accounts.taxable.basis, 60000,
+    'unknown basis leaves the existing legacy percentage behavior unchanged');
 });
 
 test('inherited accounts appear in current folds but stay out of engine inputs until rules exist', () => {
