@@ -526,7 +526,7 @@
    ================================================================ */
 
 @keyframes glx-flashgold {
-  0%   { background: rgba(198,166,98,0.16); }
+  0%   { background: rgba(198,166,98,0.10); }
   100% { background: transparent; }
 }
 
@@ -535,11 +535,12 @@
 .gl-ledger {
   position: relative;
   width: 100%;
-  max-width: 1620px;
+  max-width: 1320px;
   margin: 0 auto;
-  padding: 0 0 46px;
+  padding: 30px 0 48px;
   font-family: var(--font-sans);
-  color: #b8ad92;
+  color: var(--num);
+  font-feature-settings: 'tnum' 1;
   box-sizing: border-box;
 }
 
@@ -551,57 +552,66 @@
    their display:flex would beat the UA's [hidden] rule without this. */
 .gl-ledger [hidden] { display: none !important; }
 
+.gl-ledger :focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 .glx-h1 {
-  margin: 30px 0 0;
+  margin: 0;
   font-family: var(--font-serif);
-  font-weight: 500;
-  font-size: 48px;
-  line-height: 1;
-  color: #d8cfb8;
-  letter-spacing: 0.01em;
+  font-weight: 300;
+  font-size: 36px;
+  line-height: 1.08;
+  color: var(--ink);
+  letter-spacing: 0.005em;
 }
 
 /* ── Sheet (the only card on the page) ──────────────────────── */
 
 .glx-sheet {
   margin-top: 24px;
-  border-radius: 20px;
-  padding: 10px 28px 18px;
-  background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.012));
-  border: 1px solid rgba(255,255,255,0.07);
-  box-shadow:
-    inset 0 1px 0 rgba(255,255,255,0.05),
-    0 30px 80px rgba(0,0,0,0.45);
+  overflow: hidden;
+  border-radius: 16px;
+  padding: 0 28px 16px;
+  background:
+    radial-gradient(110% 90% at 0% 0%, rgba(231,222,201,0.018), transparent 48%),
+    rgba(14,16,19,0.94);
+  border: 1px solid var(--line);
+  box-shadow: 0 24px 54px -48px rgba(0,0,0,0.78), inset 0 1px 0 rgba(231,222,201,0.035);
+  backdrop-filter: blur(18px) saturate(105%);
+  -webkit-backdrop-filter: blur(18px) saturate(105%);
 }
 
 /* Shared row grid: dot · name · amount · cadence · which-years · delete */
 .glx-cols, .glx-row {
   display: grid;
-  grid-template-columns: 18px minmax(150px,1fr) 250px 224px 480px 30px;
-  gap: 16px;
+  grid-template-columns: 18px minmax(160px,1fr) 230px 200px 430px 26px;
+  gap: 14px;
   align-items: center;
 }
 
 .glx-cols {
-  padding: 18px 0 14px;
-  border-bottom: 1px solid rgba(255,255,255,0.08);
+  padding: 21px 0 15px;
+  border-bottom: 1px solid var(--line);
 }
 
 .glx-cap {
   font: 600 16px/1 var(--font-sans);
-  letter-spacing: 0.14em;
-  color: #7d848c;
+  letter-spacing: 0.18em;
+  color: var(--ink-faint);
 }
 
 .glx-row {
-  padding: 16px 0;
-  border-bottom: 1px solid rgba(255,255,255,0.05);
+  min-height: 76px;
+  padding: 17px 0;
+  border-bottom: 1px solid var(--line-faint);
 }
 
 .glx-row--flash { animation: glx-flashgold 1.2s ease; }
 
 .glx-dot {
-  width: 11px; height: 11px;
+  width: 9px; height: 9px;
   border-radius: 50%;
   justify-self: center;
 }
@@ -611,78 +621,87 @@
   width: 100%;
   background: transparent;
   border: 1px solid transparent;
-  border-radius: 9px;
-  padding: 9px 11px;
-  margin-left: -11px;
+  border-radius: 8px;
+  padding: 8px 9px;
+  margin-left: -9px;
   outline: none;
-  font: 600 20px/1.2 var(--font-sans);
-  color: #d8cfb8;
-  -webkit-text-fill-color: #d8cfb8;
-  caret-color: #c6a662;
+  font: 600 16px/1.25 var(--font-sans);
+  color: var(--ink);
+  -webkit-text-fill-color: var(--ink);
+  caret-color: var(--accent);
+  transition: border-color .15s, background .15s;
 }
 
-.glx-name:hover { border-color: rgba(255,255,255,0.12); }
-.glx-name:focus { border-color: rgba(198,166,98,0.55); background: transparent; }
+.glx-name:hover { border-color: var(--line); }
+.glx-name:focus { border-color: var(--line-accent); background: rgba(198,166,98,0.025); }
 
 /* ── Amount cell: − [$ amount] + ────────────────────────────── */
 
 .glx-amtcell {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 8px;
 }
 
 .glx-step {
-  width: 38px; height: 38px;
-  border-radius: 10px;
-  border: 1px solid rgba(255,255,255,0.14);
+  width: 32px; height: 32px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #c6a662;
-  -webkit-text-fill-color: #c6a662;
-  font: 600 21px/1 var(--font-sans);
-  background: rgba(255,255,255,0.02);
+  color: var(--ink-faint);
+  -webkit-text-fill-color: var(--ink-faint);
+  font: 500 17px/1 var(--font-sans);
+  background: rgba(231,222,201,0.018);
   user-select: none;
   flex-shrink: 0;
+  transition: border-color .15s, background .15s, color .15s;
 }
 
-.glx-step:hover { background: rgba(255,255,255,0.06); }
+.glx-step:hover {
+  border-color: var(--line-strong);
+  background: rgba(231,222,201,0.04);
+  color: var(--accent-bright);
+  -webkit-text-fill-color: var(--accent-bright);
+}
 
 .glx-step--sm {
-  width: 34px; height: 34px;
-  font-size: 19px;
-  border-radius: 9px;
+  width: 30px; height: 30px;
+  font-size: 16px;
+  border-radius: 8px;
 }
 
 .glx-amtwrap {
   display: flex;
   align-items: baseline;
-  padding: 9px 13px;
-  border-radius: 10px;
-  background: rgba(255,255,255,0.045);
-  border: 1px solid rgba(255,255,255,0.12);
+  min-width: 126px;
+  padding: 8px 11px;
+  border-radius: 8px;
+  background: rgba(231,222,201,0.025);
+  border: 1px solid var(--line);
+  transition: border-color .15s, background .15s;
 }
 
-.glx-amtwrap:focus-within { border-color: rgba(198,166,98,0.55); }
+.glx-amtwrap:focus-within { border-color: var(--line-accent); background: rgba(198,166,98,0.035); }
 
 .glx-dollar {
-  color: #b8944d;
+  color: var(--accent-deep);
   font: 500 16px/1 var(--font-sans);
 }
 
 .glx-amt {
-  width: 96px;
+  width: 86px;
   background: transparent;
   border: none;
   outline: none;
   margin-left: 4px;
   padding: 0;
-  color: #d8cfb8;
-  -webkit-text-fill-color: #d8cfb8;
-  caret-color: #c6a662;
-  font: 600 18px/1 var(--font-sans);
+  color: var(--value-highlight);
+  -webkit-text-fill-color: var(--value-highlight);
+  caret-color: var(--accent);
+  font: 400 17px/1 var(--font-serif);
   font-variant-numeric: tabular-nums;
 }
 
@@ -690,24 +709,29 @@
 
 .glx-seggroup {
   display: flex;
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
   overflow: hidden;
   width: max-content;
+  background: rgba(231,222,201,0.012);
 }
 
 .glx-seg {
-  padding: 11px 16px;
-  font: 600 16px/1 var(--font-sans);
+  padding: 9px 13px;
+  font: 500 16px/1 var(--font-sans);
   cursor: pointer;
-  color: #8b9298;
+  color: var(--ink-faint);
   background: transparent;
   user-select: none;
 }
 
+.glx-seg + .glx-seg { border-left: 1px solid var(--line-faint); }
+
 .glx-seg--on {
-  color: #e2d6b4;
-  background: linear-gradient(180deg, rgba(150,124,64,0.34), rgba(120,98,48,0.16));
+  color: var(--ink);
+  background:
+    radial-gradient(120% 140% at 0% 0%, rgba(198,166,98,0.13), transparent 62%),
+    rgba(198,166,98,0.075);
 }
 
 /* ── Which-years: chapter chips + exact age boxes ───────────── */
@@ -715,136 +739,138 @@
 .glx-when {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
 }
 
 .glx-chip {
-  padding: 10px 13px;
-  border-radius: 10px;
+  padding: 9px 10px;
+  border-radius: 8px;
   cursor: pointer;
   white-space: nowrap;
   user-select: none;
-  font: 600 16px/1 var(--font-sans);
-  border: 1px solid rgba(255,255,255,0.1);
-  color: #8b9298;
-  background: rgba(255,255,255,0.03);
+  font: 500 16px/1 var(--font-sans);
+  border: 1px solid var(--line);
+  color: var(--ink-faint);
+  background: rgba(231,222,201,0.018);
 }
 
 .glx-chip--on {
-  border: 1px solid rgba(198,166,98,0.45);
-  color: #e2d6b4;
-  background: linear-gradient(180deg, rgba(150,124,64,0.34), rgba(120,98,48,0.16));
+  border: 1px solid rgba(198,166,98,0.38);
+  color: var(--ink);
+  background:
+    radial-gradient(120% 150% at 0% 0%, rgba(198,166,98,0.14), transparent 62%),
+    rgba(198,166,98,0.06);
 }
 
 .glx-chip--part {
-  border: 1px dashed rgba(198,166,98,0.4);
-  color: #c8b98d;
-  background: rgba(255,255,255,0.03);
+  border: 1px dashed rgba(198,166,98,0.34);
+  color: var(--num);
+  background: rgba(198,166,98,0.025);
 }
 
 .glx-agepair {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-left: 10px;
+  margin-left: 7px;
 }
 
 .glx-ain {
-  width: 54px;
+  width: 48px;
   text-align: center;
-  padding: 9px 0;
-  border-radius: 9px;
+  padding: 8px 0;
+  border-radius: 8px;
   outline: none;
-  background: rgba(255,255,255,0.045);
-  border: 1px solid rgba(255,255,255,0.12);
-  color: #d8cfb8;
-  -webkit-text-fill-color: #d8cfb8;
-  caret-color: #c6a662;
-  font: 600 17px/1 var(--font-sans);
+  background: rgba(231,222,201,0.025);
+  border: 1px solid var(--line);
+  color: var(--value-highlight);
+  -webkit-text-fill-color: var(--value-highlight);
+  caret-color: var(--accent);
+  font: 400 16px/1 var(--font-serif);
   font-variant-numeric: tabular-nums;
 }
 
-.glx-ain:focus { border-color: rgba(198,166,98,0.55); }
+.glx-ain:focus { border-color: var(--line-accent); }
 
 .glx-dash {
   font: 500 16px/1 var(--font-sans);
-  color: #7d848c;
+  color: var(--ink-faint);
 }
 
 /* One-time: at age − 68 + */
 .glx-agewrap {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 .glx-agelbl {
   font: 500 16px/1 var(--font-sans);
-  color: #b8ad92;
+  color: var(--ink-body);
 }
 
 .glx-ageval {
-  min-width: 36px;
+  min-width: 32px;
   text-align: center;
-  font: 600 19px/1 var(--font-sans);
-  color: #d8cfb8;
+  font: 400 17px/1 var(--font-serif);
+  color: var(--value-highlight);
   font-variant-numeric: tabular-nums;
 }
 
 /* Delete × — floats, warms on hover */
 .glx-del {
-  width: 30px; height: 30px;
-  border-radius: 9px;
+  width: 26px; height: 26px;
+  border-radius: 7px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #5f666e;
-  font: 400 20px/1 var(--font-sans);
+  color: var(--ink-ghost);
+  font: 400 17px/1 var(--font-sans);
   user-select: none;
 }
 
-.glx-del:hover { color: #c08f86; background: rgba(192,143,134,0.08); }
+.glx-del:hover { color: var(--negative); background: rgba(192,121,95,0.07); }
 
 /* ── Adds line: floating text buttons, no boxes ─────────────── */
 
 .glx-adds {
-  margin-top: 12px;
-  padding: 16px 4px 4px;
-  border-top: 1px solid rgba(255,255,255,0.06);
+  margin-top: 11px;
+  padding: 16px 2px 5px;
+  border-top: 1px solid var(--line-faint);
   display: flex;
   align-items: center;
-  gap: 22px;
+  gap: 20px;
   flex-wrap: wrap;
 }
 
 .glx-add-btn {
   display: inline-flex;
   align-items: center;
-  gap: 9px;
+  gap: 8px;
   cursor: pointer;
-  font: 600 18px/1 var(--font-sans);
-  color: #c6a662;
-  -webkit-text-fill-color: #c6a662;
+  font: 600 16px/1 var(--font-sans);
+  color: var(--accent);
+  -webkit-text-fill-color: var(--accent);
   background: none;
   border: none;
   padding: 0;
 }
 
-.glx-add-btn:hover { color: #e7c883; -webkit-text-fill-color: #e7c883; }
+.glx-add-btn:hover { color: var(--accent-bright); -webkit-text-fill-color: var(--accent-bright); }
 
-.glx-add-plus { font: 600 20px/1 var(--font-sans); }
+.glx-add-plus { font: 500 17px/1 var(--font-sans); }
 
 .glx-adds-sep {
-  width: 1px; height: 16px;
-  background: rgba(255,255,255,0.12);
+  width: 1px; height: 15px;
+  background: var(--line);
   flex-shrink: 0;
 }
 
 .glx-qa {
   display: inline-flex;
   align-items: center;
-  gap: 9px;
+  gap: 8px;
   cursor: pointer;
   background: none;
   border: none;
@@ -852,63 +878,50 @@
 }
 
 .glx-qa-dot {
-  width: 9px; height: 9px;
+  width: 7px; height: 7px;
   border-radius: 50%;
 }
 
 .glx-qa-name {
-  font: 600 18px/1 var(--font-sans);
-  color: #b3a888;
-  -webkit-text-fill-color: #b3a888;
+  font: 500 16px/1 var(--font-sans);
+  color: var(--num);
+  -webkit-text-fill-color: var(--num);
 }
 
-.glx-qa:hover .glx-qa-name { color: #e7dec9; -webkit-text-fill-color: #e7dec9; }
+.glx-qa:hover .glx-qa-name { color: var(--ink); -webkit-text-fill-color: var(--ink); }
 
 /* ── Chapter footer: where entered spending lands ───────────── */
 
 .glx-footer {
-  margin-top: 14px;
-  padding: 16px 4px 2px;
-  border-top: 1px solid rgba(255,255,255,0.06);
+  margin-top: 13px;
+  padding: 16px 2px 2px;
+  border-top: 1px solid var(--line-faint);
   display: flex;
   align-items: baseline;
-  gap: 13px;
+  gap: 11px;
   flex-wrap: wrap;
 }
 
 .glx-f-cap {
   font: 600 16px/1 var(--font-sans);
-  letter-spacing: 0.16em;
-  color: #7d848c;
+  letter-spacing: 0.18em;
+  color: var(--ink-faint);
 }
 
 .glx-f-lbl {
   font: 500 16px/1 var(--font-sans);
-  color: #b8ad92;
+  color: var(--ink-body);
 }
 
 .glx-f-val {
-  font: 600 17px/1 var(--font-sans);
-  color: #d8cfb8;
+  font: 400 16px/1 var(--font-serif);
+  color: var(--num);
   font-variant-numeric: tabular-nums;
 }
 
 .glx-f-dot {
-  color: rgba(255,255,255,0.14);
+  color: var(--line-strong);
   font: 400 16px/1 var(--font-sans);
-}
-
-.glx-f-space { flex: 1; }
-
-.glx-f-life {
-  font: 600 20px/1 var(--font-sans);
-  color: #e7dec9;
-  font-variant-numeric: tabular-nums;
-}
-
-.glx-f-note {
-  font: 500 16px/1 var(--font-sans);
-  color: #5f666e;
 }
 
 /* ── Element-level ink guard ──────────────────────────────────
@@ -921,15 +934,26 @@
 .gl-ledger .glx-name::placeholder,
 .gl-ledger .glx-amt::placeholder,
 .gl-ledger .glx-ain::placeholder {
-  color: #b8ad92;
-  -webkit-text-fill-color: #b8ad92;
+  color: var(--num);
+  -webkit-text-fill-color: var(--num);
 }
 
 /* ── Responsive (wide-grid tighten, matches app convention) ─── */
 
-@media (max-width: 1640px) {
-  .glx-cols, .glx-row { grid-template-columns: 18px minmax(130px,1fr) 232px 206px 440px 30px; gap: 12px; }
-  .glx-seg { padding: 11px 12px; }
-  .glx-chip { padding: 10px 10px; }
+@media (max-width: 1380px) {
+  .glx-cols, .glx-row { grid-template-columns: 18px minmax(140px,1fr) 220px 190px 402px 26px; gap: 11px; }
+  .glx-seg { padding-inline: 11px; }
+  .glx-chip { padding-inline: 8px; }
   .glx-when { flex-wrap: wrap; }
+}
+
+@media (max-width: 1120px) {
+  .glx-sheet { overflow-x: auto; }
+  .glx-cols, .glx-rows, .glx-adds, .glx-footer { min-width: 1020px; }
+}
+
+@media (max-width: 760px) {
+  .gl-ledger { padding-top: 18px; }
+  .glx-h1 { font-size: 32px; }
+  .glx-sheet { margin-top: 18px; padding-inline: 20px; }
 }

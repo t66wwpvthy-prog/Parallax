@@ -1371,8 +1371,8 @@ try {
     if(m.quickAdds !== 4) throw new Error(`expected 4 quick adds, got ${m.quickAdds}`);
     if(!/I \u00b7 66\u201375/.test(m.footer) || !/II \u00b7 76\u201385/.test(m.footer) || !/III \u00b7 86\u201395/.test(m.footer))
       throw new Error(`footer chapters not derived 66-75/76-85/86-95: "${m.footer}"`);
-    if(!/Lifetime/.test(m.footer) || !/sum of entered goals/.test(m.footer))
-      throw new Error(`footer must label sums honestly: "${m.footer}"`);
+    if(/Lifetime/.test(m.footer) || /sum of entered goals/.test(m.footer))
+      throw new Error(`footer must not show a lifetime aggregate: "${m.footer}"`);
     if(m.travelChips !== 'on,part,off')
       throw new Error(`Travel & leisure 66\u201381 chips should be on,part,off \u2014 got "${m.travelChips}"`);
     if(m.fontFloor < 16) throw new Error(`ledger type floor broken: ${m.fontFloor}px < 16px`);
@@ -1416,9 +1416,8 @@ try {
     if(m.name !== 'Boat fund') throw new Error(`typed name did not write through ("${m.name}")`);
     if(!m.stillFocused) throw new Error('name typing lost focus (row re-rendered mid-keystroke)');
 
-    // 3) amount typing: live commas, footer repaints, focus survives.
-    // ($900k/yr so the compact Lifetime figure visibly moves — $3.1M -> $12M.)
-    const lifeBefore = await page.evaluate(() => document.querySelector('#glx-life')?.textContent);
+    // 3) amount typing: live commas, chapter footer repaints, focus survives.
+    const chapterBefore = await page.evaluate(() => document.querySelector('[data-fsum="0"]')?.textContent);
     await page.click(`.glx-amt[data-i="${gi}"]`);
     await page.evaluate(g => {
       const el = document.querySelector(`.glx-amt[data-i="${g}"]`);
@@ -1429,11 +1428,11 @@ try {
     m = await page.evaluate(g => ({
       amt: document.querySelector(`.glx-amt[data-i="${g}"]`)?.value,
       focused: document.activeElement?.classList.contains('glx-amt'),
-      life: document.querySelector('#glx-life')?.textContent,
+      chapter: document.querySelector('[data-fsum="0"]')?.textContent,
     }), gi);
     if(m.amt !== '900,000') throw new Error(`amount live-commas failed ("${m.amt}")`);
     if(!m.focused) throw new Error('amount typing lost focus (row re-rendered mid-keystroke)');
-    if(m.life === lifeBefore) throw new Error('footer Lifetime sum did not repaint on amount typing');
+    if(m.chapter === chapterBefore) throw new Error('footer chapter sum did not repaint on amount typing');
 
     // 4) recurring stepper is +-$1,000
     await page.click(`.glx-step[data-act="plus"][data-i="${gi}"]`);

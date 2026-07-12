@@ -1820,9 +1820,9 @@ function paintGoalCosts(c){
      no cadence field is ever stored.
    - CHAPTERS are a UI-only derivation (floor-thirds over the
      resolved [retirement, planEnd] span). Row chips are coarse
-     presets over the exact age boxes; the footer sums entered
-     inputs per chapter — labelled "sum of entered goals", never an
-     engine output, never an invented confidence number.
+     presets over the exact age boxes; the footer shows entered
+     input totals by chapter, never an engine output or invented
+     confidence number.
    - WRITE-THROUGH: every edit mutates plan.goals[i], arms SAVE
      (planSaveDirty via reseedScenarios) and marks scenario results
      stale (plansDirty). Typing never re-renders the row — focus
@@ -1907,7 +1907,7 @@ function glQuickAdds() {
 
 /* Per-chapter input sums (amount × overlap years). Edge chapters extend
    outward so spending entered outside [retirement, planEnd] is still
-   attributed — Lifetime always equals the true sum of entered goals. */
+   attributed to a chapter. */
 function glChapterSums(ch) {
   const sums = [0, 0, 0];
   GL_PROD.goals().forEach(g => {
@@ -1968,16 +1968,12 @@ function glRowHTML(g, gi, ch) {
 }
 
 function glFooterHTML(ch, sums) {
-  const life = sums[0] + sums[1] + sums[2];
   return `<span class="glx-f-cap">CHAPTERS</span>` +
     ch.map((c, i) =>
       (i ? '<span class="glx-f-dot">\u00b7</span>' : '') +
       `<span class="glx-f-lbl">${c.roman} \u00b7 ${c.lo}\u2013${c.hi}</span>` +
       `<span class="glx-f-val" data-fsum="${c.i}">${GL_PROD.compact(sums[c.i])}</span>`
-    ).join('') +
-    `<span class="glx-f-space"></span>` +
-    `<span class="glx-f-lbl">Lifetime</span><span class="glx-f-life" id="glx-life">${GL_PROD.compact(life)}</span>` +
-    `<span class="glx-f-note">\u2014 sum of entered goals</span>`;
+    ).join('');
 }
 
 function renderGoalsLedger() {
@@ -2031,8 +2027,6 @@ function initGoalsLedger() {
     const sums = glChapterSums(ch);
     wrap.querySelectorAll('[data-fsum]').forEach(el =>
       el.textContent = GL_PROD.compact(sums[+el.dataset.fsum]));
-    const life = document.getElementById('glx-life');
-    if (life) life.textContent = GL_PROD.compact(sums[0] + sums[1] + sums[2]);
   };
 
   const addGoal = g => {
