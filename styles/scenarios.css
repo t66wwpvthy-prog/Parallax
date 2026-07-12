@@ -20,14 +20,7 @@
 /* ---- Tokens + page base (scenarios route only) ---------------------------- */
 .page[data-page="scenarios"] {
   /* Page background (fixed, behind the floating glass) */
-  --bg-deep:   #0f1216;
-  --bg-top:    #15181d;
-  --bg-bottom: #0b0d11;
-  --page-bg:
-    radial-gradient(56% 52% at 85% -10%, rgba(74,58,34,0.16), rgba(74,58,34,0) 58%),
-    radial-gradient(58% 60% at 2% 106%, rgba(22,33,50,0.5), rgba(0,0,0,0) 62%),
-    radial-gradient(50% 48% at 50% 48%, rgba(224,212,178,0.10), rgba(0,0,0,0) 72%),
-    linear-gradient(158deg, var(--bg-top) 0%, var(--bg-deep) 50%, var(--bg-bottom) 100%);
+  --page-bg: var(--app-page-bg);
 
   /* Risk-band tones */
   --tone-green: #8fa57e;
@@ -78,34 +71,31 @@
 
   /* Layered glass gradients */
   --glass-panel:
-    linear-gradient(150deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0) 32%),
-    linear-gradient(158deg, rgba(231,222,201,0.055) 0%, rgba(231,222,201,0.02) 100%);
+    radial-gradient(110% 85% at 0% 0%, rgba(231,222,201,0.018), transparent 48%),
+    rgba(14,16,19,0.94);
   --glass-card:
-    linear-gradient(150deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0) 36%),
-    linear-gradient(158deg, rgba(231,222,201,0.045), rgba(231,222,201,0.016));
+    linear-gradient(145deg, rgba(255,255,255,0.014), transparent 42%),
+    rgba(14,16,19,0.91);
   --glass-card-active:
-    linear-gradient(150deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0) 36%),
-    linear-gradient(158deg, rgba(198,166,98,0.16), rgba(176,143,78,0.06));
+    radial-gradient(115% 150% at 0% 0%, rgba(198,166,98,0.075), transparent 58%),
+    rgba(14,16,19,0.95);
   --glass-summary:
-    radial-gradient(120% 130% at 0% 0%, rgba(198,166,98,0.07), rgba(0,0,0,0) 60%),
-    linear-gradient(150deg, rgba(255,255,255,0.075), rgba(255,255,255,0.015));
-  --glass-table:
-    radial-gradient(130% 90% at 50% -18%, rgba(198,166,98,0.07), rgba(0,0,0,0) 56%),
-    linear-gradient(160deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.02) 40%, rgba(255,255,255,0) 100%),
-    linear-gradient(158deg, rgba(231,222,201,0.03), rgba(231,222,201,0.012));
+    radial-gradient(120% 130% at 0% 0%, rgba(198,166,98,0.045), transparent 60%),
+    rgba(14,16,19,0.92);
+  --glass-table: transparent;
 
   /* Elevation shadows */
-  --shadow-panel: 0 44px 96px rgba(0,0,0,0.50), inset 0 1px 0 rgba(255,255,255,0.15);
-  --shadow-card:  0 20px 44px rgba(0,0,0,0.34), inset 0 1px 0 rgba(255,255,255,0.12);
-  --shadow-card-active: 0 24px 50px rgba(0,0,0,0.40), inset 0 1px 0 rgba(255,255,255,0.15);
-  --shadow-rail:  0 22px 50px rgba(0,0,0,0.36), inset 0 1px 0 rgba(255,255,255,0.12);
-  --shadow-table: 0 44px 100px rgba(0,0,0,0.40), inset 0 1px 0 rgba(255,255,255,0.16);
-  --shadow-summary: 0 22px 50px rgba(0,0,0,0.30), inset 0 1px 0 rgba(255,255,255,0.15);
+  --shadow-panel: 0 24px 54px -48px rgba(0,0,0,0.78), inset 0 1px 0 rgba(231,222,201,0.035);
+  --shadow-card:  0 18px 42px -38px rgba(0,0,0,0.72), inset 0 1px 0 rgba(231,222,201,0.025);
+  --shadow-card-active: 0 20px 46px -40px rgba(0,0,0,0.76), inset 0 1px 0 rgba(198,166,98,0.055);
+  --shadow-rail: var(--shadow-card);
+  --shadow-table: none;
+  --shadow-summary: var(--shadow-card);
 
   /* Backdrop blur strengths */
-  --blur-panel: blur(38px) saturate(155%);
-  --blur-rail:  blur(26px) saturate(150%);
-  --blur-table: blur(46px) saturate(165%);
+  --blur-panel: blur(18px) saturate(105%);
+  --blur-rail:  blur(14px) saturate(104%);
+  --blur-table: none;
 
   /* Radii */
   --r-sm:  7px;
@@ -113,12 +103,12 @@
   --r-lg:  11px;
   --r-card: 14px;
   --r-xl:  16px;
-  --r-panel: 18px;
+  --r-panel: 16px;
   --r-pill: 999px;
 
   /* Layout */
-  --max-w: none;          /* full-bleed — Scenarios views fill the page width */
-  --rail-w: 362px;
+  --max-w: 1320px;
+  --rail-w: 360px;
 
   /* Page surface */
   font-family: var(--font-sans);
@@ -134,20 +124,16 @@
 .page[data-page="scenarios"] *::before,
 .page[data-page="scenarios"] *::after { box-sizing: border-box; }
 
-/* Inner stage: full-bleed — fills the production .page content box (which already
-   supplies the side gutter via --page-x); the stage's own 34px padding keeps
-   content off the page edge. width:100% so it fills even as a column-flex item
-   (which would otherwise shrink to content width). --max-w:none removes the old
-   centered cap; margin:0 auto is harmless once uncapped. */
-.page[data-page="scenarios"] .scn-stage { width: 100%; max-width: var(--max-w); margin: 0 auto; padding: 28px 34px 48px; }
+/* Centered planning stage shared by Compare, Focus, and Cash Flow. */
+.page[data-page="scenarios"] .scn-stage { width: 100%; max-width: var(--max-w); margin: 0 auto; padding: 36px 0 48px; }
 
 /* Accessible focus ring for every interactive control in the page. */
 .page[data-page="scenarios"] :focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; border-radius: var(--r-sm); }
 
 /* ---- Toolbar -------------------------------------------------------------- */
-.page[data-page="scenarios"] .toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 26px; gap: 24px; }
+.page[data-page="scenarios"] .toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 32px; gap: 24px; }
 .page[data-page="scenarios"] .toolbar__left { display: flex; align-items: center; gap: 26px; }
-.page[data-page="scenarios"] .page-title { font-family: var(--font-serif); font-weight: 300; font-size: 28px; color: var(--text-1); margin: 0; }
+.page[data-page="scenarios"] .page-title { font-family: var(--font-serif); font-weight: 300; font-size: 30px; color: var(--text-1); margin: 0; }
 .page[data-page="scenarios"] .page-sub { font-size: 14px; color: var(--text-5); margin: 5px 0 0; letter-spacing: 0.01em; }
 .page[data-page="scenarios"] .toolbar__actions { display: flex; align-items: center; gap: 11px; }
 
@@ -191,8 +177,8 @@
 /* =============================================================================
    COMPARE VIEW
    ============================================================================= */
-.page[data-page="scenarios"] .compare { border-radius: var(--r-panel); padding: 10px 20px 18px; background: var(--glass-panel); border: 1px solid var(--line-09); box-shadow: var(--shadow-panel); backdrop-filter: blur(36px) saturate(155%); -webkit-backdrop-filter: blur(36px) saturate(155%); }
-.page[data-page="scenarios"] .compare__grid { display: grid; grid-template-columns: 212px 1fr 1fr 1fr; align-items: center; }
+.page[data-page="scenarios"] .compare { border-radius: var(--r-panel); padding: 10px 20px 18px; background: var(--glass-panel); border: 1px solid var(--line-09); box-shadow: var(--shadow-panel); backdrop-filter: var(--blur-panel); -webkit-backdrop-filter: var(--blur-panel); }
+.page[data-page="scenarios"] .compare__grid { display: grid; grid-template-columns: 280px 1fr 1fr 1fr; align-items: center; }
 .page[data-page="scenarios"] .compare__rule { grid-column: 1 / -1; height: 1px; background: var(--line-07); }
 
 .page[data-page="scenarios"] .lever { padding: 13px 14px; }
@@ -252,14 +238,14 @@
 .page[data-page="scenarios"] .scol__median b { color: var(--text-1); font-weight: 400; }
 .page[data-page="scenarios"] .scol__tag { margin-top: 14px; }
 .page[data-page="scenarios"] .tag-ref { font-size: 14px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold-eyebrow); border: 1px solid rgba(198,166,98,0.32); border-radius: var(--r-sm); padding: 3px 9px; }
-.page[data-page="scenarios"] .tag-delta { display: inline-flex; align-items: center; gap: 7px; padding: 4px 11px; border-radius: var(--r-pill); background: rgba(189,126,97,0.12); font-size: 14px; color: var(--down); }
+.page[data-page="scenarios"] .tag-delta { display: inline-flex; align-items: center; gap: 7px; padding: 0; font-size: 14px; color: var(--down); }
 
 .page[data-page="scenarios"] .cell { padding: 8px 18px; }
 .page[data-page="scenarios"] .cell__val { padding: 7px 0; }
 .page[data-page="scenarios"] .cell__num { font-family: var(--font-serif); font-size: 17.5px; color: var(--text-2); }
 .page[data-page="scenarios"] .cell--same .cell__val { padding: 7px 13px; }
 .page[data-page="scenarios"] .cell--same .cell__num { color: var(--text-dim); }
-.page[data-page="scenarios"] .cell--delta__box { display: inline-flex; flex-direction: column; gap: 2px; padding: 7px 13px; border-radius: 10px; background: rgba(201,163,106,0.08); }
+.page[data-page="scenarios"] .cell--delta__box { display: inline-flex; flex-direction: column; gap: 2px; padding: 7px 13px; }
 .page[data-page="scenarios"] .cell--delta .cell__num { color: var(--text-1); }   /* changed chip value stays primary */
 .page[data-page="scenarios"] .cell__delta { font-size: 14px; color: var(--gold-soft); }
 .page[data-page="scenarios"] .cell--goal { padding: 14px 18px; }
@@ -391,8 +377,8 @@
 /* =============================================================================
    FOCUS VIEW
    ============================================================================= */
-.page[data-page="scenarios"] .focus { display: flex; gap: 22px; align-items: start; }
-.page[data-page="scenarios"] .focus__panel { flex: 1; padding: 28px 30px 26px; }
+.page[data-page="scenarios"] .focus { display: flex; gap: 28px; align-items: start; }
+.page[data-page="scenarios"] .focus__panel { flex: 1; padding: 38px 40px 30px; }
 .page[data-page="scenarios"] .focus__head { display: flex; align-items: center; justify-content: space-between; }
 .page[data-page="scenarios"] .focus__title { display: flex; align-items: center; gap: 11px; }
 .page[data-page="scenarios"] .focus__dot { width: 8px; height: 8px; border-radius: 50%; background: var(--tone); }
@@ -400,7 +386,7 @@
 .page[data-page="scenarios"] .badge-editing { font-size: 14px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold-eyebrow); border: 1px solid rgba(198,166,98,0.32); border-radius: var(--r-sm); padding: 3px 9px; margin-left: 4px; }
 .page[data-page="scenarios"] .focus__menu { font-size: 18px; color: var(--text-nav); line-height: 0.5; background: transparent; border: 0; cursor: pointer; padding: 0; }
 
-.page[data-page="scenarios"] .hero { display: flex; align-items: center; gap: 38px; margin-top: 24px; }
+.page[data-page="scenarios"] .hero { display: flex; align-items: center; gap: 42px; margin-top: 28px; }
 .page[data-page="scenarios"] .hero__ringwrap { display: flex; flex-direction: column; align-items: center; flex: none; }
 .page[data-page="scenarios"] .hero__ringlabel { font-size: 14px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-5); margin-bottom: 12px; }
 .page[data-page="scenarios"] .hero__numeral { font-family: var(--font-serif); font-weight: 300; font-size: 44px; color: var(--text-hi); line-height: 1; }
@@ -451,8 +437,8 @@
 .page[data-page="scenarios"] .rail__head { display: flex; align-items: center; justify-content: space-between; padding: 0 2px 2px; }
 .page[data-page="scenarios"] .rail__head-label { font-size: 14px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-5); }
 .page[data-page="scenarios"] .rail__head-hint { font-size: 14px; color: var(--text-4); }
-.page[data-page="scenarios"] .rail-card { border-radius: var(--r-card); padding: 16px; cursor: pointer; text-align: left; width: 100%; font-family: inherit; background: var(--glass-card); border: 1px solid var(--line-08); box-shadow: var(--shadow-rail); backdrop-filter: var(--blur-rail); -webkit-backdrop-filter: var(--blur-rail); }
-.page[data-page="scenarios"] .rail-card.is-active { background: var(--glass-card-active); border-color: rgba(198,166,98,0.48); box-shadow: var(--shadow-card-active); }
+.page[data-page="scenarios"] .rail-card { border-radius: var(--r-card); padding: 16px 18px; cursor: pointer; text-align: left; width: 100%; font-family: inherit; background: var(--glass-card); border: 1px solid var(--line-08); box-shadow: var(--shadow-rail); backdrop-filter: var(--blur-rail); -webkit-backdrop-filter: var(--blur-rail); }
+.page[data-page="scenarios"] .rail-card.is-active { background: var(--glass-card-active); border-color: rgba(198,166,98,0.36); box-shadow: var(--shadow-card-active); }
 .page[data-page="scenarios"] .rail-card__head { display: flex; align-items: center; justify-content: space-between; }
 .page[data-page="scenarios"] .rail-card__title { display: flex; align-items: center; gap: 9px; }
 .page[data-page="scenarios"] .rail-card__dot { width: 7px; height: 7px; border-radius: 50%; background: var(--tone); }
@@ -467,7 +453,7 @@
 .page[data-page="scenarios"] .rail-card__median { font-family: var(--font-serif); font-weight: 300; font-size: 18px; color: var(--text-1); margin-top: 1px; }
 .page[data-page="scenarios"] .rail-add { border-radius: var(--r-card); padding: 15px; border: 1px dashed var(--line-11); display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--text-4); font-size: 14px; background: transparent; cursor: pointer; width: 100%; font-family: inherit; }
 
-.page[data-page="scenarios"] .stress-rail { margin-top: 4px; border-radius: var(--r-card); padding: 18px 18px 14px; background: var(--glass-card); border: 1px solid var(--line-08); box-shadow: var(--shadow-rail); backdrop-filter: var(--blur-rail); -webkit-backdrop-filter: var(--blur-rail); }
+.page[data-page="scenarios"] .stress-rail { margin-top: 4px; border-radius: var(--r-card); padding: 18px 20px 14px; background: var(--glass-card); border: 1px solid var(--line-08); box-shadow: var(--shadow-rail); backdrop-filter: var(--blur-rail); -webkit-backdrop-filter: var(--blur-rail); }
 .page[data-page="scenarios"] .stress-rail__head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px; }
 .page[data-page="scenarios"] .stress-rail__verdict { font-size: 14px; letter-spacing: 0.04em; }
 .page[data-page="scenarios"] .stress-rail__row { display: flex; align-items: center; gap: 12px; padding: 7px 0; }
@@ -482,10 +468,10 @@
 /* =============================================================================
    CASH FLOW VIEW
    ============================================================================= */
-.page[data-page="scenarios"] .cf__head { display: flex; align-items: center; flex-wrap: wrap; gap: 14px; margin-bottom: 16px; }
+.page[data-page="scenarios"] .cf__head { display: flex; align-items: center; flex-wrap: wrap; gap: 14px; margin-bottom: 22px; }
 .page[data-page="scenarios"] .cf__pills { display: inline-flex; flex-wrap: nowrap; gap: 7px; }
 .page[data-page="scenarios"] .cf-pill { display: inline-flex; align-items: center; gap: 7px; padding: 6px 13px; border-radius: var(--r-pill); font-size: 14px; white-space: nowrap; cursor: pointer; background: transparent; border: 1px solid var(--line-07); color: var(--text-4); font-family: inherit; }
-.page[data-page="scenarios"] .cf-pill.is-active { background: var(--fill-08); border-color: rgba(255,255,255,0.16); color: var(--text-1); }
+.page[data-page="scenarios"] .cf-pill.is-active { background: rgba(198,166,98,0.14); border-color: rgba(198,166,98,0.32); color: var(--text-1); }
 .page[data-page="scenarios"] .cf-pill__dot { width: 6px; height: 6px; border-radius: 50%; background: var(--tone); }
 
 .page[data-page="scenarios"] .cf__path-controls {
@@ -529,14 +515,14 @@
 }
 
 /* summary strip — floats directly on the page, no glass box */
-.page[data-page="scenarios"] .cf-summary { display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap; padding: 6px 4px 4px; margin-bottom: 18px; }
+.page[data-page="scenarios"] .cf-summary { display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap; padding: 4px 0 18px; margin-bottom: 16px; border-bottom: 1px solid var(--line-07); }
 .page[data-page="scenarios"] .cf-summary__id { display: flex; align-items: center; gap: 16px; }
 .page[data-page="scenarios"] .cf-summary__sub { font-size: 14px; color: var(--text-5); }
 .page[data-page="scenarios"] .cf-summary__stats { display: flex; align-items: stretch; }
-.page[data-page="scenarios"] .cf-stat { padding: 0 26px; }
+.page[data-page="scenarios"] .cf-stat { padding: 0 18px; }
 .page[data-page="scenarios"] .cf-stat + .cf-stat { border-left: 1px solid var(--line-08); }
 .page[data-page="scenarios"] .cf-stat:last-child { padding-right: 0; }
-.page[data-page="scenarios"] .cf-stat__label { font-size: 14px; letter-spacing: 0.12em; text-transform: uppercase; color: #8A929C; }
+.page[data-page="scenarios"] .cf-stat__label { font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-5); }
 .page[data-page="scenarios"] .cf-stat__value { font-family: var(--font-serif); font-weight: 300; font-size: 22px; color: var(--text-1); margin-top: 5px; }
 .page[data-page="scenarios"] .cf-stat__peak { display: flex; align-items: baseline; gap: 7px; margin-top: 5px; }
 .page[data-page="scenarios"] .cf-stat__peak-age { font-size: 14px; color: var(--text-5); }
@@ -563,7 +549,7 @@
 .page[data-page="scenarios"] .cf-tax-warnings li + li { margin-top: 3px; }
 
 /* the ledger table */
-.page[data-page="scenarios"] .cf-table { border-radius: var(--r-panel); overflow: hidden; background: var(--glass-table); border: 1px solid var(--line-11); box-shadow: var(--shadow-table); backdrop-filter: var(--blur-table); -webkit-backdrop-filter: var(--blur-table); font-variant-numeric: tabular-nums; }
+.page[data-page="scenarios"] .cf-table { border-radius: 0; overflow: visible; background: transparent; border: 0; box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none; font-variant-numeric: tabular-nums; }
 /* shared 11-column grid for header + every data row. Each numeric column gets
    a minimum sized to ITS OWN header (14px uppercase, nowrap) so headers never
    collide at narrow widths, then grows proportionally; digits align via
@@ -584,32 +570,32 @@
     minmax(76px, 1.1fr);/* Ending */
   column-gap: 12px;
 }
-.page[data-page="scenarios"] .cf-table__head { padding: 13px 26px; border-bottom: 1px solid var(--line-09); }
-.page[data-page="scenarios"] .cf-th { font-size: 14px; letter-spacing: 0.08em; text-transform: uppercase; color: #8A929C; white-space: nowrap; }
+.page[data-page="scenarios"] .cf-table__head { padding: 11px 6px; border-bottom: 1px solid var(--line-09); }
+.page[data-page="scenarios"] .cf-th { font-size: 12px; letter-spacing: 0.10em; text-transform: uppercase; color: var(--text-5); white-space: nowrap; }
 .page[data-page="scenarios"] .cf-th--r { text-align: right; }
 
-.page[data-page="scenarios"] .cf-band { padding: 2px 0 4px; }
-.page[data-page="scenarios"] .cf-band.is-shaded { background: rgba(255,255,255,0.016); }
+.page[data-page="scenarios"] .cf-band { padding: 0; }
+.page[data-page="scenarios"] .cf-band.is-shaded { background: transparent; }
 
-.page[data-page="scenarios"] .cf-row { align-items: start; padding: 5px 26px; }
-.page[data-page="scenarios"] .cf-row__year { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; color: var(--text-3); }
+.page[data-page="scenarios"] .cf-row { align-items: center; padding: 11px 6px; border-bottom: 1px solid var(--line-06); }
+.page[data-page="scenarios"] .cf-row__year { display: inline-flex; align-items: center; gap: 6px; font-family: var(--font-serif); font-size: 13px; color: var(--text-2); }
 .page[data-page="scenarios"] .cf-row__mark { width: 10px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
 .page[data-page="scenarios"] .cf-row__mark-dot { flex-shrink: 0; }
 .page[data-page="scenarios"] .cf-row__mark-dot--ret { width: 6px; height: 6px; border-radius: 50%; background: #a8d4e8; box-shadow: 0 0 0 2.5px rgba(168, 212, 232, 0.45); }
 .page[data-page="scenarios"] .cf-row__mark-dot--rmd { width: 6px; height: 6px; border-radius: 50%; background: transparent; border: 2px solid #c9a8a0; box-shadow: 0 0 0 1px rgba(201, 168, 160, 0.25); }
-.page[data-page="scenarios"] .cf-cell { font-size: 14px; text-align: right; white-space: nowrap; }
+.page[data-page="scenarios"] .cf-cell { font-family: var(--font-serif); font-size: 13px; text-align: right; white-space: nowrap; }
 .page[data-page="scenarios"] .cf-cell--age { color: var(--text-4); text-align: left; }
 .page[data-page="scenarios"] .cf-cell--essential { color: var(--text-2b); }
 .page[data-page="scenarios"] .cf-cell--tax { color: var(--text-2b); }
 .page[data-page="scenarios"] .cf-cell--draw { color: var(--text-2); }
 .page[data-page="scenarios"] .cf-cell--zero { color: var(--text-mute); }
-.page[data-page="scenarios"] .cf-cell--wd { font-size: 14px; }
-.page[data-page="scenarios"] .cf-cell--ending { font-size: 14px; font-weight: 500; color: var(--text-2); }
+.page[data-page="scenarios"] .cf-cell--wd { font-size: 13px; }
+.page[data-page="scenarios"] .cf-cell--ending { font-size: 13px; font-weight: 500; color: var(--text-2); }
 .page[data-page="scenarios"] .cf-row__goals-wrap { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
-.page[data-page="scenarios"] .cf-row__goaltag { font-size: 14px; letter-spacing: 0.02em; white-space: nowrap; color: #CDA877; }
+.page[data-page="scenarios"] .cf-row__goaltag { font-family: var(--font-sans); font-size: 12px; letter-spacing: 0.02em; white-space: nowrap; color: #CDA877; }
 
-/* ---- 1920-wide safety (no global shrink; only the wide grids breathe) ----- */
-@media (max-width: 1640px) {
+/* ---- Narrow desktop safety (no global shrink; only the wide grids breathe) */
+@media (max-width: 1380px) {
   .page[data-page="scenarios"] .scn-stage { padding-left: 24px; padding-right: 24px; }
   .page[data-page="scenarios"] .cf-grid { column-gap: 6px; }
   .page[data-page="scenarios"] .cf-row,

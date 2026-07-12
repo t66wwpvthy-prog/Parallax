@@ -201,7 +201,7 @@ export function renderCashflow(scn, allScns, {
     const summaryStrip = (
       '<div class="cf-summary" style="--tone:' + scn.tone + ';--tone-glow:' + toneGlow(scn.tone) + ';">' +
         '<div class="cf-summary__id">' +
-          ring(56, 24, 4.5, scn.tone, scn.prob, '<span class="numeral" style="font-size:15px;">' + scn.probStr + '<span class="pct" style="font-size:11px;">%</span></span>') +
+          ring(40, 17, 2.5, scn.tone, scn.prob, '<span class="numeral" style="font-size:14px;">' + scn.probStr + '<span class="pct" style="font-size:10px;">%</span></span>') +
           '<div class="cf-summary__sub">Probability of success</div>' +
         '</div>' +
         '<div class="cf-summary__stats">' +

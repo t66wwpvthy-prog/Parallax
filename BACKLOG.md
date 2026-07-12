@@ -8,6 +8,10 @@ you're ready to build it. Newest at the top of each section.
 Format: `- [YYYY-MM-DD] short description (why / context)`
 
 ## Ideas / features
+- [2026-07-12] Reconsider Sequencing Playback only when its advisor purpose and
+  place in the core planning flow are clear. The active panel, renderer, styling,
+  and browser contract were deliberately removed before the visual-consistency PR;
+  the complete prior implementation remains recoverable from Git commit `4a293b7`.
 - [2026-07-07] Survivor / early-death modeling — a death-age event that, from that
   year on, cuts household expenses by a set % (survivor spends ~70–80%), drops the
   smaller of the two Social Security benefits, and flips filing status MFJ → Single,

@@ -1371,8 +1371,8 @@ try {
     if(m.quickAdds !== 4) throw new Error(`expected 4 quick adds, got ${m.quickAdds}`);
     if(!/I \u00b7 66\u201375/.test(m.footer) || !/II \u00b7 76\u201385/.test(m.footer) || !/III \u00b7 86\u201395/.test(m.footer))
       throw new Error(`footer chapters not derived 66-75/76-85/86-95: "${m.footer}"`);
-    if(!/Lifetime/.test(m.footer) || !/sum of entered goals/.test(m.footer))
-      throw new Error(`footer must label sums honestly: "${m.footer}"`);
+    if(/Lifetime/.test(m.footer) || /sum of entered goals/.test(m.footer))
+      throw new Error(`footer must not show a lifetime aggregate: "${m.footer}"`);
     if(m.travelChips !== 'on,part,off')
       throw new Error(`Travel & leisure 66\u201381 chips should be on,part,off \u2014 got "${m.travelChips}"`);
     if(m.fontFloor < 16) throw new Error(`ledger type floor broken: ${m.fontFloor}px < 16px`);
@@ -1416,9 +1416,8 @@ try {
     if(m.name !== 'Boat fund') throw new Error(`typed name did not write through ("${m.name}")`);
     if(!m.stillFocused) throw new Error('name typing lost focus (row re-rendered mid-keystroke)');
 
-    // 3) amount typing: live commas, footer repaints, focus survives.
-    // ($900k/yr so the compact Lifetime figure visibly moves — $3.1M -> $12M.)
-    const lifeBefore = await page.evaluate(() => document.querySelector('#glx-life')?.textContent);
+    // 3) amount typing: live commas, chapter footer repaints, focus survives.
+    const chapterBefore = await page.evaluate(() => document.querySelector('[data-fsum="0"]')?.textContent);
     await page.click(`.glx-amt[data-i="${gi}"]`);
     await page.evaluate(g => {
       const el = document.querySelector(`.glx-amt[data-i="${g}"]`);
@@ -1429,11 +1428,11 @@ try {
     m = await page.evaluate(g => ({
       amt: document.querySelector(`.glx-amt[data-i="${g}"]`)?.value,
       focused: document.activeElement?.classList.contains('glx-amt'),
-      life: document.querySelector('#glx-life')?.textContent,
+      chapter: document.querySelector('[data-fsum="0"]')?.textContent,
     }), gi);
     if(m.amt !== '900,000') throw new Error(`amount live-commas failed ("${m.amt}")`);
     if(!m.focused) throw new Error('amount typing lost focus (row re-rendered mid-keystroke)');
-    if(m.life === lifeBefore) throw new Error('footer Lifetime sum did not repaint on amount typing');
+    if(m.chapter === chapterBefore) throw new Error('footer chapter sum did not repaint on amount typing');
 
     // 4) recurring stepper is +-$1,000
     await page.click(`.glx-step[data-act="plus"][data-i="${gi}"]`);
@@ -1943,36 +1942,17 @@ try {
     await el.screenshot({ path: join(OUT, '05-sequencing.png') });
   });
 
-  await step('playback verdict, strategy comparison and year table', async () => {
-    await page.evaluate(() => [...document.querySelectorAll('[data-pb-year]')].find(b => b.textContent === '2000')?.click());
-    await new Promise(r => setTimeout(r, 400));
-    const m = await page.evaluate(() => ({
-      verdict: document.querySelector('#pb-verdict')?.textContent || '',
-      sub: document.querySelector('#playback-panel .pb-sub')?.textContent || '',
-      stratRows: document.querySelectorAll('#pb-strats tr').length,
-      stratText: document.querySelector('#pb-strats')?.textContent || '',
-      years: [...document.querySelectorAll('[data-pb-year]')].map(b => b.textContent.trim()),
+  await step('sequencing excludes deferred Playback', async () => {
+    const playbackSelectors = await page.evaluate(() => ({
+      panel: Boolean(document.querySelector('#playback-panel')),
+      verdict: Boolean(document.querySelector('#pb-verdict')),
+      yearPicker: Boolean(document.querySelector('[data-pb-year]')),
+      detail: Boolean(document.querySelector('#pb-detail-btn')),
     }));
-    if(!/(survives 2000|2000 breaks the plan at age \d+)/.test(m.verdict)) throw new Error(`playback verdict wrong: "${m.verdict}"`);
-    if(!/\$/.test(m.sub) && !/exhausted/.test(m.sub)) throw new Error(`playback subline missing figures: "${m.sub}"`);
-    if(m.stratRows !== 4) throw new Error(`expected header + 3 strategy rows, got ${m.stratRows}`);
-    if(!/the plan’s strategy/.test(m.stratText) || !/baseline/.test(m.stratText)) throw new Error('plan strategy row not marked as baseline');
-    if(m.years.length < 6) throw new Error(`playback year picker too small: ${JSON.stringify(m.years)}`);
-    await page.click('#pb-detail-btn');
-    await new Promise(r => setTimeout(r, 300));
-    const t = await page.evaluate(() => ({
-      rows: document.querySelectorAll('#pb-table tr').length,
-      heads: [...document.querySelectorAll('#pb-table th')].map(th => th.textContent.trim()),
-      money: [...document.querySelectorAll('#pb-table td.end')].slice(0, 3).map(td => td.textContent.trim()),
-    }));
-    if(t.rows < 20) throw new Error(`year table too short (${t.rows} rows)`);
-    for(const h of ['Age','Era','Return','Return $','Drawn','End']){
-      if(!t.heads.includes(h)) throw new Error(`year table header missing: ${h} (${JSON.stringify(t.heads)})`);
+    if(Object.values(playbackSelectors).some(Boolean)){
+      throw new Error(`deferred Playback rendered unexpectedly: ${JSON.stringify(playbackSelectors)}`);
     }
-    if(!t.money.every(v => v.startsWith('$'))) throw new Error(`year table end balances not dollars: ${JSON.stringify(t.money)}`);
-    await page.evaluate(() => document.querySelector('#playback-panel').scrollIntoView({ block: 'start' }));
-    await new Promise(r => setTimeout(r, 250));
-    await page.screenshot({ path: join(OUT, '06-playback.png') });
+    await page.screenshot({ path: join(OUT, '06-sequencing-full.png'), fullPage: true });
   });
 
   // Objective theme contract: the page BACKGROUND (not just foreground tokens) must be

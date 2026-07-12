@@ -27,7 +27,7 @@ import {
   readHouseholdStore,
 } from './household/persistence.js';
 import { droppedGoals, goalAreaAges, renderGoalsPage, syncGoalSelection } from '../ui/goals.js';
-import { pathModeLabel, pathOutcomeText, drawSeqChart, renderPrints, normalizePlaybackStrategy, renderPlayback, syncPathControls, updatePathReplayMode } from '../ui/sequencing.js';
+import { pathModeLabel, pathOutcomeText, drawSeqChart, renderPrints, syncPathControls, updatePathReplayMode } from '../ui/sequencing.js';
 import { buildPathRows, buildCashSummary, renderCashflow } from '../ui/cashflow.js';
 import { toneForProb, toneGlow, wdColor, ring, num as scenarioNum, renderCompare, renderFocus } from '../ui/scenarios.js';
 import { solvePanelHTML, goalParamsHtml, comboPillValue } from '../ui/solver.js';
@@ -128,7 +128,7 @@ function renderBlockedRecoverySurfaces(){
   if(!isHouseholdStorageBlocked()) return;
   const html = recoveryPanelHtml();
   ['#hh-view','#np-content','#scn-view','#seq-prints'].forEach(sel => { const el=$(sel); if(el) el.innerHTML=html; });
-  ['#hh-wiz-footer','#solve-panel','#seq-chips','#playback-panel'].forEach(sel => { const el=$(sel); if(el) el.innerHTML=''; });
+  ['#hh-wiz-footer','#solve-panel','#seq-chips'].forEach(sel => { const el=$(sel); if(el) el.innerHTML=''; });
   const svg=$('#seq-svg'); if(svg) svg.innerHTML='';
   const seqSel=$('#seq-select'); if(seqSel){ seqSel.innerHTML=''; seqSel.disabled=true; }
   const seqSub=$('#seq-sub'); if(seqSub) seqSub.textContent='Household storage recovery required';
@@ -1820,9 +1820,9 @@ function paintGoalCosts(c){
      no cadence field is ever stored.
    - CHAPTERS are a UI-only derivation (floor-thirds over the
      resolved [retirement, planEnd] span). Row chips are coarse
-     presets over the exact age boxes; the footer sums entered
-     inputs per chapter — labelled "sum of entered goals", never an
-     engine output, never an invented confidence number.
+     presets over the exact age boxes; the footer shows entered
+     input totals by chapter, never an engine output or invented
+     confidence number.
    - WRITE-THROUGH: every edit mutates plan.goals[i], arms SAVE
      (planSaveDirty via reseedScenarios) and marks scenario results
      stale (plansDirty). Typing never re-renders the row — focus
@@ -1907,7 +1907,7 @@ function glQuickAdds() {
 
 /* Per-chapter input sums (amount × overlap years). Edge chapters extend
    outward so spending entered outside [retirement, planEnd] is still
-   attributed — Lifetime always equals the true sum of entered goals. */
+   attributed to a chapter. */
 function glChapterSums(ch) {
   const sums = [0, 0, 0];
   GL_PROD.goals().forEach(g => {
@@ -1968,16 +1968,12 @@ function glRowHTML(g, gi, ch) {
 }
 
 function glFooterHTML(ch, sums) {
-  const life = sums[0] + sums[1] + sums[2];
   return `<span class="glx-f-cap">CHAPTERS</span>` +
     ch.map((c, i) =>
       (i ? '<span class="glx-f-dot">\u00b7</span>' : '') +
       `<span class="glx-f-lbl">${c.roman} \u00b7 ${c.lo}\u2013${c.hi}</span>` +
       `<span class="glx-f-val" data-fsum="${c.i}">${GL_PROD.compact(sums[c.i])}</span>`
-    ).join('') +
-    `<span class="glx-f-space"></span>` +
-    `<span class="glx-f-lbl">Lifetime</span><span class="glx-f-life" id="glx-life">${GL_PROD.compact(life)}</span>` +
-    `<span class="glx-f-note">\u2014 sum of entered goals</span>`;
+    ).join('');
 }
 
 function renderGoalsLedger() {
@@ -2031,8 +2027,6 @@ function initGoalsLedger() {
     const sums = glChapterSums(ch);
     wrap.querySelectorAll('[data-fsum]').forEach(el =>
       el.textContent = GL_PROD.compact(sums[+el.dataset.fsum]));
-    const life = document.getElementById('glx-life');
-    if (life) life.textContent = GL_PROD.compact(sums[0] + sums[1] + sums[2]);
   };
 
   const addGoal = g => {
@@ -2638,6 +2632,13 @@ const STRESS_ERAS = [
   { y: 2008, year: '2008',  name: 'Global Financial Crisis' },
   { y: 1977, year: '1970s', name: 'High inflation' },
 ];
+const HISTORICAL_WITHDRAWAL_STRATEGIES = new Set([
+  'taxable-first',
+  'proportional',
+  'traditional-first',
+]);
+const normalizeHistoricalStrategy = strategy =>
+  HISTORICAL_WITHDRAWAL_STRATEGIES.has(strategy) ? strategy : 'taxable-first';
 // Pass vs Marginal for ONE historical sequence — fully engine-derived (Engine
 // Truth: the card never invents an outcome). Pass = the plan funded the entire
 // horizon (never depleted) AND cleared the sequence-risk window with non-negative
@@ -2664,7 +2665,7 @@ function computeHistoricalStress(s, p, ov){
     rp.portfolio.riskProfile = (p.portfolio.riskProfile in RISK_PROFILES)
       ? p.portfolio.riskProfile : 3;
   }
-  const strat = normalizePlaybackStrategy(p.portfolio.withdrawalStrategy, PB_STRATS);
+  const strat = normalizeHistoricalStrategy(p.portfolio.withdrawalStrategy);
   const ov2   = { ...ov, retireDelay: 0 };   // retirement age is baked into the clone
   // Wrap each era individually: a single failing era must not blank the whole card.
   // null entries are filtered out; if any eras succeed the card renders those rows.
@@ -3045,7 +3046,7 @@ function runSeq(){
   // other lever via the same overrides mapping the Scenarios tab uses.
   const p=planForScenario(s.lev);
   const ov=leversToOverrides(s.lev);
-  const strat=normalizePlaybackStrategy(p.portfolio.withdrawalStrategy, PB_STRATS);
+  const strat=normalizeHistoricalStrategy(p.portfolio.withdrawalStrategy);
   const curAge=plan.household.primary.currentAge;
   const retAge=(s.lev.retireAge!=null?s.lev.retireAge:p.household.primary.retirementAge);
   const accumYears=Math.max(0, retAge-curAge);
@@ -3062,47 +3063,12 @@ function runSeq(){
   if(!runs.length){ $('#seq-svg').innerHTML=''; $('#seq-prints').innerHTML=''; return; }
   drawSeqChart($('#seq-svg'), runs, retAge, seqChartSvg, { grid:GRID, axisInk:AXIS_INK });
   renderPrints($('#seq-prints'), runs, pathDigest);
-  seqContext={rp, strat, ov2, historicalTaxOptions};
-  renderPlaybackCurrent();
-  const n=runs.length;
   $('#seq-sub').textContent='Same plan, real markets';
 }
 
 // Path fingerprint — facts read straight off the engine result. One card per real
 // market: the first-decade return (the sequence-risk cause), the lowest the
 // portfolio fell, and the outcome. No invented composite "score".
-
-
-/* ── Playback ─────────────────────────────────────────────────────────────
-   One retirement start year, replayed against the real record. The verdict
-   is a sentence; the comparison runs the SAME return sequence through the
-   three sourcing orders (only the order varies — an allowed comparison);
-   the year-by-year table is the engine's rows, behind an advisor toggle.
-   Era labels are a static lookup for context only — no math. */
-const ERA_LABELS=[
-  [1928,1932,'crash & depression'],[1933,1945,'depression & war'],
-  [1946,1965,'postwar boom'],[1966,1972,'stagnation sets in'],
-  [1973,1974,'oil shock'],[1975,1981,'stagflation'],
-  [1982,1999,'the long bull'],[2000,2002,'dot-com bust'],
-  [2003,2007,'mid-cycle expansion'],[2008,2009,'financial crisis'],
-  [2010,2019,'recovery bull'],[2020,2020,'pandemic'],
-  [2021,2021,'reopening'],[2022,2022,'rate shock'],[2023,2025,'late-cycle bull']
-];
-const eraFor=y=>{ const e=ERA_LABELS.find(([a,b])=>y>=a&&y<=b); return e?e[2]:''; };
-const PB_STRATS=[['taxable-first','Taxable first'],['proportional','Proportional'],['traditional-first','Traditional first']];
-
-let playbackYear=1973, pbDetailOpen=false, seqContext=null;
-function renderPlaybackCurrent(){
-  if(!canRunEngine()){ renderBlockedRecoverySurfaces(); return; }
-  renderPlayback({
-    el:$('#playback-panel'), seqContext, playbackYear, pbDetailOpen,
-    sequenceYears:SEQ_YEARS, playbackStrategies:PB_STRATS,
-    runHistoricalPath:(...args)=>runHistoricalPathWithFederalTax(...args, seqContext?.historicalTaxOptions), pathDigest, eraFor,
-    setPlaybackYear:value=>{ playbackYear=value; },
-    togglePlaybackDetail:()=>{ pbDetailOpen=!pbDetailOpen; },
-    rerender:renderPlaybackCurrent,
-  });
-}
 
 
 /* ── tab switch + boot ── */

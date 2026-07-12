@@ -58,7 +58,7 @@ export function renderCompare(scns, baseline, { plan, goalsExpandedState, esc, d
             (i ? '<button class="scol__menu" type="button" data-scn-id="' + esc(s.id) + '" aria-label="Options for ' + esc(s.name) + '" aria-haspopup="true">⋯</button>' : '') +
           '</div>' +
           '<div class="scol__metric" style="--tone:' + s.tone + ';">' +
-            ring(46, 19, 4, s.tone, s.prob, '') +
+            ring(40, 17, 2.5, s.tone, s.prob, '') +
             '<div>' +
               '<div class="scol__prob">' + s.probStr + '<span class="pct">%</span></div>' +
               '<div class="scol__median">Median <b>' + s.median + '</b></div>' +
@@ -178,7 +178,7 @@ export function renderCompare(scns, baseline, { plan, goalsExpandedState, esc, d
 
     return (
       '<div class="compare">' +
-        '<div class="compare__grid" style="grid-template-columns:212px repeat(' + scns.length + ',minmax(0,1fr));">' +
+        '<div class="compare__grid" style="grid-template-columns:280px repeat(' + scns.length + ',minmax(0,1fr));">' +
           '<div class="lever lever--head"><div class="lever__name">Plan Levers</div><div class="lever__hint">columns show Δ vs Baseline</div></div>' +
           heads +
           '<div class="compare__rule" style="margin:4px 0 6px;"></div>' +
@@ -204,7 +204,7 @@ export function renderFocus(scns, baseline, focusedId, showRange, {
   }) {
     const f = scns.find((s) => s.id === focusedId) || scns[0];
     const v = stressVerdict(f.stress);
-    const heroRing = ring(152, 67, 9, f.tone, f.prob, '<span class="hero__numeral">' + f.probStr + '<span class="pct">%</span></span>');
+    const heroRing = ring(152, 67, 3.5, f.tone, f.prob, '<span class="hero__numeral">' + f.probStr + '<span class="pct">%</span></span>');
 
     const assum = f.levers.map((l) => (
       '<div>' +
@@ -244,7 +244,7 @@ export function renderFocus(scns, baseline, focusedId, showRange, {
       return (
         '<button class="rail-card ' + (active ? 'is-active' : '') + '" type="button" data-pick="' + esc(s.id) + '" aria-pressed="' + (active ? 'true' : 'false') + '" style="--tone:' + s.tone + ';">' +
           '<div class="rail-card__head"><div class="rail-card__title"><span class="rail-card__dot"></span><span class="rail-card__name">' + esc(s.name) + '</span></div>' + tag + '</div>' +
-          '<div class="rail-card__metric">' + ring(40, 16, 3.5, s.tone, s.prob, '') +
+          '<div class="rail-card__metric">' + ring(40, 16, 2.5, s.tone, s.prob, '') +
             '<div style="flex:1;"><div class="rail-card__prob">' + s.probStr + '<span class="pct">%</span></div></div>' +
             '<div style="text-align:right;"><div class="rail-card__median-l">Median</div><div class="rail-card__median">' + s.median + '</div></div>' +
           '</div>' +
