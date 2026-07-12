@@ -11,6 +11,7 @@ import { fileURLToPath } from 'node:url';
 import { join, resolve, sep } from 'node:path';
 import { generateReturnPath, resetSeed, runSimulation } from '../engine.js';
 import { runMonteCarloWithFederalFunding } from '../src/planning/tax/runMonteCarloWithFederalFunding.js';
+import { createBlankTaxProfiles } from '../src/household/factEnvelope.js';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const OUT = join(ROOT, 'verify-out');
@@ -194,7 +195,10 @@ function verifyHousehold(){
   ok(/function createBlankHousehold\b/.test(source), 'createBlankHousehold() factory missing');
   ok(/function hydratePlan\b/.test(source),          'hydratePlan() (in-place plan hydrate) missing');
   ok(/function bootstrapHouseholds\b/.test(source),  'bootstrapHouseholds() (first-load seed + reload hydrate) missing');
-  ok(/function mergeMissingSchema\b/.test(source),   'merge-only household schema hydration missing');
+  ok(/readHouseholdStore\b/.test(source), 'readHouseholdStore() missing');
+  ok(/prepareHouseholdStore\b/.test(source), 'prepareHouseholdStore() missing');
+  ok(/commitPreparedHouseholdStore\b/.test(source), 'commitPreparedHouseholdStore() missing');
+  ok(/function guardPlanMutation\b/.test(source), 'guardPlanMutation() missing');
   ok(/function newHousehold\b/.test(source),         'newHousehold() action missing');
   ok(/function switchHousehold\b/.test(source),      'switchHousehold() action missing');
   ok(/function hhAlreadyRetired\b/.test(source),     'hhAlreadyRetired() helper missing (retirement age must go inert once retired)');
@@ -283,7 +287,8 @@ rmSync(OUT, { recursive: true, force: true });
 mkdirSync(OUT, { recursive: true });
 
 console.log('full test suite (npm test)');
-const test = spawnSync(process.execPath, ['--test', 'engine.test.js', 'src/tax/federal/rules/ordinaryIncomeTax.test.js', 'src/tax/federal/rules/standardDeduction.test.js', 'src/tax/federal/rules/traditionalIraDeductibility.test.js', 'src/tax/federal/rules/capitalGainsStacking.test.js', 'src/tax/federal/rules/taxableSocialSecurity.test.js', 'src/tax/federal/composers/form1040Spine.test.js', 'src/tax/tests/integration.test.js', 'src/tax/tests/golden1040.test.js', 'src/tax/tests/intakeCompleteness.test.js', 'src/tax/tests/annual1040Fixtures.test.js', 'src/tax/tests/law2025.test.js', 'src/tax/tests/engineYearTo1040Input.test.js', 'src/tax/tests/demoWagesRegression.test.js', 'src/tax/tests/marginalRateSummary.test.js', 'src/planning/tax/runTaxForScenarioPath.test.js', 'src/planning/tax/attachTypicalPathFederalTax.test.js', 'src/scenarios/promoteTaxFundedProbability.test.js'], { cwd: ROOT, stdio: 'inherit' });
+const npmCmd = process.platform === 'win32' ? 'npm.cmd' : 'npm';
+const test = spawnSync(npmCmd, ['test'], { cwd: ROOT, stdio: 'inherit', shell: true });
 if(test.status !== 0){ console.error('npm test failed'); process.exit(1); }
 
 console.log('household contract (static)');
@@ -319,9 +324,42 @@ try {
   const browser = await puppeteer.launch({ ...launchOpts, headless: true });
   const page = await browser.newPage();
   await page.setViewport({ width: 1920, height: 1080, deviceScaleFactor: 3 });
+  // Puppeteer can briefly retain a detached main-frame handle while a prior
+  // reload settles. Retry only that transport-level condition; all assertion,
+  // selector, and application errors still fail immediately.
+  const retryDetachedFrame = async (label, action) => {
+    let lastError;
+    for(let attempt = 0; attempt < 3; attempt++){
+      try{
+        return await action();
+      }catch(error){
+        lastError = error;
+        if(!/(?:detached.*frame|frame.*detached)/i.test(error?.message || '') || attempt === 2) throw error;
+        await new Promise(resolve => setTimeout(resolve, 250 * (attempt + 1)));
+        try{
+          await page.waitForFunction(() => document.readyState === 'complete', { timeout: 5000 });
+        }catch(waitError){
+          if(!/(?:detached.*frame|frame.*detached|Execution context was destroyed)/i.test(waitError?.message || '')) throw waitError;
+        }
+      }
+    }
+    throw new Error(`${label}: ${lastError?.message || lastError}`);
+  };
+  const stableClick = selector => retryDetachedFrame(`click ${selector}`, () => page.click(selector));
+  const stableEvaluate = (label, fn, ...args) => retryDetachedFrame(label, () => page.evaluate(fn, ...args));
+  const stableGoto = (url, options) => retryDetachedFrame(`navigate ${url}`, () => page.goto(url, options));
+  const stableReload = options => retryDetachedFrame('reload page', () => page.reload(options));
   const errs = [];
   page.on('pageerror', e => errs.push('PAGE: ' + e.message));
-  page.on('console', m => { if(m.type() === 'error') errs.push('CON: ' + m.text()); });
+  page.on('console', m => {
+    if(m.type() !== 'error') return;
+    const message = m.text();
+    const sourceUrl = m.location()?.url || '';
+    const blockedGoogleFont = message === 'Failed to load resource: net::ERR_NETWORK_ACCESS_DENIED'
+      && /^https:\/\/fonts\.(?:googleapis|gstatic)\.com\//.test(sourceUrl);
+    if(blockedGoogleFont) return;
+    errs.push('CON: ' + message + (sourceUrl ? ` @ ${sourceUrl}` : ''));
+  });
 
   await step('load index.html', async () => {
     // Deterministic seed: households + scenarios persist to localStorage, so a
@@ -329,9 +367,9 @@ try {
     // Scenario B 68 / Aggressive risk 5) and make the per-scenario assertions
     // flaky. Clear ALL storage and reload so every run boots a fresh Demo
     // Household via bootstrapHouseholds() → demoScenarios().
-    await page.goto(`http://127.0.0.1:${PORT}/index.html`, { waitUntil: 'networkidle2', timeout: 20000 });
+    await stableGoto(`http://127.0.0.1:${PORT}/index.html`, { waitUntil: 'networkidle2', timeout: 20000 });
     await page.evaluate(() => { try { localStorage.clear(); } catch (e) {} });
-    await page.reload({ waitUntil: 'networkidle2', timeout: 20000 });
+    await stableReload({ waitUntil: 'networkidle2', timeout: 20000 });
     await new Promise(r => setTimeout(r, 1000));
     const firstRun = await page.evaluate(() => ({
       active: localStorage.getItem('parallax.activeHouseholdId'),
@@ -370,18 +408,20 @@ try {
         { label:'Co-client wages', amount:60000, startAge:63, endAge:65, realGrowth:0, taxablePct:1 },
       ];
       demo.goals = [{ name:'Travel & leisure', amount:30000, startAge:66, endAge:81 }];
+      // Filled demo uses legacy-shaped accounts; strip v1 stamp so one-time migration runs.
+      delete demo.meta.accountSchemaVersion;
       localStorage.setItem(key, JSON.stringify(db));
     });
-    await page.reload({ waitUntil: 'networkidle2', timeout: 20000 });
+    await stableReload({ waitUntil: 'networkidle2', timeout: 20000 });
     await new Promise(r => setTimeout(r, 1500));
   });
 
   // Wizard navigation helper: Household tab → stepper click (all steps are
   // freely clickable — advisor tool, no gating).
   const goStep = async (n) => {
-    await page.click('.htab[data-page="household"]');
+    await stableClick('.htab[data-page="household"]');
     await new Promise(r => setTimeout(r, 300));
-    await page.click('#hh-step-' + n);
+    await stableClick('#hh-step-' + n);
     await new Promise(r => setTimeout(r, 350));
   };
 
@@ -785,22 +825,97 @@ try {
     });
     await sleep(200);
 
-    // 4. Co-client remove → '+ Add Co-Client' appears on step 1; re-add restores.
+    // 4. Co-client remove is blocked while spouse-owned accounts exist; reassign first.
     await goStep(1);
+    let coClientBlockMsg = null;
+    const onBlockDialog = async dialog => {
+      coClientBlockMsg = dialog.message();
+      await dialog.dismiss();
+    };
+    page.on('dialog', onBlockDialog);
+    await page.evaluate(() => {
+      document.querySelector('#hh-view [data-hh-action="remove-spouse"]')?.click();
+    });
+    await sleep(400);
+    page.off('dialog', onBlockDialog);
+    if(!/Reassign or remove Co-Client accounts before removing the Co-Client\./.test(coClientBlockMsg || ''))
+      throw new Error(`co-client removal must block with ownership message, got "${coClientBlockMsg}"`);
+
+    // Reassign spouse-owned accounts by removing them so co-client removal can proceed.
+    await goStep(2);
+    for(let i = 0; i < 4; i++){
+      const removed = await page.evaluate(() => {
+        const col = [...document.querySelectorAll('#hh-view .hh-col')].find(el => /CO-CLIENT/i.test(el.textContent || ''));
+        const btn = col?.querySelector('.row-x[data-rmpath^="portfolio.extraAccounts."]');
+        if(!btn) return false;
+        btn.click();
+        return true;
+      });
+      if(!removed) break;
+      await sleep(250);
+    }
+    await page.click('#save-btn');
+    await sleep(300);
+
+    // Confirmed co-client tax facts require the explicit discard warning and
+    // must reset only after that warning is accepted.
+    await page.evaluate(() => {
+      const dbKey = 'parallax.households.v1';
+      const activeKey = 'parallax.activeHouseholdId';
+      const active = localStorage.getItem(activeKey);
+      const db = JSON.parse(localStorage.getItem(dbKey) || '{}');
+      if(!active || !db[active]?.taxProfiles?.spouse?.birthDate){
+        throw new Error('co-client tax profile missing before discard probe');
+      }
+      db[active].taxProfiles.spouse.birthDate = {
+        value: '1963-01-01',
+        status: 'confirmed',
+        source: 'household-entry',
+        confirmedAt: '2026-07-11T12:00:00Z',
+        version: 1,
+      };
+      localStorage.setItem(dbKey, JSON.stringify(db));
+    });
+    await stableReload({ waitUntil: 'networkidle2', timeout: 20000 });
+    await sleep(800);
+    await goStep(1);
+
     const removeBtnBefore = await page.$('#hh-view [data-hh-action="remove-spouse"]');
     if(!removeBtnBefore) throw new Error('Remove (co-client) action missing from step 1');
+    let removeConfirmed = false;
+    let removePrompt = null;
+    const onRemoveDialog = async dialog => {
+      removeConfirmed = true;
+      removePrompt = dialog.message();
+      await dialog.accept();
+    };
+    page.on('dialog', onRemoveDialog);
     await page.evaluate(() => {
-      // Bypass the confirm() dialog by temporarily replacing it
-      const orig = window.confirm;
-      window.confirm = () => true;
       document.querySelector('#hh-view [data-hh-action="remove-spouse"]').click();
-      window.confirm = orig;
     });
+    await sleep(400);
+    page.off('dialog', onRemoveDialog);
+    if(!removeConfirmed) throw new Error('co-client removal confirm dialog did not appear');
+    const discardPrompt = 'Remove co-client from this household? Confirmed co-client tax facts will be discarded.';
+    if(removePrompt !== discardPrompt){
+      throw new Error(`confirmed co-client removal must use the discard warning, got "${removePrompt}"`);
+    }
     await sleep(350);
     const addSpouseVisible = await page.$('#hh-view [data-hh-action="add-spouse"]');
     if(!addSpouseVisible) throw new Error('after removing co-client, "+ Add Co-Client" did not appear');
     const nameAfterRemove = await page.evaluate(() => document.querySelector('#hh-rail-name')?.textContent.trim() || '');
     if(/&/.test(nameAfterRemove)) throw new Error(`household name still shows "&" after co-client removal: "${nameAfterRemove}"`);
+    await page.click('#save-btn');
+    await sleep(300);
+    const spouseProfileAfterRemove = await page.evaluate(() => {
+      const active = localStorage.getItem('parallax.activeHouseholdId');
+      const db = JSON.parse(localStorage.getItem('parallax.households.v1') || '{}');
+      return active ? db[active]?.taxProfiles?.spouse : null;
+    });
+    const expectedBlankSpouse = createBlankTaxProfiles().spouse;
+    if(JSON.stringify(spouseProfileAfterRemove) !== JSON.stringify(expectedBlankSpouse)){
+      throw new Error('accepted co-client removal must reset the spouse tax profile to the blank current schema');
+    }
     // Re-add co-client
     await page.click('#hh-view [data-hh-action="add-spouse"]');
     await sleep(350);
@@ -824,6 +939,28 @@ try {
       if(el){ el.value = '65'; el.dispatchEvent(new Event('change', { bubbles:true })); }
     });
     await sleep(200);
+
+    // Restore spouse-owned accounts removed for the ownership block probe.
+    const restoreAccount = async (owner, label, amount) => {
+      await page.click(`#hh-view [data-hh-action="open-account-form"][data-owner="${owner}"]`);
+      await sleep(250);
+      await page.evaluate(({ label, amount }) => {
+        const form = document.querySelector('#hh-acct-form');
+        const typeSel = form.querySelector('.hh-form-type');
+        typeSel.value = String([...typeSel.options].findIndex(o => o.textContent.trim() === label));
+        form.querySelector('.hh-form-val').value = amount;
+        form.querySelector('[data-hh-action="save-account"]').click();
+      }, { label, amount });
+      await sleep(350);
+    };
+    await goStep(2);
+    await restoreAccount('spouse', 'Brokerage (taxable)', '800,000');
+    await restoreAccount('spouse', 'Roth IRA', '400,000');
+    const spouseTotal = await page.evaluate(() => {
+      const col = [...document.querySelectorAll('#hh-view .hh-col')].find(el => /CO-CLIENT/i.test(el.textContent || ''));
+      return col?.querySelector('.hh-col__sum')?.textContent.trim() || '';
+    });
+    if(!/\$1,200,000/.test(spouseTotal)) throw new Error(`restoring spouse accounts must restore the co-client total, got "${spouseTotal}"`);
   });
 
   await step('household menu: New creates blank; Load Demo switches without resetting it', async () => {
@@ -1378,6 +1515,35 @@ try {
   });
 
   await step('cash-flow view: exact columns, rows, summary, path controls, pills', async () => {
+    // Re-anchor the demo plan + scenario levers after earlier household edits.
+    await page.evaluate(() => {
+      const key = 'parallax.households.v1';
+      const db = JSON.parse(localStorage.getItem(key) || '{}');
+      const demo = db.demo;
+      if(!demo) return;
+      demo.meta.primaryName = 'Test Client';
+      demo.meta.spouseName = 'Test Co-Client';
+      demo.meta.filingStatus = 'marriedFilingJointly';
+      demo.household.primary = { currentAge: 64, retirementAge: 66, planEndAge: 95, birthYear: 1962 };
+      demo.household.spouse = { currentAge: 63, retirementAge: 65, birthYear: 1963 };
+      demo.portfolio.extraAccounts = [
+        { type:'Traditional IRA', bucket:'traditional', owner:'client', balance:1600000 },
+        { type:'Brokerage (taxable)', bucket:'taxable', owner:'spouse', balance:800000 },
+        { type:'Roth IRA', bucket:'roth', owner:'spouse', balance:400000 },
+      ];
+      delete demo.meta.accountSchemaVersion;
+      localStorage.setItem(key, JSON.stringify(db));
+      localStorage.removeItem('parallax.scenarios.demo.v1');
+    });
+    await stableReload({ waitUntil: 'networkidle2', timeout: 20000 });
+    await new Promise(r => setTimeout(r, 1500));
+    await page.click('#run-btn');
+    for(let i = 0; i < 60; i++){
+      await new Promise(r => setTimeout(r, 500));
+      const status = await page.evaluate(() => document.querySelector('#status')?.textContent || '');
+      if(/Complete/i.test(status)) break;
+    }
+
     await page.click('button[data-page="scenarios"]');
     await new Promise(r => setTimeout(r, 600));
     await setCashFlow(page, true);
@@ -1714,19 +1880,19 @@ try {
 
   await step('retirement age lever goes inert once the household is already retired', async () => {
     const sleep = ms => new Promise(r => setTimeout(r, ms));
-    const leverNames = () => page.evaluate(() =>
+    const leverNames = () => stableEvaluate('read scenario lever names', () =>
       [...document.querySelectorAll('#scn-view .lever__name')].map(e => e.textContent.trim()));
 
     // Pre-retirement demo (Client 1 64/retire 66, Client 2 63/retire 65):
     // "Retirement Age" IS an active Scenarios lever.
-    await page.click('button[data-page="scenarios"]'); await sleep(700);
-    await page.click('#scn-seg-compare'); await sleep(400);
+    await stableClick('button[data-page="scenarios"]'); await sleep(700);
+    await stableClick('#scn-seg-compare'); await sleep(400);
     const beforeNames = await leverNames();
     if(!beforeNames.includes('Retirement Age'))
       throw new Error(`Retirement Age lever should be present while pre-retirement: ${JSON.stringify(beforeNames)}`);
 
     // Make BOTH principals already retired (retire age below current age).
-    const setHh = (p, v) => page.evaluate(({p,v}) => {
+    const setHh = (p, v) => stableEvaluate(`set household field ${p}`, ({p,v}) => {
       const el = document.querySelector(`#hh-view input[data-path="${p}"]`);
       if(!el) throw new Error('missing household input: ' + p);
       el.value = v; el.dispatchEvent(new Event('change', { bubbles:true }));
@@ -1738,8 +1904,8 @@ try {
 
     // Now "Retirement Age" must DROP OUT of the Scenarios levers (it is no longer
     // a decision to pull), while the other levers remain.
-    await page.click('button[data-page="scenarios"]'); await sleep(900);
-    await page.click('#scn-seg-compare'); await sleep(400);
+    await stableClick('button[data-page="scenarios"]'); await sleep(900);
+    await stableClick('#scn-seg-compare'); await sleep(400);
     const afterNames = await leverNames();
     if(afterNames.includes('Retirement Age'))
       throw new Error(`Retirement Age lever must disappear once already retired: ${JSON.stringify(afterNames)}`);
@@ -1819,7 +1985,7 @@ try {
     if(shortcut.successRate === funded.federalSuccessRate)
       throw new Error(`probability fixture did not diverge (${shortcut.successRate})`);
 
-    await page.reload({ waitUntil: 'networkidle0' });
+    await stableReload({ waitUntil: 'networkidle0' });
     await sleep(1200);
     await page.waitForSelector('#run-btn:not([disabled])', { timeout: 10000 });
     await page.click('#run-btn');
@@ -1876,7 +2042,7 @@ try {
   await step('persistence: first load seeds one blank Demo Household + exposes minimal controls', async () => {
     const sleep = ms => new Promise(r => setTimeout(r, ms));
     await page.evaluate(() => { try { localStorage.clear(); } catch (e) {} });
-    await page.reload({ waitUntil: 'networkidle2', timeout: 20000 });
+    await stableReload({ waitUntil: 'networkidle2', timeout: 20000 });
     await sleep(1500);
     const s = await page.evaluate(() => ({
       db: JSON.parse(localStorage.getItem('parallax.households.v1') || 'null'),
@@ -1928,7 +2094,7 @@ try {
     // a new blank household from the menu control (clicked programmatically —
     // it lives in the tucked ⋯ popover).
     await page.click('#save-btn'); await sleep(400);
-    await page.reload({ waitUntil: 'networkidle2', timeout: 20000 });
+    await stableReload({ waitUntil: 'networkidle2', timeout: 20000 });
     await sleep(1200);
     const savedDemo = await page.evaluate(() => JSON.parse(localStorage.getItem('parallax.households.v1') || 'null')?.demo);
     if(savedDemo?.meta?.primaryName !== 'Saved Client' || savedDemo?.income?.socialSecurity?.primary?.pia !== 12345 || savedDemo?.income?.socialSecurity?.primary?.claimAge !== 70)
@@ -1946,7 +2112,7 @@ try {
       throw new Error(`new household primary claim age must default to 67: ${JSON.stringify(created.db[customId].income.socialSecurity)}`);
 
     // Reload: the custom household must remain active (demo must NOT overwrite it).
-    await page.reload({ waitUntil: 'networkidle2', timeout: 20000 });
+    await stableReload({ waitUntil: 'networkidle2', timeout: 20000 });
     await sleep(1500);
     const afterReload = await page.evaluate(() => ({
       active: localStorage.getItem('parallax.activeHouseholdId'),
@@ -1983,7 +2149,7 @@ try {
       localStorage.setItem(key, JSON.stringify(db));
       localStorage.setItem('parallax.activeHouseholdId', id);
     }, customId);
-    await page.reload({ waitUntil: 'networkidle2', timeout: 20000 });
+    await stableReload({ waitUntil: 'networkidle2', timeout: 20000 });
     await sleep(1400);
     const merged = await page.evaluate((id) => {
       const db = JSON.parse(localStorage.getItem('parallax.households.v1') || 'null');
@@ -2010,9 +2176,445 @@ try {
       throw new Error(`Load Demo altered the saved custom household: ${JSON.stringify(after.db[customId])}`);
   });
 
+  await step('persistence: BLOCKED is inert, truthful, and preserves every recovery byte', async () => {
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
+    const blocked = 'Household data could not be safely upgraded. No saved data was changed.';
+    const corrupt = '{not-json';
+    const seededScenarios = JSON.stringify([
+      { name:'Baseline', base:true, lev:{} },
+      { name:'Scenario B', base:false, lev:{} },
+    ]);
+    await page.evaluate(({ raw, scenarios }) => {
+      localStorage.clear();
+      localStorage.setItem('parallax.households.v1', raw);
+      localStorage.setItem('parallax.activeHouseholdId', 'demo');
+      localStorage.setItem('parallax.scenarios.demo.v1', scenarios);
+    }, { raw: corrupt, scenarios: seededScenarios });
+    await stableReload({ waitUntil: 'networkidle2', timeout: 20000 });
+    await sleep(1000);
+
+    const readRecoveryBytes = () => page.evaluate(() => {
+      const scenarios = {};
+      const scenarioKeys = [];
+      for(let i = 0; i < localStorage.length; i++){
+        const key = localStorage.key(i);
+        if(key?.startsWith('parallax.scenarios.')) scenarioKeys.push(key);
+      }
+      for(const key of scenarioKeys.sort()) scenarios[key] = localStorage.getItem(key);
+      return {
+        db: localStorage.getItem('parallax.households.v1'),
+        active: localStorage.getItem('parallax.activeHouseholdId'),
+        scenarios,
+      };
+    });
+    const beforeBytes = await readRecoveryBytes();
+    if(beforeBytes.db !== corrupt) throw new Error('blocked bootstrap replaced corrupt household bytes');
+    if(beforeBytes.active !== 'demo') throw new Error(`blocked bootstrap changed the active pointer to "${beforeBytes.active}"`);
+    if(beforeBytes.scenarios['parallax.scenarios.demo.v1'] !== seededScenarios) throw new Error('blocked bootstrap changed scenario bytes');
+
+    const assertPinned = async label => {
+      const status = await page.$eval('#status', el => el.textContent.trim());
+      if(status !== blocked) throw new Error(`${label}: blocked status was not pinned (got "${status}")`);
+    };
+    await assertPinned('initial load');
+
+    const blockedControls = await page.evaluate(() => {
+      const disabled = selector => {
+        const el = document.querySelector(selector);
+        return { selector, exists: !!el, disabled: !!el?.disabled };
+      };
+      return [
+        disabled('#save-btn'), disabled('#run-btn'), disabled('#hh-menu-btn'), disabled('#hh-switch'),
+        disabled('#hh-new'), disabled('#hh-load-demo'), disabled('#scn-add'), disabled('#scn-solve'),
+        disabled('#path-mode'), disabled('#seq-select'),
+      ];
+    });
+    const missingBlockedControls = blockedControls.filter(x => !x.exists || !x.disabled);
+    if(missingBlockedControls.length) throw new Error(`blocked mutation controls must exist and be disabled: ${JSON.stringify(missingBlockedControls)}`);
+
+    // Every product surface may still be navigated for recovery context, but no
+    // default-plan input or prior financial result may leak into a blocked view.
+    for(const selector of [
+      '.htab[data-page="household"]',
+      '.htab[data-sub-target="goals"]',
+      '.htab[data-page="scenarios"]',
+      '.htab[data-page="sequencing"]',
+    ]){
+      await stableClick(selector);
+      await sleep(400);
+      const exposed = await page.evaluate(() => {
+        const active = document.querySelector('.page.on');
+        if(!active) return { missingPage:true, controls:[], financialText:'' };
+        const visible = el => !!(el.getClientRects().length && getComputedStyle(el).visibility !== 'hidden');
+        const controls = [...active.querySelectorAll('[data-path], input[type="number"], input[inputmode="numeric"]')]
+          .filter(visible)
+          .map(el => ({ tag:el.tagName, path:el.dataset.path || '', value:el.value || '' }));
+        const financialText = (active.textContent || '').match(/\$\s*[\d,]+|\b\d+(?:\.\d+)?\s*%/g) || [];
+        return { missingPage:false, controls, financialText };
+      });
+      if(exposed.missingPage) throw new Error(`${selector}: active page did not render`);
+      if(exposed.controls.length) throw new Error(`${selector}: blocked mode exposed fake financial inputs: ${JSON.stringify(exposed.controls.slice(0, 5))}`);
+      if(exposed.financialText.length) throw new Error(`${selector}: blocked mode exposed fake financial results: ${JSON.stringify(exposed.financialText.slice(0, 8))}`);
+      await assertPinned(selector);
+    }
+
+    await stableClick('.htab[data-page="scenarios"]');
+    await sleep(300);
+    await page.evaluate(() => {
+      document.querySelector('#run-btn')?.click();
+      document.querySelector('#scn-add')?.click();
+      document.querySelector('#scn-solve')?.click();
+    });
+    await sleep(500);
+    const blockedEngine = await page.evaluate(() => ({
+      status: document.querySelector('#status')?.textContent.trim() || '',
+      probs: [...document.querySelectorAll('#scn-view .scol__prob')].map(el => el.textContent.trim()),
+      medians: [...document.querySelectorAll('#scn-view .scol__median b')].map(el => el.textContent.trim()),
+      solverStarted: !!document.querySelector('#solver-form, #solve-panel .solve-searching'),
+      scenarioColumns: document.querySelectorAll('#scn-view .scol').length,
+    }));
+    if(blockedEngine.status !== blocked) throw new Error(`blocked engine attempt replaced pinned status with "${blockedEngine.status}"`);
+    if(blockedEngine.solverStarted) throw new Error('blocked recovery allowed solver startup');
+    if(blockedEngine.scenarioColumns) throw new Error('blocked recovery rendered scenario columns from fake/default state');
+    if(blockedEngine.probs.some(p => /\d/.test(p))) throw new Error(`blocked recovery showed probabilities: ${JSON.stringify(blockedEngine.probs)}`);
+    if(blockedEngine.medians.some(m => /\$[\d,]/.test(m))) throw new Error(`blocked recovery showed medians: ${JSON.stringify(blockedEngine.medians)}`);
+
+    const afterBytes = await readRecoveryBytes();
+    if(JSON.stringify(afterBytes) !== JSON.stringify(beforeBytes)){
+      throw new Error(`blocked interactions changed recovery bytes: ${JSON.stringify({ beforeBytes, afterBytes })}`);
+    }
+  });
+
+  await step('persistence: READ_ONLY disables every mutation but preserves navigation and bytes', async () => {
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
+    const readOnly = 'Household storage could not be upgraded. Viewing a read-only copy; reload after storage is available.';
+    await page.evaluateOnNewDocument(() => {
+      const orig = Storage.prototype.setItem;
+      Storage.prototype.setItem = function(key, value){
+        if(key === 'parallax.households.v1') throw new Error('QuotaExceededError');
+        return orig.call(this, key, value);
+      };
+    });
+    await page.evaluate(() => {
+      localStorage.clear();
+      const base = (id, name, spouse) => ({
+        meta: { householdId:id, name, isDemo:id === 'demo', primaryName:name, spouseName:spouse ? 'Co-Client' : '', filingStatus:spouse ? 'marriedFilingJointly' : 'single', state:'VA', accountSchemaVersion:0 },
+        household: { primary:{ currentAge:60, retirementAge:65, planEndAge:90, birthYear:1966 }, spouse:spouse ? { currentAge:59, retirementAge:65, birthYear:1967 } : null, children:[] },
+        portfolio: {
+          accounts: { taxable:{ balance:0, basisPct:1 }, traditional:{ balance:0 }, roth:{ balance:0 } },
+          extraAccounts: spouse
+            ? [
+                { type:'Brokerage (taxable)', bucket:'taxable', owner:'client', balance:1000 },
+                { type:'Roth IRA', bucket:'roth', owner:'spouse', balance:2000 },
+              ]
+            : [{ type:'Traditional IRA', bucket:'traditional', owner:'client', balance:3000 }],
+        },
+        expenses: {
+          living:spouse ? 24000 : 12000,
+          healthcare:0,
+          healthcareRealGrowth:0.02,
+          extra:[{ label:'Travel', amount:1200, startAge:65, endAge:80 }],
+        },
+        income: {
+          socialSecurity:{ primary:{ pia:0, claimAge:67 }, spouse:spouse ? { pia:0, claimAge:67 } : null },
+          pension:{ benefitByAge:{}, base:0, startAge:65, colaPct:0 },
+          other:[{ label:'Consulting', amount:2400, startAge:60, endAge:64, realGrowth:0, taxablePct:1 }],
+          workingIncome:0,
+        },
+        savings: { annual:0 }, goals:[], simulation:{ iterations:1000 },
+      });
+      const db = { demo:base('demo', 'Read Only Demo', true), other:base('other', 'Read Only Other', false) };
+      localStorage.setItem('parallax.households.v1', JSON.stringify(db));
+      localStorage.setItem('parallax.activeHouseholdId', 'demo');
+      localStorage.setItem('parallax.scenarios.demo.v1', JSON.stringify([
+        { name:'Baseline', base:true, lev:{} }, { name:'Scenario B', base:false, lev:{} },
+      ]));
+      localStorage.setItem('parallax.scenarios.other.v1', JSON.stringify([
+        { name:'Baseline', base:true, lev:{} }, { name:'Other B', base:false, lev:{} },
+      ]));
+    });
+    await stableReload({ waitUntil: 'networkidle2', timeout: 20000 });
+    await sleep(1200);
+
+    const readRecoveryBytes = () => page.evaluate(() => {
+      const scenarios = {};
+      const scenarioKeys = [];
+      for(let i = 0; i < localStorage.length; i++){
+        const key = localStorage.key(i);
+        if(key?.startsWith('parallax.scenarios.')) scenarioKeys.push(key);
+      }
+      for(const key of scenarioKeys.sort()) scenarios[key] = localStorage.getItem(key);
+      return {
+        db: localStorage.getItem('parallax.households.v1'),
+        active: localStorage.getItem('parallax.activeHouseholdId'),
+        scenarios,
+      };
+    });
+    const beforeBytes = await readRecoveryBytes();
+    const assertPinned = async label => {
+      const status = await page.$eval('#status', el => el.textContent.trim());
+      if(status !== readOnly) throw new Error(`${label}: read-only status was not pinned (got "${status}")`);
+    };
+    const assertBytesUnchanged = async label => {
+      const current = await readRecoveryBytes();
+      if(JSON.stringify(current) !== JSON.stringify(beforeBytes)){
+        throw new Error(`${label}: read-only interaction changed DB/pointer/scenario bytes`);
+      }
+    };
+    await assertPinned('initial load');
+
+    const globalControls = await page.evaluate(() => ({
+      save: document.querySelector('#save-btn')?.disabled,
+      newHousehold: document.querySelector('#hh-new')?.disabled,
+      switchDisabled: document.querySelector('#hh-switch')?.disabled,
+      loadDemoDisabled: document.querySelector('#hh-load-demo')?.disabled,
+      householdStepCount: document.querySelectorAll('.hh-step').length,
+      householdStepsDisabled: [...document.querySelectorAll('.hh-step')].some(el => el.disabled),
+    }));
+    if(!globalControls.save || !globalControls.newHousehold) throw new Error(`read-only Save/New must be disabled: ${JSON.stringify(globalControls)}`);
+    if(!globalControls.householdStepCount || globalControls.switchDisabled || globalControls.loadDemoDisabled || globalControls.householdStepsDisabled){
+      throw new Error(`read-only navigation must stay enabled: ${JSON.stringify(globalControls)}`);
+    }
+
+    // The Goals surface shares the same read-only orchestration boundary. Its
+    // inputs and action controls must expose a disabled state, while the top
+    // navigation that reaches the surface remains usable.
+    await stableClick('.htab[data-sub-target="goals"]');
+    await sleep(500);
+    const goalsControls = await page.evaluate(() => {
+      const controls = [...document.querySelectorAll('#np-content input, #np-content select, #np-content textarea, #np-content button, #np-content [role="button"], #np-content [data-add], #np-content [data-act]')];
+      const locked = el => el.disabled === true || el.getAttribute('aria-disabled') === 'true';
+      return {
+        count:controls.length,
+        enabled:controls.filter(el => !locked(el)).map(el => el.id || el.dataset.path || el.dataset.act || el.textContent.trim()).slice(0, 8),
+      };
+    });
+    if(!goalsControls.count || goalsControls.enabled.length){
+      throw new Error(`read-only Goals controls must all be disabled: ${JSON.stringify(goalsControls)}`);
+    }
+    await assertPinned('goals controls');
+    await assertBytesUnchanged('goals controls');
+
+    // Household scalar field: force an event despite disabled UI, then re-render
+    // from plan truth. Both the visible value and storage must remain unchanged.
+    await goStep(3);
+    const householdControlState = await page.evaluate(() => {
+      const controls = [...document.querySelectorAll('#hh-view input[data-path], #hh-view select[data-path]')];
+      return {
+        count:controls.length,
+        enabled:controls.filter(el => !el.disabled).map(el => el.dataset.path),
+        living:document.querySelector('#hh-view input[data-path="expenses.living"]')?.value || '',
+      };
+    });
+    if(!householdControlState.count || householdControlState.enabled.length){
+      throw new Error(`read-only Household fields must all be disabled: ${JSON.stringify(householdControlState.enabled)}`);
+    }
+    await page.evaluate(() => {
+      const el = document.querySelector('#hh-view input[data-path="expenses.living"]');
+      if(!el) throw new Error('read-only living input missing');
+      el.value = '12,345';
+      el.dispatchEvent(new Event('change', { bubbles:true }));
+    });
+    await goStep(2); await goStep(3);
+    const livingAfter = await page.$eval('#hh-view input[data-path="expenses.living"]', el => el.value);
+    if(livingAfter !== householdControlState.living){
+      throw new Error(`read-only Household edit changed in-memory/UI state (${householdControlState.living} -> ${livingAfter})`);
+    }
+    await assertPinned('household field edit');
+    await assertBytesUnchanged('household field edit');
+
+    // Generic ledger row add/remove is independent of account management.
+    // Both entry points must be visibly disabled and inert under a forced event.
+    await goStep(3);
+    const rowBefore = await page.evaluate(() => ({
+      count:document.querySelectorAll('#hh-view .row-x[data-rmpath^="expenses.extra."]').length,
+      removeDisabled:[...document.querySelectorAll('#hh-view .row-x[data-rmpath^="expenses.extra."]')].every(el => el.disabled),
+      addCount:document.querySelectorAll('#hh-view [data-hh-action="open-add"]').length,
+      addDisabled:[...document.querySelectorAll('#hh-view [data-hh-action="open-add"]')].every(el => el.disabled),
+    }));
+    if(!rowBefore.count || !rowBefore.removeDisabled || !rowBefore.addCount || !rowBefore.addDisabled){
+      throw new Error(`read-only ledger row controls are not disabled: ${JSON.stringify(rowBefore)}`);
+    }
+    await page.evaluate(() => {
+      document.querySelector('#hh-view .row-x[data-rmpath^="expenses.extra."]')
+        ?.dispatchEvent(new MouseEvent('click', { bubbles:true }));
+      document.querySelector('#hh-view [data-hh-action="open-add"][data-add-key="spending"]')
+        ?.dispatchEvent(new MouseEvent('click', { bubbles:true }));
+    });
+    await goStep(1); await goStep(3);
+    const rowAfter = await page.evaluate(() => ({
+      count:document.querySelectorAll('#hh-view .row-x[data-rmpath^="expenses.extra."]').length,
+      form:!!document.querySelector('#hh-view .hh-inline-form'),
+    }));
+    if(rowAfter.count !== rowBefore.count || rowAfter.form){
+      throw new Error(`read-only ledger row add/remove changed immediate state: ${JSON.stringify({ rowBefore, rowAfter })}`);
+    }
+    await assertPinned('ledger row add/remove');
+    await assertBytesUnchanged('ledger row add/remove');
+
+    // Account row removal/addition and co-client removal are disabled and also
+    // rejected by the mutation boundary when a synthetic event is dispatched.
+    await goStep(2);
+    const accountBefore = await page.evaluate(() => ({
+      rows:document.querySelectorAll('#hh-view input[data-path^="portfolio.extraAccounts."][data-path$=".balance"]').length,
+      rowRemoveDisabled:[...document.querySelectorAll('#hh-view .row-x[data-rmpath^="portfolio.extraAccounts."]')].every(el => el.disabled),
+      addCount:document.querySelectorAll('#hh-view [data-hh-action="open-account-form"]').length,
+      addDisabled:[...document.querySelectorAll('#hh-view [data-hh-action="open-account-form"]')].every(el => el.disabled),
+    }));
+    if(!accountBefore.rows || !accountBefore.rowRemoveDisabled || !accountBefore.addCount || !accountBefore.addDisabled){
+      throw new Error(`read-only account controls are not disabled: ${JSON.stringify(accountBefore)}`);
+    }
+    await page.evaluate(() => {
+      document.querySelector('#hh-view .row-x[data-rmpath^="portfolio.extraAccounts."]')
+        ?.dispatchEvent(new MouseEvent('click', { bubbles:true }));
+      document.querySelector('#hh-view [data-hh-action="open-account-form"]')
+        ?.dispatchEvent(new MouseEvent('click', { bubbles:true }));
+    });
+    await goStep(1); await goStep(2);
+    const accountAfter = await page.evaluate(() => ({
+      rows:document.querySelectorAll('#hh-view input[data-path^="portfolio.extraAccounts."][data-path$=".balance"]').length,
+      form:!!document.querySelector('#hh-acct-form'),
+    }));
+    if(accountAfter.rows !== accountBefore.rows || accountAfter.form){
+      throw new Error(`read-only account add/remove changed immediate state: ${JSON.stringify({ accountBefore, accountAfter })}`);
+    }
+    await assertPinned('account add/remove');
+    await assertBytesUnchanged('account add/remove');
+
+    await goStep(1);
+    const removeSpouseDisabled = await page.$eval('#hh-view [data-hh-action="remove-spouse"]', el => el.disabled);
+    if(!removeSpouseDisabled) throw new Error('read-only co-client removal control must be disabled');
+    let unexpectedDialog = null;
+    const dismissUnexpectedDialog = async dialog => { unexpectedDialog = dialog.message(); await dialog.dismiss(); };
+    page.on('dialog', dismissUnexpectedDialog);
+    await page.evaluate(() => document.querySelector('#hh-view [data-hh-action="remove-spouse"]')
+      ?.dispatchEvent(new MouseEvent('click', { bubbles:true })));
+    await sleep(250);
+    page.off('dialog', dismissUnexpectedDialog);
+    if(unexpectedDialog) throw new Error(`read-only co-client removal opened a dialog: ${unexpectedDialog}`);
+    if(!await page.$('#hh-view [data-hh-action="remove-spouse"]')) throw new Error('read-only co-client was removed in memory');
+    await assertPinned('co-client removal');
+    await assertBytesUnchanged('co-client removal');
+
+    // New Household is a mutation and must remain inert.
+    const optionCountBefore = await page.$$eval('#hh-switch option', els => els.length);
+    await page.evaluate(() => document.querySelector('#hh-new')?.dispatchEvent(new MouseEvent('click', { bubbles:true })));
+    await sleep(250);
+    const optionCountAfter = await page.$$eval('#hh-switch option', els => els.length);
+    if(optionCountAfter !== optionCountBefore) throw new Error('read-only New Household changed the in-memory household list');
+    await assertPinned('new household');
+    await assertBytesUnchanged('new household');
+
+    // Scenarios: every mutation control is disabled; forced events cannot add,
+    // open solver/rename/delete UI, or alter a lever or scenario bytes.
+    await stableClick('button[data-page="scenarios"]');
+    await sleep(900);
+    await stableClick('#scn-seg-compare');
+    await sleep(300);
+    const scenarioBefore = await page.evaluate(() => ({
+      names:[...document.querySelectorAll('#scn-view .scol__name')].map(el => el.textContent.trim()),
+      addDisabled:document.querySelector('#scn-add')?.disabled,
+      solveDisabled:document.querySelector('#scn-solve')?.disabled,
+      menuCount:document.querySelectorAll('#scn-view .scol__menu').length,
+      menuDisabled:[...document.querySelectorAll('#scn-view .scol__menu')].every(el => el.disabled),
+      stepCount:document.querySelectorAll('#scn-view .cmp-step-btn').length,
+      stepsDisabled:[...document.querySelectorAll('#scn-view .cmp-step-btn')].every(el => el.disabled),
+      inputCount:document.querySelectorAll('#scn-view .cmp-lev-in, #scn-view .cmp-goal-in').length,
+      inputsDisabled:[...document.querySelectorAll('#scn-view .cmp-lev-in, #scn-view .cmp-goal-in')].every(el => el.disabled),
+      firstLever:document.querySelector('#scn-view .cmp-lev-in')?.value || '',
+    }));
+    if(!scenarioBefore.names.length || !scenarioBefore.addDisabled || !scenarioBefore.solveDisabled ||
+       !scenarioBefore.menuCount || !scenarioBefore.menuDisabled || !scenarioBefore.stepCount ||
+       !scenarioBefore.stepsDisabled || !scenarioBefore.inputCount || !scenarioBefore.inputsDisabled){
+      throw new Error(`read-only scenario mutation controls are not disabled: ${JSON.stringify(scenarioBefore)}`);
+    }
+    await page.evaluate(() => {
+      document.querySelector('#scn-add')?.dispatchEvent(new MouseEvent('click', { bubbles:true }));
+      document.querySelector('#scn-solve')?.dispatchEvent(new MouseEvent('click', { bubbles:true }));
+      document.querySelector('#scn-view .scol__menu')?.dispatchEvent(new MouseEvent('click', { bubbles:true }));
+      document.querySelector('#scn-view .cmp-step-btn')?.dispatchEvent(new MouseEvent('click', { bubbles:true }));
+      document.querySelectorAll('#scn-reset, [data-scn-reset], [data-action="reset-scenarios"]')
+        .forEach(el => el.dispatchEvent(new MouseEvent('click', { bubbles:true })));
+      const input = document.querySelector('#scn-view .cmp-lev-in');
+      if(input){ input.value = '999999'; input.dispatchEvent(new Event('change', { bubbles:true })); }
+    });
+    await sleep(400);
+    // The direct value assignment above can change a disabled DOM input even
+    // when the application correctly rejects the event. Re-render from model
+    // state before asserting that no in-memory scenario value changed.
+    await stableClick('#scn-seg-focus');
+    await sleep(200);
+    await stableClick('#scn-seg-compare');
+    await sleep(300);
+    const scenarioAfter = await page.evaluate(() => ({
+      names:[...document.querySelectorAll('#scn-view .scol__name')].map(el => el.textContent.trim()),
+      solver:!!document.querySelector('#solver-form, #solve-panel .solve-searching'),
+      menu:!!document.querySelector('#scn-view .scol__pop, #scn-view .scol__rename'),
+      firstLever:document.querySelector('#scn-view .cmp-lev-in')?.value || '',
+      enabledReset:[...document.querySelectorAll('#scn-reset, [data-scn-reset], [data-action="reset-scenarios"]')].some(el => !el.disabled),
+    }));
+    if(JSON.stringify(scenarioAfter.names) !== JSON.stringify(scenarioBefore.names) || scenarioAfter.solver || scenarioAfter.menu || scenarioAfter.enabledReset){
+      throw new Error(`read-only scenario add/solve/delete/rename/reset changed immediate state: ${JSON.stringify({ scenarioBefore, scenarioAfter })}`);
+    }
+    if(scenarioAfter.firstLever !== scenarioBefore.firstLever){
+      throw new Error(`read-only scenario lever changed immediate UI state (${scenarioBefore.firstLever} -> ${scenarioAfter.firstLever})`);
+    }
+    await assertPinned('scenario mutations');
+    await assertBytesUnchanged('scenario mutations');
+
+    // Switching is navigation in read-only mode. It must update the transient
+    // household while leaving the durable DB, active pointer, and all scenario
+    // records byte-for-byte unchanged.
+    await stableClick('.htab[data-page="household"]'); await sleep(250);
+    const switchState = await page.evaluate(() => ({
+      disabled:document.querySelector('#hh-switch')?.disabled,
+      values:[...document.querySelectorAll('#hh-switch option')].map(el => el.value),
+    }));
+    if(switchState.disabled || !switchState.values.includes('other')) throw new Error(`read-only household switch is unavailable: ${JSON.stringify(switchState)}`);
+    await page.evaluate(() => {
+      const sel = document.querySelector('#hh-switch');
+      sel.value = 'other';
+      sel.dispatchEvent(new Event('change', { bubbles:true }));
+    });
+    await sleep(600);
+    const otherState = await page.evaluate(() => ({
+      selected:document.querySelector('#hh-switch')?.value || '',
+      rail:document.querySelector('#hh-rail-name')?.textContent.trim() || '',
+    }));
+    if(otherState.selected !== 'other' || !/Read Only Other/.test(otherState.rail)){
+      throw new Error(`read-only switch did not navigate the transient household: ${JSON.stringify(otherState)}`);
+    }
+    await assertPinned('switch to other');
+    await assertBytesUnchanged('switch to other');
+
+    await goStep(1);
+    const addSpouse = await page.$('#hh-view [data-hh-action="add-spouse"]');
+    if(!addSpouse || !await addSpouse.evaluate(el => el.disabled)) throw new Error('read-only Add Co-Client control must exist and be disabled');
+    await addSpouse.evaluate(el => el.dispatchEvent(new MouseEvent('click', { bubbles:true })));
+    await sleep(200);
+    if(await page.$('#hh-view [data-hh-action="remove-spouse"]')) throw new Error('read-only Add Co-Client changed immediate household state');
+    await assertPinned('co-client add');
+    await assertBytesUnchanged('co-client add');
+
+    await page.evaluate(() => {
+      const sel = document.querySelector('#hh-switch');
+      sel.value = 'demo';
+      sel.dispatchEvent(new Event('change', { bubbles:true }));
+    });
+    await sleep(600);
+    await assertPinned('switch back to demo');
+    await assertBytesUnchanged('switch back to demo');
+
+    await stableReload({ waitUntil:'networkidle2', timeout:20000 });
+    await sleep(1000);
+    await assertPinned('read-only reload');
+    await assertBytesUnchanged('read-only reload');
+  });
+
   if(errs.length){
     console.error('PAGE/CONSOLE ERRORS:');
     errs.forEach(e => console.error('  ' + e));
+    throw new Error(`${errs.length} page/console error(s) — verify must fail on application errors`);
   }
 
   await browser.close();

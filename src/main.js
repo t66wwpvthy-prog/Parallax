@@ -9,6 +9,20 @@ import { escHtml } from '../ui/dom.js';
 import { CHART_LAYOUT } from '../ui/chartLayout.js';
 import { GOAL_AREAS, GOAL_AREA_LBL, GOAL_ICONS_SVG, GOAL_COLOR_MAP } from '../ui/goalPalette.js';
 import { createDemoHousehold, createBlankHousehold } from '../ui/householdFactories.js';
+import { getWizardAccountTypes, resolveTypeFromLabel } from './household/accountTypes.js';
+import { createAccount, hasSpouseOwnedAccounts } from './household/createAccount.js';
+import { createBlankTaxProfiles, taxProfileHasConfirmedFacts } from './household/factEnvelope.js';
+import { mergeNonAccountDefaults } from './household/migrateAccounts.js';
+import {
+  ACTIVE_KEY,
+  HHDB_KEY,
+  applyPreparedReadOnlyFallback,
+  commitPreparedHouseholdStore,
+  getBlockedMessage,
+  getReadOnlyMessage,
+  prepareHouseholdStore,
+  readHouseholdStore,
+} from './household/persistence.js';
 import { droppedGoals, goalAreaAges, renderGoalsPage, syncGoalSelection } from '../ui/goals.js';
 import { pathModeLabel, pathOutcomeText, drawSeqChart, renderPrints, normalizePlaybackStrategy, renderPlayback, syncPathControls, updatePathReplayMode } from '../ui/sequencing.js';
 import { buildPathRows, buildCashSummary, renderCashflow } from '../ui/cashflow.js';
@@ -58,53 +72,109 @@ function hydratePlan(src){
    real backend seam replaces these later. Households are stored by id under
    HHDB_KEY; ACTIVE_KEY names the one currently loaded. Scenarios are scoped
    per household (scenKey) so demo and custom scenario sets never collide. */
-const HHDB_KEY   = 'parallax.households.v1';
-const ACTIVE_KEY = 'parallax.activeHouseholdId';
 let householdsDb = {};
 let activeHouseholdId = null;
+let accountMigrationState = { blocked: false, readOnly: false, message: null, issuesByHousehold: {} };
+let recoveryStatusPinned = false;
 
-function loadHouseholdsDb(){
-  try{
-    const o = JSON.parse(localStorage.getItem(HHDB_KEY));
-    if(o && typeof o === 'object' && !Array.isArray(o)) return o;
-  }catch(e){/* corrupt/blocked → caller reseeds demo */}
-  return null;
+const householdStorage = {
+  getItem(key){ return localStorage.getItem(key); },
+  setItem(key, value){ localStorage.setItem(key, value); },
+};
+
+function isHouseholdStorageReadOnly(){
+  return accountMigrationState.readOnly === true;
 }
-function persistHouseholdsDb(){ try{ localStorage.setItem(HHDB_KEY, JSON.stringify(householdsDb)); return true; }catch(e){ return false; } }
-function persistActiveId(){ try{ localStorage.setItem(ACTIVE_KEY, activeHouseholdId); }catch(e){} }
-// Snapshot the live plan back into its household record, then persist the store.
+
+function isHouseholdStorageBlocked(){
+  return accountMigrationState.blocked === true;
+}
+
+function canRunEngine(){
+  return !isHouseholdStorageBlocked();
+}
+
+function syncRecoveryStatus(message){
+  recoveryStatusPinned = true;
+  accountMigrationState.message = message;
+  const el = $('#status');
+  if(el && message != null) el.textContent = message;
+  syncHeaderCluster();
+}
+
+function guardPlanMutation(){
+  if(isHouseholdStorageBlocked()){
+    syncRecoveryStatus(accountMigrationState.message || getBlockedMessage());
+    renderBlockedRecoverySurfaces();
+    return false;
+  }
+  if(isHouseholdStorageReadOnly()){
+    syncRecoveryStatus(accountMigrationState.message || getReadOnlyMessage());
+    syncRecoveryControls();
+    return false;
+  }
+  return true;
+}
+
+function recoveryPanelHtml(){
+  const message = accountMigrationState.message || getBlockedMessage();
+  return `<div class="scn-empty" role="status">${escHtml(message)}</div>`;
+}
+
+function renderBlockedRecoverySurfaces(){
+  if(!isHouseholdStorageBlocked()) return;
+  const html = recoveryPanelHtml();
+  ['#hh-view','#np-content','#scn-view','#seq-prints'].forEach(sel => { const el=$(sel); if(el) el.innerHTML=html; });
+  ['#hh-wiz-footer','#solve-panel','#seq-chips','#playback-panel'].forEach(sel => { const el=$(sel); if(el) el.innerHTML=''; });
+  const svg=$('#seq-svg'); if(svg) svg.innerHTML='';
+  const seqSel=$('#seq-select'); if(seqSel){ seqSel.innerHTML=''; seqSel.disabled=true; }
+  const seqSub=$('#seq-sub'); if(seqSub) seqSub.textContent='Household storage recovery required';
+  const scnSub=$('#scn-subtitle'); if(scnSub) scnSub.textContent='Household storage recovery required';
+  const rail=$('#hh-rail-name'); if(rail) rail.textContent='Household unavailable';
+  syncRecoveryControls();
+}
+
+function syncRecoveryControls(){
+  const locked = isHouseholdStorageBlocked() || isHouseholdStorageReadOnly();
+  if(!locked) return;
+  const selectors = [
+    '#save-btn','#hh-new','#scn-solve','#hh-view input','#hh-view select','#hh-view textarea','#hh-view .row-x','#hh-view [data-add]',
+    '#hh-view [data-hh-action="add-spouse"]','#hh-view [data-hh-action="remove-spouse"]','#hh-view [data-hh-action="save-account"]',
+    '#hh-view [data-hh-action="open-account-form"]','#hh-view [data-hh-action="open-add"]','#hh-view [data-hh-action="commit-add"]','#hh-view [data-hh-action="add-home"]','#hh-view [data-hh-action="add-mortgage"]',
+    '#hh-view [data-hh-action="add-pension-age"]','#np-content input','#np-content select','#np-content textarea','#np-content button',
+    '#np-content .row-x','#np-content [data-add]','#np-content [data-act]','#scn-add','#scn-view [data-lever-key]','#scn-view .cmp-lev-in',
+    '#scn-view .cmp-goal-in','#scn-view .scol__menu','#solve-panel .solve-load','#solve-panel .cc-load'
+  ];
+  if(isHouseholdStorageBlocked()) selectors.push('#run-btn','#hh-menu-btn','#hh-load-demo','#hh-switch','#path-mode','#seq-select','#seq-chips button');
+  if(isHouseholdStorageReadOnly() && !householdsDb.demo) selectors.push('#hh-load-demo');
+  document.querySelectorAll(selectors.join(',')).forEach(el => {
+    if('disabled' in el) el.disabled=true;
+    el.setAttribute('aria-disabled','true');
+  });
+}
+
+function persistHouseholdsDb(){
+  if(!guardPlanMutation()) return false;
+  try{ localStorage.setItem(HHDB_KEY, JSON.stringify(householdsDb)); return true; }catch(e){ return false; }
+}
+function persistActiveId(){
+  if(!guardPlanMutation()) return;
+  try{ localStorage.setItem(ACTIVE_KEY, activeHouseholdId); }catch(e){}
+}
 function saveActiveHousehold(){
+  if(!guardPlanMutation()) return false;
   if(activeHouseholdId && plan && plan.meta){
     householdsDb[activeHouseholdId] = JSON.parse(JSON.stringify(plan));
     return persistHouseholdsDb();
   }
   return false;
 }
-function mergeMissingSchema(saved, defaults){
-  const merged = JSON.parse(JSON.stringify(saved));
-  const fill = (target, source) => {
-    Object.entries(source || {}).forEach(([key, value]) => {
-      if(!(key in target)){
-        target[key] = JSON.parse(JSON.stringify(value));
-      } else if(
-        target[key] && value
-        && typeof target[key] === 'object' && !Array.isArray(target[key])
-        && typeof value === 'object' && !Array.isArray(value)
-      ){
-        fill(target[key], value);
-      }
-    });
-  };
-  fill(merged, defaults);
-  return merged;
-}
-
 function mergeHouseholdSchema(record, id){
   const year = new Date().getFullYear();
   const defaults = id === 'demo'
     ? createDemoHousehold(PRISTINE_PLAN, year)
     : createBlankHousehold(PRISTINE_PLAN, id, year);
-  return mergeMissingSchema(record, defaults);
+  return mergeNonAccountDefaults(record, defaults);
 }
 
 function ensureDemoRecord(){
@@ -114,34 +184,63 @@ function ensureDemoRecord(){
   }
   return householdsDb.demo;
 }
-// First-load seed + reload hydrate + corruption recovery, all in one pass.
+
 function bootstrapHouseholds(){
-  let db = loadHouseholdsDb();
-  let id = null; try{ id = localStorage.getItem(ACTIVE_KEY); }catch(e){}
-  // No store yet → create the single blank demo slot.
-  if(!db || !Object.keys(db).length){
-    const demo = createDemoHousehold(PRISTINE_PLAN, new Date().getFullYear());
-    db = { [demo.meta.householdId]: demo };
-    id = demo.meta.householdId;
-  } else {
-    db = Object.fromEntries(Object.entries(db)
-      .filter(([, record]) => record && typeof record === 'object' && !Array.isArray(record))
-      .map(([recordId, record]) => [recordId, mergeHouseholdSchema(record, recordId)]));
+  accountMigrationState = { blocked: false, readOnly: false, message: null, issuesByHousehold: {} };
+  recoveryStatusPinned = false;
+  const read = readHouseholdStore(householdStorage);
+  let prepared = prepareHouseholdStore(read, {
+    createDemoHousehold,
+    createBlankHousehold,
+    pristinePlan: PRISTINE_PLAN,
+    currentYear: () => new Date().getFullYear(),
+  });
+
+  if(!prepared.ok){
+    accountMigrationState = {
+      blocked: true,
+      readOnly: false,
+      message: prepared.message || getBlockedMessage(),
+      issuesByHousehold: {},
+    };
+    householdsDb = {};
+    activeHouseholdId = null;
+    syncRecoveryStatus(accountMigrationState.message);
+    return;
   }
-  // Missing/dangling active pointer → fall back to any household (or a new demo).
-  if(!id || !db[id]){
-    id = Object.keys(db)[0] || null;
-    if(!id){
-      const demo = createDemoHousehold(PRISTINE_PLAN, new Date().getFullYear());
-      db[demo.meta.householdId] = demo;
-      id = demo.meta.householdId;
+
+  const commit = commitPreparedHouseholdStore(householdStorage, prepared);
+  if(!commit.ok){
+    if(commit.readOnly){
+      prepared = applyPreparedReadOnlyFallback(prepared);
+      accountMigrationState = {
+        blocked: false,
+        readOnly: true,
+        message: getReadOnlyMessage(),
+        issuesByHousehold: prepared.issuesByHousehold || {},
+      };
+    } else {
+      accountMigrationState = {
+        blocked: true,
+        readOnly: false,
+        message: getBlockedMessage(),
+        issuesByHousehold: {},
+      };
+      syncRecoveryStatus(accountMigrationState.message);
+      return;
     }
+  } else {
+    accountMigrationState.issuesByHousehold = prepared.issuesByHousehold || {};
   }
-  householdsDb = db;
-  activeHouseholdId = id;
-  persistHouseholdsDb();
-  persistActiveId();
-  hydratePlan(householdsDb[activeHouseholdId]);
+
+  householdsDb = prepared.db;
+  activeHouseholdId = prepared.activeHouseholdId;
+  if(prepared.hydrate){
+    hydratePlan(householdsDb[activeHouseholdId]);
+  }
+  if(accountMigrationState.readOnly){
+    syncRecoveryStatus(getReadOnlyMessage());
+  }
 }
 
 // Scenario accent palette (SCEN_PALETTE / colorFor / BASE_ACCENT / scenAccent)
@@ -190,6 +289,7 @@ function syncPension(L){
 const SCEN_PREFIX='parallax.scenarios.';
 const scenKey=id=>SCEN_PREFIX + (id || activeHouseholdId || 'demo') + '.v1';
 function saveScenarios(){
+  if(!guardPlanMutation()) return;
   try{
     const slim=scenarios.map(s=>({name:s.name, base:!!s.base, lev:s.lev}));
     localStorage.setItem(scenKey(), JSON.stringify(slim));
@@ -218,6 +318,7 @@ function loadScenarios(id){
 }
 // Wipe the ACTIVE household's saved scenarios and return to its first-run set.
 function resetScenarios(){
+  if(!guardPlanMutation()) return;
   try{ localStorage.removeItem(scenKey()); }catch(e){}
   uiState.scenarios=demoScenarios(); uiState.baseSnapshot=defaultLevers();
   uiState.plansDirty=true; runAll();
@@ -270,6 +371,7 @@ function syncHeaderCluster(){
   if(cluster) cluster.dataset.state = state;
 }
 function syncHeaderStatus(message){
+  if(recoveryStatusPinned) return;
   const el = $('#status');
   if(!el) return;
   if(message != null) el.textContent = message;
@@ -286,6 +388,7 @@ function syncHeaderTabs(activeTab){
 // Add a new scenario (clones the current baseline's levers so it starts as a
 // neutral copy the advisor then adjusts). Capped at MAX_SCENARIOS.
 function addScenario(){
+  if(!guardPlanMutation()) return;
   if(scenarios.length>=MAX_SCENARIOS) return;
   const baseLev=scenarios.find(s=>s.base)?.lev || defaultLevers();
   const n=scenarios.filter(s=>!s.base).length;
@@ -295,6 +398,7 @@ function addScenario(){
 }
 // Remove a non-baseline scenario by index.
 function removeScenario(ci){
+  if(!guardPlanMutation()) return;
   if(ci<=0 || ci>=scenarios.length || scenarios[ci].base) return;
   uiState.removeScenarioAt(ci);
   saveScenarios(); uiState.plansDirty=true; runAll();
@@ -305,12 +409,14 @@ function removeScenario(ci){
 // Reuses sharedPaths (the cached return-path bundle) so every trial sees the
 // same markets — apples-to-apples, deterministic with our seeded RNG.
 function trySuccess(L){
+  if(!canRunEngine() || isHouseholdStorageReadOnly()) return NaN;
   const p = planForScenario(L);
   const ov = leversToOverrides(L);
   return runSimulation(p, ov, sharedPaths).successRate;
 }
 // Probability (0–100) of ending with at least `goal` dollars — the legacy score.
 function tryLegacyProb(L, goal){
+  if(!canRunEngine() || isHouseholdStorageReadOnly()) return NaN;
   const p = planForScenario(L);
   const ov = leversToOverrides(L);
   const res = runSimulation(p, ov, sharedPaths);
@@ -449,12 +555,18 @@ const GOALS = {
 function renderSolvePanel(){
   const el = $('#solve-panel');
   if(!el) return;
+  if(isHouseholdStorageBlocked()){
+    el.innerHTML = '';
+    syncRecoveryControls();
+    return;
+  }
   el.innerHTML = solvePanelHTML({
     solverFormOpen, scenarios, defaultLevers, goals:GOALS,
     currentAge:plan.household.primary.currentAge,
     solverResults, solverSearching, comboOpen, comboSearching, comboResults,
     levCfg:LEVCFG, comboShort:COMBO_SHORT, escHtml,
   });
+  syncRecoveryControls();
 }
 
 // Solve toward a chosen GOAL. Build soloBase = today's plan + the wish applied,
@@ -463,6 +575,7 @@ function renderSolvePanel(){
 // holding all else at soloBase. Neutral: no weighting, no bundling. The advisor
 // reads each lever's required move and surmises any blend.
 async function runSolve(goalType, params){
+  if(!guardPlanMutation()) return;
   if(solving) return;
   uiState.solving = true; uiState.solverFormOpen = false; uiState.solverSearching = true; uiState.solverResults = null;
   renderSolvePanel();
@@ -536,6 +649,7 @@ function makeCombo(soloBase, moves, pct, basePct, meta){
 }
 
 async function runComboSolve(){
+  if(!guardPlanMutation()) return;
   if(!solverResults || comboSearching) return;
   uiState.comboSearching = true; uiState.comboResults = null; renderSolvePanel();
   await new Promise(r=>setTimeout(r,0));     // let the spinner paint
@@ -653,7 +767,11 @@ function demoScenarios(){
 // active household). First load seeds a blank Demo Household; reloads hydrate whatever
 // household was active; a corrupt store safely recreates the demo.
 bootstrapHouseholds();
-uiState.scenarios = loadScenarios() || demoScenarios();
+if(isHouseholdStorageBlocked()){
+  uiState.scenarios = [];
+} else {
+  uiState.scenarios = loadScenarios() || demoScenarios();
+}
 // Solver UI state. solverFormOpen toggles the inline "Solve…" form in the band
 // gutter; solving guards against re-entry while a solve is in flight.
 
@@ -741,7 +859,7 @@ function planForScenario(L){
    scenario then carries its own adjustment. Editing a base input re-seeds
    every column from the NEW base while PRESERVING each scenario's delta (its
    decision) — so "draw from base, then adjust" holds automatically. */
-if(!plan.income.socialSecurity.spouse) plan.income.socialSecurity.spouse={pia:0,claimAge:67};
+if(!plan.income.socialSecurity.spouse && guardPlanMutation()) plan.income.socialSecurity.spouse={pia:0,claimAge:67};
 
 const RISK_NAMES={1:'Conservative',2:'Mod-Cons',3:'Moderate',4:'Mod-Agg',5:'Aggressive'};
 
@@ -859,6 +977,7 @@ uiState.baseSnapshot=defaultLevers();   // base lever values; used to preserve d
 // Re-seed scenarios from the current base, keeping each scenario's adjustment.
 // Every plan edit funnels through here — the one hook that arms SAVE.
 function reseedScenarios({ markDirty = true } = {}){
+  if(!guardPlanMutation()) return;
   if(markDirty){ planSaveDirty=true; saveFailed=false; syncSaveBtn(); }
   const nb=defaultLevers();
   const LINKED=['retireAge','ssAge','spend','savings','pensionAge'];   // base-linked levers
@@ -890,16 +1009,10 @@ function pensionFields(){
    eye lands in the same place. Useful information, not descriptions. */
 // Typed investment accounts → tax sleeve. Workplace + IRA plans are pre-tax;
 // the bucket is what the engine consumes (extraAccounts fold into the totals).
-const ACCT_TYPES = [
-  {label:'Traditional IRA', bucket:'traditional'}, {label:'401(k)', bucket:'traditional'},
-  {label:'403(b)', bucket:'traditional'}, {label:'457', bucket:'traditional'},
-  {label:'401(a)', bucket:'traditional'}, {label:'SEP IRA', bucket:'traditional'},
-  {label:'SIMPLE IRA', bucket:'traditional'}, {label:'Solo 401(k)', bucket:'traditional'},
-  {label:'Roth IRA', bucket:'roth'}, {label:'Brokerage', bucket:'taxable'},
-];
 let acctSel = null;   // type currently armed in the add picker
 // Post-edit refresh (mirrors the balance-sheet field commit, minus setPath).
 function commitPlanEdit(){
+  if(!guardPlanMutation()) return;
   reseedScenarios(); uiState.sharedPaths=null; uiState.plansDirty=true; renderInputs();
   syncHeaderStatus('Plan edited · open Scenarios');
 }
@@ -922,38 +1035,7 @@ const HH_OWNERS  = [['client','Client'],['spouse','Co-Client'],['joint','Joint']
 /* Account Type Bank — every addable account type and the engine tax sleeve it
    maps into. The engine consumes ONLY the three buckets (taxable / traditional /
    roth); the type is advisor-facing detail. */
-const HH_WIZARD_ACCOUNT_TYPES = [
-  { label:'Traditional IRA',     bucket:'traditional' },
-  { label:'Roth IRA',            bucket:'roth' },
-  { label:'Brokerage (taxable)', bucket:'taxable' },
-  { label:'401(k)',              bucket:'traditional' },
-  { label:'HSA',                 bucket:'roth' },
-];
-const HH_ACCOUNT_TYPES = [
-  { label:'Checking',            bucket:'taxable' },
-  { label:'Savings',             bucket:'taxable' },
-  { label:'Money Market',        bucket:'taxable' },
-  { label:'CD',                  bucket:'taxable' },
-  { label:'Brokerage (taxable)', bucket:'taxable' },
-  { label:'Joint brokerage',     bucket:'taxable', owner:'joint' },
-  { label:'Trust brokerage',     bucket:'taxable', owner:'trust' },
-  { label:'Traditional IRA',     bucket:'traditional' },
-  { label:'Rollover IRA',        bucket:'traditional' },
-  { label:'Roth IRA',            bucket:'roth' },
-  { label:'401(k)',              bucket:'traditional' },
-  { label:'Roth 401(k)',         bucket:'roth' },
-  { label:'403(b)',              bucket:'traditional' },
-  { label:'457',                 bucket:'traditional' },
-  { label:'SEP IRA',             bucket:'traditional' },
-  { label:'SIMPLE IRA',          bucket:'traditional' },
-  { label:'Solo 401(k)',         bucket:'traditional' },
-  { label:'Qualified Plan',      bucket:'traditional' },
-];
-const hhBucketForType = t => (
-  HH_WIZARD_ACCOUNT_TYPES.find(x => x.label === t) ||
-  HH_ACCOUNT_TYPES.find(x => x.label === t) ||
-  {}
-).bucket || 'taxable';
+const HH_WIZARD_ACCOUNT_TYPES = getWizardAccountTypes();
 const HH_STATES = [
   ['AL','Alabama'],['AK','Alaska'],['AZ','Arizona'],['AR','Arkansas'],['CA','California'],['CO','Colorado'],['CT','Connecticut'],['DE','Delaware'],['FL','Florida'],['GA','Georgia'],
   ['HI','Hawaii'],['ID','Idaho'],['IL','Illinois'],['IN','Indiana'],['IA','Iowa'],['KS','Kansas'],['KY','Kentucky'],['LA','Louisiana'],['ME','Maine'],['MD','Maryland'],
@@ -1014,8 +1096,10 @@ function wizFooter(){ return ensureHouseholdWizard().footer(hhStep); }
      newHousehold()    → creates a blank household, makes it active.
      switchHousehold() → loads another saved household by id. */
 function hhLoadRecord(status){
+  if(isHouseholdStorageBlocked()){ guardPlanMutation(); return; }
+  const readOnly = isHouseholdStorageReadOnly();
   planSaveDirty = false; saveFailed = false; syncSaveBtn();
-  reseedScenarios({ markDirty: false });
+  if(!readOnly) reseedScenarios({ markDirty: false });
   hhStep = hhDefaultStep();
   hhAcctFormOwner = null;
   hhAddingKey = null;
@@ -1026,10 +1110,13 @@ function hhLoadRecord(status){
   updateHouseholdControls();
   renderInputs();
   runAll();
+  syncRecoveryControls();
   if(status) syncHeaderStatus(status);
 }
 // Open the persistent demo slot. Create it blank only when it is missing.
 function loadDemoHousehold(){
+  if(isHouseholdStorageBlocked()){ guardPlanMutation(); return; }
+  if(isHouseholdStorageReadOnly() && !householdsDb.demo){ syncRecoveryControls(); return; }
   ensureDemoRecord();
   if(activeHouseholdId === 'demo'){
     updateHouseholdControls();
@@ -1041,6 +1128,7 @@ function loadDemoHousehold(){
 // Create a brand-new blank household, persist it, and make it active with its
 // own fresh scenario set.
 function newHousehold(){
+  if(!guardPlanMutation()) return;
   saveActiveHousehold();                 // snapshot the outgoing household first
   saveScenarios();                       // …and persist its scoped scenarios
   const blank = createBlankHousehold(PRISTINE_PLAN, newHouseholdId(), new Date().getFullYear());
@@ -1055,14 +1143,18 @@ function newHousehold(){
 // Switch to another saved household by id (persists the outgoing one first, and
 // loads the incoming household's own scoped scenarios).
 function switchHousehold(id){
+  if(isHouseholdStorageBlocked()){ guardPlanMutation(); return; }
   if(!householdsDb[id] || id === activeHouseholdId) return;
-  saveActiveHousehold();
-  saveScenarios();                       // persist the outgoing household's scenarios
+  const readOnly = isHouseholdStorageReadOnly();
+  if(!readOnly){
+    saveActiveHousehold();
+    saveScenarios();                     // persist the outgoing household's scenarios
+  }
   activeHouseholdId = id;
-  persistActiveId();
+  if(!readOnly) persistActiveId();
   hydratePlan(householdsDb[id]);
   uiState.scenarios = loadScenarios(id) || demoScenarios();
-  saveScenarios();
+  if(!readOnly) saveScenarios();
   hhLoadRecord('Loaded ' + ((plan.meta && plan.meta.name) || 'household'));
 }
 // Populate the saved-household switcher.
@@ -1086,6 +1178,10 @@ function updateHouseholdControls(){
    delegate re-renders through here). */
 function syncHousehold(){
   const view = $('#hh-view'); if(!view) return;
+  if(isHouseholdStorageBlocked()){
+    renderBlockedRecoverySurfaces();
+    return;
+  }
   const nm = $('#hh-rail-name');
   if(nm){
     const pn = plan.meta.primaryName||'Client';
@@ -1112,6 +1208,7 @@ function syncHousehold(){
   }
   document.querySelectorAll('.hh-stepper .hh-step__conn').forEach((c,i) =>
     c.classList.toggle('is-done', i < hhStep - 1));
+  syncRecoveryControls();
 }
 /* Stepper + household-menu chrome = the view switch. Bound once at boot. */
 function bindHouseholdRailOnce(){
@@ -1280,7 +1377,7 @@ const ROW_KINDS = {
   goalRec:   { arr:'goals',          mk:()=>({ name:'',  amount:0, startAge:plan.household.primary.retirementAge, endAge:plan.household.primary.planEndAge }) },
   goalOnce:  { arr:'goals',          mk:()=>({ name:'',  amount:0, startAge:70, endAge:70 }) },
   property:  { arr:'properties',     mk:()=>({ name:'',  value:0, purchasePrice:0, mortgage:{ balance:0, rate:0, termYears:0 } }) },
-  account:   { arr:'portfolio.extraAccounts', mk:()=>({ type:'New account', bucket:'taxable', owner:'joint', balance:0 }) },
+  account:   { arr:'portfolio.extraAccounts', mk:()=>createAccount('brokerage_taxable', { owner:'joint', balance:0 }) },
   // Wizard Step 1 children: advisor context, engine-inert (name + birth year).
   child:     { arr:'household.children', mk:()=>({ name:'', birthYear: new Date().getFullYear() - 10 }) },
 };
@@ -1569,6 +1666,7 @@ function renderSnapshot(){
 const GOAL_DROP_KEY='parallax.goals.dropped';
 
 function saveDroppedGoals(set){
+  if(!guardPlanMutation()) return;
   try{ localStorage.setItem(GOAL_DROP_KEY, JSON.stringify({n:(plan.goals||[]).length, dropped:[...set]})); }catch{}
 }
 
@@ -1607,6 +1705,7 @@ function initGoalsPage(){
     np.querySelectorAll('.ga-preset').forEach(x=>x.classList.toggle('sel', x===b));
   });
   const addAreaGoal=()=>{
+    if(!guardPlanMutation()) return;
     const inp=$('#ga-name'), nm=((inp&&inp.value)||'').trim();
     if(!nm){ if(inp) inp.focus(); return; }
     if(!Array.isArray(plan.goals)) plan.goals=[];
@@ -1621,6 +1720,7 @@ function initGoalsPage(){
     if(inp) inp.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); addAreaGoal(); } });
   }
   np.querySelectorAll('[data-drop]').forEach(b=>b.onclick=()=>{
+    if(!guardPlanMutation()) return;
     const i=+b.dataset.drop, set=droppedGoals(plan, GOAL_DROP_KEY);
     if(set.has(i)) set.delete(i); else set.add(i);
     saveDroppedGoals(set);
@@ -1648,6 +1748,7 @@ function goalCostKey(dropped){
   return JSON.stringify([plan.goals, [...dropped].sort((a,b)=>a-b), pathReplay.seed, plan.simulation.iterations]);
 }
 function scheduleGoalCosts(){
+  if(!canRunEngine()){ renderBlockedRecoverySurfaces(); return; }
   if(!$('#gl-runs')) return;                       // not on the goals page
   const dropped=droppedGoals(plan, GOAL_DROP_KEY);
   const key=goalCostKey(dropped);
@@ -1723,13 +1824,19 @@ function paintGoalCosts(c){
 
 /* ── PROD seam — every production symbol the view touches ─────── */
 const GL_PROD = {
-  goals:     () => { if (!Array.isArray(plan.goals)) plan.goals = []; return plan.goals; },
+  goals:     () => {
+    if(Array.isArray(plan.goals)) return plan.goals;
+    if(!guardPlanMutation()) return [];
+    plan.goals = [];
+    return plan.goals;
+  },
   household: () => plan.household,
   commit:    () => commitPlanEdit(),            // reseed + re-render + status
   // Write-through for typing: everything commitPlanEdit does EXCEPT the
   // re-render (renderInputs) — the focused field must survive the keystroke.
   arm: () => {
-  reseedScenarios(); uiState.sharedPaths = null; uiState.plansDirty = true;
+    if(!guardPlanMutation()) return;
+    reseedScenarios(); uiState.sharedPaths = null; uiState.plansDirty = true;
     syncHeaderStatus('Plan edited \u00b7 open Scenarios');
   },
   esc:     (s) => escHtml(s),
@@ -1929,6 +2036,7 @@ function initGoalsLedger() {
 
   // Clicks: adds, steppers, cadence, chips, one-time age, delete.
   wrap.addEventListener('click', e => {
+    if(!guardPlanMutation()) return;
     const qa = e.target.closest('.glx-qa');
     if (qa) {
       const q = glQuickAdds()[+qa.dataset.q];
@@ -1978,6 +2086,7 @@ function initGoalsLedger() {
   // Typing writes through WITHOUT a re-render — focus never leaves the field.
   // Amount keystrokes reformat commas in place and repaint the footer sums.
   wrap.addEventListener('input', e => {
+    if(!guardPlanMutation()){ renderInputs(); return; }
     const t = e.target, i = +t.dataset.i, g = goals[i];
     if (!g) return;
     if (t.classList.contains('glx-name')) {
@@ -1994,6 +2103,7 @@ function initGoalsLedger() {
   // Exact age boxes commit on change (blur/Enter): clamp to the resolved
   // span and keep start ≤ end, dragging the other bound along.
   wrap.addEventListener('change', e => {
+    if(!guardPlanMutation()){ renderInputs(); return; }
     const t = e.target;
     if (!t.classList.contains('glx-ain')) return;
     const g = goals[+t.dataset.i];
@@ -2022,6 +2132,10 @@ function initGoalsLedger() {
 function renderInputs(){
   // sub-nav active state
   $$('#np-subnav .stab').forEach(b => b.classList.toggle('on', b.dataset.sub===activeSub));
+  if(isHouseholdStorageBlocked()){
+    renderBlockedRecoverySurfaces();
+    return;
+  }
   const layout = SUB_PAGES[activeSub].layout;
   const np = $('#np-content');
   // Snapshot is its own diagnostic page again — embedding it on the Net Worth
@@ -2031,6 +2145,7 @@ function renderInputs(){
              :                        renderHybrid(activeSub);
   np.innerHTML = html;
   if(layout==='goals') initGoalsLedger();
+  syncRecoveryControls();
 }
 // ── Net Worth input bindings — delegated on the stable #np-content ────────────
 // Input listeners are set once here so re-renders via renderInputs() (which
@@ -2042,6 +2157,7 @@ $('#np-content').addEventListener('click', e => {
   // Row delete (×)
   const rx = e.target.closest('.row-x');
   if(rx){
+    if(!guardPlanMutation()) return;
     const path = rx.dataset.rmpath;
     const ks = path.split('.'); const last = ks.pop();
     let t = plan; for(const k of ks){ if(t==null) return; t=t[k]; }
@@ -2057,6 +2173,7 @@ $('#np-content').addEventListener('click', e => {
   // "+ add …" — push a default row onto the backing array, then re-render.
   const adder = e.target.closest('[data-add]');
   if(adder){
+    if(!guardPlanMutation()) return;
     const kind = adder.dataset.add;
     const k = ROW_KINDS[kind];
     if(k){
@@ -2070,13 +2187,20 @@ $('#np-content').addEventListener('click', e => {
   // Account type chip
   const chip = e.target.closest('.acct-chip');
   if(chip){
-    acctSel = { label: chip.dataset.label, bucket: chip.dataset.bucket };
+    const resolved = resolveTypeFromLabel(chip.dataset.label);
+    if(!resolved.known || !resolved.typeId) return;
+    acctSel = {
+      label: resolved.label,
+      bucket: resolved.engineBucket,
+      typeId: resolved.typeId,
+    };
     $$('#np-content .acct-chip').forEach(c => c.classList.toggle('sel', c === chip));
     const btn = $('#np-content .acct-add');
     if(btn){ btn.disabled = false; btn.textContent = 'Add ' + acctSel.label; }
     return;
   }
   if(e.target.closest('.acct-add')){
+    if(!guardPlanMutation()) return;
     if(!acctSel) return;
     const amtEl = $('#np-content .acct-amt');
     const bal = parseFloat(String(amtEl ? amtEl.value : '').replace(/[^0-9.]/g, ''));
@@ -2085,13 +2209,17 @@ $('#np-content').addEventListener('click', e => {
       return;
     }
     if(!plan.portfolio.extraAccounts) plan.portfolio.extraAccounts = [];
-    plan.portfolio.extraAccounts.push({ type: acctSel.label, bucket: acctSel.bucket, balance: Math.round(bal) });
+    plan.portfolio.extraAccounts.push(createAccount(acctSel.typeId, {
+      owner: 'joint',
+      balance: Math.round(bal),
+    }));
     acctSel = null;
     commitPlanEdit();
     return;
   }
   const rm = e.target.closest('.acct-x');
   if(rm){
+    if(!guardPlanMutation()) return;
     const i = +rm.dataset.acctidx;
     if(plan.portfolio.extraAccounts) plan.portfolio.extraAccounts.splice(i, 1);
     commitPlanEdit();
@@ -2105,6 +2233,7 @@ $('#np-content').addEventListener('change', e => {
   // Field edits (data-path bindings)
   const path = e.target.dataset.path, type = e.target.dataset.type;
   if(path){
+    if(!guardPlanMutation()){ renderInputs(); return; }
     const raw = e.target.value;
     if(type==='text' || type==='strategy'){            // free-text row labels or select values
       setPath(plan, path, raw);
@@ -2145,6 +2274,7 @@ $('#np-content').addEventListener('change', e => {
   // Extra-account balance edit
   const bal = e.target.closest('.acct-bal');
   if(!bal) return;
+  if(!guardPlanMutation()){ renderInputs(); return; }
   const i = +bal.dataset.acctidx;
   const v = Math.max(0, Math.round(parseFloat(String(bal.value).replace(/[^0-9.]/g, '')) || 0));
   if(plan.portfolio.extraAccounts && plan.portfolio.extraAccounts[i]){
@@ -2160,6 +2290,7 @@ $('#np-content').addEventListener('change', e => {
    binding so the Goals/#np-content flow is untouched. `owner`/`bucket` are string
    selects (account labels); everything else matches the shared field types. */
 function hhCommit(){
+  if(!guardPlanMutation()) return;
   reseedScenarios(); uiState.sharedPaths=null; uiState.plansDirty=true;
   syncHousehold();
   syncHeaderStatus('Plan edited · open Scenarios');
@@ -2170,27 +2301,18 @@ $('#hh-view').addEventListener('input', e => {
 $('#hh-view').addEventListener('change', e => {
   // Add-account form controls carry no data-path (transient until Save).
   if(!e.target.dataset.path && e.target.classList && e.target.classList.contains('hh-form-type')){
-    // Choosing a type prefills the form's ownership from the bank's default
-    // (Joint brokerage → Joint, Trust brokerage → Trust) without a re-render.
-    const t = HH_ACCOUNT_TYPES[+e.target.value];
-    const ownerSel = document.querySelector('#hh-acct-form .hh-form-owner');
-    if(t && t.owner && ownerSel) ownerSel.value = t.owner;
     return;
   }
   const path = e.target.dataset.path, type = e.target.dataset.type;
   if(!path) return;
+  if(!guardPlanMutation()){ syncHousehold(); return; }
   const raw = e.target.value;
   if(type==='text' || type==='strategy' || type==='owner' || type==='bucket'){   // string writes
     setPath(plan, path, raw);
     hhCommit();
     return;
   }
-  // Changing an account's TYPE re-derives its tax bucket from the bank (the
-  // bucket is what the engine folds into taxable/traditional/roth).
   if(type==='acctType'){
-    setPath(plan, path, raw);
-    setPath(plan, path.replace(/\.type$/, '.bucket'), hhBucketForType(raw));
-    hhCommit();
     return;
   }
   let v;
@@ -2241,6 +2363,7 @@ document.querySelector('.page[data-page="household"] .hh-wizard')?.addEventListe
   // Remove an account / asset / liability / income row.
   const rx = e.target.closest('.row-x');
   if(rx){
+    if(!guardPlanMutation()) return;
     const rmpath = rx.dataset.rmpath;
     // Special case: pension benefitByAge key deletion (e.g. "income.pension.benefitByAge.65")
     if(/^income\.pension\.benefitByAge\./.test(rmpath)){
@@ -2258,6 +2381,7 @@ document.querySelector('.page[data-page="household"] .hh-wizard')?.addEventListe
   // "+ Account / Real asset / Liability / Income source" — push a default row.
   const adder = e.target.closest('[data-add]');
   if(adder){
+    if(!guardPlanMutation()) return;
     const k = ROW_KINDS[adder.dataset.add];
     if(k){
       const arr = getPath(plan, k.arr);
@@ -2270,6 +2394,8 @@ document.querySelector('.page[data-page="household"] .hh-wizard')?.addEventListe
   const act = e.target.closest('[data-hh-action]');
   if(act){
     const action = act.dataset.hhAction;
+    const lockedAction = ['add-spouse','remove-spouse','open-account-form','save-account','open-add','commit-add','add-home','add-mortgage','add-pension-age'].includes(action);
+    if(lockedAction && !guardPlanMutation()) return;
     if(action === 'add-spouse'){
       plan.household.spouse = { currentAge: 55, retirementAge: 62, birthYear: new Date().getFullYear() - 55 };
       plan.meta.spouseName  = plan.meta.spouseName || '';
@@ -2277,10 +2403,20 @@ document.querySelector('.page[data-page="household"] .hh-wizard')?.addEventListe
       plan.meta.filingStatus = 'marriedFilingJointly';
       hhCommit();
     } else if(action === 'remove-spouse'){
-      if(!confirm('Remove co-client from this household?')) return;
+      if(hasSpouseOwnedAccounts(plan)){
+        alert('Reassign or remove Co-Client accounts before removing the Co-Client.');
+        return;
+      }
+      const spouseFacts = plan.taxProfiles?.spouse;
+      const discardFacts = spouseFacts && taxProfileHasConfirmedFacts(spouseFacts);
+      const prompt = discardFacts
+        ? 'Remove co-client from this household? Confirmed co-client tax facts will be discarded.'
+        : 'Remove co-client from this household?';
+      if(!confirm(prompt)) return;
       plan.household.spouse = null;
       plan.income.socialSecurity.spouse = null;
       plan.meta.filingStatus = 'single';
+      if(plan.taxProfiles) plan.taxProfiles.spouse = createBlankTaxProfiles().spouse;
       hhCommit();
     } else if(action === 'open-account-form'){
       hhAddingKey = null;
@@ -2303,7 +2439,7 @@ document.querySelector('.page[data-page="household"] .hh-wizard')?.addEventListe
       }
       const owner = hhAcctFormOwner || 'client';
       if(!plan.portfolio.extraAccounts) plan.portfolio.extraAccounts = [];
-      plan.portfolio.extraAccounts.push({ type: t.label, bucket: t.bucket, owner, balance: Math.round(bal) });
+      plan.portfolio.extraAccounts.push(createAccount(t.typeId, { owner, balance: Math.round(bal) }));
       hhAcctFormOwner = null;
       hhCommit();
     } else if(action === 'open-add'){
@@ -2447,6 +2583,7 @@ let running=false;
 // markets across runs make any difference a pure decision-effect, and the
 // fixed seed keeps an unchanged plan at an identical % between Runs.
 function ensureSharedPaths(){
+  if(!canRunEngine()) return null;
   const horizon = plan.household.primary.planEndAge - plan.household.primary.currentAge;
   if(!(horizon > 0)) return null;
   const iters = plan.simulation.iterations;
@@ -2514,6 +2651,7 @@ function computeHistoricalStress(s, p, ov){
   return results;
 }
 function runAll(){
+  if(!canRunEngine()) return;
   if(running) return; running=true;
   const btn=$('#run-btn'); btn.disabled=true; syncHeaderStatus('Running…');
   setTimeout(()=>{
@@ -2615,6 +2753,7 @@ $('#solve-panel').addEventListener('submit', e=>{
   const f = e.target.closest('#solver-form');
   if(!f) return;
   e.preventDefault();
+  if(!guardPlanMutation()) return;
   const pct = parseFloat($('#sf-pct')?.value);
   if(!isFinite(pct) || pct<50 || pct>99) return;
   const goalType = $('#sf-goal')?.value || 'confidence';
@@ -2659,6 +2798,7 @@ document.addEventListener('click', e=>{
   }
   const loadBtn = e.target.closest('.solve-load');
   if(loadBtn && solverResults && solverResults.rows){
+    if(!guardPlanMutation()) return;
     if(scenarios.length >= MAX_SCENARIOS) return;
     const idx = +loadBtn.dataset.soloIdx;
     const row = solverResults.rows[idx];
@@ -2676,6 +2816,7 @@ document.addEventListener('click', e=>{
   // Load a COMBO: the held-fixed soloBase with both lever moves applied.
   const cLoadBtn = e.target.closest('.cc-load');
   if(cLoadBtn && comboResults && comboResults.combos){
+    if(!guardPlanMutation()) return;
     if(scenarios.length >= MAX_SCENARIOS) return;
     const c = comboResults.combos[+cLoadBtn.dataset.comboIdx];
     if(!c) return;
@@ -2825,6 +2966,7 @@ const SEQ_YEARS=[
 // engine row tax — no diagnostic comparison columns.
 
 function buildSeqSelect(){
+  if(!canRunEngine()){ renderBlockedRecoverySurfaces(); return; }
   const sel=$('#seq-select'), cur=sel.value;
   sel.innerHTML=scenarios.map(s=>`<option>${escHtml(s.name)}</option>`).join('');
   if(cur && scenarios.some(s=>s.name===cur)) sel.value=cur;
@@ -2837,6 +2979,7 @@ function buildSeqChips(){
   box.innerHTML=SEQ_YEARS.map((m,i)=>
     `<button class="seq-chip${m.on?' on':''}" data-i="${i}"><span class="cdot" style="background:${m.c}"></span>${m.y} · ${m.tag}</button>`).join('');
   box.querySelectorAll('.seq-chip').forEach(btn=>btn.onclick=()=>{
+    if(!canRunEngine()){ renderBlockedRecoverySurfaces(); return; }
     const m=SEQ_YEARS[+btn.dataset.i];
     if(m.on && SEQ_YEARS.filter(x=>x.on).length<=1) return;   // keep at least one line
     m.on=!m.on; buildSeqChips(); runSeq();
@@ -2867,7 +3010,9 @@ function retireNowClone(p, ov, curAge, retAge, accumYears, envelope){
   return rp;
 }
 function runSeq(){
+  if(!canRunEngine()){ renderBlockedRecoverySurfaces(); return; }
   const sel=$('#seq-select'); const s=scenarios.find(x=>x.name===sel.value)||scenarios[0];
+  if(!s) return;
   // Sequence the chosen scenario FAITHFULLY: allocation via the plan clone, every
   // other lever via the same overrides mapping the Scenarios tab uses.
   const p=planForScenario(s.lev);
@@ -2920,6 +3065,7 @@ const PB_STRATS=[['taxable-first','Taxable first'],['proportional','Proportional
 
 let playbackYear=1973, pbDetailOpen=false, seqContext=null;
 function renderPlaybackCurrent(){
+  if(!canRunEngine()){ renderBlockedRecoverySurfaces(); return; }
   renderPlayback({
     el:$('#playback-panel'), seqContext, playbackYear, pbDetailOpen,
     sequenceYears:SEQ_YEARS, playbackStrategies:PB_STRATS,
@@ -2937,29 +3083,35 @@ $$('.htab').forEach(t=>t.onclick=()=>{
   $$('.page').forEach(x=>x.classList.remove('on'));
   if(t.dataset.subTarget){
     activeSub = t.dataset.subTarget;
-    try { localStorage.setItem(SUB_KEY, activeSub); } catch {}
+    if(!isHouseholdStorageReadOnly() && !isHouseholdStorageBlocked()){
+      try { localStorage.setItem(SUB_KEY, activeSub); } catch {}
+    }
   }
   $(`.page[data-page="${t.dataset.page}"]`).classList.add('on');
   document.body.classList.toggle('scn-active', t.dataset.page==='scenarios');
   // Returning to Scenarios after a base-plan edit re-runs the engine so the
   // columns reflect the new source; otherwise just redraw.
-  if(t.dataset.page==='scenarios'){ if(plansDirty){ uiState.plansDirty=false; runAll(); } }
-  if(t.dataset.page==='sequencing') runSeq();
+  if(t.dataset.page==='scenarios'){ if(plansDirty && canRunEngine()){ uiState.plansDirty=false; runAll(); } }
+  if(t.dataset.page==='sequencing' && canRunEngine()) runSeq();
   if(t.dataset.page==='net-worth') renderInputs();
   if(t.dataset.page==='household') syncHousehold();
+  if(isHouseholdStorageBlocked()) renderBlockedRecoverySurfaces();
 });
 // Net Worth sub-nav: switch the active sub-page, persist, re-render.
 $$('#np-subnav .stab').forEach(b => b.onclick = () => {
   activeSub = b.dataset.sub;
-  try { localStorage.setItem(SUB_KEY, activeSub); } catch {}
+  if(!isHouseholdStorageReadOnly() && !isHouseholdStorageBlocked()){
+    try { localStorage.setItem(SUB_KEY, activeSub); } catch {}
+  }
   renderInputs();
 });
-$('#run-btn').onclick=runAll;
+$('#run-btn').onclick=() => { if(canRunEngine()) runAll(); else renderBlockedRecoverySurfaces(); };
 // Manual SAVE: persist the FULL current input state (plan snapshot + the
 // scenario levers, which also self-save eagerly). Confirmation is real —
 // a failed storage write shows a retry state, never a fake "saved".
 let saveConfirmTimer=null;
 $('#save-btn').onclick=()=>{
+  if(!guardPlanMutation()) return;
   const ok=savePlan();
   saveScenarios();
   if(!ok){ saveFailed=true; syncSaveBtn(); syncHeaderStatus('Save failed \u00b7 storage blocked or full'); return; }
@@ -2971,7 +3123,13 @@ $('#save-btn').onclick=()=>{
 };
 
 $('#path-mode').onchange=e=>{
-  updatePathReplayMode(e.target.value);
+  if(isHouseholdStorageBlocked()){
+    syncPathControls();
+    renderBlockedRecoverySurfaces();
+    return;
+  }
+  if(isHouseholdStorageReadOnly()) pathReplay.mode=e.target.value;
+  else updatePathReplayMode(e.target.value);
   syncPathControls();
   if(window.ScenariosUI) window.ScenariosUI.sync();
 };
@@ -2993,6 +3151,7 @@ $('#path-mode').onchange=e=>{
   'use strict';
 
   function openSolver(){
+    if(!guardPlanMutation()) return;
     uiState.solverFormOpen = true;
     renderSolvePanel();
     const p = document.getElementById('solve-panel');
@@ -3192,6 +3351,7 @@ $('#path-mode').onchange=e=>{
   // Lever step: reuses the EXISTING production mutation (LEVCFG/levRange/syncPension)
   // and the existing manual Run flow ("Adjusted · Run to update"). No auto-run.
   function stepFocusLever(ci, key, dir) {
+    if(!guardPlanMutation()) return;
     const cfg = LEVCFG.find((c) => c.key === key); if (!cfg) return;
     const sc = scenarios[ci]; if (!sc || !sc.lev) return;
     const r = levRange(cfg), L = sc.lev;
@@ -3204,6 +3364,7 @@ $('#path-mode').onchange=e=>{
   // Commit a typed value from a .cmp-lev-in input in the Compare view.
   // Mirrors the parse/clamp logic from the scenario lever edit contract.
   function commitCmpInput(inp) {
+    if(!guardPlanMutation()){ syncScenariosView(); return; }
     const ci = parseInt(inp.dataset.scnId, 10);
     const sc = scenarios[ci]; if (!sc || !sc.lev) return;
     const L = sc.lev;
@@ -3233,6 +3394,7 @@ $('#path-mode').onchange=e=>{
   // never touched. Fields equal to the base value are dropped so overrides stay minimal
   // and "same as Baseline" stays accurate.
   function commitGoalInput(inp) {
+    if(!guardPlanMutation()){ syncScenariosView(); return; }
     const ci = parseInt(inp.dataset.scnId, 10);
     const idx = parseInt(inp.dataset.goalIdx, 10);
     const field = inp.dataset.goalField;
@@ -3335,12 +3497,23 @@ $('#path-mode').onchange=e=>{
   function syncScenariosView() {
     const view = $id('scn-view');
     if (!view) return;
+    if(isHouseholdStorageBlocked()){
+      renderBlockedRecoverySurfaces();
+      return;
+    }
     const built = buildScenarios(), list = built.list, baseline = built.baseline;
 
     const sub = $id('scn-subtitle');
     if (sub) {
       const hh = PROD.householdName();
       sub.textContent = (hh ? hh + ' · ' : '') + list.length + ' plan' + (list.length === 1 ? '' : 's');
+    }
+
+    if(!list.length){
+      view.innerHTML = '<div class="scn-empty">Planning projections are unavailable until household storage is restored.</div>';
+      syncToolbar();
+      syncRecoveryControls();
+      return;
     }
 
     if (state.cashActive) {
@@ -3354,6 +3527,7 @@ $('#path-mode').onchange=e=>{
     }
     syncToolbar();
     bindViewEvents();
+    syncRecoveryControls();
   }
 
   function syncToolbar() {
@@ -3422,6 +3596,7 @@ $('#path-mode').onchange=e=>{
     view.querySelectorAll('.scol__menu').forEach((btn) => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
+        if(!guardPlanMutation()){ syncScenariosView(); return; }
         const head = btn.closest('.scol__head--menu'); if (!head) return;
         const wasOpen = !!head.querySelector('.scol__pop');
         closeScnMenus();
@@ -3471,6 +3646,7 @@ $('#path-mode').onchange=e=>{
     let done = false;
     const commit = () => {
       if (done) return; done = true;
+      if(!guardPlanMutation()){ syncScenariosView(); return; }
       const v = inp.value.trim();
       if (v && v !== s.name) { s.name = v; saveScenarios(); }
       syncScenariosView();
@@ -3517,11 +3693,16 @@ renderSolvePanel();
 syncPathControls();
 renderInputs();
 bindHouseholdRailOnce();   // chapter rail (Demographics / Net Worth / Cash Flow) view switch
-reseedScenarios({ markDirty: false });   // align baseline levers with hydrated plan (saved levers can be stale)
-syncHousehold();           // render the editable landing Household page from `plan`
+if(canRunEngine()){
+  reseedScenarios({ markDirty: false });   // align baseline levers with hydrated plan (saved levers can be stale)
+  syncHousehold();           // render the editable landing Household page from `plan`
+  runAll();   // first iteration runs immediately so the tool opens populated
+} else {
+  renderBlockedRecoverySurfaces();
+}
 document.body.classList.toggle('scn-active', document.querySelector('.page.on')?.dataset.page==='scenarios');
-runAll();   // first iteration runs immediately so the tool opens populated
 syncHeaderCluster();
+syncRecoveryControls();
 
 // ── STICKY NOTES OVERLAY ─────────────────────────────────────────────────────
 (function(){

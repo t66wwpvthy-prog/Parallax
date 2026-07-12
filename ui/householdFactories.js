@@ -1,3 +1,6 @@
+import { ACCOUNT_SCHEMA_VERSION } from '../src/household/accountTypes.js';
+import { createBlankTaxProfiles } from '../src/household/factEnvelope.js';
+
 const clonePristinePlan = pristinePlan => JSON.parse(JSON.stringify(pristinePlan));
 
 /* Persistent first-run slot. It is intentionally blank: "demo" identifies a
@@ -27,6 +30,8 @@ export function createBlankHousehold(pristinePlan, householdId, currentYear){
   p.portfolio.accounts.traditional = { balance: 0 };
   p.portfolio.accounts.roth        = { balance: 0 };
   p.portfolio.extraAccounts = [];
+  p.meta.accountSchemaVersion = ACCOUNT_SCHEMA_VERSION;
+  p.taxProfiles = createBlankTaxProfiles();
   p.properties  = [];
   p.liabilities = [];
   p.expenses.living              = 0;
