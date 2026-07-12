@@ -8,7 +8,12 @@ import {
   parseSchemaVersion,
   resolveTypeFromLabel,
 } from './accountTypes.js';
-import { createBlankTaxProfiles, validateFactEnvelope } from './factEnvelope.js';
+import {
+  createBlankTaxProfiles,
+  isValidConfirmationTimestamp,
+  isValidFactSource,
+  validateFactEnvelope,
+} from './factEnvelope.js';
 
 export const ACCOUNT_MIGRATION_BLOCKED = 'ACCOUNT_MIGRATION_BLOCKED';
 export const ACCOUNT_MIGRATION_READ_ONLY = 'ACCOUNT_MIGRATION_READ_ONLY';
@@ -19,8 +24,31 @@ export const READ_ONLY_MESSAGE = 'Household storage could not be upgraded. Viewi
 
 const VALID_BASIS_METHODS = new Set(['reported-cost-basis', 'principal', 'legacy-proportional', 'unknown']);
 const VALID_BASIS_STATUS = new Set(['confirmed', 'assumed', 'unknown']);
-const VALID_BASIS_SOURCES = new Set(['household-entry', 'import', 'planner-assumption']);
 const VALID_INCLUSION = new Set(['household-return', 'separate-return', 'unknown']);
+const ACCOUNT_KEYS = ['id', 'typeId', 'type', 'owner', 'bucket', 'balance', 'valuationDate', 'basis', 'taxReporting', 'employerPlanFacts', 'designatedRothFacts'];
+const BASIS_KEYS = ['amount', 'method', 'status', 'source', 'confirmedAt', 'version'];
+const REPORTING_KEYS = ['inclusion', 'reportingTaxpayer', 'householdReturnShare'];
+const EMPLOYER_FACT_KEYS = ['afterTaxContributionBasis', 'planSubtypeConfirmed'];
+const DESIGNATED_FACT_KEYS = ['firstContributionYear', 'contributionBasis', 'inPlanRolloverCohorts'];
+const PROFILE_FACT_KEYS = ['birthDate', 'blind', 'disabled'];
+const TRADITIONAL_IRA_FACT_KEYS = [
+  'priorYearCarryforwardBasis',
+  'currentYearNondeductibleContributions',
+  'yearEndAggregateValueOverride',
+  'outstandingRolloversAtYearEnd',
+  'otherForm8606Adjustments',
+];
+const ROTH_IRA_FACT_KEYS = ['firstContributionYear', 'contributionBasis', 'conversionCohorts'];
+
+const hasOwn = (value, key) => Object.prototype.hasOwnProperty.call(value, key);
+
+function assertRequiredKeys(record, keys, path){
+  for(const key of keys){
+    if(!hasOwn(record, key)){
+      throw new Error(`${path}.${key} is required`);
+    }
+  }
+}
 
 function stableHash(input){
   const s = JSON.stringify(input);
@@ -45,32 +73,28 @@ export function deterministicLegacyAccountId(householdId, ledger, index, legacy)
 }
 
 function assertFiniteNonNegativeBalance(value, path){
-  if(typeof value === 'string'){
+  if(typeof value !== 'number' || !Number.isFinite(value) || value < 0){
     throw new Error(`${path} has invalid balance`);
   }
-  const n = Number(value);
-  if(!Number.isFinite(n) || n < 0){
-    throw new Error(`${path} has invalid balance`);
-  }
+}
+
+function cloneRecord(record){
+  return structuredClone(record);
 }
 
 function parseLegacyBalance(value, path){
-  if(value == null || value === ''){
+  if(typeof value !== 'number' || !Number.isFinite(value) || value < 0){
     throw new Error(`${path} has invalid balance`);
   }
-  if(typeof value === 'string'){
-    throw new Error(`${path} has invalid balance`);
-  }
-  const n = Number(value);
-  if(!Number.isFinite(n) || n < 0){
-    throw new Error(`${path} has invalid balance`);
-  }
-  return Math.round(n);
+  return value;
 }
 
-function parseLegacyOwner(owner, path){
-  if(owner == null || owner === '') return 'joint';
-  const o = String(owner).trim();
+function parseLegacyOwner(owner, path, { omitted = false } = {}){
+  if(omitted) return 'joint';
+  if(typeof owner !== 'string'){
+    throw new Error(`${path} has invalid owner`);
+  }
+  const o = owner.trim();
   if(!isValidOwner(o)){
     throw new Error(`${path} has invalid owner`);
   }
@@ -81,6 +105,7 @@ function validateBasisEnvelope(basis, path){
   if(!basis || typeof basis !== 'object' || Array.isArray(basis)){
     throw new Error(`${path}.basis must be an object`);
   }
+  assertRequiredKeys(basis, BASIS_KEYS, `${path}.basis`);
   if(!VALID_BASIS_METHODS.has(basis.method)){
     throw new Error(`${path}.basis.method is invalid`);
   }
@@ -88,28 +113,45 @@ function validateBasisEnvelope(basis, path){
     throw new Error(`${path}.basis.status is invalid`);
   }
   if(basis.amount != null){
-    const n = Number(basis.amount);
-    if(!Number.isFinite(n) || n < 0){
+    if(typeof basis.amount !== 'number' || !Number.isFinite(basis.amount) || basis.amount < 0){
       throw new Error(`${path}.basis.amount is invalid`);
     }
   }
   if(basis.version !== 1){
     throw new Error(`${path}.basis.version is invalid`);
   }
-  if(basis.status === 'confirmed'){
-    if(basis.source == null || !VALID_BASIS_SOURCES.has(basis.source)){
-      throw new Error(`${path}.basis confirmed fact requires source`);
+  if(!isValidFactSource(basis.source)){
+    throw new Error(`${path}.basis.source is invalid`);
+  }
+  if(basis.confirmedAt !== null && !isValidConfirmationTimestamp(basis.confirmedAt)){
+    throw new Error(`${path}.basis.confirmedAt is invalid`);
+  }
+  if(basis.status === 'unknown'){
+    if(basis.amount !== null || basis.source !== null || basis.confirmedAt !== null){
+      throw new Error(`${path}.basis unknown fact has invalid metadata`);
     }
-    if(basis.confirmedAt == null || typeof basis.confirmedAt !== 'string'){
+    return;
+  }
+  if(basis.amount === null){
+    throw new Error(`${path}.basis ${basis.status} fact requires amount`);
+  }
+  if(basis.source === null){
+    throw new Error(`${path}.basis ${basis.status} fact requires source`);
+  }
+  if(basis.status === 'confirmed'){
+    if(basis.confirmedAt === null){
       throw new Error(`${path}.basis confirmed fact requires confirmedAt`);
     }
+  }else if(basis.confirmedAt !== null){
+    throw new Error(`${path}.basis assumed fact cannot have confirmedAt`);
   }
 }
 
 function validateTaxReporting(record, path){
-  if(!record || typeof record !== 'object'){
+  if(!record || typeof record !== 'object' || Array.isArray(record)){
     throw new Error(`${path}.taxReporting must be an object`);
   }
+  assertRequiredKeys(record, REPORTING_KEYS, `${path}.taxReporting`);
   if(!VALID_INCLUSION.has(record.inclusion)){
     throw new Error(`${path}.taxReporting.inclusion is invalid`);
   }
@@ -117,34 +159,50 @@ function validateTaxReporting(record, path){
     throw new Error(`${path}.taxReporting.reportingTaxpayer is invalid`);
   }
   if(record.householdReturnShare != null){
-    const share = Number(record.householdReturnShare);
-    if(!Number.isFinite(share) || share < 0 || share > 1){
+    if(typeof record.householdReturnShare !== 'number'
+      || !Number.isFinite(record.householdReturnShare)
+      || record.householdReturnShare < 0
+      || record.householdReturnShare > 1){
       throw new Error(`${path}.taxReporting.householdReturnShare is invalid`);
     }
   }
 }
 
-function validateEmployerFacts(facts, path){
-  if(facts == null) return;
-  if(typeof facts !== 'object'){
+function validateEmployerFacts(facts, path, required){
+  if(facts === null){
+    if(required) throw new Error(`${path}.employerPlanFacts is required`);
+    return;
+  }
+  if(!required){
+    throw new Error(`${path}.employerPlanFacts is not valid for this account type`);
+  }
+  if(!facts || typeof facts !== 'object' || Array.isArray(facts)){
     throw new Error(`${path}.employerPlanFacts is invalid`);
   }
+  assertRequiredKeys(facts, EMPLOYER_FACT_KEYS, `${path}.employerPlanFacts`);
   validateFactEnvelope(facts.afterTaxContributionBasis, `${path}.employerPlanFacts.afterTaxContributionBasis`);
   validateFactEnvelope(facts.planSubtypeConfirmed, `${path}.employerPlanFacts.planSubtypeConfirmed`);
 }
 
-function validateDesignatedFacts(facts, path){
-  if(facts == null) return;
-  if(typeof facts !== 'object'){
+function validateDesignatedFacts(facts, path, required){
+  if(facts === null){
+    if(required) throw new Error(`${path}.designatedRothFacts is required`);
+    return;
+  }
+  if(!required){
+    throw new Error(`${path}.designatedRothFacts is not valid for this account type`);
+  }
+  if(!facts || typeof facts !== 'object' || Array.isArray(facts)){
     throw new Error(`${path}.designatedRothFacts is invalid`);
   }
+  assertRequiredKeys(facts, DESIGNATED_FACT_KEYS, `${path}.designatedRothFacts`);
   validateFactEnvelope(facts.firstContributionYear, `${path}.designatedRothFacts.firstContributionYear`);
   validateFactEnvelope(facts.contributionBasis, `${path}.designatedRothFacts.contributionBasis`);
   validateFactEnvelope(facts.inPlanRolloverCohorts, `${path}.designatedRothFacts.inPlanRolloverCohorts`);
 }
 
 function validateTaxProfileOwner(profile, path){
-  if(!profile || typeof profile !== 'object'){
+  if(!profile || typeof profile !== 'object' || Array.isArray(profile)){
     throw new Error(`${path} tax profile is required`);
   }
   if(!profile.traditionalIra || typeof profile.traditionalIra !== 'object' || Array.isArray(profile.traditionalIra)){
@@ -153,34 +211,40 @@ function validateTaxProfileOwner(profile, path){
   if(!profile.rothIra || typeof profile.rothIra !== 'object' || Array.isArray(profile.rothIra)){
     throw new Error(`${path}.rothIra is required`);
   }
-  validateFactEnvelope(profile.birthDate, `${path}.birthDate`);
-  validateFactEnvelope(profile.blind, `${path}.blind`);
-  validateFactEnvelope(profile.disabled, `${path}.disabled`);
-  for(const key of Object.keys(profile.traditionalIra || {})){
+  assertRequiredKeys(profile, [...PROFILE_FACT_KEYS, 'traditionalIra', 'rothIra'], path);
+  assertRequiredKeys(profile.traditionalIra, TRADITIONAL_IRA_FACT_KEYS, `${path}.traditionalIra`);
+  assertRequiredKeys(profile.rothIra, ROTH_IRA_FACT_KEYS, `${path}.rothIra`);
+  for(const key of PROFILE_FACT_KEYS){
+    validateFactEnvelope(profile[key], `${path}.${key}`);
+  }
+  for(const key of Object.keys(profile.traditionalIra)){
     validateFactEnvelope(profile.traditionalIra[key], `${path}.traditionalIra.${key}`);
   }
-  for(const key of Object.keys(profile.rothIra || {})){
+  for(const key of Object.keys(profile.rothIra)){
     validateFactEnvelope(profile.rothIra[key], `${path}.rothIra.${key}`);
   }
 }
 
 function validateBaseSleeves(accounts, path){
-  if(!accounts || typeof accounts !== 'object'){
+  if(!accounts || typeof accounts !== 'object' || Array.isArray(accounts)){
     throw new Error(`${path}.portfolio.accounts is required`);
   }
   for(const sleeve of ['taxable', 'traditional', 'roth']){
     const acct = accounts[sleeve];
-    if(!acct || typeof acct !== 'object'){
+    if(!acct || typeof acct !== 'object' || Array.isArray(acct)){
       throw new Error(`${path}.portfolio.accounts.${sleeve} is required`);
+    }
+    if(!hasOwn(acct, 'balance')){
+      throw new Error(`${path}.portfolio.accounts.${sleeve}.balance is required`);
     }
     assertFiniteNonNegativeBalance(acct.balance, `${path}.portfolio.accounts.${sleeve}`);
   }
+  if(!hasOwn(accounts.taxable, 'basisPct')){
+    throw new Error(`${path}.portfolio.accounts.taxable.basisPct is required`);
+  }
   const pct = accounts.taxable.basisPct;
-  if(pct != null){
-    const n = Number(pct);
-    if(!Number.isFinite(n) || n < 0){
-      throw new Error(`${path}.portfolio.accounts.taxable.basisPct is invalid`);
-    }
+  if(typeof pct !== 'number' || !Number.isFinite(pct) || pct < 0){
+    throw new Error(`${path}.portfolio.accounts.taxable.basisPct is invalid`);
   }
 }
 
@@ -189,11 +253,15 @@ function validateCurrentAccount(acct, index){
   if(!acct || typeof acct !== 'object' || Array.isArray(acct)){
     throw new Error(`${path} must be an object`);
   }
+  assertRequiredKeys(acct, ACCOUNT_KEYS, path);
   if(typeof acct.id !== 'string' || !acct.id.trim()){
     throw new Error(`${path}.id is required`);
   }
   if(typeof acct.typeId !== 'string' || !acct.typeId.trim()){
     throw new Error(`${path}.typeId is required`);
+  }
+  if(typeof acct.type !== 'string' || !acct.type.trim()){
+    throw new Error(`${path}.type is required`);
   }
   if(acct.typeId !== UNSUPPORTED_TYPE_ID && !getAccountTypeById(acct.typeId)){
     throw new Error(`${path}.typeId is unknown`);
@@ -201,31 +269,33 @@ function validateCurrentAccount(acct, index){
   if(!isValidOwner(acct.owner)){
     throw new Error(`${path}.owner is invalid`);
   }
-  if(!isValidEngineBucket(acct.bucket)){
+  const unresolvedUnsupported = acct.typeId === UNSUPPORTED_TYPE_ID && acct.bucket === null;
+  if(!unresolvedUnsupported && !isValidEngineBucket(acct.bucket)){
     throw new Error(`${path}.bucket is invalid`);
   }
   assertFiniteNonNegativeBalance(acct.balance, path);
-  if(!isValidValuationDate(acct.valuationDate ?? null)){
+  if(!isValidValuationDate(acct.valuationDate)){
     throw new Error(`${path}.valuationDate is invalid`);
   }
   validateBasisEnvelope(acct.basis, path);
   validateTaxReporting(acct.taxReporting, path);
-  validateEmployerFacts(acct.employerPlanFacts, path);
-  validateDesignatedFacts(acct.designatedRothFacts, path);
+  const canonical = acct.typeId === UNSUPPORTED_TYPE_ID ? null : getAccountTypeById(acct.typeId);
+  validateEmployerFacts(acct.employerPlanFacts, path, canonical?.taxCharacter === 'employer_pretax');
+  validateDesignatedFacts(acct.designatedRothFacts, path, canonical?.taxCharacter === 'designated_roth');
 }
 
 export function validateCurrentSchemaHousehold(plan, householdId = 'household'){
   if(!plan || typeof plan !== 'object' || Array.isArray(plan)){
     throw new Error(`${householdId}: household must be an object`);
   }
-  if(!plan.meta || typeof plan.meta !== 'object'){
+  if(!plan.meta || typeof plan.meta !== 'object' || Array.isArray(plan.meta)){
     throw new Error(`${householdId}: meta is required`);
   }
   const version = parseSchemaVersion(plan.meta.accountSchemaVersion);
   if(version !== ACCOUNT_SCHEMA_VERSION){
     throw new Error(`${householdId}: unsupported accountSchemaVersion`);
   }
-  if(!plan.portfolio || typeof plan.portfolio !== 'object'){
+  if(!plan.portfolio || typeof plan.portfolio !== 'object' || Array.isArray(plan.portfolio)){
     throw new Error(`${householdId}: portfolio is required`);
   }
   validateBaseSleeves(plan.portfolio.accounts, householdId);
@@ -240,7 +310,7 @@ export function validateCurrentSchemaHousehold(plan, householdId = 'household'){
     }
     seen.add(acct.id);
   });
-  if(!plan.taxProfiles || typeof plan.taxProfiles !== 'object'){
+  if(!plan.taxProfiles || typeof plan.taxProfiles !== 'object' || Array.isArray(plan.taxProfiles)){
     throw new Error(`${householdId}: taxProfiles is required`);
   }
   validateTaxProfileOwner(plan.taxProfiles.client, `${householdId}.taxProfiles.client`);
@@ -274,20 +344,19 @@ function migrateLegacyExtraAccount(legacy, index, householdId, plan){
   }
   const path = `${householdId}: account[${index}]`;
   const balance = parseLegacyBalance(legacy.balance, path);
-  const owner = parseLegacyOwner(legacy.owner, path);
+  const owner = parseLegacyOwner(legacy.owner, path, { omitted: !hasOwn(legacy, 'owner') });
   const resolved = resolveTypeFromLabel(legacy.type);
   const storedBucket = legacy.bucket;
+  const hasStoredBucket = hasOwn(legacy, 'bucket');
 
   if(!resolved.known){
-    if(!storedBucket || !isValidEngineBucket(storedBucket)){
-      throw new Error(`${path}: unknown type with invalid bucket`);
-    }
+    const bucket = isValidEngineBucket(storedBucket) ? storedBucket : null;
     return {
       id: deterministicLegacyAccountId(householdId, 'extraAccounts', index, legacy),
       typeId: UNSUPPORTED_TYPE_ID,
       type: String(legacy.type || 'Unknown account').trim() || 'Unknown account',
       owner,
-      bucket: storedBucket,
+      bucket,
       balance,
       valuationDate: null,
       basis: { amount: null, method: 'unknown', status: 'unknown', source: null, confirmedAt: null, version: 1 },
@@ -299,7 +368,7 @@ function migrateLegacyExtraAccount(legacy, index, householdId, plan){
 
   const entry = getAccountTypeById(resolved.typeId);
   let bucket = resolved.engineBucket;
-  if(storedBucket){
+  if(hasStoredBucket){
     if(!isValidEngineBucket(storedBucket)){
       throw new Error(`${path}: invalid bucket`);
     }
@@ -351,30 +420,33 @@ function defaultDesignatedFactsFor(entry){
 }
 
 export function migrateHouseholdRecord(record, householdId){
-  if(!record || typeof record !== 'object'){
+  if(!record || typeof record !== 'object' || Array.isArray(record)){
     throw new Error('Invalid household record');
   }
-  const rawVersion = record.meta?.accountSchemaVersion;
-  if(rawVersion != null && rawVersion !== ''){
+  const hasVersion = record.meta
+    && typeof record.meta === 'object'
+    && !Array.isArray(record.meta)
+    && hasOwn(record.meta, 'accountSchemaVersion');
+  if(hasVersion){
+    const rawVersion = record.meta.accountSchemaVersion;
     const parsed = parseSchemaVersion(rawVersion);
     if(parsed > ACCOUNT_SCHEMA_VERSION){
       throw Object.assign(new Error('Unsupported account schema version'), { code: ACCOUNT_SCHEMA_VERSION_UNSUPPORTED });
     }
     if(parsed === ACCOUNT_SCHEMA_VERSION){
-      const plan = JSON.parse(JSON.stringify(record));
-      validateCurrentSchemaHousehold(plan, householdId);
-      return { changed: false, plan };
+      validateCurrentSchemaHousehold(record, householdId);
+      return { changed: false, plan: cloneRecord(record) };
     }
   }
   return { changed: true, plan: migrateLegacyHousehold(record, householdId) };
 }
 
 export function migrateLegacyHousehold(record, householdId){
-  const plan = JSON.parse(JSON.stringify(record));
+  const plan = cloneRecord(record);
   if(!plan.meta || typeof plan.meta !== 'object') plan.meta = {};
-  const version = plan.meta.accountSchemaVersion == null || plan.meta.accountSchemaVersion === ''
-    ? null
-    : parseSchemaVersion(plan.meta.accountSchemaVersion);
+  const version = hasOwn(plan.meta, 'accountSchemaVersion')
+    ? parseSchemaVersion(plan.meta.accountSchemaVersion)
+    : null;
   if(version != null && version > ACCOUNT_SCHEMA_VERSION){
     throw Object.assign(new Error('Unsupported account schema version'), { code: ACCOUNT_SCHEMA_VERSION_UNSUPPORTED });
   }
@@ -407,7 +479,9 @@ export function deriveHouseholdIssues(plan){
   }
   extras.forEach(acct => {
     if(acct.typeId === UNSUPPORTED_TYPE_ID){
-      issues.push(`ACCOUNT_UNSUPPORTED:${acct.id}`);
+      issues.push(isValidEngineBucket(acct.bucket)
+        ? `ACCOUNT_UNSUPPORTED:${acct.id}`
+        : `ACCOUNT_INVALID_CLASSIFICATION:${acct.id}`);
       return;
     }
     const canonical = getAccountTypeById(acct.typeId);
@@ -423,23 +497,32 @@ export function deriveHouseholdIssues(plan){
 }
 
 export function mergeNonAccountDefaults(record, defaults){
-  const merged = JSON.parse(JSON.stringify(record));
-  const skipKeys = new Set(['accountSchemaVersion']);
-  const fill = (target, source) => {
+  const merged = cloneRecord(record);
+  const shouldSkip = (path, key, target) => {
+    if(path.length === 0 && key === 'taxProfiles') return true;
+    if(path.length === 0 && key === 'portfolio' && !hasOwn(target, key)) return true;
+    if(path.length === 1 && path[0] === 'portfolio' && (key === 'accounts' || key === 'extraAccounts')) return true;
+    return path.length === 1 && path[0] === 'meta' && key === 'accountSchemaVersion';
+  };
+  const fill = (target, source, path = []) => {
     Object.entries(source || {}).forEach(([key, value]) => {
-      if(skipKeys.has(key)) return;
+      if(shouldSkip(path, key, target)) return;
       if(!(key in target)){
-        target[key] = JSON.parse(JSON.stringify(value));
+        if(value && typeof value === 'object' && !Array.isArray(value)){
+          target[key] = {};
+          fill(target[key], value, [...path, key]);
+        }else{
+          target[key] = cloneRecord(value);
+        }
       } else if(
         target[key] && value
         && typeof target[key] === 'object' && !Array.isArray(target[key])
         && typeof value === 'object' && !Array.isArray(value)
       ){
-        fill(target[key], value);
+        fill(target[key], value, [...path, key]);
       }
     });
   };
-  fill(merged.meta || (merged.meta = {}), defaults.meta || {});
   fill(merged, defaults);
   return merged;
 }

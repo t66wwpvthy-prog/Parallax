@@ -82,11 +82,21 @@ export function prepareHouseholdStore(readResult, dependencies){
 
   if(readResult.kind === 'missing'){
     const demo = createDemoHousehold(pristinePlan, currentYear());
-    const db = { [demo.meta.householdId]: demo };
+    const migration = migrateHouseholdsDb({ [demo.meta.householdId]: demo });
+    if(!migration.ok){
+      return {
+        ok: false,
+        mode: 'blocked',
+        code: migration.code || ACCOUNT_MIGRATION_BLOCKED,
+        message: BLOCKED_MESSAGE,
+        hydrate: false,
+        error: migration.error,
+      };
+    }
     return {
       ok: true,
       mode: 'normal',
-      db,
+      db: migration.db,
       activeHouseholdId: demo.meta.householdId,
       changed: true,
       pointerChanged: true,
@@ -95,14 +105,7 @@ export function prepareHouseholdStore(readResult, dependencies){
     };
   }
 
-  const mergedDb = Object.fromEntries(Object.entries(readResult.database).map(([recordId, record]) => {
-    const defaults = recordId === 'demo'
-      ? createDemoHousehold(pristinePlan, currentYear())
-      : createBlankHousehold(pristinePlan, recordId, currentYear());
-    return [recordId, mergeNonAccountDefaults(record, defaults)];
-  }));
-
-  const migration = migrateHouseholdsDb(mergedDb);
+  const migration = migrateHouseholdsDb(readResult.database);
   if(!migration.ok){
     return {
       ok: false,
@@ -116,7 +119,14 @@ export function prepareHouseholdStore(readResult, dependencies){
     };
   }
 
-  const activeHouseholdId = resolveActiveHouseholdId(migration.db, readResult.activePointer);
+  const mergedDb = Object.fromEntries(Object.entries(migration.db).map(([recordId, record]) => {
+    const defaults = recordId === 'demo'
+      ? createDemoHousehold(pristinePlan, currentYear())
+      : createBlankHousehold(pristinePlan, recordId, currentYear());
+    return [recordId, mergeNonAccountDefaults(record, defaults)];
+  }));
+
+  const activeHouseholdId = resolveActiveHouseholdId(mergedDb, readResult.activePointer);
   if(!activeHouseholdId){
     return {
       ok: false,
@@ -128,12 +138,12 @@ export function prepareHouseholdStore(readResult, dependencies){
   }
 
   const pointerChanged = readResult.activePointer !== activeHouseholdId;
-  const schemaFilled = JSON.stringify(readResult.database) !== JSON.stringify(migration.db);
+  const schemaFilled = JSON.stringify(migration.db) !== JSON.stringify(mergedDb);
 
   return {
     ok: true,
     mode: 'normal',
-    db: migration.db,
+    db: mergedDb,
     activeHouseholdId,
     changed: migration.changed || schemaFilled,
     pointerChanged,
@@ -157,8 +167,6 @@ export function commitPreparedHouseholdStore(storage, preparedResult, keys = { d
     return { ok: true, wrote: false };
   }
 
-  const priorDb = storage.getItem(keys.dbKey);
-  const priorActive = storage.getItem(keys.activeKey);
   let dbWritten = false;
 
   try{
@@ -171,13 +179,13 @@ export function commitPreparedHouseholdStore(storage, preparedResult, keys = { d
     }
     return { ok: true, wrote: true };
   }catch(error){
-    if(dbWritten && priorDb != null){
-      try{ storage.setItem(keys.dbKey, priorDb); }catch{}
-    }
     return {
       ok: false,
       wrote: false,
       readOnly: true,
+      partialWrite: dbWritten && preparedResult.pointerChanged,
+      databasePersisted: !preparedResult.changed || dbWritten,
+      pointerPersisted: !preparedResult.pointerChanged,
       message: READ_ONLY_MESSAGE,
       error: error instanceof Error ? error.message : String(error),
     };

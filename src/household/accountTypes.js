@@ -127,16 +127,16 @@ export function isValidEngineBucket(bucket){
 
 export function isValidValuationDate(value){
   if(value === null) return true;
+  if(typeof value !== 'string') return false;
   if(!DATE_RE.test(value)) return false;
   const [year, month, day] = value.split('-').map(Number);
-  const dt = new Date(Date.UTC(year, month - 1, day));
-  return dt.getUTCFullYear() === year
-    && dt.getUTCMonth() === month - 1
-    && dt.getUTCDate() === day;
+  if(year < 1 || month < 1 || month > 12 || day < 1) return false;
+  const leap = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+  const daysInMonth = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  return day <= daysInMonth[month - 1];
 }
 
 export function parseSchemaVersion(value){
-  if(value == null || value === '') return null;
   if(typeof value !== 'number' || !Number.isInteger(value) || value < 0){
     throw new Error('Invalid accountSchemaVersion');
   }

@@ -14,15 +14,11 @@ function newAccountId(){
 }
 
 function parseBalanceInput(value, { allowOmitted = false } = {}){
-  if(value == null || value === ''){
-    if(allowOmitted) return 0;
-    throw new Error('Balance is required');
-  }
-  const n = Number(value);
-  if(!Number.isFinite(n) || n < 0){
+  if(allowOmitted && value === undefined) return 0;
+  if(typeof value !== 'number' || !Number.isFinite(value) || value < 0){
     throw new Error('Invalid balance');
   }
-  return Math.round(n);
+  return Math.round(value);
 }
 
 function defaultBasisForType(entry){
@@ -89,16 +85,22 @@ function defaultDesignatedRothFacts(entry){
  * Create a new account at the current schema version.
  */
 export function createAccount(typeId, options = {}){
+  if(!options || typeof options !== 'object' || Array.isArray(options)){
+    throw new Error('Account options must be an object');
+  }
   const entry = getAccountTypeById(typeId);
   if(!entry){
     throw new Error(`Unknown account typeId: ${typeId}`);
   }
-  const owner = options.owner || entry.defaultOwner || 'client';
+  const hasOwner = Object.prototype.hasOwnProperty.call(options, 'owner');
+  const owner = hasOwner ? options.owner : (entry.defaultOwner || 'client');
   if(!isValidOwner(owner)){
     throw new Error(`Invalid account owner: ${owner}`);
   }
-  const balance = parseBalanceInput(options.balance, { allowOmitted: true });
-  const valuationDate = options.valuationDate ?? null;
+  const hasBalance = Object.prototype.hasOwnProperty.call(options, 'balance');
+  const balance = parseBalanceInput(options.balance, { allowOmitted: !hasBalance });
+  const hasValuationDate = Object.prototype.hasOwnProperty.call(options, 'valuationDate');
+  const valuationDate = hasValuationDate ? options.valuationDate : null;
   if(!isValidValuationDate(valuationDate)){
     throw new Error('Invalid valuationDate');
   }
