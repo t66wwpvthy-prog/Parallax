@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import { defaultPlan, runSimulation } from '../../../engine.js';
+import { createAccount } from '../../household/createAccount.js';
+import { createBlankTaxProfiles } from '../../household/factEnvelope.js';
 import { buildCurrentTaxBucketSnapshot } from '../taxBuckets/buildCurrentTaxBucketSnapshot.js';
 import {
   FEDERAL_FUNDING_PATH_KEYS,
@@ -163,6 +165,49 @@ test('sidecar preserves compact shortcut-aligned federal-funded bucket paths', (
   assert.equal(Object.isFrozen(sidecar.paths.p50.rows), true);
   assert.equal(Object.isFrozen(sidecar.paths.p50.rows[0].endingBalances), true);
   assert.throws(() => { sidecar.paths.p50.rows[0].endingBalances.total = 1; }, TypeError);
+});
+
+test('sidecar carries the reconciled immutable Household tax-fact contract', () => {
+  const plan = fixturePlan();
+  plan.taxProfiles = createBlankTaxProfiles();
+  const brokerage = createAccount('brokerage_taxable', { owner: 'client', balance: 200000 });
+  brokerage.id = 'confirmed-brokerage';
+  brokerage.basis = {
+    amount: 50000,
+    method: 'reported-cost-basis',
+    status: 'confirmed',
+    source: 'household-entry',
+    confirmedAt: '2026-07-12T12:00:00Z',
+    version: 1,
+  };
+  const employer = createAccount('401k', { owner: 'client', balance: 250000 });
+  employer.id = 'current-401k';
+  plan.portfolio.extraAccounts = [brokerage, employer];
+
+  const paths = returnPaths();
+  const shortcut = runSimulation(plan, {}, paths);
+  const federal = runSimulation(plan, {}, paths, {
+    taxPolicy: (_row, context) => context.shortcutTax + 10000,
+    fundTaxPolicyDelta: true,
+  });
+  const shortcutBefore = structuredClone(shortcut);
+  const federalBefore = structuredClone(federal);
+  const sidecar = buildFederalFundingPathSidecar(shortcut, federal, plan);
+
+  assert.equal(
+    sidecar.taxFacts.calculationInputs.taxableBasisOverride.amount,
+    shortcut.params.accounts.taxable.basis
+  );
+  assert.deepEqual(
+    sidecar.taxFacts.calculationInputs.taxableBasisOverride.accountIds,
+    ['confirmed-brokerage']
+  );
+  assert.equal(sidecar.taxFacts.readiness.purpose, 'distribution-strategy-tax-comparison');
+  assert.equal(Object.isFrozen(sidecar.taxFacts), true);
+  assert.equal(Object.isFrozen(sidecar.taxFacts.readiness.gaps), true);
+  assert.equal(Object.isFrozen(sidecar.taxFacts.calculationInputs.taxableBasisOverride.evidence), true);
+  assert.deepEqual(shortcut, shortcutBefore);
+  assert.deepEqual(federal, federalBefore);
 });
 
 test('duplicate shortcut anchors reuse one compact path without retaining all simulations', () => {

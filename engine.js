@@ -1,4 +1,5 @@
 import { resolvePortfolioAccounts } from './src/household/resolvePortfolioAccounts.js';
+import { resolveTaxableStartingBasis } from './src/household/resolveTaxableStartingBasis.js';
 
 /* ============================================================================
    PARALLAX ENGINE  —  the heart of the model. Treat as SACRED.
@@ -614,6 +615,7 @@ function resolveInputs(plan, ov){
   // Typed accounts (401k, SEP, etc.) fold into their tax sleeve before shock/basis
   // so the engine sees correct bucket totals. Default (no extras) is byte-identical.
   const accountFold = resolvePortfolioAccounts(plan);
+  const taxableBasis = resolveTaxableStartingBasis(plan, accountFold);
   const taxableRaw = accountFold.engineBuckets.taxable.balance;
   const tradRaw    = accountFold.engineBuckets.traditional.balance;
   const rothRaw    = accountFold.engineBuckets.roth.balance;
@@ -622,7 +624,7 @@ function resolveInputs(plan, ov){
       balance: taxableRaw * shockMult,
       // Basis as absolute dollars (was stored as percent of original balance).
       // We convert here to make the engine math simpler downstream.
-      basis: taxableRaw * plan.portfolio.accounts.taxable.basisPct
+      basis: taxableBasis.appliedBasis
     },
     traditional: {
       balance: tradRaw * shockMult

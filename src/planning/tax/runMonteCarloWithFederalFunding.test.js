@@ -104,3 +104,50 @@ test('federal funding sidecar survives probability promotion and reporting-only 
   assert.strictEqual(reported.federalFunding, funded.federalFunding);
   assert.strictEqual(reported.successRate, funded.federalSuccessRate);
 });
+
+test('federal funding rejects tax overrides that contradict its Household fact contract', () => {
+  const { plan, returnPaths } = controlledFixture();
+  const shortcutAnalysis = runSimulation(plan, {}, returnPaths);
+
+  assert.throws(
+    () => runMonteCarloWithFederalFunding(shortcutAnalysis, plan, {}, {
+      filingStatus: 'marriedFilingJointly',
+      baseTaxYear: 2025,
+    }),
+    /filingStatus override conflicts with Household/
+  );
+  assert.throws(
+    () => runMonteCarloWithFederalFunding(shortcutAnalysis, plan, {}, {
+      filingStatus: 'single',
+      taxableGainFraction: 0.25,
+      baseTaxYear: 2025,
+    }),
+    /must use each engine row taxableGainFraction/
+  );
+  assert.throws(
+    () => runMonteCarloWithFederalFunding(shortcutAnalysis, plan, {}, {
+      filingStatus: 'single',
+      treatWithdrawalsAsFullyTaxable: false,
+      baseTaxYear: 2025,
+    }),
+    /cannot override Traditional withdrawal tax character/
+  );
+  assert.throws(
+    () => runMonteCarloWithFederalFunding(shortcutAnalysis, plan, {}, {
+      filingStatus: 'single',
+      resolved: { taxableIra: 0 },
+      baseTaxYear: 2025,
+    }),
+    /cannot override resolved taxable portions/
+  );
+
+  const missingStatusPlan = structuredClone(plan);
+  delete missingStatusPlan.meta.filingStatus;
+  assert.throws(
+    () => runMonteCarloWithFederalFunding(shortcutAnalysis, missingStatusPlan, {}, {
+      filingStatus: 'single',
+      baseTaxYear: 2025,
+    }),
+    /must match Household and shortcut inputs/
+  );
+});
