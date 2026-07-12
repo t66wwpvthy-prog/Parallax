@@ -325,7 +325,11 @@ try {
   await page.setViewport({ width: 1920, height: 1080, deviceScaleFactor: 3 });
   const errs = [];
   page.on('pageerror', e => errs.push('PAGE: ' + e.message));
-  page.on('console', m => { if(m.type() === 'error') errs.push('CON: ' + m.text()); });
+  page.on('console', m => {
+    if(m.type() !== 'error') return;
+    const text = m.text();
+    errs.push('CON: ' + text);
+  });
 
   await step('load index.html', async () => {
     // Deterministic seed: households + scenarios persist to localStorage, so a
@@ -374,6 +378,8 @@ try {
         { label:'Co-client wages', amount:60000, startAge:63, endAge:65, realGrowth:0, taxablePct:1 },
       ];
       demo.goals = [{ name:'Travel & leisure', amount:30000, startAge:66, endAge:81 }];
+      // Filled demo uses legacy-shaped accounts; strip v1 stamp so one-time migration runs.
+      delete demo.meta.accountSchemaVersion;
       localStorage.setItem(key, JSON.stringify(db));
     });
     await page.reload({ waitUntil: 'networkidle2', timeout: 20000 });
@@ -1454,6 +1460,7 @@ try {
         { type:'Brokerage (taxable)', bucket:'taxable', owner:'spouse', balance:800000 },
         { type:'Roth IRA', bucket:'roth', owner:'spouse', balance:400000 },
       ];
+      delete demo.meta.accountSchemaVersion;
       localStorage.setItem(key, JSON.stringify(db));
       localStorage.removeItem('parallax.scenarios.demo.v1');
     });
@@ -2116,6 +2123,17 @@ try {
     if(after.status !== blocked) throw new Error(`corrupt storage must pin blocked status, got "${after.status}"`);
     if(after.raw !== corrupt) throw new Error('corrupt storage must not be replaced with demo data');
     if(after.active !== 'demo') throw new Error(`active pointer must remain unchanged during block, got "${after.active}"`);
+
+    await page.click('button[data-page="scenarios"]');
+    await sleep(500);
+    const blockedEngine = await page.evaluate(() => ({
+      status: document.querySelector('#status')?.textContent.trim() || '',
+      probs: [...document.querySelectorAll('#scn-view .scol__prob')].map(el => el.textContent.trim()),
+      medians: [...document.querySelectorAll('#scn-view .scol__median b')].map(el => el.textContent.trim()),
+    }));
+    if(/Complete/i.test(blockedEngine.status)) throw new Error('blocked recovery must not run engine to Complete');
+    if(blockedEngine.probs.some(p => /\d/.test(p))) throw new Error(`blocked recovery must not show scenario probabilities: ${JSON.stringify(blockedEngine.probs)}`);
+    if(blockedEngine.medians.some(m => /\$[\d,]/.test(m))) throw new Error(`blocked recovery must not show scenario medians: ${JSON.stringify(blockedEngine.medians)}`);
   });
 
   await step('persistence: read-only mode blocks household edits', async () => {
@@ -2169,11 +2187,21 @@ try {
     if(storedLivingAfter === 12345) throw new Error('read-only edit must not persist to localStorage');
     if(after.raw !== before.raw) throw new Error('read-only edit must not mutate stored household bytes');
     if(storedLivingAfter !== storedLivingBefore) throw new Error(`read-only edit changed stored living (${storedLivingBefore} -> ${storedLivingAfter})`);
+
+    await page.reload({ waitUntil: 'networkidle2', timeout: 20000 });
+    await sleep(1000);
+    const reloaded = await page.evaluate(() => ({
+      status: document.querySelector('#status')?.textContent.trim() || '',
+      living: JSON.parse(localStorage.getItem('parallax.households.v1') || '{}').demo?.expenses?.living,
+    }));
+    if(reloaded.living === 12345) throw new Error('read-only edit must not survive reload');
+    if(reloaded.status !== readOnly) throw new Error(`read-only reload must keep recovery status, got "${reloaded.status}"`);
   });
 
   if(errs.length){
     console.error('PAGE/CONSOLE ERRORS:');
     errs.forEach(e => console.error('  ' + e));
+    throw new Error(`${errs.length} page/console error(s) — verify must fail on application errors`);
   }
 
   await browser.close();

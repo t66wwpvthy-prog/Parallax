@@ -157,15 +157,23 @@ export function commitPreparedHouseholdStore(storage, preparedResult, keys = { d
     return { ok: true, wrote: false };
   }
 
+  const priorDb = storage.getItem(keys.dbKey);
+  const priorActive = storage.getItem(keys.activeKey);
+  let dbWritten = false;
+
   try{
     if(preparedResult.changed){
       storage.setItem(keys.dbKey, JSON.stringify(preparedResult.db));
+      dbWritten = true;
     }
     if(preparedResult.pointerChanged){
       storage.setItem(keys.activeKey, preparedResult.activeHouseholdId);
     }
     return { ok: true, wrote: true };
   }catch(error){
+    if(dbWritten && priorDb != null){
+      try{ storage.setItem(keys.dbKey, priorDb); }catch{}
+    }
     return {
       ok: false,
       wrote: false,

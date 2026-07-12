@@ -19,6 +19,7 @@ export const READ_ONLY_MESSAGE = 'Household storage could not be upgraded. Viewi
 
 const VALID_BASIS_METHODS = new Set(['reported-cost-basis', 'principal', 'legacy-proportional', 'unknown']);
 const VALID_BASIS_STATUS = new Set(['confirmed', 'assumed', 'unknown']);
+const VALID_BASIS_SOURCES = new Set(['household-entry', 'import', 'planner-assumption']);
 const VALID_INCLUSION = new Set(['household-return', 'separate-return', 'unknown']);
 
 function stableHash(input){
@@ -44,6 +45,9 @@ export function deterministicLegacyAccountId(householdId, ledger, index, legacy)
 }
 
 function assertFiniteNonNegativeBalance(value, path){
+  if(typeof value === 'string'){
+    throw new Error(`${path} has invalid balance`);
+  }
   const n = Number(value);
   if(!Number.isFinite(n) || n < 0){
     throw new Error(`${path} has invalid balance`);
@@ -51,7 +55,12 @@ function assertFiniteNonNegativeBalance(value, path){
 }
 
 function parseLegacyBalance(value, path){
-  if(value == null || value === '') return 0;
+  if(value == null || value === ''){
+    throw new Error(`${path} has invalid balance`);
+  }
+  if(typeof value === 'string'){
+    throw new Error(`${path} has invalid balance`);
+  }
   const n = Number(value);
   if(!Number.isFinite(n) || n < 0){
     throw new Error(`${path} has invalid balance`);
@@ -86,6 +95,14 @@ function validateBasisEnvelope(basis, path){
   }
   if(basis.version !== 1){
     throw new Error(`${path}.basis.version is invalid`);
+  }
+  if(basis.status === 'confirmed'){
+    if(basis.source == null || !VALID_BASIS_SOURCES.has(basis.source)){
+      throw new Error(`${path}.basis confirmed fact requires source`);
+    }
+    if(basis.confirmedAt == null || typeof basis.confirmedAt !== 'string'){
+      throw new Error(`${path}.basis confirmed fact requires confirmedAt`);
+    }
   }
 }
 
@@ -129,6 +146,12 @@ function validateDesignatedFacts(facts, path){
 function validateTaxProfileOwner(profile, path){
   if(!profile || typeof profile !== 'object'){
     throw new Error(`${path} tax profile is required`);
+  }
+  if(!profile.traditionalIra || typeof profile.traditionalIra !== 'object' || Array.isArray(profile.traditionalIra)){
+    throw new Error(`${path}.traditionalIra is required`);
+  }
+  if(!profile.rothIra || typeof profile.rothIra !== 'object' || Array.isArray(profile.rothIra)){
+    throw new Error(`${path}.rothIra is required`);
   }
   validateFactEnvelope(profile.birthDate, `${path}.birthDate`);
   validateFactEnvelope(profile.blind, `${path}.blind`);
@@ -327,15 +350,23 @@ function defaultDesignatedFactsFor(entry){
   };
 }
 
-function isLegacyHousehold(plan){
-  if(!plan?.meta || plan.meta.accountSchemaVersion == null || plan.meta.accountSchemaVersion === ''){
-    return true;
+export function migrateHouseholdRecord(record, householdId){
+  if(!record || typeof record !== 'object'){
+    throw new Error('Invalid household record');
   }
-  const version = parseSchemaVersion(plan.meta.accountSchemaVersion);
-  if(version < ACCOUNT_SCHEMA_VERSION) return true;
-  const extras = plan.portfolio?.extraAccounts;
-  if(!Array.isArray(extras)) return true;
-  return extras.some(acct => !acct || typeof acct.id !== 'string' || typeof acct.typeId !== 'string');
+  const rawVersion = record.meta?.accountSchemaVersion;
+  if(rawVersion != null && rawVersion !== ''){
+    const parsed = parseSchemaVersion(rawVersion);
+    if(parsed > ACCOUNT_SCHEMA_VERSION){
+      throw Object.assign(new Error('Unsupported account schema version'), { code: ACCOUNT_SCHEMA_VERSION_UNSUPPORTED });
+    }
+    if(parsed === ACCOUNT_SCHEMA_VERSION){
+      const plan = JSON.parse(JSON.stringify(record));
+      validateCurrentSchemaHousehold(plan, householdId);
+      return { changed: false, plan };
+    }
+  }
+  return { changed: true, plan: migrateLegacyHousehold(record, householdId) };
 }
 
 export function migrateLegacyHousehold(record, householdId){
@@ -362,25 +393,6 @@ export function migrateLegacyHousehold(record, householdId){
   plan.meta.accountSchemaVersion = ACCOUNT_SCHEMA_VERSION;
   validateCurrentSchemaHousehold(plan, householdId);
   return plan;
-}
-
-export function migrateHouseholdRecord(record, householdId){
-  if(!record || typeof record !== 'object'){
-    throw new Error('Invalid household record');
-  }
-  const rawVersion = record.meta?.accountSchemaVersion;
-  if(rawVersion != null && rawVersion !== ''){
-    const parsed = parseSchemaVersion(rawVersion);
-    if(parsed > ACCOUNT_SCHEMA_VERSION){
-      throw Object.assign(new Error('Unsupported account schema version'), { code: ACCOUNT_SCHEMA_VERSION_UNSUPPORTED });
-    }
-  }
-  if(isLegacyHousehold(record)){
-    return { changed: true, plan: migrateLegacyHousehold(record, householdId) };
-  }
-  const plan = JSON.parse(JSON.stringify(record));
-  validateCurrentSchemaHousehold(plan, householdId);
-  return { changed: false, plan };
 }
 
 export function deriveHouseholdIssues(plan){

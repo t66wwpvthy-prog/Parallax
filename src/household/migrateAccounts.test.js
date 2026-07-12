@@ -96,6 +96,61 @@ test('invalid legacy balance fails migration instead of becoming zero', () => {
   assert.throws(() => migrateHouseholdRecord(legacy, 'hh1'), /invalid balance/i);
 });
 
+test('legacy missing balance fails migration instead of becoming zero', () => {
+  const legacy = {
+    meta: { householdId: 'hh1' },
+    portfolio: {
+      accounts: { taxable: { balance: 0, basisPct: 1 }, traditional: { balance: 0 }, roth: { balance: 0 } },
+      extraAccounts: [{ type: 'HSA', bucket: 'roth', owner: 'client' }],
+    },
+  };
+  assert.throws(() => migrateHouseholdRecord(legacy, 'hh1'), /invalid balance/i);
+});
+
+test('v1 household with one legacy-shaped account blocks without rewriting valid accounts', () => {
+  const validAcct = createAccount('brokerage_taxable', { owner: 'client', balance: 50000, valuationDate: '2026-01-15' });
+  validAcct.basis = {
+    amount: 40000,
+    method: 'reported-cost-basis',
+    status: 'confirmed',
+    source: 'household-entry',
+    confirmedAt: '2026-01-01T00:00:00.000Z',
+    version: 1,
+  };
+  const plan = createBlankHousehold('hh1');
+  plan.portfolio.extraAccounts = [
+    validAcct,
+    { type: 'HSA', bucket: 'roth', owner: 'client', balance: 1000 },
+  ];
+  const rawDb = { hh1: JSON.parse(JSON.stringify(plan)) };
+  const result = migrateHouseholdsDb(rawDb);
+  assert.equal(result.ok, false);
+  assert.equal(rawDb.hh1.portfolio.extraAccounts[0].id, validAcct.id);
+  assert.equal(rawDb.hh1.portfolio.extraAccounts[0].valuationDate, '2026-01-15');
+  assert.equal(rawDb.hh1.portfolio.extraAccounts[0].basis.status, 'confirmed');
+});
+
+test('v1 validation rejects numeric-string balances and impossible valuation dates', () => {
+  const plan = createBlankHousehold('hh1');
+  const acct = createAccount('brokerage_taxable', { owner: 'client', balance: 1000 });
+  acct.balance = '1000';
+  plan.portfolio.extraAccounts = [acct];
+  assert.throws(() => validateCurrentSchemaHousehold(plan, 'hh1'), /invalid balance/i);
+
+  const acct2 = createAccount('brokerage_taxable', { owner: 'client', balance: 1000 });
+  acct2.valuationDate = '2026-99-99';
+  plan.portfolio.extraAccounts = [acct2];
+  assert.throws(() => validateCurrentSchemaHousehold(plan, 'hh1'), /valuationDate/i);
+});
+
+test('v1 validation rejects confirmed basis without required metadata', () => {
+  const plan = createBlankHousehold('hh1');
+  const acct = createAccount('brokerage_taxable', { owner: 'client', balance: 1000 });
+  acct.basis = { amount: 500, method: 'reported-cost-basis', status: 'confirmed', source: null, confirmedAt: null, version: 1 };
+  plan.portfolio.extraAccounts = [acct];
+  assert.throws(() => validateCurrentSchemaHousehold(plan, 'hh1'), /confirmed fact requires/i);
+});
+
 test('future schema version blocks without mutation', () => {
   const future = createBlankHousehold('hh1');
   future.meta.accountSchemaVersion = 2;

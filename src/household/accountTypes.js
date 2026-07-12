@@ -126,7 +126,13 @@ export function isValidEngineBucket(bucket){
 }
 
 export function isValidValuationDate(value){
-  return value === null || DATE_RE.test(value);
+  if(value === null) return true;
+  if(!DATE_RE.test(value)) return false;
+  const [year, month, day] = value.split('-').map(Number);
+  const dt = new Date(Date.UTC(year, month - 1, day));
+  return dt.getUTCFullYear() === year
+    && dt.getUTCMonth() === month - 1
+    && dt.getUTCDate() === day;
 }
 
 export function parseSchemaVersion(value){

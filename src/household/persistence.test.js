@@ -73,3 +73,29 @@ test('dangling active pointer resolves only after validation', () => {
   assert.equal(prepared.activeHouseholdId, 'demo');
   assert.equal(prepared.pointerChanged, true);
 });
+
+test('pointer write failure rolls back successful database write', () => {
+  const legacy = {
+    meta: { householdId: 'hh1' },
+    portfolio: {
+      accounts: { taxable: { balance: 0, basisPct: 1 }, traditional: { balance: 0 }, roth: { balance: 0 } },
+      extraAccounts: [{ type: 'HSA', bucket: 'roth', owner: 'client', balance: 5000 }],
+    },
+  };
+  const originalDb = JSON.stringify({ hh1: legacy });
+  const storage = {
+    data: { [HHDB_KEY]: originalDb, [ACTIVE_KEY]: 'missing-id' },
+    getItem(key){ return this.data[key] ?? null; },
+    setItem(key, value){
+      if(key === ACTIVE_KEY) throw new Error('pointer failed');
+      this.data[key] = value;
+    },
+  };
+  const prepared = prepareHouseholdStore(readHouseholdStore(storage), deps);
+  assert.equal(prepared.changed, true);
+  assert.equal(prepared.pointerChanged, true);
+  const commit = commitPreparedHouseholdStore(storage, prepared);
+  assert.equal(commit.ok, false);
+  assert.equal(commit.readOnly, true);
+  assert.equal(storage.data[HHDB_KEY], originalDb);
+});

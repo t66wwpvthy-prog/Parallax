@@ -90,6 +90,10 @@ function isHouseholdStorageBlocked(){
   return accountMigrationState.blocked === true;
 }
 
+function canRunEngine(){
+  return !isHouseholdStorageBlocked();
+}
+
 function syncRecoveryStatus(message){
   recoveryStatusPinned = true;
   accountMigrationState.message = message;
@@ -160,6 +164,8 @@ function bootstrapHouseholds(){
       message: prepared.message || getBlockedMessage(),
       issuesByHousehold: {},
     };
+    householdsDb = {};
+    activeHouseholdId = null;
     syncRecoveryStatus(accountMigrationState.message);
     return;
   }
@@ -273,6 +279,7 @@ function loadScenarios(id){
 }
 // Wipe the ACTIVE household's saved scenarios and return to its first-run set.
 function resetScenarios(){
+  if(!guardPlanMutation()) return;
   try{ localStorage.removeItem(scenKey()); }catch(e){}
   uiState.scenarios=demoScenarios(); uiState.baseSnapshot=defaultLevers();
   uiState.plansDirty=true; runAll();
@@ -711,7 +718,11 @@ function demoScenarios(){
 // active household). First load seeds a blank Demo Household; reloads hydrate whatever
 // household was active; a corrupt store safely recreates the demo.
 bootstrapHouseholds();
-uiState.scenarios = loadScenarios() || demoScenarios();
+if(isHouseholdStorageBlocked()){
+  uiState.scenarios = [];
+} else {
+  uiState.scenarios = loadScenarios() || demoScenarios();
+}
 // Solver UI state. solverFormOpen toggles the inline "Solve…" form in the band
 // gutter; solving guards against re-entry while a solve is in flight.
 
@@ -917,6 +928,7 @@ uiState.baseSnapshot=defaultLevers();   // base lever values; used to preserve d
 // Re-seed scenarios from the current base, keeping each scenario's adjustment.
 // Every plan edit funnels through here — the one hook that arms SAVE.
 function reseedScenarios({ markDirty = true } = {}){
+  if(!guardPlanMutation()) return;
   if(markDirty){ planSaveDirty=true; saveFailed=false; syncSaveBtn(); }
   const nb=defaultLevers();
   const LINKED=['retireAge','ssAge','spend','savings','pensionAge'];   // base-linked levers
@@ -1035,6 +1047,7 @@ function wizFooter(){ return ensureHouseholdWizard().footer(hhStep); }
      newHousehold()    → creates a blank household, makes it active.
      switchHousehold() → loads another saved household by id. */
 function hhLoadRecord(status){
+  if(!guardPlanMutation()) return;
   planSaveDirty = false; saveFailed = false; syncSaveBtn();
   reseedScenarios({ markDirty: false });
   hhStep = hhDefaultStep();
@@ -1752,7 +1765,8 @@ const GL_PROD = {
   // Write-through for typing: everything commitPlanEdit does EXCEPT the
   // re-render (renderInputs) — the focused field must survive the keystroke.
   arm: () => {
-  reseedScenarios(); uiState.sharedPaths = null; uiState.plansDirty = true;
+    if(!guardPlanMutation()) return;
+    reseedScenarios(); uiState.sharedPaths = null; uiState.plansDirty = true;
     syncHeaderStatus('Plan edited \u00b7 open Scenarios');
   },
   esc:     (s) => escHtml(s),
@@ -1952,6 +1966,7 @@ function initGoalsLedger() {
 
   // Clicks: adds, steppers, cadence, chips, one-time age, delete.
   wrap.addEventListener('click', e => {
+    if(!guardPlanMutation()) return;
     const qa = e.target.closest('.glx-qa');
     if (qa) {
       const q = glQuickAdds()[+qa.dataset.q];
@@ -2001,6 +2016,7 @@ function initGoalsLedger() {
   // Typing writes through WITHOUT a re-render — focus never leaves the field.
   // Amount keystrokes reformat commas in place and repaint the footer sums.
   wrap.addEventListener('input', e => {
+    if(!guardPlanMutation()) return;
     const t = e.target, i = +t.dataset.i, g = goals[i];
     if (!g) return;
     if (t.classList.contains('glx-name')) {
@@ -2017,6 +2033,7 @@ function initGoalsLedger() {
   // Exact age boxes commit on change (blur/Enter): clamp to the resolved
   // span and keep start ≤ end, dragging the other bound along.
   wrap.addEventListener('change', e => {
+    if(!guardPlanMutation()) return;
     const t = e.target;
     if (!t.classList.contains('glx-ain')) return;
     const g = goals[+t.dataset.i];
@@ -2556,6 +2573,7 @@ function computeHistoricalStress(s, p, ov){
   return results;
 }
 function runAll(){
+  if(!canRunEngine()) return;
   if(running) return; running=true;
   const btn=$('#run-btn'); btn.disabled=true; syncHeaderStatus('Running…');
   setTimeout(()=>{
@@ -2701,6 +2719,7 @@ document.addEventListener('click', e=>{
   }
   const loadBtn = e.target.closest('.solve-load');
   if(loadBtn && solverResults && solverResults.rows){
+    if(!guardPlanMutation()) return;
     if(scenarios.length >= MAX_SCENARIOS) return;
     const idx = +loadBtn.dataset.soloIdx;
     const row = solverResults.rows[idx];
@@ -2718,6 +2737,7 @@ document.addEventListener('click', e=>{
   // Load a COMBO: the held-fixed soloBase with both lever moves applied.
   const cLoadBtn = e.target.closest('.cc-load');
   if(cLoadBtn && comboResults && comboResults.combos){
+    if(!guardPlanMutation()) return;
     if(scenarios.length >= MAX_SCENARIOS) return;
     const c = comboResults.combos[+cLoadBtn.dataset.comboIdx];
     if(!c) return;
@@ -2985,8 +3005,8 @@ $$('.htab').forEach(t=>t.onclick=()=>{
   document.body.classList.toggle('scn-active', t.dataset.page==='scenarios');
   // Returning to Scenarios after a base-plan edit re-runs the engine so the
   // columns reflect the new source; otherwise just redraw.
-  if(t.dataset.page==='scenarios'){ if(plansDirty){ uiState.plansDirty=false; runAll(); } }
-  if(t.dataset.page==='sequencing') runSeq();
+  if(t.dataset.page==='scenarios'){ if(plansDirty && canRunEngine()){ uiState.plansDirty=false; runAll(); } }
+  if(t.dataset.page==='sequencing' && canRunEngine()) runSeq();
   if(t.dataset.page==='net-worth') renderInputs();
   if(t.dataset.page==='household') syncHousehold();
 });
@@ -2996,12 +3016,13 @@ $$('#np-subnav .stab').forEach(b => b.onclick = () => {
   try { localStorage.setItem(SUB_KEY, activeSub); } catch {}
   renderInputs();
 });
-$('#run-btn').onclick=runAll;
+$('#run-btn').onclick=() => { if(canRunEngine()) runAll(); };
 // Manual SAVE: persist the FULL current input state (plan snapshot + the
 // scenario levers, which also self-save eagerly). Confirmation is real —
 // a failed storage write shows a retry state, never a fake "saved".
 let saveConfirmTimer=null;
 $('#save-btn').onclick=()=>{
+  if(!guardPlanMutation()) return;
   const ok=savePlan();
   saveScenarios();
   if(!ok){ saveFailed=true; syncSaveBtn(); syncHeaderStatus('Save failed \u00b7 storage blocked or full'); return; }
@@ -3234,6 +3255,7 @@ $('#path-mode').onchange=e=>{
   // Lever step: reuses the EXISTING production mutation (LEVCFG/levRange/syncPension)
   // and the existing manual Run flow ("Adjusted · Run to update"). No auto-run.
   function stepFocusLever(ci, key, dir) {
+    if(!guardPlanMutation()) return;
     const cfg = LEVCFG.find((c) => c.key === key); if (!cfg) return;
     const sc = scenarios[ci]; if (!sc || !sc.lev) return;
     const r = levRange(cfg), L = sc.lev;
@@ -3246,6 +3268,7 @@ $('#path-mode').onchange=e=>{
   // Commit a typed value from a .cmp-lev-in input in the Compare view.
   // Mirrors the parse/clamp logic from the scenario lever edit contract.
   function commitCmpInput(inp) {
+    if(!guardPlanMutation()) return;
     const ci = parseInt(inp.dataset.scnId, 10);
     const sc = scenarios[ci]; if (!sc || !sc.lev) return;
     const L = sc.lev;
@@ -3275,6 +3298,7 @@ $('#path-mode').onchange=e=>{
   // never touched. Fields equal to the base value are dropped so overrides stay minimal
   // and "same as Baseline" stays accurate.
   function commitGoalInput(inp) {
+    if(!guardPlanMutation()) return;
     const ci = parseInt(inp.dataset.scnId, 10);
     const idx = parseInt(inp.dataset.goalIdx, 10);
     const field = inp.dataset.goalField;
@@ -3383,6 +3407,12 @@ $('#path-mode').onchange=e=>{
     if (sub) {
       const hh = PROD.householdName();
       sub.textContent = (hh ? hh + ' · ' : '') + list.length + ' plan' + (list.length === 1 ? '' : 's');
+    }
+
+    if(!list.length){
+      view.innerHTML = '<div class="scn-empty">Planning projections are unavailable until household storage is restored.</div>';
+      syncToolbar();
+      return;
     }
 
     if (state.cashActive) {
@@ -3513,6 +3543,7 @@ $('#path-mode').onchange=e=>{
     let done = false;
     const commit = () => {
       if (done) return; done = true;
+      if(!guardPlanMutation()){ syncScenariosView(); return; }
       const v = inp.value.trim();
       if (v && v !== s.name) { s.name = v; saveScenarios(); }
       syncScenariosView();
@@ -3559,10 +3590,14 @@ renderSolvePanel();
 syncPathControls();
 renderInputs();
 bindHouseholdRailOnce();   // chapter rail (Demographics / Net Worth / Cash Flow) view switch
-reseedScenarios({ markDirty: false });   // align baseline levers with hydrated plan (saved levers can be stale)
-syncHousehold();           // render the editable landing Household page from `plan`
+if(canRunEngine()){
+  reseedScenarios({ markDirty: false });   // align baseline levers with hydrated plan (saved levers can be stale)
+  syncHousehold();           // render the editable landing Household page from `plan`
+  runAll();   // first iteration runs immediately so the tool opens populated
+} else {
+  syncHousehold();
+}
 document.body.classList.toggle('scn-active', document.querySelector('.page.on')?.dataset.page==='scenarios');
-runAll();   // first iteration runs immediately so the tool opens populated
 syncHeaderCluster();
 
 // ── STICKY NOTES OVERLAY ─────────────────────────────────────────────────────
