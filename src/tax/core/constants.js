@@ -31,6 +31,7 @@ export const TRIGGER_TAGS = [
   'agi_threshold',
   'bracket_calculation',
   'roth_conversion',
+  'roth_distribution',
   'charitable_planning',
   'ira_deductibility',
   'retirement_contribution',

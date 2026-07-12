@@ -2,6 +2,8 @@ import { resolveInputs } from '../../../engine.js';
 import { resolvePortfolioAccounts } from '../../household/resolvePortfolioAccounts.js';
 import { TaxInputError } from '../../tax/core/errors.js';
 import { buildHouseholdTaxFactContract } from './buildHouseholdTaxFactContract.js';
+import { buildWithdrawalTaxCounterfactualContext } from './buildWithdrawalTaxCounterfactualContext.js';
+import { runWithdrawalTaxCounterfactual } from './runWithdrawalTaxCounterfactual.js';
 
 const PATH_KEYS = Object.freeze(['p10', 'p25', 'p50', 'p75', 'p90']);
 const BUCKET_KEYS = Object.freeze(['taxable', 'traditional', 'roth']);
@@ -15,8 +17,9 @@ const SEMANTICS = Object.freeze({
   convergence: 'not-converged',
   pathSelection: 'shortcut-selected-anchors',
   attachmentScope: 'parent-analysis-sim-index',
-  balanceTiming: 'end-of-year',
-  withdrawals: 'gross-by-bucket-rmd-separate',
+  balanceTiming: 'row-opening-and-row-ending',
+  withdrawals: 'gross-by-bucket-rmd-forced-and-required-separate',
+  withdrawalTaxCounterfactuals: 'eight-coalition-line-24-shapley-not-converged',
 });
 
 function assertPlainObject(value, path){
@@ -134,7 +137,7 @@ function rowPhase(row, path){
   return 'retirement';
 }
 
-function compactRow(row, expectedSourceYear, path, previous){
+function compactRow(row, expectedSourceYear, path, previous, counterfactualContext){
   assertPlainObject(row, path);
   const year = assertNonNegativeInteger(row.year, `${path}.year`);
   if(year === 0) throw new TaxInputError(`${path}.year must be positive`);
@@ -152,7 +155,7 @@ function compactRow(row, expectedSourceYear, path, previous){
   const withdrawalBuckets = freezeBuckets(row.accountBreakdown, `${path}.accountBreakdown`);
   const endingTotal = assertFiniteNonNegative(row.balance, `${path}.balance`);
   const grossWithdrawal = assertFiniteNonNegative(row.withdrawal ?? 0, `${path}.withdrawal`);
-  const rmd = assertFiniteNonNegative(row.rmd ?? 0, `${path}.rmd`);
+  const rmdForced = assertFiniteNonNegative(row.rmd ?? 0, `${path}.rmd`);
   assertClose(sumBuckets(endingBuckets), endingTotal, `${path}.accountBalances`);
   assertClose(sumBuckets(withdrawalBuckets), grossWithdrawal, `${path}.accountBreakdown`);
 
@@ -173,7 +176,7 @@ function compactRow(row, expectedSourceYear, path, previous){
       throw new TaxInputError(`${path}.source must match the funded return path`);
     }
   }
-  if(phase === 'accumulation' && (grossWithdrawal !== 0 || rmd !== 0)){
+  if(phase === 'accumulation' && (grossWithdrawal !== 0 || rmdForced !== 0)){
     throw new TaxInputError(`${path} accumulation funding must be zero`);
   }
   if(phase === 'depleted' && (
@@ -188,6 +191,55 @@ function compactRow(row, expectedSourceYear, path, previous){
   const onePassFederalTax = phase === 'retirement'
     ? assertFiniteNonNegative(row.taxes, `${path}.taxes`)
     : null;
+  let startingBalances = null;
+  let taxableStartingBasis = null;
+  let taxableCapitalGain = null;
+  let rmdRequired = 0;
+  let preTaxDeltaWithdrawalBuckets = null;
+  let withdrawalTaxCounterfactual = null;
+  if(phase === 'retirement'){
+    preTaxDeltaWithdrawalBuckets = freezeBuckets(
+      row.preTaxDeltaAccountBreakdown,
+      `${path}.preTaxDeltaAccountBreakdown`
+    );
+    startingBalances = freezeBuckets(
+      row.accountStartingBalances,
+      `${path}.accountStartingBalances`
+    );
+    const startingTotal = assertFiniteNonNegative(row.startBalance, `${path}.startBalance`);
+    assertClose(sumBuckets(startingBalances), startingTotal, `${path}.accountStartingBalances`);
+    taxableStartingBasis = assertFiniteNonNegative(
+      row.taxableStartingBasis,
+      `${path}.taxableStartingBasis`
+    );
+    taxableCapitalGain = assertFiniteNonNegative(
+      row.taxableCapitalGain,
+      `${path}.taxableCapitalGain`
+    );
+    if(taxableCapitalGain > withdrawalBuckets.taxable + RECONCILIATION_TOLERANCE){
+      throw new TaxInputError(`${path}.taxableCapitalGain exceeds taxable withdrawals`);
+    }
+    rmdRequired = assertFiniteNonNegative(row.rmdRequired, `${path}.rmdRequired`);
+    for(const bucket of BUCKET_KEYS){
+      if(preTaxDeltaWithdrawalBuckets[bucket]
+        > withdrawalBuckets[bucket] + RECONCILIATION_TOLERANCE){
+        throw new TaxInputError(
+          `${path}.preTaxDeltaAccountBreakdown.${bucket} exceeds final funding`
+        );
+      }
+    }
+    const maximumRmdForced = Math.max(
+      0,
+      rmdRequired - preTaxDeltaWithdrawalBuckets.traditional
+    );
+    if(rmdForced > maximumRmdForced + RECONCILIATION_TOLERANCE){
+      throw new TaxInputError(`${path}.rmd exceeds the pre-tax-delta forced amount`);
+    }
+    withdrawalTaxCounterfactual = runWithdrawalTaxCounterfactual(
+      row,
+      counterfactualContext
+    );
+  }
 
   return Object.freeze({
     year,
@@ -198,7 +250,15 @@ function compactRow(row, expectedSourceYear, path, previous){
     onePassFederalTax,
     grossWithdrawal,
     grossWithdrawalsByBucket: withdrawalBuckets,
-    rmd,
+    ...(phase === 'retirement' ? {
+      rmdForced,
+      rmdRequired,
+      preTaxDeltaGrossWithdrawalsByBucket: preTaxDeltaWithdrawalBuckets,
+      startingBalances,
+      taxableStartingBasis,
+      taxableCapitalGain,
+      withdrawalTaxCounterfactual,
+    } : {}),
     endingBalances: Object.freeze({
       ...endingBuckets,
       total: endingTotal,
@@ -206,7 +266,7 @@ function compactRow(row, expectedSourceYear, path, previous){
   });
 }
 
-function compactPath(sim, shortcutAnchor, path){
+function compactPath(sim, shortcutAnchor, path, counterfactualContext){
   if(!Array.isArray(sim.rows) || sim.rows.length === 0){
     throw new TaxInputError(`${path}.rows is required`);
   }
@@ -220,7 +280,8 @@ function compactPath(sim, shortcutAnchor, path){
       row,
       sim.returnPath[index]?.y,
       `${path}.rows[${index}]`,
-      rows[index - 1]
+      rows[index - 1],
+      counterfactualContext
     ));
   });
   const terminalBalance = assertFiniteNonNegative(sim.terminalBalance, `${path}.terminalBalance`);
@@ -319,7 +380,8 @@ export function buildFederalFundingPathSidecar(
   shortcutAnalysis,
   federalAnalysis,
   plan,
-  overrides = {}
+  overrides = {},
+  taxOptions = {}
 ){
   assertAnalysis(shortcutAnalysis, 'shortcutAnalysis');
   assertAnalysis(federalAnalysis, 'federalAnalysis');
@@ -328,6 +390,13 @@ export function buildFederalFundingPathSidecar(
   const { shortcutByIndex, federalByIndex } = indexCoherentSims(
     shortcutAnalysis,
     federalAnalysis
+  );
+  const taxFacts = buildHouseholdTaxFactContract(plan);
+  const counterfactualContext = buildWithdrawalTaxCounterfactualContext(
+    plan,
+    shortcutAnalysis.params,
+    taxOptions,
+    { taxFacts }
   );
 
   const total = assertNonNegativeInteger(federalAnalysis.total, 'federalAnalysis.total');
@@ -361,7 +430,8 @@ export function buildFederalFundingPathSidecar(
       compact = compactPath(
         federalByIndex.get(anchor.simIndex),
         anchor,
-        `federalAnalysis.paths.${pathKey}`
+        `federalAnalysis.paths.${pathKey}`,
+        counterfactualContext
       );
       compactBySimIndex.set(anchor.simIndex, compact);
     }
@@ -369,14 +439,14 @@ export function buildFederalFundingPathSidecar(
   }
 
   return Object.freeze({
-    schemaVersion: 1,
+    schemaVersion: 2,
     successRate,
     survived,
     total,
     semantics: SEMANTICS,
     startingBalances: buildStartingBalances(shortcutAnalysis.params),
     projectionScope: buildProjectionScope(plan),
-    taxFacts: buildHouseholdTaxFactContract(plan),
+    taxFacts,
     paths: Object.freeze(paths),
   });
 }

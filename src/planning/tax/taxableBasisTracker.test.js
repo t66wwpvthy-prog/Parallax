@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert';
 import { defaultPlan, runHistoricalPath, resolveInputs } from '../../../engine.js';
 import {
+  capitalGainFromRow,
   gainFractionFromRow,
   buildRowTaxableGainPlanMeta,
 } from './taxableBasisTracker.js';
@@ -92,6 +93,18 @@ test('buildRowTaxableGainPlanMeta passes engine row taxableGainFraction into pla
   assert.strictEqual(gainFractionFromRow(row), 0.35);
   assert.strictEqual(rowPlanMeta(row, 0).taxableGainFraction, 0.35);
   assert.strictEqual(rowPlanMeta({ year: 1, accountBreakdown: { taxable: 0 } }, 1), null);
+});
+
+test('exact taxable capital gain takes precedence over the legacy fraction', () => {
+  const row = {
+    taxableCapitalGain: 12345.67,
+    taxableGainFraction: 0.9,
+    accountBreakdown: { taxable: 20000, traditional: 0, roth: 0 },
+  };
+  assert.equal(capitalGainFromRow(row), 12345.67);
+  assert.deepEqual(buildRowTaxableGainPlanMeta()(row, 0), {
+    capitalGain: 12345.67,
+  });
 });
 
 test('attachTypicalPathFederalTax completes when taxable starts empty and RMD funds it', () => {

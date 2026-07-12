@@ -1,4 +1,4 @@
-/* Consume engine row facts for taxable-account gain fraction (no basis replay). */
+/* Consume exact engine row taxable-gain facts (no basis replay). */
 
 /**
  * Read start-of-year taxable gain fraction exposed on an engine row.
@@ -9,14 +9,26 @@ export function gainFractionFromRow(row){
   return undefined;
 }
 
+/** Exact aggregate capital gain across every taxable withdrawal tranche. */
+export function capitalGainFromRow(row){
+  if(row?.taxableCapitalGain !== undefined) return row.taxableCapitalGain;
+  return undefined;
+}
+
 /**
- * Merge per-row taxableGainFraction from engine rows into rowPlanMeta.
+ * Prefer exact per-row capital-gain dollars. Legacy rows retain the prior
+ * taxableGainFraction fallback.
  */
 export function buildRowTaxableGainPlanMeta(baseRowPlanMeta = null){
   return (row, index) => {
     const meta = baseRowPlanMeta ? { ...baseRowPlanMeta(row, index) } : {};
-    const gainFraction = gainFractionFromRow(row);
-    if(gainFraction !== undefined) meta.taxableGainFraction = gainFraction;
+    const capitalGain = capitalGainFromRow(row);
+    if(capitalGain !== undefined){
+      meta.capitalGain = capitalGain;
+    }else{
+      const gainFraction = gainFractionFromRow(row);
+      if(gainFraction !== undefined) meta.taxableGainFraction = gainFraction;
+    }
     return Object.keys(meta).length > 0 ? meta : null;
   };
 }

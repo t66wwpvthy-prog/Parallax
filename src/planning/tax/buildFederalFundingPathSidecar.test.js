@@ -9,6 +9,8 @@ import {
   FEDERAL_FUNDING_PATH_KEYS,
   buildFederalFundingPathSidecar,
 } from './buildFederalFundingPathSidecar.js';
+import { buildWithdrawalTaxCounterfactualContext } from './buildWithdrawalTaxCounterfactualContext.js';
+import { runWithdrawalTaxCounterfactual } from './runWithdrawalTaxCounterfactual.js';
 
 const BUCKET_KEYS = ['taxable', 'traditional', 'roth'];
 
@@ -62,7 +64,7 @@ function returnPaths(){
   );
 }
 
-function compactExpected(row){
+function compactExpected(row, counterfactualContext){
   const phase = row.phase === 'accum'
     ? 'accumulation'
     : row.failed === true && row.source === null
@@ -79,7 +81,18 @@ function compactExpected(row){
     grossWithdrawalsByBucket: Object.fromEntries(
       BUCKET_KEYS.map(bucket => [bucket, row.accountBreakdown[bucket]])
     ),
-    rmd: row.rmd ?? 0,
+    ...(phase === 'retirement' ? {
+      rmdForced: row.rmd ?? 0,
+      rmdRequired: row.rmdRequired,
+      preTaxDeltaGrossWithdrawalsByBucket: row.preTaxDeltaAccountBreakdown,
+      startingBalances: row.accountStartingBalances,
+      taxableStartingBasis: row.taxableStartingBasis,
+      taxableCapitalGain: row.taxableCapitalGain,
+      withdrawalTaxCounterfactual: runWithdrawalTaxCounterfactual(
+        row,
+        counterfactualContext
+      ),
+    } : {}),
     endingBalances: {
       ...Object.fromEntries(BUCKET_KEYS.map(bucket => [bucket, row.accountBalances[bucket]])),
       total: row.balance,
@@ -103,13 +116,18 @@ test('sidecar preserves compact shortcut-aligned federal-funded bucket paths', (
   const shortcutBefore = structuredClone(shortcut);
   const federalBefore = structuredClone(federal);
   const sidecar = buildFederalFundingPathSidecar(shortcut, federal, plan);
+  const counterfactualContext = buildWithdrawalTaxCounterfactualContext(
+    plan,
+    shortcut.params
+  );
 
-  assert.equal(sidecar.schemaVersion, 1);
+  assert.equal(sidecar.schemaVersion, 2);
   assert.equal(sidecar.successRate, federal.successRate);
   assert.equal(sidecar.total, federal.total);
   assert.equal(sidecar.survived, federal.survived);
   assert.equal(sidecar.semantics.convergence, 'not-converged');
   assert.equal(sidecar.semantics.pathSelection, 'shortcut-selected-anchors');
+  assert.equal(sidecar.semantics.balanceTiming, 'row-opening-and-row-ending');
   assert.deepEqual(sidecar.startingBalances, {
     source: 'shortcut-analysis-resolved-engine-accounts',
     accountScope: 'engine-compatible',
@@ -140,7 +158,10 @@ test('sidecar preserves compact shortcut-aligned federal-funded bucket paths', (
     const compact = sidecar.paths[pathKey];
     assert.equal(funded.returnPath, anchor.returnPath);
     assert.equal(compact.simIndex, anchor.simIndex);
-    assert.deepEqual(compact.rows, funded.rows.map(compactExpected));
+    assert.deepEqual(
+      compact.rows,
+      funded.rows.map(row => compactExpected(row, counterfactualContext))
+    );
     for(const row of compact.rows){
       const balanceSum = BUCKET_KEYS.reduce((sum, key) => sum + row.endingBalances[key], 0);
       const withdrawalSum = BUCKET_KEYS.reduce(

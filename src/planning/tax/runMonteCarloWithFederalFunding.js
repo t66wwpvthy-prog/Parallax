@@ -96,7 +96,8 @@ export function runMonteCarloWithFederalFunding(
     shortcutAnalysis,
     federalAnalysis,
     plan,
-    overrides
+    overrides,
+    options
   );
 
   return {
