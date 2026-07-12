@@ -194,7 +194,10 @@ function verifyHousehold(){
   ok(/function createBlankHousehold\b/.test(source), 'createBlankHousehold() factory missing');
   ok(/function hydratePlan\b/.test(source),          'hydratePlan() (in-place plan hydrate) missing');
   ok(/function bootstrapHouseholds\b/.test(source),  'bootstrapHouseholds() (first-load seed + reload hydrate) missing');
-  ok(/function mergeMissingSchema\b/.test(source),   'merge-only household schema hydration missing');
+  ok(/readHouseholdStore\b/.test(source), 'readHouseholdStore() missing');
+  ok(/prepareHouseholdStore\b/.test(source), 'prepareHouseholdStore() missing');
+  ok(/commitPreparedHouseholdStore\b/.test(source), 'commitPreparedHouseholdStore() missing');
+  ok(/function guardPlanMutation\b/.test(source), 'guardPlanMutation() missing');
   ok(/function newHousehold\b/.test(source),         'newHousehold() action missing');
   ok(/function switchHousehold\b/.test(source),      'switchHousehold() action missing');
   ok(/function hhAlreadyRetired\b/.test(source),     'hhAlreadyRetired() helper missing (retirement age must go inert once retired)');
@@ -283,7 +286,8 @@ rmSync(OUT, { recursive: true, force: true });
 mkdirSync(OUT, { recursive: true });
 
 console.log('full test suite (npm test)');
-const test = spawnSync(process.execPath, ['--test', 'engine.test.js', 'src/tax/federal/rules/ordinaryIncomeTax.test.js', 'src/tax/federal/rules/standardDeduction.test.js', 'src/tax/federal/rules/traditionalIraDeductibility.test.js', 'src/tax/federal/rules/capitalGainsStacking.test.js', 'src/tax/federal/rules/taxableSocialSecurity.test.js', 'src/tax/federal/composers/form1040Spine.test.js', 'src/tax/tests/integration.test.js', 'src/tax/tests/golden1040.test.js', 'src/tax/tests/intakeCompleteness.test.js', 'src/tax/tests/annual1040Fixtures.test.js', 'src/tax/tests/law2025.test.js', 'src/tax/tests/engineYearTo1040Input.test.js', 'src/tax/tests/demoWagesRegression.test.js', 'src/tax/tests/marginalRateSummary.test.js', 'src/planning/tax/runTaxForScenarioPath.test.js', 'src/planning/tax/attachTypicalPathFederalTax.test.js', 'src/scenarios/promoteTaxFundedProbability.test.js'], { cwd: ROOT, stdio: 'inherit' });
+const npmCmd = process.platform === 'win32' ? 'npm.cmd' : 'npm';
+const test = spawnSync(npmCmd, ['test'], { cwd: ROOT, stdio: 'inherit', shell: true });
 if(test.status !== 0){ console.error('npm test failed'); process.exit(1); }
 
 console.log('household contract (static)');
@@ -785,17 +789,51 @@ try {
     });
     await sleep(200);
 
-    // 4. Co-client remove → '+ Add Co-Client' appears on step 1; re-add restores.
+    // 4. Co-client remove is blocked while spouse-owned accounts exist; reassign first.
     await goStep(1);
+    let coClientBlockMsg = null;
+    const onBlockDialog = async dialog => {
+      coClientBlockMsg = dialog.message();
+      await dialog.dismiss();
+    };
+    page.on('dialog', onBlockDialog);
+    await page.evaluate(() => {
+      document.querySelector('#hh-view [data-hh-action="remove-spouse"]')?.click();
+    });
+    await sleep(400);
+    page.off('dialog', onBlockDialog);
+    if(!/Reassign or remove Co-Client accounts before removing the Co-Client\./.test(coClientBlockMsg || ''))
+      throw new Error(`co-client removal must block with ownership message, got "${coClientBlockMsg}"`);
+
+    // Reassign spouse-owned accounts by removing them so co-client removal can proceed.
+    await goStep(2);
+    for(let i = 0; i < 4; i++){
+      const removed = await page.evaluate(() => {
+        const col = [...document.querySelectorAll('#hh-view .hh-col')].find(el => /CO-CLIENT/i.test(el.textContent || ''));
+        const btn = col?.querySelector('.row-x[data-rmpath^="portfolio.extraAccounts."]');
+        if(!btn) return false;
+        btn.click();
+        return true;
+      });
+      if(!removed) break;
+      await sleep(250);
+    }
+    await goStep(1);
+
     const removeBtnBefore = await page.$('#hh-view [data-hh-action="remove-spouse"]');
     if(!removeBtnBefore) throw new Error('Remove (co-client) action missing from step 1');
+    let removeConfirmed = false;
+    const onRemoveDialog = async dialog => {
+      removeConfirmed = true;
+      await dialog.accept();
+    };
+    page.on('dialog', onRemoveDialog);
     await page.evaluate(() => {
-      // Bypass the confirm() dialog by temporarily replacing it
-      const orig = window.confirm;
-      window.confirm = () => true;
       document.querySelector('#hh-view [data-hh-action="remove-spouse"]').click();
-      window.confirm = orig;
     });
+    await sleep(400);
+    page.off('dialog', onRemoveDialog);
+    if(!removeConfirmed) throw new Error('co-client removal confirm dialog did not appear');
     await sleep(350);
     const addSpouseVisible = await page.$('#hh-view [data-hh-action="add-spouse"]');
     if(!addSpouseVisible) throw new Error('after removing co-client, "+ Add Co-Client" did not appear');
@@ -824,6 +862,28 @@ try {
       if(el){ el.value = '65'; el.dispatchEvent(new Event('change', { bubbles:true })); }
     });
     await sleep(200);
+
+    // Restore spouse-owned accounts removed for the ownership block probe.
+    const restoreAccount = async (owner, label, amount) => {
+      await page.click(`#hh-view [data-hh-action="open-account-form"][data-owner="${owner}"]`);
+      await sleep(250);
+      await page.evaluate(({ label, amount }) => {
+        const form = document.querySelector('#hh-acct-form');
+        const typeSel = form.querySelector('.hh-form-type');
+        typeSel.value = String([...typeSel.options].findIndex(o => o.textContent.trim() === label));
+        form.querySelector('.hh-form-val').value = amount;
+        form.querySelector('[data-hh-action="save-account"]').click();
+      }, { label, amount });
+      await sleep(350);
+    };
+    await goStep(2);
+    await restoreAccount('spouse', 'Brokerage (taxable)', '800,000');
+    await restoreAccount('spouse', 'Roth IRA', '400,000');
+    const spouseTotal = await page.evaluate(() => {
+      const col = [...document.querySelectorAll('#hh-view .hh-col')].find(el => /CO-CLIENT/i.test(el.textContent || ''));
+      return col?.querySelector('.hh-col__sum')?.textContent.trim() || '';
+    });
+    if(!/\$1,200,000/.test(spouseTotal)) throw new Error(`restoring spouse accounts must restore the co-client total, got "${spouseTotal}"`);
   });
 
   await step('household menu: New creates blank; Load Demo switches without resetting it', async () => {
@@ -1378,6 +1438,34 @@ try {
   });
 
   await step('cash-flow view: exact columns, rows, summary, path controls, pills', async () => {
+    // Re-anchor the demo plan + scenario levers after earlier household edits.
+    await page.evaluate(() => {
+      const key = 'parallax.households.v1';
+      const db = JSON.parse(localStorage.getItem(key) || '{}');
+      const demo = db.demo;
+      if(!demo) return;
+      demo.meta.primaryName = 'Test Client';
+      demo.meta.spouseName = 'Test Co-Client';
+      demo.meta.filingStatus = 'marriedFilingJointly';
+      demo.household.primary = { currentAge: 64, retirementAge: 66, planEndAge: 95, birthYear: 1962 };
+      demo.household.spouse = { currentAge: 63, retirementAge: 65, birthYear: 1963 };
+      demo.portfolio.extraAccounts = [
+        { type:'Traditional IRA', bucket:'traditional', owner:'client', balance:1600000 },
+        { type:'Brokerage (taxable)', bucket:'taxable', owner:'spouse', balance:800000 },
+        { type:'Roth IRA', bucket:'roth', owner:'spouse', balance:400000 },
+      ];
+      localStorage.setItem(key, JSON.stringify(db));
+      localStorage.removeItem('parallax.scenarios.demo.v1');
+    });
+    await page.reload({ waitUntil: 'networkidle2', timeout: 20000 });
+    await new Promise(r => setTimeout(r, 1500));
+    await page.click('#run-btn');
+    for(let i = 0; i < 60; i++){
+      await new Promise(r => setTimeout(r, 500));
+      const status = await page.evaluate(() => document.querySelector('#status')?.textContent || '');
+      if(/Complete/i.test(status)) break;
+    }
+
     await page.click('button[data-page="scenarios"]');
     await new Promise(r => setTimeout(r, 600));
     await setCashFlow(page, true);
@@ -2008,6 +2096,79 @@ try {
       throw new Error(`Load Demo recreated fictional values: ${JSON.stringify(after.db.demo)}`);
     if(after.db[customId]?.meta?.primaryName !== 'Custom Saved' || after.db[customId]?.income?.socialSecurity?.primary?.pia !== 7777)
       throw new Error(`Load Demo altered the saved custom household: ${JSON.stringify(after.db[customId])}`);
+  });
+
+  await step('persistence: corrupt storage blocks without reseeding demo', async () => {
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
+    const corrupt = '{not-json';
+    await page.evaluate(raw => {
+      localStorage.setItem('parallax.households.v1', raw);
+      localStorage.setItem('parallax.activeHouseholdId', 'demo');
+    }, corrupt);
+    await page.reload({ waitUntil: 'networkidle2', timeout: 20000 });
+    await sleep(1000);
+    const after = await page.evaluate(() => ({
+      status: document.querySelector('#status')?.textContent.trim() || '',
+      raw: localStorage.getItem('parallax.households.v1'),
+      active: localStorage.getItem('parallax.activeHouseholdId'),
+    }));
+    const blocked = 'Household data could not be safely upgraded. No saved data was changed.';
+    if(after.status !== blocked) throw new Error(`corrupt storage must pin blocked status, got "${after.status}"`);
+    if(after.raw !== corrupt) throw new Error('corrupt storage must not be replaced with demo data');
+    if(after.active !== 'demo') throw new Error(`active pointer must remain unchanged during block, got "${after.active}"`);
+  });
+
+  await step('persistence: read-only mode blocks household edits', async () => {
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
+    await page.evaluateOnNewDocument(() => {
+      const orig = Storage.prototype.setItem;
+      Storage.prototype.setItem = function(key, value){
+        if(key === 'parallax.households.v1') throw new Error('QuotaExceededError');
+        return orig.call(this, key, value);
+      };
+    });
+    await page.evaluate(() => {
+      localStorage.clear();
+      const demo = {
+        demo: {
+          meta: { householdId: 'demo', name: 'Demo Household', isDemo: true, primaryName: '', spouseName: '', filingStatus: 'single', state: 'VA', accountSchemaVersion: 0 },
+          household: { primary: { currentAge: 60, retirementAge: 65, planEndAge: 90, birthYear: 1966 }, spouse: null, children: [] },
+          portfolio: { accounts: { taxable: { balance: 0, basisPct: 1 }, traditional: { balance: 0 }, roth: { balance: 0 } }, extraAccounts: [{ type: 'Brokerage (taxable)', bucket: 'taxable', owner: 'client', balance: 1000 }] },
+          expenses: { living: 0, healthcare: 0, healthcareRealGrowth: 0.02, extra: [] },
+          income: { socialSecurity: { primary: { pia: 0, claimAge: 67 }, spouse: null }, pension: { benefitByAge: {}, base: 0, startAge: 65, colaPct: 0 }, other: [], workingIncome: 0 },
+          savings: { annual: 0 },
+          goals: [],
+          simulation: { iterations: 1000 },
+        },
+      };
+      localStorage.setItem('parallax.households.v1', JSON.stringify(demo));
+      localStorage.setItem('parallax.activeHouseholdId', 'demo');
+    });
+    await page.reload({ waitUntil: 'networkidle2', timeout: 20000 });
+    await sleep(1200);
+    const readOnly = 'Household storage could not be upgraded. Viewing a read-only copy; reload after storage is available.';
+    const before = await page.evaluate(() => ({
+      status: document.querySelector('#status')?.textContent.trim() || '',
+      raw: localStorage.getItem('parallax.households.v1'),
+    }));
+    if(before.status !== readOnly) throw new Error(`read-only bootstrap must pin status, got "${before.status}"`);
+    const storedLivingBefore = JSON.parse(before.raw || '{}').demo?.expenses?.living;
+    await page.click('.htab[data-page="household"]'); await sleep(300);
+    await page.click('#hh-step-3'); await sleep(350);
+    await page.evaluate(() => {
+      const el = document.querySelector('#hh-view input[data-path="expenses.living"]');
+      if(el){ el.value = '12,345'; el.dispatchEvent(new Event('change', { bubbles: true })); }
+    });
+    await sleep(300);
+    const after = await page.evaluate(() => ({
+      status: document.querySelector('#status')?.textContent.trim() || '',
+      raw: localStorage.getItem('parallax.households.v1'),
+    }));
+    if(after.status !== readOnly) throw new Error(`read-only edit must keep recovery status, got "${after.status}"`);
+    const storedLivingAfter = JSON.parse(after.raw || '{}').demo?.expenses?.living;
+    if(storedLivingAfter === 12345) throw new Error('read-only edit must not persist to localStorage');
+    if(after.raw !== before.raw) throw new Error('read-only edit must not mutate stored household bytes');
+    if(storedLivingAfter !== storedLivingBefore) throw new Error(`read-only edit changed stored living (${storedLivingBefore} -> ${storedLivingAfter})`);
   });
 
   if(errs.length){

@@ -1,4 +1,5 @@
 import { escHtml } from './dom.js';
+import { accountDisplayTreatment } from '../src/household/accountTypes.js';
 
 const FS_LABELS = {
   marriedFilingJointly: 'Married filing jointly',
@@ -32,11 +33,8 @@ export function hhCompact(v){
   return '$' + Math.round(x);
 }
 
-export function accountTreatment(type){
-  const t = (type || '').toLowerCase();
-  if(/roth|hsa|529/.test(t)) return { label: 'Tax-free', color: '#879a86' };
-  if(/brokerage|taxable|checking|savings|trust|money market|cd|joint/.test(t)) return { label: 'Taxable', color: '#7688a0' };
-  return { label: 'Tax-deferred', color: '#c3a56a' };
+export function accountTreatment(typeOrTypeId){
+  return accountDisplayTreatment(typeOrTypeId);
 }
 
 export function renderGaugeSvg(accounts, total){

@@ -9,6 +9,20 @@ import { escHtml } from '../ui/dom.js';
 import { CHART_LAYOUT } from '../ui/chartLayout.js';
 import { GOAL_AREAS, GOAL_AREA_LBL, GOAL_ICONS_SVG, GOAL_COLOR_MAP } from '../ui/goalPalette.js';
 import { createDemoHousehold, createBlankHousehold } from '../ui/householdFactories.js';
+import { getWizardAccountTypes, resolveTypeFromLabel } from './household/accountTypes.js';
+import { createAccount, hasSpouseOwnedAccounts } from './household/createAccount.js';
+import { createBlankTaxProfiles, taxProfileHasConfirmedFacts } from './household/factEnvelope.js';
+import { mergeNonAccountDefaults } from './household/migrateAccounts.js';
+import {
+  ACTIVE_KEY,
+  HHDB_KEY,
+  applyPreparedReadOnlyFallback,
+  commitPreparedHouseholdStore,
+  getBlockedMessage,
+  getReadOnlyMessage,
+  prepareHouseholdStore,
+  readHouseholdStore,
+} from './household/persistence.js';
 import { droppedGoals, goalAreaAges, renderGoalsPage, syncGoalSelection } from '../ui/goals.js';
 import { pathModeLabel, pathOutcomeText, drawSeqChart, renderPrints, normalizePlaybackStrategy, renderPlayback, syncPathControls, updatePathReplayMode } from '../ui/sequencing.js';
 import { buildPathRows, buildCashSummary, renderCashflow } from '../ui/cashflow.js';
@@ -58,53 +72,66 @@ function hydratePlan(src){
    real backend seam replaces these later. Households are stored by id under
    HHDB_KEY; ACTIVE_KEY names the one currently loaded. Scenarios are scoped
    per household (scenKey) so demo and custom scenario sets never collide. */
-const HHDB_KEY   = 'parallax.households.v1';
-const ACTIVE_KEY = 'parallax.activeHouseholdId';
 let householdsDb = {};
 let activeHouseholdId = null;
+let accountMigrationState = { blocked: false, readOnly: false, message: null, issuesByHousehold: {} };
+let recoveryStatusPinned = false;
 
-function loadHouseholdsDb(){
-  try{
-    const o = JSON.parse(localStorage.getItem(HHDB_KEY));
-    if(o && typeof o === 'object' && !Array.isArray(o)) return o;
-  }catch(e){/* corrupt/blocked → caller reseeds demo */}
-  return null;
+const householdStorage = {
+  getItem(key){ return localStorage.getItem(key); },
+  setItem(key, value){ localStorage.setItem(key, value); },
+};
+
+function isHouseholdStorageReadOnly(){
+  return accountMigrationState.readOnly === true;
 }
-function persistHouseholdsDb(){ try{ localStorage.setItem(HHDB_KEY, JSON.stringify(householdsDb)); return true; }catch(e){ return false; } }
-function persistActiveId(){ try{ localStorage.setItem(ACTIVE_KEY, activeHouseholdId); }catch(e){} }
-// Snapshot the live plan back into its household record, then persist the store.
+
+function isHouseholdStorageBlocked(){
+  return accountMigrationState.blocked === true;
+}
+
+function syncRecoveryStatus(message){
+  recoveryStatusPinned = true;
+  accountMigrationState.message = message;
+  const el = $('#status');
+  if(el && message != null) el.textContent = message;
+  syncHeaderCluster();
+}
+
+function guardPlanMutation(){
+  if(isHouseholdStorageBlocked()){
+    syncRecoveryStatus(accountMigrationState.message || getBlockedMessage());
+    return false;
+  }
+  if(isHouseholdStorageReadOnly()){
+    syncRecoveryStatus(accountMigrationState.message || getReadOnlyMessage());
+    return false;
+  }
+  return true;
+}
+
+function persistHouseholdsDb(){
+  if(!guardPlanMutation()) return false;
+  try{ localStorage.setItem(HHDB_KEY, JSON.stringify(householdsDb)); return true; }catch(e){ return false; }
+}
+function persistActiveId(){
+  if(!guardPlanMutation()) return;
+  try{ localStorage.setItem(ACTIVE_KEY, activeHouseholdId); }catch(e){}
+}
 function saveActiveHousehold(){
+  if(!guardPlanMutation()) return false;
   if(activeHouseholdId && plan && plan.meta){
     householdsDb[activeHouseholdId] = JSON.parse(JSON.stringify(plan));
     return persistHouseholdsDb();
   }
   return false;
 }
-function mergeMissingSchema(saved, defaults){
-  const merged = JSON.parse(JSON.stringify(saved));
-  const fill = (target, source) => {
-    Object.entries(source || {}).forEach(([key, value]) => {
-      if(!(key in target)){
-        target[key] = JSON.parse(JSON.stringify(value));
-      } else if(
-        target[key] && value
-        && typeof target[key] === 'object' && !Array.isArray(target[key])
-        && typeof value === 'object' && !Array.isArray(value)
-      ){
-        fill(target[key], value);
-      }
-    });
-  };
-  fill(merged, defaults);
-  return merged;
-}
-
 function mergeHouseholdSchema(record, id){
   const year = new Date().getFullYear();
   const defaults = id === 'demo'
     ? createDemoHousehold(PRISTINE_PLAN, year)
     : createBlankHousehold(PRISTINE_PLAN, id, year);
-  return mergeMissingSchema(record, defaults);
+  return mergeNonAccountDefaults(record, defaults);
 }
 
 function ensureDemoRecord(){
@@ -114,34 +141,61 @@ function ensureDemoRecord(){
   }
   return householdsDb.demo;
 }
-// First-load seed + reload hydrate + corruption recovery, all in one pass.
+
 function bootstrapHouseholds(){
-  let db = loadHouseholdsDb();
-  let id = null; try{ id = localStorage.getItem(ACTIVE_KEY); }catch(e){}
-  // No store yet → create the single blank demo slot.
-  if(!db || !Object.keys(db).length){
-    const demo = createDemoHousehold(PRISTINE_PLAN, new Date().getFullYear());
-    db = { [demo.meta.householdId]: demo };
-    id = demo.meta.householdId;
-  } else {
-    db = Object.fromEntries(Object.entries(db)
-      .filter(([, record]) => record && typeof record === 'object' && !Array.isArray(record))
-      .map(([recordId, record]) => [recordId, mergeHouseholdSchema(record, recordId)]));
+  accountMigrationState = { blocked: false, readOnly: false, message: null, issuesByHousehold: {} };
+  recoveryStatusPinned = false;
+  const read = readHouseholdStore(householdStorage);
+  let prepared = prepareHouseholdStore(read, {
+    createDemoHousehold,
+    createBlankHousehold,
+    pristinePlan: PRISTINE_PLAN,
+    currentYear: () => new Date().getFullYear(),
+  });
+
+  if(!prepared.ok){
+    accountMigrationState = {
+      blocked: true,
+      readOnly: false,
+      message: prepared.message || getBlockedMessage(),
+      issuesByHousehold: {},
+    };
+    syncRecoveryStatus(accountMigrationState.message);
+    return;
   }
-  // Missing/dangling active pointer → fall back to any household (or a new demo).
-  if(!id || !db[id]){
-    id = Object.keys(db)[0] || null;
-    if(!id){
-      const demo = createDemoHousehold(PRISTINE_PLAN, new Date().getFullYear());
-      db[demo.meta.householdId] = demo;
-      id = demo.meta.householdId;
+
+  const commit = commitPreparedHouseholdStore(householdStorage, prepared);
+  if(!commit.ok){
+    if(commit.readOnly){
+      prepared = applyPreparedReadOnlyFallback(prepared);
+      accountMigrationState = {
+        blocked: false,
+        readOnly: true,
+        message: getReadOnlyMessage(),
+        issuesByHousehold: prepared.issuesByHousehold || {},
+      };
+    } else {
+      accountMigrationState = {
+        blocked: true,
+        readOnly: false,
+        message: getBlockedMessage(),
+        issuesByHousehold: {},
+      };
+      syncRecoveryStatus(accountMigrationState.message);
+      return;
     }
+  } else {
+    accountMigrationState.issuesByHousehold = prepared.issuesByHousehold || {};
   }
-  householdsDb = db;
-  activeHouseholdId = id;
-  persistHouseholdsDb();
-  persistActiveId();
-  hydratePlan(householdsDb[activeHouseholdId]);
+
+  householdsDb = prepared.db;
+  activeHouseholdId = prepared.activeHouseholdId;
+  if(prepared.hydrate){
+    hydratePlan(householdsDb[activeHouseholdId]);
+  }
+  if(accountMigrationState.readOnly){
+    syncRecoveryStatus(getReadOnlyMessage());
+  }
 }
 
 // Scenario accent palette (SCEN_PALETTE / colorFor / BASE_ACCENT / scenAccent)
@@ -190,6 +244,7 @@ function syncPension(L){
 const SCEN_PREFIX='parallax.scenarios.';
 const scenKey=id=>SCEN_PREFIX + (id || activeHouseholdId || 'demo') + '.v1';
 function saveScenarios(){
+  if(!guardPlanMutation()) return;
   try{
     const slim=scenarios.map(s=>({name:s.name, base:!!s.base, lev:s.lev}));
     localStorage.setItem(scenKey(), JSON.stringify(slim));
@@ -270,6 +325,7 @@ function syncHeaderCluster(){
   if(cluster) cluster.dataset.state = state;
 }
 function syncHeaderStatus(message){
+  if(recoveryStatusPinned) return;
   const el = $('#status');
   if(!el) return;
   if(message != null) el.textContent = message;
@@ -286,6 +342,7 @@ function syncHeaderTabs(activeTab){
 // Add a new scenario (clones the current baseline's levers so it starts as a
 // neutral copy the advisor then adjusts). Capped at MAX_SCENARIOS.
 function addScenario(){
+  if(!guardPlanMutation()) return;
   if(scenarios.length>=MAX_SCENARIOS) return;
   const baseLev=scenarios.find(s=>s.base)?.lev || defaultLevers();
   const n=scenarios.filter(s=>!s.base).length;
@@ -295,6 +352,7 @@ function addScenario(){
 }
 // Remove a non-baseline scenario by index.
 function removeScenario(ci){
+  if(!guardPlanMutation()) return;
   if(ci<=0 || ci>=scenarios.length || scenarios[ci].base) return;
   uiState.removeScenarioAt(ci);
   saveScenarios(); uiState.plansDirty=true; runAll();
@@ -890,16 +948,10 @@ function pensionFields(){
    eye lands in the same place. Useful information, not descriptions. */
 // Typed investment accounts → tax sleeve. Workplace + IRA plans are pre-tax;
 // the bucket is what the engine consumes (extraAccounts fold into the totals).
-const ACCT_TYPES = [
-  {label:'Traditional IRA', bucket:'traditional'}, {label:'401(k)', bucket:'traditional'},
-  {label:'403(b)', bucket:'traditional'}, {label:'457', bucket:'traditional'},
-  {label:'401(a)', bucket:'traditional'}, {label:'SEP IRA', bucket:'traditional'},
-  {label:'SIMPLE IRA', bucket:'traditional'}, {label:'Solo 401(k)', bucket:'traditional'},
-  {label:'Roth IRA', bucket:'roth'}, {label:'Brokerage', bucket:'taxable'},
-];
 let acctSel = null;   // type currently armed in the add picker
 // Post-edit refresh (mirrors the balance-sheet field commit, minus setPath).
 function commitPlanEdit(){
+  if(!guardPlanMutation()) return;
   reseedScenarios(); uiState.sharedPaths=null; uiState.plansDirty=true; renderInputs();
   syncHeaderStatus('Plan edited · open Scenarios');
 }
@@ -922,38 +974,7 @@ const HH_OWNERS  = [['client','Client'],['spouse','Co-Client'],['joint','Joint']
 /* Account Type Bank — every addable account type and the engine tax sleeve it
    maps into. The engine consumes ONLY the three buckets (taxable / traditional /
    roth); the type is advisor-facing detail. */
-const HH_WIZARD_ACCOUNT_TYPES = [
-  { label:'Traditional IRA',     bucket:'traditional' },
-  { label:'Roth IRA',            bucket:'roth' },
-  { label:'Brokerage (taxable)', bucket:'taxable' },
-  { label:'401(k)',              bucket:'traditional' },
-  { label:'HSA',                 bucket:'roth' },
-];
-const HH_ACCOUNT_TYPES = [
-  { label:'Checking',            bucket:'taxable' },
-  { label:'Savings',             bucket:'taxable' },
-  { label:'Money Market',        bucket:'taxable' },
-  { label:'CD',                  bucket:'taxable' },
-  { label:'Brokerage (taxable)', bucket:'taxable' },
-  { label:'Joint brokerage',     bucket:'taxable', owner:'joint' },
-  { label:'Trust brokerage',     bucket:'taxable', owner:'trust' },
-  { label:'Traditional IRA',     bucket:'traditional' },
-  { label:'Rollover IRA',        bucket:'traditional' },
-  { label:'Roth IRA',            bucket:'roth' },
-  { label:'401(k)',              bucket:'traditional' },
-  { label:'Roth 401(k)',         bucket:'roth' },
-  { label:'403(b)',              bucket:'traditional' },
-  { label:'457',                 bucket:'traditional' },
-  { label:'SEP IRA',             bucket:'traditional' },
-  { label:'SIMPLE IRA',          bucket:'traditional' },
-  { label:'Solo 401(k)',         bucket:'traditional' },
-  { label:'Qualified Plan',      bucket:'traditional' },
-];
-const hhBucketForType = t => (
-  HH_WIZARD_ACCOUNT_TYPES.find(x => x.label === t) ||
-  HH_ACCOUNT_TYPES.find(x => x.label === t) ||
-  {}
-).bucket || 'taxable';
+const HH_WIZARD_ACCOUNT_TYPES = getWizardAccountTypes();
 const HH_STATES = [
   ['AL','Alabama'],['AK','Alaska'],['AZ','Arizona'],['AR','Arkansas'],['CA','California'],['CO','Colorado'],['CT','Connecticut'],['DE','Delaware'],['FL','Florida'],['GA','Georgia'],
   ['HI','Hawaii'],['ID','Idaho'],['IL','Illinois'],['IN','Indiana'],['IA','Iowa'],['KS','Kansas'],['KY','Kentucky'],['LA','Louisiana'],['ME','Maine'],['MD','Maryland'],
@@ -1041,6 +1062,7 @@ function loadDemoHousehold(){
 // Create a brand-new blank household, persist it, and make it active with its
 // own fresh scenario set.
 function newHousehold(){
+  if(!guardPlanMutation()) return;
   saveActiveHousehold();                 // snapshot the outgoing household first
   saveScenarios();                       // …and persist its scoped scenarios
   const blank = createBlankHousehold(PRISTINE_PLAN, newHouseholdId(), new Date().getFullYear());
@@ -1055,6 +1077,7 @@ function newHousehold(){
 // Switch to another saved household by id (persists the outgoing one first, and
 // loads the incoming household's own scoped scenarios).
 function switchHousehold(id){
+  if(!guardPlanMutation()) return;
   if(!householdsDb[id] || id === activeHouseholdId) return;
   saveActiveHousehold();
   saveScenarios();                       // persist the outgoing household's scenarios
@@ -1280,7 +1303,7 @@ const ROW_KINDS = {
   goalRec:   { arr:'goals',          mk:()=>({ name:'',  amount:0, startAge:plan.household.primary.retirementAge, endAge:plan.household.primary.planEndAge }) },
   goalOnce:  { arr:'goals',          mk:()=>({ name:'',  amount:0, startAge:70, endAge:70 }) },
   property:  { arr:'properties',     mk:()=>({ name:'',  value:0, purchasePrice:0, mortgage:{ balance:0, rate:0, termYears:0 } }) },
-  account:   { arr:'portfolio.extraAccounts', mk:()=>({ type:'New account', bucket:'taxable', owner:'joint', balance:0 }) },
+  account:   { arr:'portfolio.extraAccounts', mk:()=>createAccount('brokerage_taxable', { owner:'joint', balance:0 }) },
   // Wizard Step 1 children: advisor context, engine-inert (name + birth year).
   child:     { arr:'household.children', mk:()=>({ name:'', birthYear: new Date().getFullYear() - 10 }) },
 };
@@ -2042,6 +2065,7 @@ $('#np-content').addEventListener('click', e => {
   // Row delete (×)
   const rx = e.target.closest('.row-x');
   if(rx){
+    if(!guardPlanMutation()) return;
     const path = rx.dataset.rmpath;
     const ks = path.split('.'); const last = ks.pop();
     let t = plan; for(const k of ks){ if(t==null) return; t=t[k]; }
@@ -2057,6 +2081,7 @@ $('#np-content').addEventListener('click', e => {
   // "+ add …" — push a default row onto the backing array, then re-render.
   const adder = e.target.closest('[data-add]');
   if(adder){
+    if(!guardPlanMutation()) return;
     const kind = adder.dataset.add;
     const k = ROW_KINDS[kind];
     if(k){
@@ -2070,13 +2095,20 @@ $('#np-content').addEventListener('click', e => {
   // Account type chip
   const chip = e.target.closest('.acct-chip');
   if(chip){
-    acctSel = { label: chip.dataset.label, bucket: chip.dataset.bucket };
+    const resolved = resolveTypeFromLabel(chip.dataset.label);
+    if(!resolved.known || !resolved.typeId) return;
+    acctSel = {
+      label: resolved.label,
+      bucket: resolved.engineBucket,
+      typeId: resolved.typeId,
+    };
     $$('#np-content .acct-chip').forEach(c => c.classList.toggle('sel', c === chip));
     const btn = $('#np-content .acct-add');
     if(btn){ btn.disabled = false; btn.textContent = 'Add ' + acctSel.label; }
     return;
   }
   if(e.target.closest('.acct-add')){
+    if(!guardPlanMutation()) return;
     if(!acctSel) return;
     const amtEl = $('#np-content .acct-amt');
     const bal = parseFloat(String(amtEl ? amtEl.value : '').replace(/[^0-9.]/g, ''));
@@ -2085,13 +2117,17 @@ $('#np-content').addEventListener('click', e => {
       return;
     }
     if(!plan.portfolio.extraAccounts) plan.portfolio.extraAccounts = [];
-    plan.portfolio.extraAccounts.push({ type: acctSel.label, bucket: acctSel.bucket, balance: Math.round(bal) });
+    plan.portfolio.extraAccounts.push(createAccount(acctSel.typeId, {
+      owner: 'joint',
+      balance: Math.round(bal),
+    }));
     acctSel = null;
     commitPlanEdit();
     return;
   }
   const rm = e.target.closest('.acct-x');
   if(rm){
+    if(!guardPlanMutation()) return;
     const i = +rm.dataset.acctidx;
     if(plan.portfolio.extraAccounts) plan.portfolio.extraAccounts.splice(i, 1);
     commitPlanEdit();
@@ -2105,6 +2141,7 @@ $('#np-content').addEventListener('change', e => {
   // Field edits (data-path bindings)
   const path = e.target.dataset.path, type = e.target.dataset.type;
   if(path){
+    if(!guardPlanMutation()) return;
     const raw = e.target.value;
     if(type==='text' || type==='strategy'){            // free-text row labels or select values
       setPath(plan, path, raw);
@@ -2145,6 +2182,7 @@ $('#np-content').addEventListener('change', e => {
   // Extra-account balance edit
   const bal = e.target.closest('.acct-bal');
   if(!bal) return;
+  if(!guardPlanMutation()) return;
   const i = +bal.dataset.acctidx;
   const v = Math.max(0, Math.round(parseFloat(String(bal.value).replace(/[^0-9.]/g, '')) || 0));
   if(plan.portfolio.extraAccounts && plan.portfolio.extraAccounts[i]){
@@ -2160,6 +2198,7 @@ $('#np-content').addEventListener('change', e => {
    binding so the Goals/#np-content flow is untouched. `owner`/`bucket` are string
    selects (account labels); everything else matches the shared field types. */
 function hhCommit(){
+  if(!guardPlanMutation()) return;
   reseedScenarios(); uiState.sharedPaths=null; uiState.plansDirty=true;
   syncHousehold();
   syncHeaderStatus('Plan edited · open Scenarios');
@@ -2170,27 +2209,18 @@ $('#hh-view').addEventListener('input', e => {
 $('#hh-view').addEventListener('change', e => {
   // Add-account form controls carry no data-path (transient until Save).
   if(!e.target.dataset.path && e.target.classList && e.target.classList.contains('hh-form-type')){
-    // Choosing a type prefills the form's ownership from the bank's default
-    // (Joint brokerage → Joint, Trust brokerage → Trust) without a re-render.
-    const t = HH_ACCOUNT_TYPES[+e.target.value];
-    const ownerSel = document.querySelector('#hh-acct-form .hh-form-owner');
-    if(t && t.owner && ownerSel) ownerSel.value = t.owner;
     return;
   }
   const path = e.target.dataset.path, type = e.target.dataset.type;
   if(!path) return;
+  if(!guardPlanMutation()) return;
   const raw = e.target.value;
   if(type==='text' || type==='strategy' || type==='owner' || type==='bucket'){   // string writes
     setPath(plan, path, raw);
     hhCommit();
     return;
   }
-  // Changing an account's TYPE re-derives its tax bucket from the bank (the
-  // bucket is what the engine folds into taxable/traditional/roth).
   if(type==='acctType'){
-    setPath(plan, path, raw);
-    setPath(plan, path.replace(/\.type$/, '.bucket'), hhBucketForType(raw));
-    hhCommit();
     return;
   }
   let v;
@@ -2258,6 +2288,7 @@ document.querySelector('.page[data-page="household"] .hh-wizard')?.addEventListe
   // "+ Account / Real asset / Liability / Income source" — push a default row.
   const adder = e.target.closest('[data-add]');
   if(adder){
+    if(!guardPlanMutation()) return;
     const k = ROW_KINDS[adder.dataset.add];
     if(k){
       const arr = getPath(plan, k.arr);
@@ -2269,6 +2300,7 @@ document.querySelector('.page[data-page="household"] .hh-wizard')?.addEventListe
   // Household-level actions (co-client toggle, pension ages, account-bank form)
   const act = e.target.closest('[data-hh-action]');
   if(act){
+    if(!guardPlanMutation()) return;
     const action = act.dataset.hhAction;
     if(action === 'add-spouse'){
       plan.household.spouse = { currentAge: 55, retirementAge: 62, birthYear: new Date().getFullYear() - 55 };
@@ -2277,10 +2309,20 @@ document.querySelector('.page[data-page="household"] .hh-wizard')?.addEventListe
       plan.meta.filingStatus = 'marriedFilingJointly';
       hhCommit();
     } else if(action === 'remove-spouse'){
-      if(!confirm('Remove co-client from this household?')) return;
+      if(hasSpouseOwnedAccounts(plan)){
+        alert('Reassign or remove Co-Client accounts before removing the Co-Client.');
+        return;
+      }
+      const spouseFacts = plan.taxProfiles?.spouse;
+      const discardFacts = spouseFacts && taxProfileHasConfirmedFacts(spouseFacts);
+      const prompt = discardFacts
+        ? 'Remove co-client from this household? Confirmed co-client tax facts will be discarded.'
+        : 'Remove co-client from this household?';
+      if(!confirm(prompt)) return;
       plan.household.spouse = null;
       plan.income.socialSecurity.spouse = null;
       plan.meta.filingStatus = 'single';
+      if(plan.taxProfiles) plan.taxProfiles.spouse = createBlankTaxProfiles().spouse;
       hhCommit();
     } else if(action === 'open-account-form'){
       hhAddingKey = null;
@@ -2303,7 +2345,7 @@ document.querySelector('.page[data-page="household"] .hh-wizard')?.addEventListe
       }
       const owner = hhAcctFormOwner || 'client';
       if(!plan.portfolio.extraAccounts) plan.portfolio.extraAccounts = [];
-      plan.portfolio.extraAccounts.push({ type: t.label, bucket: t.bucket, owner, balance: Math.round(bal) });
+      plan.portfolio.extraAccounts.push(createAccount(t.typeId, { owner, balance: Math.round(bal) }));
       hhAcctFormOwner = null;
       hhCommit();
     } else if(action === 'open-add'){
