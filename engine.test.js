@@ -10,6 +10,7 @@ import {
   annualMortgagePayment, resetSeed
 } from './engine.js';
 import { createFederalTaxResolver } from './src/planning/tax/createFederalTaxResolver.js';
+import { resolvePortfolioAccounts } from './src/household/resolvePortfolioAccounts.js';
 
 test('return data spans the full history', () => {
   assert.ok(RETURN_DATA.length >= 90, 'expected ~98 years of returns');
@@ -498,7 +499,10 @@ test('extra typed accounts sum into their bucket; empty = unchanged', () => {
   // a $500k 401(k) lands in the pre-tax (traditional) sleeve
   const withAcct = JSON.parse(JSON.stringify(defaultPlan));
   withAcct.portfolio.extraAccounts = [{ type:'401k', bucket:'traditional', balance:500000 }];
+  const fold = resolvePortfolioAccounts(withAcct);
   const r = resolveInputs(withAcct, {});
+  assert.strictEqual(r.accounts.traditional.balance, fold.engineBuckets.traditional.balance,
+    'engine resolved balance must come from the shared account fold');
   assert.strictEqual(r.accounts.traditional.balance, baseR.accounts.traditional.balance + 500000,
     '401(k) adds to the pre-tax bucket');
   assert.strictEqual(r.accounts.roth.balance, baseR.accounts.roth.balance, 'Roth untouched');
@@ -508,6 +512,26 @@ test('extra typed accounts sum into their bucket; empty = unchanged', () => {
   const rt = resolveInputs(withTax, {});
   assert.strictEqual(rt.accounts.taxable.balance, baseR.accounts.taxable.balance + 100000, 'taxable add folds into taxable balance');
   assert.ok(rt.accounts.taxable.basis > baseR.accounts.taxable.basis, 'taxable add lifts basis');
+});
+
+test('inherited accounts appear in current folds but stay out of engine inputs until rules exist', () => {
+  const base = JSON.parse(JSON.stringify(defaultPlan));
+  const baseInputs = resolveInputs(base, {});
+  const withInherited = JSON.parse(JSON.stringify(defaultPlan));
+  withInherited.portfolio.extraAccounts = [
+    { typeId:'inherited_traditional_ira', type:'Inherited Traditional IRA', bucket:'traditional', balance:500000 },
+    { typeId:'inherited_roth_ira', type:'Inherited Roth IRA', bucket:'roth', balance:250000 },
+  ];
+  const fold = resolvePortfolioAccounts(withInherited);
+  const inputs = resolveInputs(withInherited, {});
+
+  assert.equal(fold.taxBuckets.traditional.balance, baseInputs.accounts.traditional.balance + 500000);
+  assert.equal(fold.taxBuckets.roth.balance, baseInputs.accounts.roth.balance + 250000);
+  assert.equal(inputs.accounts.traditional.balance, baseInputs.accounts.traditional.balance);
+  assert.equal(inputs.accounts.roth.balance, baseInputs.accounts.roth.balance);
+  assert.deepEqual(fold.pendingStrategyAccounts.map(account => account.typeId), [
+    'inherited_traditional_ira', 'inherited_roth_ira',
+  ]);
 });
 
 test('empty liabilities = byte-identical to before (no regression)', () => {

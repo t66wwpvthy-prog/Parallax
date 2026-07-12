@@ -1,9 +1,8 @@
 import { escHtml } from './dom.js';
+import { resolvePortfolioAccounts } from '../src/household/resolvePortfolioAccounts.js';
 
 export function investableTotal(plan){
-  const a=plan.portfolio.accounts;
-  const extra=(plan.portfolio.extraAccounts||[]).reduce((s,x)=>s+Math.max(0,x.balance||0),0);
-  return (a.taxable.balance||0)+(a.traditional.balance||0)+(a.roth.balance||0)+extra;
+  return resolvePortfolioAccounts(plan).totalBalance;
 }
 
 export function realAssetsTotal(plan){ return (plan.properties||[]).reduce((s,a)=>s+(a.value||0),0); }
