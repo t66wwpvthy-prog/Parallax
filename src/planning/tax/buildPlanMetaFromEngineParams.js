@@ -50,6 +50,9 @@ export function buildPlanMetaFromEngineParams(params, options = {}){
 
   if(options.wages !== undefined) planMeta.wages = options.wages;
   if(options.resolved) planMeta.resolved = { ...options.resolved };
+  if(options.socialSecurityWorksheet){
+    planMeta.socialSecurityWorksheet = { ...options.socialSecurityWorksheet };
+  }
   if(options.taxYear !== undefined) planMeta.taxYear = options.taxYear;
 
   return planMeta;

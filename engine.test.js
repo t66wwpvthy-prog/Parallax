@@ -452,6 +452,44 @@ test('RMDs force pre-tax distributions from 73 and reinvest the excess', () => {
   assert.ok(r2.rows.every(x => !(x.rmd > 0)), 'no Traditional balance → no RMD');
 });
 
+test('engine rows separate total required RMD from the forced top-up', () => {
+  const p = structuredClone(defaultPlan);
+  p.household.primary = { currentAge: 72, retirementAge: 72, planEndAge: 75 };
+  p.portfolio.accounts = {
+    taxable: { balance: 0, basisPct: 1 },
+    traditional: { balance: 10_000_000 },
+    roth: { balance: 0 },
+  };
+  p.income.socialSecurity = { primary: { pia: 0, claimAge: 70 }, spouse: null };
+  p.income.other = [];
+  p.income.pension = { benefitByAge: {}, base: 0, startAge: 99, colaPct: 0 };
+  p.expenses = {
+    living: 100_000, housing: 0, debt: 0, healthcare: 0,
+    healthcareRealGrowth: 0, extra: [],
+  };
+  p.goals = [];
+  p.liabilities = [];
+  p.properties = [];
+  p.ltc = { amount: 0, onsetAge: 99 };
+  const params = resolveInputs(p, {});
+  const sim = runSinglePath(params, [
+    { y: 2025, proxyReturn: 0 },
+    { y: 2026, proxyReturn: 0 },
+    { y: 2027, proxyReturn: 0 },
+  ]);
+  const pre73 = sim.rows.find(row => row.age === 72);
+  const at73 = sim.rows.find(row => row.age === 73);
+  assert.equal(pre73.rmdRequired, 0);
+  assert.ok(at73.rmdRequired > 0);
+  assert.ok(Math.abs(
+    at73.rmdRequired - at73.accountStartingBalances.traditional / 26.5
+  ) < 0.01);
+  assert.ok(at73.accountBreakdown.traditional + at73.rmd >= at73.rmdRequired - 0.01);
+  assert.deepEqual(at73.preTaxDeltaAccountBreakdown, at73.accountBreakdown);
+  assert.ok(at73.rmd < at73.rmdRequired,
+    'row.rmd remains only the portion forced beyond the spending withdrawal');
+});
+
 // ── Contribution split (Roth / brokerage contributions in accumulation) ─────
 // Savings can land in any of the three sleeves. Default is 100% pre-tax so old
 // plans are unchanged; a Roth/taxable split routes the money differently.
@@ -791,6 +829,62 @@ test('tax-policy funding mode grosses up a positive delta before depletion', () 
   assert.strictEqual(tightShortcut.failed, false, 'shortcut fixture must survive');
   assert.strictEqual(tightFunded.failed, true,
     'unfunded federal-tax delta must be able to change the path outcome');
+});
+
+test('federal-delta taxable tranches expose exact aggregate capital gain', () => {
+  const p = structuredClone(defaultPlan);
+  p.household.primary = { currentAge: 73, retirementAge: 73, planEndAge: 74 };
+  p.portfolio.accounts = {
+    taxable: { balance: 1_000_000, basisPct: 0.20 },
+    traditional: { balance: 10_000_000 },
+    roth: { balance: 0 },
+  };
+  p.portfolio.withdrawalStrategy = 'taxable-first';
+  p.expenses = {
+    living: 100_000, housing: 0, debt: 0, healthcare: 0,
+    healthcareRealGrowth: 0, extra: [],
+  };
+  p.income.socialSecurity = { primary: { pia: 0, claimAge: 70 }, spouse: null };
+  p.income.other = [];
+  p.income.pension = { benefitByAge: {}, base: 0, startAge: 99, colaPct: 0 };
+  p.goals = [];
+  p.liabilities = [];
+  p.properties = [];
+  p.ltc = { amount: 0, onsetAge: 99 };
+
+  const params = resolveInputs(p, {});
+  const result = runSinglePath(params, [{ y: 2025, proxyReturn: 0 }], {
+    taxPolicy: (_row, { shortcutTax }) => shortcutTax + 200_000,
+    fundTaxPolicyDelta: true,
+  });
+  const row = result.rows[0];
+  const firstGainFraction = 0.80;
+  const firstWithdrawal = 100_000 / (1 - firstGainFraction * 0.15);
+  const requiredRmd = 10_000_000 / 26.5;
+  const rmdReinvestment = requiredRmd * (1 - 0.22);
+  const secondStartBalance = 1_000_000 - firstWithdrawal + rmdReinvestment;
+  const secondStartBasis = 200_000
+    - firstWithdrawal * (200_000 / 1_000_000)
+    + rmdReinvestment;
+  const secondGainFraction = (secondStartBalance - secondStartBasis) / secondStartBalance;
+  const secondWithdrawal = 200_000 / (1 - secondGainFraction * 0.15);
+  const expectedWithdrawal = firstWithdrawal + secondWithdrawal;
+  const expectedGain = firstWithdrawal * firstGainFraction
+    + secondWithdrawal * secondGainFraction;
+
+  assert.ok(Math.abs(row.accountBreakdown.taxable - expectedWithdrawal) < 0.01);
+  assert.ok(Math.abs(
+    row.preTaxDeltaAccountBreakdown.taxable - firstWithdrawal
+  ) < 0.01);
+  assert.ok(Math.abs(row.taxableCapitalGain - expectedGain) < 0.01);
+  assert.ok(Math.abs(row.taxableGainFraction - expectedGain / expectedWithdrawal) < 1e-12);
+  assert.notEqual(row.taxableGainFraction, firstGainFraction);
+  assert.deepEqual(row.accountStartingBalances, {
+    taxable: 1_000_000,
+    traditional: 10_000_000,
+    roth: 0,
+  });
+  assert.equal(row.taxableStartingBasis, 200_000);
 });
 
 test('engine rows expose taxable other income matching taxBySource', () => {

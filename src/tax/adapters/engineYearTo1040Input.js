@@ -211,7 +211,9 @@ export function mapSimulationRowToYearFacts(row, planMeta){
 
   const taxableWithdrawal = row.accountBreakdown?.taxable ?? 0;
   if(taxableWithdrawal > 0){
-    if(planMeta.capitalGain !== undefined){
+    if(row.taxableCapitalGain !== undefined){
+      income.capitalGain = row.taxableCapitalGain;
+    } else if(planMeta.capitalGain !== undefined){
       income.capitalGain = planMeta.capitalGain;
     } else if(planMeta.taxableGainFraction !== undefined){
       income.capitalGain = taxableWithdrawal * planMeta.taxableGainFraction;

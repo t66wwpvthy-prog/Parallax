@@ -1040,11 +1040,27 @@ function runSinglePath(p, returnPath, options = {}){
     const gap = (expenses + goalsY + liabCost + lumpY) - netInc;
 
     const startBalance = totalBalance();
+    // Reporting-only opening facts for planning/tax counterfactuals. Captured
+    // after any asset sale and before funding, return, RMD, or tax-delta draws.
+    const accountStartingBalances = {
+      taxable: accounts.taxable.balance,
+      traditional: accounts.traditional.balance,
+      roth: accounts.roth.balance
+    };
+    const taxableStartingBasis = accounts.taxable.basis;
+    // Existing engine RMD model: combined Traditional sleeve on the primary
+    // age timeline. This is a planning fact, not owner-by-owner legal RMD truth.
+    const rmdRequired = age >= RMD_START_AGE && accountStartingBalances.traditional > 0.01
+      ? accountStartingBalances.traditional / rmdDivisor(age)
+      : 0;
 
     // Compute the withdrawal breakdown without mutating accounts.
     const funding = gap > 0
       ? fundGap(accounts, gap, p.taxRates, p.withdrawalStrategy)
       : { totalWithdrawn: 0, totalTax: 0, breakdown: { taxable: 0, traditional: 0, roth: 0 }, taxBySource: { taxable: 0, traditional: 0 }, shortfall: 0 };
+    // Preserve the spending/goal draw before a later federal-tax delta can add
+    // a second funding tranche to the same mutable breakdown.
+    const preTaxDeltaAccountBreakdown = { ...funding.breakdown };
 
     let withdrawal = funding.totalWithdrawn;
     const totalTax   = taxOnInc + funding.totalTax;
@@ -1063,10 +1079,8 @@ function runSinglePath(p, returnPath, options = {}){
     // Capture the START-of-year values for basis math. We need these before
     // we modify the balance, because basis consumption is based on the
     // withdrawal's share of the starting balance — not the ending balance.
-    const taxStartBal   = accounts.taxable.balance;
-    const taxStartBasis = accounts.taxable.basis;
-    // Prior-year-end pre-tax balance — the base the RMD is computed against.
-    const tradStartBal  = accounts.traditional.balance;
+    const taxStartBal   = accountStartingBalances.taxable;
+    const taxStartBasis = taxableStartingBasis;
 
     // Update each account's balance with mid-year math:
     //   end = start * (1+r) - (withdrawal / 12) * factor
@@ -1079,6 +1093,10 @@ function runSinglePath(p, returnPath, options = {}){
     // basis P, the dollars carry P/B basis with them: basis_consumed = X * P/B.
     // Basis doesn't earn returns — only the appreciation does — so timing
     // doesn't change this proportion.
+    const startingTaxableGainFraction = taxStartBal > 0.01
+      ? Math.max(0, Math.min(1, (taxStartBal - taxStartBasis) / taxStartBal))
+      : 0;
+    let taxableCapitalGain = funding.breakdown.taxable * startingTaxableGainFraction;
     if(funding.breakdown.taxable > 0 && taxStartBal > 0.01){
       const basisFraction = taxStartBasis / taxStartBal;
       const basisConsumed = funding.breakdown.taxable * basisFraction;
@@ -1088,9 +1106,7 @@ function runSinglePath(p, returnPath, options = {}){
     // Start-of-year gain share for adapter/tax attach — read-only fact, not tax math.
     const taxableWithdrawal = funding.breakdown.taxable;
     let taxableGainFraction = taxableWithdrawal > 0.01
-      ? (taxStartBal > 0.01
-          ? Math.max(0, Math.min(1, (taxStartBal - taxStartBasis) / taxStartBal))
-          : 0)
+      ? startingTaxableGainFraction
       : undefined;
 
     // ── RMD: force out any required distribution beyond what spending pulled ──
@@ -1099,9 +1115,8 @@ function runSinglePath(p, returnPath, options = {}){
     // income; the after-tax remainder moves to the taxable sleeve (reinvested,
     // already-taxed → pure basis). Net portfolio effect = just the tax.
     let rmdForced = 0, rmdTax = 0;
-    if(age >= RMD_START_AGE && tradStartBal > 0.01){
-      const required = tradStartBal / rmdDivisor(age);
-      rmdForced = Math.max(0, required - funding.breakdown.traditional);   // beyond spending draw
+    if(rmdRequired > 0){
+      rmdForced = Math.max(0, rmdRequired - funding.breakdown.traditional);   // beyond spending draw
       rmdForced = Math.min(rmdForced, Math.max(0, accounts.traditional.balance));
       if(rmdForced > 0.01){
         accounts.traditional.balance -= rmdForced;
@@ -1130,13 +1145,17 @@ function runSinglePath(p, returnPath, options = {}){
         realReturnUsed: r,
         socialSecurity: ssInc, otherIncome: oiInc, pension: penInc, withdrawal,
         ...(oiInc > 0 ? { otherIncomeTaxable: oiTaxable } : {}),
-        rmd: rmdForced, assetSale: saleProceeds,
+        rmd: rmdForced, rmdRequired, assetSale: saleProceeds,
         expenses, goals: goalsY, liabilities: liabCost, taxes: shortcutTax, lumpSum: lumpY,
         startBalance, wdRate,
         netCashflow: (ssInc + oiInc + penInc + saleProceeds)
                      - (expenses + goalsY + liabCost + shortcutTax),
         balance: totalBalance(), failed: false,
         accountBreakdown: { ...funding.breakdown },
+        preTaxDeltaAccountBreakdown: { ...preTaxDeltaAccountBreakdown },
+        accountStartingBalances: { ...accountStartingBalances },
+        taxableStartingBasis,
+        taxableCapitalGain,
         accountBalances: {
           taxable: accounts.taxable.balance,
           traditional: accounts.traditional.balance,
@@ -1179,6 +1198,7 @@ function runSinglePath(p, returnPath, options = {}){
             1,
             (extraTaxStartBal - extraTaxStartBasis) / extraTaxStartBal
           ));
+          taxableCapitalGain += additionalFunding.breakdown.taxable * gainFraction;
           if(taxableGainFraction === undefined) taxableGainFraction = gainFraction;
           const basisFraction = extraTaxStartBasis / extraTaxStartBal;
           accounts.taxable.basis = Math.max(
@@ -1200,6 +1220,9 @@ function runSinglePath(p, returnPath, options = {}){
         wdRate = (startBalance > 0.01 && withdrawal > 0)
           ? (withdrawal / startBalance) * 100
           : 0;
+        taxableGainFraction = funding.breakdown.taxable > 0.01
+          ? taxableCapitalGain / funding.breakdown.taxable
+          : undefined;
       }
     }
 
@@ -1245,13 +1268,17 @@ function runSinglePath(p, returnPath, options = {}){
       realReturnUsed: r,
       socialSecurity: ssInc, otherIncome: oiInc, pension: penInc, withdrawal,
       ...(oiInc > 0 ? { otherIncomeTaxable: oiTaxable } : {}),
-      rmd: rmdForced, assetSale: saleProceeds,
+      rmd: rmdForced, rmdRequired, assetSale: saleProceeds,
       expenses, goals: goalsY, liabilities: liabCost, taxes: resolvedTax, lumpSum: lumpY,
       startBalance, wdRate,
       netCashflow: (ssInc + oiInc + penInc + saleProceeds)
                    - (expenses + goalsY + liabCost + resolvedTax),
       balance: endBalance, failed,
       accountBreakdown: { ...funding.breakdown },
+      preTaxDeltaAccountBreakdown: { ...preTaxDeltaAccountBreakdown },
+      accountStartingBalances: { ...accountStartingBalances },
+      taxableStartingBasis,
+      taxableCapitalGain,
       accountBalances: {
         taxable: accounts.taxable.balance,
         traditional: accounts.traditional.balance,

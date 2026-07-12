@@ -165,6 +165,18 @@ test('mapSimulationRowToYearFacts reshapes row cash flows without importing engi
   assert.deepStrictEqual(facts.deductions, { useStandard: true });
 });
 
+test('exact row taxable capital gain takes precedence over a fraction or override', () => {
+  const facts = mapSimulationRowToYearFacts({
+    accountBreakdown: { taxable: 100000, traditional: 0, roth: 0 },
+    taxableCapitalGain: 23456.78,
+  }, {
+    filingStatus: 'single',
+    taxableGainFraction: 0.9,
+    capitalGain: 99999,
+  });
+  assert.strictEqual(facts.income.capitalGain, 23456.78);
+});
+
 test('mapSimulationRowToYearFacts requires gain split when taxable withdrawals exist', () => {
   assert.throws(
     () => mapSimulationRowToYearFacts(
