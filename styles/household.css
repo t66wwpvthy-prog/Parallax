@@ -618,6 +618,231 @@
 }
 .page[data-page="household"] .row-x:hover { color: var(--down); }
 
+/* ---- Tax details (Step 2, Household-owned inputs) ----------------------- */
+.page[data-page="household"] .hh-tax-details {
+  margin-top: 22px;
+  border: 1px solid var(--line-08);
+  border-radius: 14px;
+  background: rgba(255,255,255,0.012);
+  overflow: hidden;
+}
+.page[data-page="household"] .hh-tax-details > summary {
+  min-height: 64px;
+  padding: 15px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  color: var(--text-1);
+  cursor: pointer;
+  user-select: none;
+}
+.page[data-page="household"] .hh-tax-details > summary:hover {
+  background: rgba(255,255,255,0.018);
+}
+.page[data-page="household"] .hh-tax-details > summary:focus-visible {
+  outline: 1px solid var(--gold);
+  outline-offset: -3px;
+}
+.page[data-page="household"] .hh-tax-details > summary > span:first-child {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.page[data-page="household"] .hh-tax-details > summary strong {
+  color: var(--text-hi);
+  font-size: 16px;
+  font-weight: 600;
+}
+.page[data-page="household"] .hh-tax-details > summary small {
+  color: var(--text-3);
+  font-size: 12px;
+  font-weight: 400;
+}
+.page[data-page="household"] .hh-tax-details__state {
+  flex: none;
+  color: var(--gold);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+.page[data-page="household"] .hh-tax-details[open] .hh-tax-details__state::after { content: " open"; }
+.page[data-page="household"] .hh-tax-details__body {
+  border-top: 1px solid var(--line-07);
+  padding: 18px;
+}
+.page[data-page="household"] .hh-tax-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+.page[data-page="household"] .hh-tax-fieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 17px;
+  border: 1px solid var(--line-08);
+  border-radius: 12px;
+  background: rgba(0,0,0,0.14);
+}
+.page[data-page="household"] .hh-tax-fieldset legend {
+  width: 100%;
+  padding: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 3px 12px;
+}
+.page[data-page="household"] .hh-tax-fieldset__eyebrow {
+  grid-column: 1 / -1;
+  color: var(--text-4);
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+.page[data-page="household"] .hh-tax-fieldset__title {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-hi);
+  font-family: var(--font-serif);
+  font-size: 17px;
+  font-weight: 400;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.page[data-page="household"] .hh-tax-badge {
+  align-self: center;
+  border: 1px solid var(--line-10);
+  border-radius: 999px;
+  padding: 4px 8px;
+  color: var(--text-3);
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: .03em;
+  white-space: nowrap;
+}
+.page[data-page="household"] .hh-tax-badge--current {
+  border-color: rgba(195,165,106,.32);
+  color: var(--gold-bright);
+  background: rgba(195,165,106,.07);
+}
+.page[data-page="household"] .hh-tax-badge--waiting { color: var(--text-2); }
+.page[data-page="household"] .hh-tax-badge--later {
+  border-color: rgba(195,165,106,.18);
+  color: var(--gold);
+}
+.page[data-page="household"] .hh-tax-fieldset__help {
+  margin: 9px 0 15px;
+  color: var(--text-3);
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+.page[data-page="household"] .hh-tax-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 13px 14px;
+}
+.page[data-page="household"] .hh-tax-field {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.page[data-page="household"] .hh-tax-field > label {
+  color: var(--text-2);
+  font-size: 11.5px;
+  font-weight: 500;
+  line-height: 1.3;
+}
+.page[data-page="household"] .hh-tax-input {
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid var(--line-12);
+  border-radius: 8px;
+  background: rgba(0,0,0,.24);
+  color: var(--text-hi);
+  font: 500 16px/1.2 var(--font-sans);
+  padding: 9px 10px;
+  outline: none;
+}
+.page[data-page="household"] select.hh-tax-input {
+  cursor: pointer;
+  padding-right: 28px;
+}
+.page[data-page="household"] .hh-tax-input:focus {
+  border-color: var(--gold-dim);
+  box-shadow: 0 0 0 2px rgba(195,165,106,.08);
+}
+.page[data-page="household"] .hh-tax-money {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--line-12);
+  border-radius: 8px;
+  background: rgba(0,0,0,.24);
+  color: var(--text-4);
+  padding-left: 10px;
+}
+.page[data-page="household"] .hh-tax-money:focus-within {
+  border-color: var(--gold-dim);
+  box-shadow: 0 0 0 2px rgba(195,165,106,.08);
+}
+.page[data-page="household"] .hh-tax-money .hh-tax-input {
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  padding-left: 5px;
+}
+.page[data-page="household"] .hh-tax-field__help {
+  color: var(--text-4);
+  font-size: 10.5px;
+  line-height: 1.35;
+}
+.page[data-page="household"] .hh-tax-limitations {
+  margin-top: 14px;
+  display: grid;
+  gap: 8px;
+}
+.page[data-page="household"] .hh-tax-limit {
+  padding: 11px 13px;
+  display: grid;
+  grid-template-columns: minmax(150px, .7fr) minmax(0, 1.3fr);
+  align-items: center;
+  gap: 14px;
+  border: 1px solid var(--line-07);
+  border-radius: 9px;
+  background: rgba(255,255,255,.008);
+}
+.page[data-page="household"] .hh-tax-limit > div {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.page[data-page="household"] .hh-tax-limit__eyebrow {
+  color: var(--text-4);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+.page[data-page="household"] .hh-tax-limit strong {
+  overflow: hidden;
+  color: var(--text-1);
+  font-size: 12px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.page[data-page="household"] .hh-tax-limit p {
+  margin: 0;
+  color: var(--text-3);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
 @media (max-width: 1080px) {
   .page[data-page="household"] .hh-cols--split { flex-direction: column; }
   .page[data-page="household"] .hh-cols__div { width: 100%; height: 1px; margin: 24px 0; }
@@ -630,6 +855,16 @@
   .page[data-page="household"] .hh-stepper,
   .page[data-page="household"] .hh-wiz-workspace,
   .page[data-page="household"] .hh-wiz-footer { padding-left: 24px; padding-right: 24px; }
+  .page[data-page="household"] .hh-tax-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 660px) {
+  .page[data-page="household"] .hh-tax-details > summary,
+  .page[data-page="household"] .hh-tax-details__body { padding-left: 14px; padding-right: 14px; }
+  .page[data-page="household"] .hh-tax-fieldset legend { grid-template-columns: 1fr; }
+  .page[data-page="household"] .hh-tax-badge { justify-self: start; margin-top: 4px; }
+  .page[data-page="household"] .hh-tax-fields { grid-template-columns: 1fr; }
+  .page[data-page="household"] .hh-tax-limit { grid-template-columns: 1fr; gap: 6px; }
 }
 
 /* Hide sticky-note floater on Household wizard — it clashes with footer CTAs */

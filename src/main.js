@@ -3,6 +3,7 @@ import { attachPathFederalTax } from './planning/tax/attachTypicalPathFederalTax
 import { rerunMonteCarloWithFederalTax } from './planning/tax/rerunMonteCarloWithFederalTax.js';
 import { runMonteCarloWithFederalFunding } from './planning/tax/runMonteCarloWithFederalFunding.js';
 import { runHistoricalPathWithFederalTax } from './planning/tax/runHistoricalPathWithFederalTax.js';
+import { buildHouseholdTaxFactContract } from './planning/tax/buildHouseholdTaxFactContract.js';
 import { fmtM, fmtMoney, fmtMDelta, fmtPts, cfMoney, cfRetPct, cfGain } from '../ui/formatters.js';
 import { storyChart, seqChartSvg } from '../ui/charts.js?v=2';
 import { escHtml } from '../ui/dom.js';
@@ -12,6 +13,8 @@ import { createDemoHousehold, createBlankHousehold } from '../ui/householdFactor
 import { getWizardAccountTypes, resolveTypeFromLabel } from './household/accountTypes.js';
 import { createAccount, hasSpouseOwnedAccounts } from './household/createAccount.js';
 import { createBlankTaxProfiles, taxProfileHasConfirmedFacts } from './household/factEnvelope.js';
+import { applyHouseholdTaxFactEdit } from './household/taxFactEdits.js';
+import { taxFactEditFromControl } from './household/taxFactEditorController.js';
 import { mergeNonAccountDefaults } from './household/migrateAccounts.js';
 import {
   ACTIVE_KEY,
@@ -1057,11 +1060,13 @@ let hhAcctFormOwner = null;
 let hhAddingKey = null;
 let hhDraftLabel = '';
 let hhDraftAmount = '';
+let hhTaxDetailsOpen = false;
 const hhUiState = {
   get hhAcctFormOwner(){ return hhAcctFormOwner; },
   get hhAddingKey(){ return hhAddingKey; },
   get hhDraftLabel(){ return hhDraftLabel; },
   get hhDraftAmount(){ return hhDraftAmount; },
+  get hhTaxDetailsOpen(){ return hhTaxDetailsOpen; },
 };
 let householdWizard;
 function ensureHouseholdWizard(){
@@ -1074,6 +1079,7 @@ function ensureHouseholdWizard(){
     initial: hhInitial,
     ageFromYear: hhAgeFromYear,
     allAccounts: () => hhAllAccounts(plan),
+    taxFactContract: () => buildHouseholdTaxFactContract(plan),
     accountTypes: HH_WIZARD_ACCOUNT_TYPES,
     states: HH_STATES,
   });
@@ -1105,6 +1111,7 @@ function hhLoadRecord(status){
   hhAddingKey = null;
   hhDraftLabel = '';
   hhDraftAmount = '';
+  hhTaxDetailsOpen = false;
   uiState.plansDirty = true; uiState.sharedPaths = null;
   syncHousehold();
   updateHouseholdControls();
@@ -2296,9 +2303,30 @@ function hhCommit(){
   syncHeaderStatus('Plan edited · open Scenarios');
 }
 $('#hh-view').addEventListener('input', e => {
+  if(typeof e.target.setCustomValidity === 'function') e.target.setCustomValidity('');
   if(e.target.dataset.type === 'money' || e.target.dataset.type === 'monthlyMoney') liveCommas(e.target);
 });
+$('#hh-view').addEventListener('toggle', e => {
+  if(e.target?.matches?.('[data-hh-tax-details-root]')) hhTaxDetailsOpen = e.target.open;
+}, true);
 $('#hh-view').addEventListener('change', e => {
+  const taxControl = e.target.closest?.('[data-hh-tax-edit]');
+  if(taxControl){
+    if(!guardPlanMutation()){ syncHousehold(); return; }
+    try{
+      const result = applyHouseholdTaxFactEdit(
+        plan,
+        taxFactEditFromControl(taxControl),
+        { now: new Date().toISOString() }
+      );
+      taxControl.setCustomValidity('');
+      if(result.changed) hhCommit();
+    }catch(error){
+      taxControl.setCustomValidity(error?.message || 'This tax detail could not be saved');
+      taxControl.reportValidity();
+    }
+    return;
+  }
   // Add-account form controls carry no data-path (transient until Save).
   if(!e.target.dataset.path && e.target.classList && e.target.classList.contains('hh-form-type')){
     return;

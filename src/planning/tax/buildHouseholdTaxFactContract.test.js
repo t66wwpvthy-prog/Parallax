@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 
 import { defaultPlan, resolveInputs, runSinglePath } from '../../../engine.js';
 import { createAccount } from '../../household/createAccount.js';
+import { applyHouseholdTaxFactEdit } from '../../household/taxFactEdits.js';
 import {
   createBlankTaxProfiles,
   createFact,
@@ -93,6 +94,22 @@ test('contract exposes complete confirmed taxable basis as the only calculation 
   assert.equal(Object.isFrozen(first.factRecords), true);
   assert.equal(Object.isFrozen(first.calculationInputs.taxableBasisOverride), true);
   assert.throws(() => { first.readiness.status = 'ready'; }, TypeError);
+});
+
+test('Household editor facts flow through the contract without a second translation path', () => {
+  const value = plan();
+  value.portfolio.extraAccounts = [
+    account('brokerage_taxable', 'broker', 200000),
+    account('checking', 'bank', 10000),
+  ];
+  applyHouseholdTaxFactEdit(value, {
+    kind: 'confirm-account-basis', accountId: 'broker', value: 25000,
+  }, { now: '2026-07-12T15:00:00.000Z' });
+
+  const contract = buildHouseholdTaxFactContract(value);
+  assert.equal(contract.calculationInputs.taxableBasisOverride.amount, 35000);
+  assert.equal(resolveInputs(value, {}).accounts.taxable.basis, 35000);
+  assert.equal(factRecord(contract, 'portfolio.extraAccounts.0.basis').source, 'household-entry');
 });
 
 test('unknown and assumed brokerage basis remain gaps and leave legacy intake behavior unchanged', () => {
