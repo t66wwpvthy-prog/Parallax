@@ -8,20 +8,61 @@ const ACCOUNT_TYPES = Object.freeze([
   Object.freeze({ id: 'brokerage_taxable', label: 'Brokerage (taxable)', aliases: Object.freeze(['Brokerage', 'Brokerage (taxable)']), engineBucket: 'taxable', taxCharacter: 'capital_asset', basisRequired: true, supportedForTax: true, wizardEnabled: true, wizardOrder: 30, defaultOwner: null }),
   Object.freeze({ id: 'joint_brokerage', label: 'Joint brokerage', aliases: Object.freeze(['Joint brokerage']), engineBucket: 'taxable', taxCharacter: 'capital_asset', basisRequired: true, supportedForTax: true, wizardEnabled: false, wizardOrder: null, defaultOwner: 'joint' }),
   Object.freeze({ id: 'trust_brokerage', label: 'Trust brokerage', aliases: Object.freeze(['Trust brokerage']), engineBucket: 'taxable', taxCharacter: 'capital_asset', basisRequired: true, supportedForTax: false, wizardEnabled: false, wizardOrder: null, defaultOwner: 'trust' }),
+  Object.freeze({ id: 'tod_brokerage', label: 'TOD brokerage', aliases: Object.freeze(['TOD', 'TOD brokerage', 'Transfer on Death brokerage']), engineBucket: 'taxable', taxCharacter: 'capital_asset', basisRequired: true, supportedForTax: true, wizardEnabled: false, wizardOrder: null, defaultOwner: null }),
   Object.freeze({ id: 'traditional_ira', label: 'Traditional IRA', aliases: Object.freeze(['Traditional IRA']), engineBucket: 'traditional', taxCharacter: 'traditional_ira', basisRequired: false, supportedForTax: true, wizardEnabled: true, wizardOrder: 10, defaultOwner: null }),
   Object.freeze({ id: 'rollover_ira', label: 'Rollover IRA', aliases: Object.freeze(['Rollover IRA']), engineBucket: 'traditional', taxCharacter: 'traditional_ira', basisRequired: false, supportedForTax: true, wizardEnabled: false, wizardOrder: null, defaultOwner: null }),
   Object.freeze({ id: 'sep_ira', label: 'SEP IRA', aliases: Object.freeze(['SEP IRA']), engineBucket: 'traditional', taxCharacter: 'traditional_ira', basisRequired: false, supportedForTax: true, wizardEnabled: false, wizardOrder: null, defaultOwner: null }),
   Object.freeze({ id: 'simple_ira', label: 'SIMPLE IRA', aliases: Object.freeze(['SIMPLE IRA']), engineBucket: 'traditional', taxCharacter: 'traditional_ira', basisRequired: false, supportedForTax: true, wizardEnabled: false, wizardOrder: null, defaultOwner: null }),
+  Object.freeze({ id: 'inherited_traditional_ira', label: 'Inherited Traditional IRA', aliases: Object.freeze(['Inherited IRA', 'Inherited Traditional IRA']), engineBucket: 'traditional', taxCharacter: 'inherited_traditional_ira', basisRequired: false, supportedForTax: false, wizardEnabled: false, wizardOrder: null, defaultOwner: null }),
   Object.freeze({ id: '401k', label: '401(k)', aliases: Object.freeze(['401(k)']), engineBucket: 'traditional', taxCharacter: 'employer_pretax', basisRequired: false, supportedForTax: true, wizardEnabled: true, wizardOrder: 40, defaultOwner: null }),
   Object.freeze({ id: '403b', label: '403(b)', aliases: Object.freeze(['403(b)']), engineBucket: 'traditional', taxCharacter: 'employer_pretax', basisRequired: false, supportedForTax: true, wizardEnabled: false, wizardOrder: null, defaultOwner: null }),
   Object.freeze({ id: '457', label: '457', aliases: Object.freeze(['457']), engineBucket: 'traditional', taxCharacter: 'employer_pretax', basisRequired: false, supportedForTax: true, wizardEnabled: false, wizardOrder: null, defaultOwner: null }),
   Object.freeze({ id: '401a', label: '401(a)', aliases: Object.freeze(['401(a)']), engineBucket: 'traditional', taxCharacter: 'employer_pretax', basisRequired: false, supportedForTax: true, wizardEnabled: false, wizardOrder: null, defaultOwner: null }),
+  Object.freeze({ id: 'tsp', label: 'TSP', aliases: Object.freeze(['TSP', 'Thrift Savings Plan']), engineBucket: 'traditional', taxCharacter: 'employer_pretax', basisRequired: false, supportedForTax: true, wizardEnabled: false, wizardOrder: null, defaultOwner: null }),
   Object.freeze({ id: 'solo_401k', label: 'Solo 401(k)', aliases: Object.freeze(['Solo 401(k)']), engineBucket: 'traditional', taxCharacter: 'employer_pretax', basisRequired: false, supportedForTax: true, wizardEnabled: false, wizardOrder: null, defaultOwner: null }),
   Object.freeze({ id: 'qualified_plan', label: 'Qualified Plan', aliases: Object.freeze(['Qualified Plan']), engineBucket: 'traditional', taxCharacter: 'employer_pretax', basisRequired: false, supportedForTax: false, wizardEnabled: false, wizardOrder: null, defaultOwner: null }),
   Object.freeze({ id: 'roth_ira', label: 'Roth IRA', aliases: Object.freeze(['Roth IRA']), engineBucket: 'roth', taxCharacter: 'roth_ira', basisRequired: false, supportedForTax: true, wizardEnabled: true, wizardOrder: 20, defaultOwner: null }),
+  Object.freeze({ id: 'inherited_roth_ira', label: 'Inherited Roth IRA', aliases: Object.freeze(['Inherited Roth IRA']), engineBucket: 'roth', taxCharacter: 'inherited_roth_ira', basisRequired: false, supportedForTax: false, wizardEnabled: false, wizardOrder: null, defaultOwner: null }),
   Object.freeze({ id: 'roth_401k', label: 'Roth 401(k)', aliases: Object.freeze(['Roth 401(k)']), engineBucket: 'roth', taxCharacter: 'designated_roth', basisRequired: false, supportedForTax: true, wizardEnabled: false, wizardOrder: null, defaultOwner: null }),
+  Object.freeze({ id: 'roth_403b', label: 'Roth 403(b)', aliases: Object.freeze(['Roth 403(b)']), engineBucket: 'roth', taxCharacter: 'designated_roth', basisRequired: false, supportedForTax: true, wizardEnabled: false, wizardOrder: null, defaultOwner: null }),
+  Object.freeze({ id: 'roth_457', label: 'Roth 457', aliases: Object.freeze(['Roth 457', 'Roth 457(b)']), engineBucket: 'roth', taxCharacter: 'designated_roth', basisRequired: false, supportedForTax: true, wizardEnabled: false, wizardOrder: null, defaultOwner: null }),
+  Object.freeze({ id: 'roth_tsp', label: 'Roth TSP', aliases: Object.freeze(['Roth TSP', 'Roth Thrift Savings Plan']), engineBucket: 'roth', taxCharacter: 'designated_roth', basisRequired: false, supportedForTax: true, wizardEnabled: false, wizardOrder: null, defaultOwner: null }),
   Object.freeze({ id: 'hsa', label: 'HSA', aliases: Object.freeze(['HSA']), engineBucket: 'roth', taxCharacter: 'hsa', basisRequired: false, supportedForTax: false, wizardEnabled: true, wizardOrder: 50, defaultOwner: null }),
   Object.freeze({ id: 'legacy_529', label: '529', aliases: Object.freeze(['529']), engineBucket: 'roth', taxCharacter: 'unsupported', basisRequired: false, supportedForTax: false, wizardEnabled: false, wizardOrder: null, defaultOwner: null }),
+]);
+
+const TAX_BUCKET_GROUP_BY_ID = Object.freeze({
+  checking: 'taxable',
+  savings: 'taxable',
+  money_market: 'taxable',
+  certificate_of_deposit: 'taxable',
+  brokerage_taxable: 'taxable',
+  joint_brokerage: 'taxable',
+  trust_brokerage: 'taxable',
+  tod_brokerage: 'taxable',
+  traditional_ira: 'traditional',
+  rollover_ira: 'traditional',
+  sep_ira: 'traditional',
+  simple_ira: 'traditional',
+  inherited_traditional_ira: 'traditional',
+  '401k': 'traditional',
+  '403b': 'traditional',
+  '457': 'traditional',
+  '401a': 'traditional',
+  tsp: 'traditional',
+  solo_401k: 'traditional',
+  qualified_plan: 'traditional',
+  roth_ira: 'roth',
+  inherited_roth_ira: 'roth',
+  roth_401k: 'roth',
+  roth_403b: 'roth',
+  roth_457: 'roth',
+  roth_tsp: 'roth',
+});
+
+const STRATEGY_RULES_PENDING = new Set([
+  'inherited_traditional_ira',
+  'inherited_roth_ira',
 ]);
 
 const byId = new Map(ACCOUNT_TYPES.map(t => [t.id, t]));
@@ -48,6 +89,8 @@ function cloneEntry(entry){
   return Object.freeze({
     ...entry,
     aliases: Object.freeze([...entry.aliases]),
+    taxBucketGroup: TAX_BUCKET_GROUP_BY_ID[entry.id] || null,
+    strategyRulesPending: STRATEGY_RULES_PENDING.has(entry.id),
   });
 }
 
@@ -68,6 +111,7 @@ export function resolveTypeFromLabel(label){
       typeId: null,
       label: String(label || '').trim() || 'Unknown account',
       engineBucket: null,
+      taxBucketGroup: null,
       taxCharacter: 'unsupported',
       known: false,
       entry: null,
@@ -78,6 +122,7 @@ export function resolveTypeFromLabel(label){
     typeId: entry.id,
     label: entry.label,
     engineBucket: entry.engineBucket,
+    taxBucketGroup: TAX_BUCKET_GROUP_BY_ID[entry.id] || null,
     taxCharacter: entry.taxCharacter,
     known: true,
     entry: cloneEntry(entry),
@@ -105,9 +150,11 @@ export function accountDisplayTreatment(typeIdOrLabel){
     case 'taxable_cash':
       return { label: 'Taxable', color: '#7688a0' };
     case 'traditional_ira':
+    case 'inherited_traditional_ira':
     case 'employer_pretax':
       return { label: 'Tax-deferred', color: '#c3a56a' };
     case 'roth_ira':
+    case 'inherited_roth_ira':
     case 'designated_roth':
       return { label: 'Tax-free', color: '#879a86' };
     case 'hsa':

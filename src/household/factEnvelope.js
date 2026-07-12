@@ -5,6 +5,9 @@ import { isValidValuationDate } from './accountTypes.js';
 const VALID_STATUSES = new Set(['unknown', 'assumed', 'confirmed']);
 const VALID_SOURCES = new Set(['household-entry', 'import', 'planner-assumption']);
 const FACT_KEYS = ['value', 'status', 'source', 'confirmedAt', 'version'];
+const VALID_BASIS_METHODS = new Set(['reported-cost-basis', 'principal', 'legacy-proportional', 'unknown']);
+const VALID_BASIS_STATUSES = new Set(['confirmed', 'assumed', 'unknown']);
+const BASIS_KEYS = ['amount', 'method', 'status', 'source', 'confirmedAt', 'version'];
 
 const hasOwn = (value, key) => Object.prototype.hasOwnProperty.call(value, key);
 
@@ -79,6 +82,68 @@ export function validateFactEnvelope(fact, path){
   assertFactMetadata(fact.status, fact.source, fact.confirmedAt, path);
   if(fact.status === 'confirmed' && (fact.value === null || fact.value === undefined)){
     throw new Error(`${path} confirmed fact requires value`);
+  }
+}
+
+/** Validate the persisted cost-basis envelope used by Household accounts. */
+export function validateBasisEnvelope(basis, path){
+  if(!basis || typeof basis !== 'object' || Array.isArray(basis)){
+    throw new Error(`${path} must be an object`);
+  }
+  for(const key of BASIS_KEYS){
+    if(!hasOwn(basis, key)){
+      throw new Error(`${path}.${key} is required`);
+    }
+  }
+  if(!VALID_BASIS_METHODS.has(basis.method)){
+    throw new Error(`${path}.method is invalid`);
+  }
+  if(!VALID_BASIS_STATUSES.has(basis.status)){
+    throw new Error(`${path}.status is invalid`);
+  }
+  if(basis.amount != null && (
+    typeof basis.amount !== 'number'
+    || !Number.isFinite(basis.amount)
+    || basis.amount < 0
+  )){
+    throw new Error(`${path}.amount is invalid`);
+  }
+  if(basis.version !== 1){
+    throw new Error(`${path}.version is invalid`);
+  }
+  if(!isValidFactSource(basis.source)){
+    throw new Error(`${path}.source is invalid`);
+  }
+  if(basis.confirmedAt !== null && !isValidConfirmationTimestamp(basis.confirmedAt)){
+    throw new Error(`${path}.confirmedAt is invalid`);
+  }
+  if(basis.status === 'unknown'){
+    if(basis.amount !== null || basis.source !== null || basis.confirmedAt !== null){
+      throw new Error(`${path} unknown fact has invalid metadata`);
+    }
+    return;
+  }
+  if(basis.amount === null){
+    throw new Error(`${path} ${basis.status} fact requires amount`);
+  }
+  if(basis.source === null){
+    throw new Error(`${path} ${basis.status} fact requires source`);
+  }
+  if(basis.status === 'confirmed'){
+    if(basis.confirmedAt === null){
+      throw new Error(`${path} confirmed fact requires confirmedAt`);
+    }
+  }else if(basis.confirmedAt !== null){
+    throw new Error(`${path} assumed fact cannot have confirmedAt`);
+  }
+}
+
+export function isConfirmedBasisEnvelope(basis){
+  try{
+    validateBasisEnvelope(basis, 'basis');
+    return basis.status === 'confirmed';
+  }catch{
+    return false;
   }
 }
 

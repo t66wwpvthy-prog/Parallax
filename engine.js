@@ -1,3 +1,5 @@
+import { resolvePortfolioAccounts } from './src/household/resolvePortfolioAccounts.js';
+
 /* ============================================================================
    PARALLAX ENGINE  —  the heart of the model. Treat as SACRED.
    Block-bootstrap Monte Carlo on real (inflation-adjusted) returns, 1928–2025.
@@ -611,11 +613,10 @@ function resolveInputs(plan, ov){
   const shockMult = 1 - (ov.initialShock || 0) * equityShockShare;
   // Typed accounts (401k, SEP, etc.) fold into their tax sleeve before shock/basis
   // so the engine sees correct bucket totals. Default (no extras) is byte-identical.
-  const extras = plan.portfolio.extraAccounts || [];
-  const sumBucket = b => extras.reduce((s,a)=> s + (a.bucket===b ? Math.max(0, a.balance||0) : 0), 0);
-  const taxableRaw = (plan.portfolio.accounts.taxable.balance     || 0) + sumBucket('taxable');
-  const tradRaw    = (plan.portfolio.accounts.traditional.balance || 0) + sumBucket('traditional');
-  const rothRaw    = (plan.portfolio.accounts.roth.balance        || 0) + sumBucket('roth');
+  const accountFold = resolvePortfolioAccounts(plan);
+  const taxableRaw = accountFold.engineBuckets.taxable.balance;
+  const tradRaw    = accountFold.engineBuckets.traditional.balance;
+  const rothRaw    = accountFold.engineBuckets.roth.balance;
   const accounts = {
     taxable: {
       balance: taxableRaw * shockMult,
