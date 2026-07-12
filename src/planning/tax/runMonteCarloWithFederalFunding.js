@@ -2,12 +2,13 @@
 
 import { runSimulation } from '../../../engine.js';
 import { TaxInputError } from '../../tax/core/errors.js';
+import { buildFederalFundingPathSidecar } from './buildFederalFundingPathSidecar.js';
 import { createFederalTaxResolver } from './createFederalTaxResolver.js';
 
 /**
  * Re-run the exact shortcut Monte Carlo return paths with federal Form 1040
- * line 24 driving positive tax-delta funding. Only federalSuccessRate is
- * attached to the returned shortcut analysis; its aggregates are not replaced.
+ * line 24 driving positive tax-delta funding. A compact sidecar preserves the
+ * funded bucket paths while shortcut aggregates remain unchanged.
  */
 export function runMonteCarloWithFederalFunding(
   shortcutAnalysis,
@@ -44,9 +45,16 @@ export function runMonteCarloWithFederalFunding(
     taxPolicy,
     fundTaxPolicyDelta: true,
   });
+  const federalFunding = buildFederalFundingPathSidecar(
+    shortcutAnalysis,
+    federalAnalysis,
+    plan,
+    overrides
+  );
 
   return {
     ...shortcutAnalysis,
-    federalSuccessRate: federalAnalysis.successRate,
+    federalSuccessRate: federalFunding.successRate,
+    federalFunding,
   };
 }
