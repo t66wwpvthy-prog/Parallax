@@ -20,7 +20,7 @@ styles/*.css        presentation per surface
 scripts/verify.mjs  tests + browser smoke; scans index.html + src/**/*.js + ui/**/*.js
 ```
 
-**Product spine (tabs):** Household → Goals → Scenarios → Sequencing (Cash Flow lives inside Scenarios).
+**Product spine (tabs):** Household → Goals → Scenarios → Tax Buckets → Sequencing (Cash Flow lives inside Scenarios).
 
 ---
 
