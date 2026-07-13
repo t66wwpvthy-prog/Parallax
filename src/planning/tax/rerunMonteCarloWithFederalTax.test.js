@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert';
 import {
+  analyzeResults,
   defaultPlan,
   generateReturnPath,
   resetSeed,
@@ -53,7 +54,7 @@ function fundingSnapshot(sim){
   }));
 }
 
-test('all 40 Monte Carlo sims report federal Form 1040 line 24 on accumulation and retirement rows', () => {
+test('all 40 Monte Carlo sims report federal line 24 from their final funded rows', () => {
   const { analysis, federalAnalysis, options } = fixture();
   const resolveFederalTax = createFederalTaxResolver(analysis.params, options);
 
@@ -65,60 +66,72 @@ test('all 40 Monte Carlo sims report federal Form 1040 line 24 on accumulation a
     assert.strictEqual(federalSim.simIndex, shortcutSim.simIndex);
     assert.strictEqual(federalSim.returnPath, shortcutSim.returnPath);
 
-    for(let rowIndex = 0; rowIndex < shortcutSim.rows.length; rowIndex++){
-      const shortcutRow = shortcutSim.rows[rowIndex];
+    for(let rowIndex = 0; rowIndex < federalSim.rows.length; rowIndex++){
       const federalRow = federalSim.rows[rowIndex];
-      if(shortcutRow.source == null){
-        assert.strictEqual(federalRow.taxes, shortcutRow.taxes);
+      if(federalRow.source == null){
+        assert.strictEqual(federalRow.taxes, 0);
         continue;
       }
-      const expectedLine24 = resolveFederalTax(shortcutRow);
+      const expectedLine24 = resolveFederalTax(federalRow);
       assert.ok(
         Math.abs(federalRow.taxes - expectedLine24) < 0.01,
         `sim ${shortcutSim.simIndex} row ${rowIndex} must report federal line 24`
       );
+      if(federalRow.phase !== 'accum'){
+        assert.strictEqual(federalRow.taxFundingConvergence?.status, 'converged');
+        assert.ok(
+          Math.abs(federalRow.taxFundingConvergence.residual)
+            <= federalRow.taxFundingConvergence.tolerance
+        );
+      }
     }
   }
 });
 
-test('full-MC rerun patches all percentile paths and preserves shortcut aggregates and funding', () => {
+test('full-MC rerun recomputes aggregates and percentile paths from funded sims', () => {
   const { analysis, federalAnalysis } = fixture();
+  const independentlyAnalyzed = analyzeResults(federalAnalysis.sims, federalAnalysis.params);
 
   assert.notStrictEqual(federalAnalysis, analysis);
   assert.notStrictEqual(federalAnalysis.sims, analysis.sims);
-  assert.deepStrictEqual(aggregateSnapshot(federalAnalysis), aggregateSnapshot(analysis));
+  assert.deepStrictEqual(
+    aggregateSnapshot(federalAnalysis),
+    aggregateSnapshot(independentlyAnalyzed)
+  );
 
   for(const pathKey of PATH_KEYS){
-    const shortcutPath = analysis.paths[pathKey];
     const federalPath = federalAnalysis.paths[pathKey];
-    assert.notStrictEqual(federalPath, shortcutPath);
-    assert.strictEqual(federalPath.simIndex, shortcutPath.simIndex);
-    assert.strictEqual(federalPath.returnPath, shortcutPath.returnPath);
     assert.strictEqual(
       federalPath,
-      federalAnalysis.sims.find((sim) =>
-        sim.simIndex === shortcutPath.simIndex && sim.returnPath === shortcutPath.returnPath
-      )
+      independentlyAnalyzed.paths[pathKey],
+      `${pathKey} must be selected by the funded analysis`
     );
+    assert.strictEqual(federalPath, federalAnalysis.sims.find((sim) =>
+      sim.simIndex === federalPath.simIndex && sim.returnPath === federalPath.returnPath
+    ));
   }
 
-  for(let index = 0; index < analysis.sims.length; index++){
-    assert.deepStrictEqual(
-      fundingSnapshot(federalAnalysis.sims[index]),
-      fundingSnapshot(analysis.sims[index]),
-      `sim ${index} federal reporting must not change shortcut funding or balances`
-    );
-  }
+  assert.ok(analysis.sims.some((shortcutSim, index) => {
+    try{
+      assert.deepStrictEqual(
+        fundingSnapshot(federalAnalysis.sims[index]),
+        fundingSnapshot(shortcutSim)
+      );
+      return false;
+    }catch{
+      return true;
+    }
+  }), 'the federal fixed point must be allowed to change funding and balances');
 });
 
-test('federalMedianLifetimeTax is separate while attached story-path deltas stay near zero', () => {
-  const { analysis, federalAnalysis, options } = fixture();
+test('funded lifetime-tax aggregates and attached story paths share the same federal truth', () => {
+  const { federalAnalysis, options } = fixture();
   const federalLifetimeTaxes = federalAnalysis.sims
     .map((sim) => sim.lifetimeTax)
     .sort((a, b) => a - b);
   const expectedMedian = federalLifetimeTaxes[Math.floor(federalLifetimeTaxes.length * 0.50)];
 
-  assert.strictEqual(federalAnalysis.medianLifetimeTax, analysis.medianLifetimeTax);
+  assert.strictEqual(federalAnalysis.medianLifetimeTax, expectedMedian);
   assert.strictEqual(federalAnalysis.federalMedianLifetimeTax, expectedMedian);
   assert.ok(Number.isFinite(federalAnalysis.federalMedianLifetimeTax));
   for(const pathKey of ['p10', 'p50', 'p90']){

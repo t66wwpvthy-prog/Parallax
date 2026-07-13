@@ -1,10 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { defaultPlan, resolveInputs } from '../../../engine.js';
+import { defaultPlan, resolveInputs, runSimulation } from '../../../engine.js';
 import { createAccount } from '../../household/createAccount.js';
 import { createBlankTaxProfiles, createFact } from '../../household/factEnvelope.js';
 import { buildWithdrawalTaxCounterfactualContext } from './buildWithdrawalTaxCounterfactualContext.js';
+import { createFederalTaxResolver } from './createFederalTaxResolver.js';
 import { runWithdrawalTaxCounterfactual } from './runWithdrawalTaxCounterfactual.js';
 import { runTaxForScenarioPath } from './runTaxForScenarioPath.js';
 
@@ -106,6 +107,7 @@ test('counterfactual runs all eight 1040 coalitions and reconciles tax attributi
   const counterfactualContext = context(sourcePlan);
   const result = runWithdrawalTaxCounterfactual(sourceRow, counterfactualContext);
 
+  assert.equal(result.schemaVersion, 2);
   assert.equal(result.status, 'modeled-only');
   assert.deepEqual(result.coalitions.map(item => item.id), [
     'none',
@@ -176,8 +178,13 @@ test('counterfactual runs all eight 1040 coalitions and reconciles tax attributi
   }).results[0].annual1040Result.lines.line24.value;
   assert.equal(result.fullCoalitionModeledFederalIncomeTax, direct,
     'full coalition must equal a direct 1040 rerun of the completed row');
-  assert.notEqual(result.deltaVsOnePassFederalTax, 0,
-    'the current one-pass tax is evidence, not a convergence assertion');
+  assert.equal(result.fundedFederalTax, sourceRow.taxes);
+  assert.notEqual(result.deltaVsFundedFederalTax, 0,
+    'a row without convergence metadata remains comparable evidence, not a convergence claim');
+  assert.equal(result.semantics.convergence, 'not-converged');
+  assert.ok(result.comparisonEligibility.reasonCodes.includes(
+    'PHASE_6_FUNDING_NOT_CONVERGED'
+  ));
   assert.deepEqual(sourcePlan, planBefore);
   assert.deepEqual(sourceRow, rowBefore);
   assert.equal(Object.isFrozen(result), true);
@@ -209,6 +216,40 @@ test('coalition reruns capture Social Security and capital-gain interactions', (
     - byId.none.modeledFederalIncomeTax;
   assert.notEqual(jointDelta, singletonDelta,
     'joint tax must come from a real rerun rather than adding shortcut rates');
+});
+
+test('a converged engine row reconciles the full coalition to funded federal tax', () => {
+  const plan = readyPlan();
+  plan.simulation.iterations = 1;
+  const params = resolveInputs(plan, {});
+  const taxOptions = {
+    filingStatus: 'single',
+    baseTaxYear: 2026,
+    scenarioId: 'phase_6_converged_counterfactual_test',
+    contextOverrides: { calculatedAt: '2026-01-01T00:00:00.000Z' },
+  };
+  const taxPolicy = createFederalTaxResolver(params, taxOptions);
+  const returnPath = Array.from({ length: params.horizonYears }, (_, index) => ({
+    y: 2026 + index,
+    proxyReturn: 0,
+  }));
+  const analysis = runSimulation(plan, {}, [returnPath], {
+    taxPolicy,
+    fundTaxPolicyDelta: true,
+  });
+  const fundedRow = analysis.paths.p50.rows.find(item => item.phase !== 'accum');
+  const result = runWithdrawalTaxCounterfactual(fundedRow, context(plan, taxOptions));
+
+  assert.equal(fundedRow.taxFundingConvergence.status, 'converged');
+  assert.equal(result.schemaVersion, 2);
+  assert.equal(result.semantics.convergence, 'converged');
+  assert.equal(result.fundedFederalTax, fundedRow.taxes);
+  assert.equal(result.fullCoalitionModeledFederalIncomeTax, fundedRow.taxes);
+  assert.ok(Math.abs(result.deltaVsFundedFederalTax) <= 0.01);
+  assert.equal(
+    result.comparisonEligibility.reasonCodes.includes('PHASE_6_FUNDING_NOT_CONVERGED'),
+    false
+  );
 });
 
 test('RMD rows preserve engine facts but withhold tax attribution until legal facts exist', () => {
@@ -248,17 +289,17 @@ test('RMD rows preserve engine facts but withhold tax attribution until legal fa
     accountBreakdown: { taxable: 0, traditional: 20_000, roth: 0 },
     preTaxDeltaAccountBreakdown: { taxable: 0, traditional: 0, roth: 0 },
     withdrawal: 20_000,
-    rmd: 30_000,
+    rmd: 10_000,
     rmdRequired: 30_000,
     taxableCapitalGain: 0,
     taxes: 8_000,
   }), context());
   assert.equal(taxDeltaAfterForcedRmd.status, 'unavailable');
-  assert.equal(taxDeltaAfterForcedRmd.withdrawals.actualTraditionalDistribution, 50_000);
+  assert.equal(taxDeltaAfterForcedRmd.withdrawals.actualTraditionalDistribution, 30_000);
   assert.equal(
     taxDeltaAfterForcedRmd.withdrawals.discretionaryByBucket.traditional,
-    20_000,
-    'a later federal-tax funding draw remains discretionary after the forced RMD'
+    0,
+    'the final-funded Traditional draw reduces the separate forced RMD amount'
   );
 });
 
@@ -474,7 +515,7 @@ test('malformed rows throw while accumulation and depleted fillers are not appli
     rmd: 20_000,
     rmdRequired: 30_000,
     taxableCapitalGain: 0,
-  }), context()), /exceeds the pre-tax-delta forced amount/);
+  }), context()), /exceeds the final-funding forced amount/);
   const sourcePlan = readyPlan();
   assert.throws(() => buildWithdrawalTaxCounterfactualContext(
     sourcePlan,
@@ -490,9 +531,11 @@ test('malformed rows throw while accumulation and depleted fillers are not appli
   const accumulation = runWithdrawalTaxCounterfactual({
     year: 1, age: 64, phase: 'accum', failed: false,
   }, context());
+  assert.equal(accumulation.schemaVersion, 2);
   assert.equal(accumulation.status, 'not-applicable');
   const filler = runWithdrawalTaxCounterfactual({
     year: 2, age: 66, source: null, failed: true,
   }, context());
+  assert.equal(filler.schemaVersion, 2);
   assert.equal(filler.status, 'not-applicable');
 });

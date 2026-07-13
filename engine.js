@@ -604,6 +604,15 @@ function resolveInputs(plan, ov){
 
   // Spend cut: proportional reduction across all expense categories.
   // spendCut reduces spending (stress); spendBump raises it (elasticity probe).
+  for(const key of ['spendCut', 'spendBump']){
+    if(Object.prototype.hasOwnProperty.call(ov, key) && !Number.isFinite(ov[key])){
+      throw new TypeError(`${key} must be finite`);
+    }
+  }
+  const hasLivingAnnual = Object.prototype.hasOwnProperty.call(ov, 'livingAnnual');
+  if(hasLivingAnnual && (!Number.isFinite(ov.livingAnnual) || ov.livingAnnual < 0)){
+    throw new TypeError('livingAnnual must be a finite non-negative number');
+  }
   const spendMult = (1 - Math.max(0, Math.min(0.5, ov.spendCut || 0))) * (1 + Math.max(0, ov.spendBump || 0));
 
   // Initial shock: applied to the equity portion of each account proportionally.
@@ -757,7 +766,9 @@ function resolveInputs(plan, ov){
     pension:        { amount: pensionAmount, startAge: penStartAge, colaReal: penColaReal },
     ltc:            { amount: Math.max(0, (ltc.amount || 0) * (1 + (ov.ltcAdj || 0))), onsetAge: (ltc.onsetAge != null ? ltc.onsetAge : 999) },
     expenses: {
-      living:     plan.expenses.living     * spendMult,
+      // Absolute living spend is a narrow zero-base scenario seam. It avoids
+      // representing a real dollar target as an impossible percent of $0.
+      living:     hasLivingAnnual ? ov.livingAnnual : plan.expenses.living * spendMult,
       housing:    plan.expenses.housing    * spendMult,
       debt:       plan.expenses.debt       * spendMult,
       // Healthcare is NOT scaled by spendMult — it's not discretionary lifestyle
@@ -883,6 +894,304 @@ function shortcutTaxOnExternalIncome(p, { ssInc, oiTaxable, penInc }){
   };
 }
 
+const FEDERAL_FUNDING_CONVERGENCE_TOLERANCE = 0.01;
+const FEDERAL_FUNDING_MAX_ITERATIONS = 32;
+
+function assertFiniteFederalFundingInputs(age, values){
+  const invalid = Object.entries(values)
+    .filter(([, value]) => !Number.isFinite(value))
+    .map(([name, value]) => `${name}=${String(value)}`);
+  if(invalid.length){
+    throw new TypeError(
+      `Federal funding inputs must be finite at age ${age}: ${invalid.join(', ')}`
+    );
+  }
+}
+
+function cloneEngineAccounts(accounts){
+  return {
+    taxable: {
+      balance: accounts.taxable.balance,
+      basis: accounts.taxable.basis,
+    },
+    traditional: { balance: accounts.traditional.balance },
+    roth: { balance: accounts.roth.balance },
+  };
+}
+
+function emptyFunding(){
+  return {
+    totalWithdrawn: 0,
+    totalTax: 0,
+    breakdown: { taxable: 0, traditional: 0, roth: 0 },
+    taxBySource: { taxable: 0, traditional: 0 },
+    shortfall: 0,
+  };
+}
+
+function accountTotal(accounts){
+  return accounts.taxable.balance
+    + accounts.traditional.balance
+    + accounts.roth.balance;
+}
+
+/**
+ * Rebuild one retirement year from the same opening account state for a
+ * candidate federal-tax funding adjustment. The ordinary engine gap already
+ * includes its shortcut tax assumptions, so the signed adjustment is the
+ * difference between modeled federal tax and that candidate's shortcut tax.
+ * Replaying from the opening state is what lets a lower federal liability
+ * reduce withdrawals instead of pretending the savings arrived after them.
+ */
+function buildFederalFundingCandidate({
+  openingAccounts,
+  p,
+  rp,
+  y,
+  age,
+  r,
+  saleProceeds,
+  ssInc,
+  oiInc,
+  oiTaxable,
+  penInc,
+  expenses,
+  goalsY,
+  liabCost,
+  lumpY,
+  gap,
+  taxOnSS,
+  taxOnOI,
+  taxOnPen,
+  preFederalFunding,
+}, taxFundingAdjustment){
+  const accounts = cloneEngineAccounts(openingAccounts);
+  const startBalance = accountTotal(accounts);
+  const accountStartingBalances = {
+    taxable: accounts.taxable.balance,
+    traditional: accounts.traditional.balance,
+    roth: accounts.roth.balance,
+  };
+  const taxableStartingBasis = accounts.taxable.basis;
+  const rmdRequired = age >= RMD_START_AGE && accountStartingBalances.traditional > 0.01
+    ? accountStartingBalances.traditional / rmdDivisor(age)
+    : 0;
+
+  const adjustedGap = gap + taxFundingAdjustment;
+  const funding = adjustedGap > 0
+    ? fundGap(accounts, adjustedGap, p.taxRates, p.withdrawalStrategy)
+    : emptyFunding();
+  const withdrawal = funding.totalWithdrawn;
+  const factor = Math.abs(r) < 1e-7 ? 12 : r / (Math.pow(1 + r, 1/12) - 1);
+
+  accounts.taxable.balance = accounts.taxable.balance * (1 + r)
+    - (funding.breakdown.taxable / 12) * factor;
+  accounts.traditional.balance = accounts.traditional.balance * (1 + r)
+    - (funding.breakdown.traditional / 12) * factor;
+  accounts.roth.balance = accounts.roth.balance * (1 + r)
+    - (funding.breakdown.roth / 12) * factor;
+
+  const startingTaxableGainFraction = taxableStartingBasis < accountStartingBalances.taxable
+    && accountStartingBalances.taxable > 0.01
+    ? Math.max(0, Math.min(
+      1,
+      (accountStartingBalances.taxable - taxableStartingBasis)
+        / accountStartingBalances.taxable
+    ))
+    : 0;
+  const taxableCapitalGain = funding.breakdown.taxable * startingTaxableGainFraction;
+  if(funding.breakdown.taxable > 0 && accountStartingBalances.taxable > 0.01){
+    const basisFraction = taxableStartingBasis / accountStartingBalances.taxable;
+    accounts.taxable.basis = Math.max(
+      0,
+      taxableStartingBasis - funding.breakdown.taxable * basisFraction
+    );
+  }
+
+  let rmdForced = 0;
+  let rmdTax = 0;
+  if(rmdRequired > 0){
+    rmdForced = Math.max(0, rmdRequired - funding.breakdown.traditional);
+    rmdForced = Math.min(rmdForced, Math.max(0, accounts.traditional.balance));
+    if(rmdForced > 0.01){
+      accounts.traditional.balance -= rmdForced;
+      rmdTax = rmdForced * p.taxRates.ordinary;
+      const reinvest = rmdForced - rmdTax;
+      accounts.taxable.balance += reinvest;
+      accounts.taxable.basis += reinvest;
+    }
+  }
+
+  // If a lower federal liability more than eliminates the ordinary spending
+  // draw, retain only that incremental tax saving as after-tax taxable cash.
+  // Existing off-book income surplus remains off-book, preserving the base
+  // engine contract while making the signed tax adjustment symmetric.
+  const taxSavingsReinvested = Math.max(
+    0,
+    -(Math.max(0, gap) + taxFundingAdjustment)
+  );
+  if(taxSavingsReinvested > 0){
+    accounts.taxable.balance += taxSavingsReinvested;
+    accounts.taxable.basis += taxSavingsReinvested;
+  }
+
+  const shortcutTax = taxOnSS + taxOnOI + taxOnPen + funding.totalTax + rmdTax;
+  const wdRate = startBalance > 0.01 && withdrawal > 0
+    ? (withdrawal / startBalance) * 100
+    : 0;
+  const taxableGainFraction = funding.breakdown.taxable > 0.01
+    ? taxableCapitalGain / funding.breakdown.taxable
+    : undefined;
+  const policyRow = {
+    year: y + 1,
+    age,
+    source: rp.y,
+    returnRate: r,
+    returnDollars: startBalance * r,
+    nominalReturn: (rp && rp.proxyNominalReturn != null) ? rp.proxyNominalReturn : null,
+    inflationRate: (rp && rp.proxyInflationRate != null) ? rp.proxyInflationRate : null,
+    realReturnUsed: r,
+    socialSecurity: ssInc,
+    otherIncome: oiInc,
+    pension: penInc,
+    withdrawal,
+    ...(oiInc > 0 ? { otherIncomeTaxable: oiTaxable } : {}),
+    rmd: rmdForced,
+    rmdRequired,
+    assetSale: saleProceeds,
+    expenses,
+    goals: goalsY,
+    liabilities: liabCost,
+    taxes: shortcutTax,
+    lumpSum: lumpY,
+    startBalance,
+    wdRate,
+    netCashflow: (ssInc + oiInc + penInc + saleProceeds)
+      - (expenses + goalsY + liabCost + shortcutTax),
+    balance: accountTotal(accounts),
+    failed: false,
+    accountBreakdown: { ...funding.breakdown },
+    preTaxDeltaAccountBreakdown: { ...preFederalFunding.breakdown },
+    accountStartingBalances: { ...accountStartingBalances },
+    taxableStartingBasis,
+    taxableCapitalGain,
+    accountBalances: {
+      taxable: accounts.taxable.balance,
+      traditional: accounts.traditional.balance,
+      roth: accounts.roth.balance,
+    },
+    taxableEndingBasis: accounts.taxable.basis,
+    ...(taxableGainFraction !== undefined ? { taxableGainFraction } : {}),
+    taxBySource: {
+      ss: taxOnSS,
+      oi: taxOnOI,
+      traditional: funding.taxBySource.traditional,
+      taxable: funding.taxBySource.taxable,
+    },
+  };
+
+  return {
+    accounts,
+    funding,
+    policyRow,
+    shortcutTax,
+    taxSavingsReinvested,
+  };
+}
+
+function solveFederalFundingYear(args, taxPolicy){
+  const preFederalFunding = args.gap > 0
+    ? fundGap(args.openingAccounts, args.gap, args.p.taxRates, args.p.withdrawalStrategy)
+    : emptyFunding();
+  let adjustment = 0;
+  let lowerBracket = null;
+  let upperBracket = null;
+  let previousEvaluation = null;
+
+  for(let iteration = 1; iteration <= FEDERAL_FUNDING_MAX_ITERATIONS; iteration++){
+    const candidate = buildFederalFundingCandidate(
+      { ...args, preFederalFunding },
+      adjustment
+    );
+    const resolvedTax = taxPolicy(candidate.policyRow, {
+      shortcutTax: candidate.shortcutTax,
+      yearIndex: args.y,
+    });
+    if(!Number.isFinite(resolvedTax) || resolvedTax < 0){
+      throw new TypeError('taxPolicy must return a finite non-negative tax');
+    }
+    const targetAdjustment = resolvedTax - candidate.shortcutTax;
+    const residual = targetAdjustment - adjustment;
+    if(Math.abs(residual) <= FEDERAL_FUNDING_CONVERGENCE_TOLERANCE){
+      const accounts = candidate.accounts;
+      if(accounts.taxable.balance < 0) accounts.taxable.balance = 0;
+      if(accounts.traditional.balance < 0) accounts.traditional.balance = 0;
+      if(accounts.roth.balance < 0) accounts.roth.balance = 0;
+      let failed = accountTotal(accounts) <= 0.01 || candidate.funding.shortfall > 0.01;
+      if(failed){
+        accounts.taxable.balance = 0;
+        accounts.taxable.basis = 0;
+        accounts.traditional.balance = 0;
+        accounts.roth.balance = 0;
+      }
+      const row = {
+        ...candidate.policyRow,
+        taxes: resolvedTax,
+        netCashflow: (
+          args.ssInc + args.oiInc + args.penInc + args.saleProceeds
+        ) - (args.expenses + args.goalsY + args.liabCost + resolvedTax),
+        balance: accountTotal(accounts),
+        failed,
+        accountBalances: {
+          taxable: accounts.taxable.balance,
+          traditional: accounts.traditional.balance,
+          roth: accounts.roth.balance,
+        },
+        taxableEndingBasis: accounts.taxable.basis,
+        taxFundingConvergence: {
+          status: 'converged',
+          iterations: iteration,
+          tolerance: FEDERAL_FUNDING_CONVERGENCE_TOLERANCE,
+          residual,
+          fundingAdjustment: adjustment,
+          taxSavingsReinvested: candidate.taxSavingsReinvested,
+        },
+      };
+      return { accounts, row, failed };
+    }
+    if(residual > 0){
+      if(!lowerBracket || adjustment > lowerBracket.adjustment){
+        lowerBracket = { adjustment, residual };
+      }
+    }else if(!upperBracket || adjustment < upperBracket.adjustment){
+      upperBracket = { adjustment, residual };
+    }
+    let nextAdjustment = targetAdjustment;
+    if(previousEvaluation){
+      const residualDelta = residual - previousEvaluation.residual;
+      if(Math.abs(residualDelta) > Number.EPSILON){
+        const secant = adjustment - residual
+          * (adjustment - previousEvaluation.adjustment)
+          / residualDelta;
+        if(Number.isFinite(secant)) nextAdjustment = secant;
+      }
+    }
+    if(lowerBracket && upperBracket){
+      const low = Math.min(lowerBracket.adjustment, upperBracket.adjustment);
+      const high = Math.max(lowerBracket.adjustment, upperBracket.adjustment);
+      if(!(nextAdjustment > low && nextAdjustment < high)){
+        nextAdjustment = (low + high) / 2;
+      }
+    }
+    previousEvaluation = { adjustment, residual };
+    adjustment = nextAdjustment;
+  }
+
+  const error = new RangeError('TAX_POLICY_FUNDING_DID_NOT_CONVERGE');
+  error.code = 'TAX_POLICY_FUNDING_DID_NOT_CONVERGE';
+  throw error;
+}
+
 function runSinglePath(p, returnPath, options = {}){
   const taxPolicy = options.taxPolicy ?? null;
   const fundTaxPolicyDelta = options.fundTaxPolicyDelta === true;
@@ -990,12 +1299,13 @@ function runSinglePath(p, returnPath, options = {}){
         balance: endBalanceA, failed: false,
         accountBreakdown: { taxable: 0, traditional: 0, roth: 0 },
         accountBalances: { taxable: accounts.taxable.balance, traditional: accounts.traditional.balance, roth: accounts.roth.balance },
+        taxableEndingBasis: accounts.taxable.basis,
         taxBySource: { ss: taxOnSS, oi: taxOnOI, traditional: 0, taxable: 0 }
       };
       // Reporting-only federal reruns (T7/T8). Income tax during working years is
       // display-only — it does not fund from the portfolio and fundTaxPolicyDelta
       // remains retirement-only.
-      if(taxPolicy && !fundTaxPolicyDelta){
+      if(taxPolicy){
         const reportingTax = taxPolicy(row, { shortcutTax, yearIndex: y });
         if(!Number.isFinite(reportingTax) || reportingTax < 0){
           throw new TypeError('taxPolicy must return a finite non-negative tax');
@@ -1039,6 +1349,23 @@ function runSinglePath(p, returnPath, options = {}){
     // After-tax gap the portfolio must cover.
     const gap = (expenses + goalsY + liabCost + lumpY) - netInc;
 
+    if(taxPolicy && fundTaxPolicyDelta){
+      assertFiniteFederalFundingInputs(age, {
+        living: p.expenses.living,
+        housing: p.expenses.housing,
+        debt: p.expenses.debt,
+        healthcareCost,
+        extraExp,
+        ltcCost,
+        expenses,
+        goalsY,
+        liabCost,
+        lumpY,
+        netInc,
+        gap,
+      });
+    }
+
     const startBalance = totalBalance();
     // Reporting-only opening facts for planning/tax counterfactuals. Captured
     // after any asset sale and before funding, return, RMD, or tax-delta draws.
@@ -1053,6 +1380,67 @@ function runSinglePath(p, returnPath, options = {}){
     const rmdRequired = age >= RMD_START_AGE && accountStartingBalances.traditional > 0.01
       ? accountStartingBalances.traditional / rmdDivisor(age)
       : 0;
+
+    if(taxPolicy && fundTaxPolicyDelta){
+      const solved = solveFederalFundingYear({
+        openingAccounts: accounts,
+        p,
+        rp,
+        y,
+        age,
+        r,
+        saleProceeds,
+        ssInc,
+        oiInc,
+        oiTaxable,
+        penInc,
+        expenses,
+        goalsY,
+        liabCost,
+        lumpY,
+        gap,
+        taxOnSS,
+        taxOnOI,
+        taxOnPen,
+      }, taxPolicy);
+      accounts.taxable.balance = solved.accounts.taxable.balance;
+      accounts.taxable.basis = solved.accounts.taxable.basis;
+      accounts.traditional.balance = solved.accounts.traditional.balance;
+      accounts.roth.balance = solved.accounts.roth.balance;
+      failed = solved.failed;
+      if(failed && depletionAge === null) depletionAge = age;
+      lifetimeTax += solved.row.taxes;
+
+      returnProduct *= (1 + r);
+      if(y < 10) first10Product *= (1 + r);
+      const endBalance = solved.row.balance;
+      if(y === 9) balanceAt10 = endBalance;
+      if(age >= p.retirementAge && age <= p.retirementAge + 9){
+        balanceAtRet10 = endBalance;
+      }
+      if(endBalance < minBalance) minBalance = endBalance;
+      if(endBalance > peakBalance) peakBalance = endBalance;
+      if(peakBalance > 0){
+        const dd = (peakBalance - endBalance) / peakBalance;
+        if(dd > maxDrawdown) maxDrawdown = dd;
+      }
+      rows.push(solved.row);
+
+      if(failed){
+        for(let z = y + 1; z < p.horizonYears; z++){
+          rows.push({
+            year:z+1, age:p.currentAge+z, source:null, returnRate:0, returnDollars:0,
+            socialSecurity:0, otherIncome:0, withdrawal:0,
+            expenses:0, goals:0, taxes:0,
+            startBalance:0, wdRate:0, netCashflow:0, balance:0, failed:true,
+            accountBreakdown: { taxable:0, traditional:0, roth:0 },
+            accountBalances:  { taxable:0, traditional:0, roth:0 }
+          });
+        }
+        break;
+      }
+      continue;
+    }
 
     // Compute the withdrawal breakdown without mutating accounts.
     const funding = gap > 0
@@ -1131,101 +1519,6 @@ function runSinglePath(p, returnPath, options = {}){
     const shortcutTax = totalTax + rmdTax;
     let resolvedTax = shortcutTax;
 
-    // T8 funding mode: resolve the caller-supplied tax before depletion is
-    // finalized. Only a positive delta creates an additional portfolio need;
-    // lower resolved tax remains reporting-only (no refund/redeposit model).
-    // T7's direct runSinglePath reruns omit fundTaxPolicyDelta and therefore
-    // keep the original reporting-only behavior and identical funding paths.
-    if(taxPolicy && fundTaxPolicyDelta){
-      const policyRow = {
-        year: y+1, age, source: rp.y, returnRate: r,
-        returnDollars: startBalance * r,
-        nominalReturn: (rp && rp.proxyNominalReturn != null) ? rp.proxyNominalReturn : null,
-        inflationRate: (rp && rp.proxyInflationRate != null) ? rp.proxyInflationRate : null,
-        realReturnUsed: r,
-        socialSecurity: ssInc, otherIncome: oiInc, pension: penInc, withdrawal,
-        ...(oiInc > 0 ? { otherIncomeTaxable: oiTaxable } : {}),
-        rmd: rmdForced, rmdRequired, assetSale: saleProceeds,
-        expenses, goals: goalsY, liabilities: liabCost, taxes: shortcutTax, lumpSum: lumpY,
-        startBalance, wdRate,
-        netCashflow: (ssInc + oiInc + penInc + saleProceeds)
-                     - (expenses + goalsY + liabCost + shortcutTax),
-        balance: totalBalance(), failed: false,
-        accountBreakdown: { ...funding.breakdown },
-        preTaxDeltaAccountBreakdown: { ...preTaxDeltaAccountBreakdown },
-        accountStartingBalances: { ...accountStartingBalances },
-        taxableStartingBasis,
-        taxableCapitalGain,
-        accountBalances: {
-          taxable: accounts.taxable.balance,
-          traditional: accounts.traditional.balance,
-          roth: accounts.roth.balance
-        },
-        ...(taxableGainFraction !== undefined ? { taxableGainFraction } : {}),
-        taxBySource: {
-          ss: taxOnSS, oi: taxOnOI,
-          traditional: funding.taxBySource.traditional,
-          taxable: funding.taxBySource.taxable
-        }
-      };
-
-      resolvedTax = taxPolicy(policyRow, { shortcutTax, yearIndex: y });
-      if(!Number.isFinite(resolvedTax) || resolvedTax < 0){
-        throw new TypeError('taxPolicy must return a finite non-negative tax');
-      }
-      lifetimeTax += resolvedTax - shortcutTax;
-
-      const taxDelta = resolvedTax - shortcutTax;
-      if(taxDelta > 0.01){
-        // fundGap applies the same account ordering and tax gross-up mechanics
-        // used for the ordinary spending gap. This second draw occurs against
-        // the post-spending/RMD account state and before failure is decided.
-        const extraTaxStartBal = accounts.taxable.balance;
-        const extraTaxStartBasis = accounts.taxable.basis;
-        const additionalFunding = fundGap(
-          accounts,
-          taxDelta,
-          p.taxRates,
-          p.withdrawalStrategy
-        );
-
-        accounts.taxable.balance -= (additionalFunding.breakdown.taxable / 12) * factor;
-        accounts.traditional.balance -= (additionalFunding.breakdown.traditional / 12) * factor;
-        accounts.roth.balance -= (additionalFunding.breakdown.roth / 12) * factor;
-
-        if(additionalFunding.breakdown.taxable > 0 && extraTaxStartBal > 0.01){
-          const gainFraction = Math.max(0, Math.min(
-            1,
-            (extraTaxStartBal - extraTaxStartBasis) / extraTaxStartBal
-          ));
-          taxableCapitalGain += additionalFunding.breakdown.taxable * gainFraction;
-          if(taxableGainFraction === undefined) taxableGainFraction = gainFraction;
-          const basisFraction = extraTaxStartBasis / extraTaxStartBal;
-          accounts.taxable.basis = Math.max(
-            0,
-            extraTaxStartBasis - additionalFunding.breakdown.taxable * basisFraction
-          );
-        }
-
-        funding.totalWithdrawn += additionalFunding.totalWithdrawn;
-        funding.totalTax += additionalFunding.totalTax;
-        funding.shortfall += additionalFunding.shortfall;
-        for(const type of ['taxable', 'traditional', 'roth']){
-          funding.breakdown[type] += additionalFunding.breakdown[type];
-        }
-        for(const type of ['taxable', 'traditional']){
-          funding.taxBySource[type] += additionalFunding.taxBySource[type];
-        }
-        withdrawal = funding.totalWithdrawn;
-        wdRate = (startBalance > 0.01 && withdrawal > 0)
-          ? (withdrawal / startBalance) * 100
-          : 0;
-        taxableGainFraction = funding.breakdown.taxable > 0.01
-          ? taxableCapitalGain / funding.breakdown.taxable
-          : undefined;
-      }
-    }
-
     // Floor any depleted accounts at zero.
     if(accounts.taxable.balance < 0)     accounts.taxable.balance = 0;
     if(accounts.traditional.balance < 0) accounts.traditional.balance = 0;
@@ -1284,6 +1577,7 @@ function runSinglePath(p, returnPath, options = {}){
         traditional: accounts.traditional.balance,
         roth: accounts.roth.balance
       },
+      taxableEndingBasis: accounts.taxable.basis,
       ...(taxableGainFraction !== undefined ? { taxableGainFraction } : {}),
       taxBySource: {
         ss: taxOnSS, oi: taxOnOI,

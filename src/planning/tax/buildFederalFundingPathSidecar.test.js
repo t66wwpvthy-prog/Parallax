@@ -76,7 +76,7 @@ function compactExpected(row, counterfactualContext){
     phase,
     sourceYear: row.source ?? null,
     failed: row.failed,
-    onePassFederalTax: phase === 'retirement' ? row.taxes : null,
+    convergedFederalTax: phase === 'retirement' ? row.taxes : null,
     grossWithdrawal: row.withdrawal ?? 0,
     grossWithdrawalsByBucket: Object.fromEntries(
       BUCKET_KEYS.map(bucket => [bucket, row.accountBreakdown[bucket]])
@@ -92,6 +92,14 @@ function compactExpected(row, counterfactualContext){
         row,
         counterfactualContext
       ),
+      convergence: {
+        status: 'converged',
+        iterations: row.taxFundingConvergence.iterations,
+        tolerance: row.taxFundingConvergence.tolerance,
+        residual: row.taxFundingConvergence.residual,
+        fundingAdjustment: row.taxFundingConvergence.fundingAdjustment,
+        taxSavingsReinvested: row.taxFundingConvergence.taxSavingsReinvested,
+      },
     } : {}),
     endingBalances: {
       ...Object.fromEntries(BUCKET_KEYS.map(bucket => [bucket, row.accountBalances[bucket]])),
@@ -111,7 +119,7 @@ function buildFixture(){
   return { plan, shortcut, federal };
 }
 
-test('sidecar preserves compact shortcut-aligned federal-funded bucket paths', () => {
+test('sidecar preserves compact converged federal-funded bucket paths', () => {
   const { plan, shortcut, federal } = buildFixture();
   const shortcutBefore = structuredClone(shortcut);
   const federalBefore = structuredClone(federal);
@@ -121,15 +129,20 @@ test('sidecar preserves compact shortcut-aligned federal-funded bucket paths', (
     shortcut.params
   );
 
-  assert.equal(sidecar.schemaVersion, 2);
+  assert.equal(sidecar.schemaVersion, 3);
   assert.equal(sidecar.successRate, federal.successRate);
   assert.equal(sidecar.total, federal.total);
   assert.equal(sidecar.survived, federal.survived);
-  assert.equal(sidecar.semantics.convergence, 'not-converged');
-  assert.equal(sidecar.semantics.pathSelection, 'shortcut-selected-anchors');
+  assert.equal(sidecar.semantics.fundingMethod, 'signed-fixed-point');
+  assert.equal(sidecar.semantics.convergence, 'per-year-to-one-cent');
+  assert.equal(sidecar.semantics.pathSelection, 'federal-funded-selected-anchors');
+  assert.equal(
+    sidecar.semantics.lowerTaxTreatment,
+    'reduce-withdrawals-then-reinvest-excess-tax-saving'
+  );
   assert.equal(sidecar.semantics.balanceTiming, 'row-opening-and-row-ending');
   assert.deepEqual(sidecar.startingBalances, {
-    source: 'shortcut-analysis-resolved-engine-accounts',
+    source: 'resolved-engine-accounts',
     accountScope: 'engine-compatible',
     taxable: 0,
     traditional: 250000,
@@ -153,10 +166,12 @@ test('sidecar preserves compact shortcut-aligned federal-funded bucket paths', (
     'rules-pending inherited balance must remain current-only');
 
   for(const pathKey of FEDERAL_FUNDING_PATH_KEYS){
-    const anchor = shortcut.paths[pathKey];
+    const anchor = federal.paths[pathKey];
     const funded = federal.sims.find(sim => sim.simIndex === anchor.simIndex);
+    const shortcutSim = shortcut.sims.find(sim => sim.simIndex === anchor.simIndex);
     const compact = sidecar.paths[pathKey];
     assert.equal(funded.returnPath, anchor.returnPath);
+    assert.equal(funded.returnPath, shortcutSim.returnPath);
     assert.equal(compact.simIndex, anchor.simIndex);
     assert.deepEqual(
       compact.rows,
@@ -175,8 +190,19 @@ test('sidecar preserves compact shortcut-aligned federal-funded bucket paths', (
 
   const phases = sidecar.paths.p50.rows.map(row => row.phase);
   assert.deepEqual(phases, ['accumulation', 'accumulation', 'retirement', 'depleted', 'depleted']);
-  assert.equal(sidecar.paths.p50.rows[0].onePassFederalTax, null);
-  assert.ok(sidecar.paths.p50.rows[2].onePassFederalTax > 0);
+  assert.equal(sidecar.paths.p50.rows[0].convergedFederalTax, null);
+  assert.ok(sidecar.paths.p50.rows[2].convergedFederalTax > 0);
+  assert.equal(sidecar.paths.p50.rows[2].convergence.status, 'converged');
+  assert.ok(Math.abs(sidecar.paths.p50.rows[2].convergence.residual) <= 0.01);
+  assert.equal(
+    sidecar.paths.p50.rows[2].withdrawalTaxCounterfactual.semantics.convergence,
+    'converged'
+  );
+  assert.equal(
+    sidecar.paths.p50.rows[2].withdrawalTaxCounterfactual.comparisonEligibility.reasonCodes
+      .includes('PHASE_6_FUNDING_NOT_CONVERGED'),
+    false
+  );
 
   assert.deepEqual(shortcut, shortcutBefore);
   assert.deepEqual(federal, federalBefore);
@@ -236,13 +262,13 @@ test('duplicate shortcut anchors reuse one compact path without retaining all si
   const sidecar = buildFederalFundingPathSidecar(shortcut, federal, plan);
   const compactPaths = new Set(Object.values(sidecar.paths));
   const selectedSimIndexes = new Set(
-    FEDERAL_FUNDING_PATH_KEYS.map(pathKey => shortcut.paths[pathKey].simIndex)
+    FEDERAL_FUNDING_PATH_KEYS.map(pathKey => federal.paths[pathKey].simIndex)
   );
   assert.equal(compactPaths.size, selectedSimIndexes.size);
   assert.equal('sims' in sidecar, false);
   for(const pathKey of FEDERAL_FUNDING_PATH_KEYS){
     for(const otherKey of FEDERAL_FUNDING_PATH_KEYS){
-      if(shortcut.paths[pathKey].simIndex === shortcut.paths[otherKey].simIndex){
+      if(federal.paths[pathKey].simIndex === federal.paths[otherKey].simIndex){
         assert.equal(sidecar.paths[pathKey], sidecar.paths[otherKey]);
       }
     }
@@ -272,35 +298,66 @@ test('mismatched params and cloned return paths fail closed', () => {
   );
 });
 
-test('zero and lower federal deltas preserve the shortcut bucket path', () => {
+test('zero delta preserves funding while lower federal tax reduces the final-funded draw', () => {
   const plan = fixturePlan();
+  plan.expenses.living = 100000;
   const paths = returnPaths();
   const shortcut = runSimulation(plan, {}, paths);
-  const policies = [
-    (_row, context) => context.shortcutTax,
-    (_row, context) => Math.max(0, context.shortcutTax - 10000),
-  ];
-  for(const taxPolicy of policies){
-    const noPositiveDelta = runSimulation(plan, {}, paths, {
-      taxPolicy,
-      fundTaxPolicyDelta: true,
-    });
-    const sidecar = buildFederalFundingPathSidecar(shortcut, noPositiveDelta, plan);
-    for(const pathKey of FEDERAL_FUNDING_PATH_KEYS){
-      assert.deepEqual(
-        sidecar.paths[pathKey].rows.map(row => row.endingBalances),
-        shortcut.paths[pathKey].rows.map(row => ({
-          ...row.accountBalances,
-          total: row.balance,
-        }))
-      );
-    }
+  const unchanged = runSimulation(plan, {}, paths, {
+    taxPolicy: (_row, context) => context.shortcutTax,
+    fundTaxPolicyDelta: true,
+  });
+  const lowerTax = runSimulation(plan, {}, paths, {
+    taxPolicy: (_row, context) => Math.max(0, context.shortcutTax - 10000),
+    fundTaxPolicyDelta: true,
+  });
+  const unchangedSidecar = buildFederalFundingPathSidecar(shortcut, unchanged, plan);
+  const lowerSidecar = buildFederalFundingPathSidecar(shortcut, lowerTax, plan);
+
+  for(const compact of Object.values(unchangedSidecar.paths)){
+    const shortcutSim = shortcut.sims.find(sim => sim.simIndex === compact.simIndex);
+    assert.deepEqual(
+      compact.rows.map(row => row.endingBalances),
+      shortcutSim.rows.map(row => ({ ...row.accountBalances, total: row.balance }))
+    );
   }
+  for(const compact of Object.values(lowerSidecar.paths)){
+    const shortcutSim = shortcut.sims.find(sim => sim.simIndex === compact.simIndex);
+    const fundedRetirement = compact.rows.find(row => row.phase === 'retirement');
+    const shortcutRetirement = shortcutSim.rows.find(row => row.phase !== 'accum');
+    assert.ok(fundedRetirement.grossWithdrawal < shortcutRetirement.withdrawal);
+    assert.ok(fundedRetirement.endingBalances.total > shortcutRetirement.balance);
+    assert.ok(fundedRetirement.convergence.fundingAdjustment < 0);
+  }
+});
+
+test('sidecar rejects retirement rows without proven convergence metadata', () => {
+  const { plan, shortcut, federal } = buildFixture();
+  const selectedIndex = federal.paths.p50.simIndex;
+  const missingConvergence = {
+    ...federal,
+    sims: federal.sims.map(sim => sim.simIndex === selectedIndex
+      ? {
+          ...sim,
+          rows: sim.rows.map(row => row.phase === 'accum'
+            ? row
+            : { ...row, taxFundingConvergence: undefined }),
+        }
+      : sim),
+  };
+  missingConvergence.paths = {
+    ...federal.paths,
+    p50: missingConvergence.sims.find(sim => sim.simIndex === selectedIndex),
+  };
+  assert.throws(
+    () => buildFederalFundingPathSidecar(shortcut, missingConvergence, plan),
+    /taxFundingConvergence must be a plain object/
+  );
 });
 
 test('selected rows with unreconciled bucket totals fail closed', () => {
   const { plan, shortcut, federal } = buildFixture();
-  const selectedIndex = shortcut.paths.p50.simIndex;
+  const selectedIndex = federal.paths.p50.simIndex;
   const invalid = {
     ...federal,
     sims: federal.sims.map(sim => sim.simIndex === selectedIndex
@@ -333,7 +390,7 @@ test('mismatched scope plan, invalid phase, and invalid market source fail close
     /plan and overrides must match/
   );
 
-  const selectedIndex = shortcut.paths.p50.simIndex;
+  const selectedIndex = federal.paths.p50.simIndex;
   const invalidFederal = (change) => ({
     ...federal,
     sims: federal.sims.map(sim => sim.simIndex === selectedIndex
@@ -375,7 +432,7 @@ test('household issues block sidecar readiness without hiding scope differences'
 
 test('depletion metadata must match the first real failure row', () => {
   const { plan, shortcut, federal } = buildFixture();
-  const selectedIndex = shortcut.paths.p50.simIndex;
+  const selectedIndex = federal.paths.p50.simIndex;
   const invalid = {
     ...federal,
     sims: federal.sims.map(sim => sim.simIndex === selectedIndex

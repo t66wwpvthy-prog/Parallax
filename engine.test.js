@@ -807,6 +807,8 @@ test('tax-policy funding mode grosses up a positive delta before depletion', () 
     'positive resolved-tax delta must create an additional portfolio withdrawal');
   assert.strictEqual(funded.terminalBalance, shortcut.terminalBalance - 5000);
   assert.strictEqual(funded.rows[0].taxes, shortcut.rows[0].taxes + 5000);
+  assert.strictEqual(funded.rows[0].taxFundingConvergence.status, 'converged');
+  assert.ok(Math.abs(funded.rows[0].taxFundingConvergence.residual) <= 0.01);
 
   const traditionalInputs = build(100000, 10000, 'traditional');
   const traditionalShortcut = runSinglePath(traditionalInputs, returnPath);
@@ -829,9 +831,142 @@ test('tax-policy funding mode grosses up a positive delta before depletion', () 
   assert.strictEqual(tightShortcut.failed, false, 'shortcut fixture must survive');
   assert.strictEqual(tightFunded.failed, true,
     'unfunded federal-tax delta must be able to change the path outcome');
+
+  const lowerTax = runSinglePath(traditionalInputs, returnPath, {
+    taxPolicy: (_row, { shortcutTax }) => shortcutTax - 1000,
+    fundTaxPolicyDelta: true,
+  });
+  assert.ok(lowerTax.rows[0].withdrawal < traditionalShortcut.rows[0].withdrawal,
+    'a lower federal liability must rebuild the year with a smaller withdrawal');
+  assert.ok(lowerTax.terminalBalance > traditionalShortcut.terminalBalance);
+  assert.strictEqual(lowerTax.rows[0].taxFundingConvergence.fundingAdjustment, -1000);
 });
 
-test('federal-delta taxable tranches expose exact aggregate capital gain', () => {
+test('livingAnnual models positive scenario spending over a zero-dollar base', () => {
+  const p = structuredClone(defaultPlan);
+  p.household.primary = { currentAge: 65, retirementAge: 65, planEndAge: 66 };
+  p.household.spouse = null;
+  p.portfolio.accounts = {
+    taxable: { balance: 100_000, basisPct: 1 },
+    traditional: { balance: 0 },
+    roth: { balance: 0 },
+  };
+  p.portfolio.extraAccounts = [];
+  p.income.socialSecurity = { primary: { pia: 0, claimAge: 67 }, spouse: null };
+  p.income.other = [];
+  p.income.pension = { benefitByAge: {}, base: 0, startAge: 99, colaPct: 0 };
+  p.expenses = {
+    living: 0, housing: 0, debt: 0, healthcare: 0,
+    healthcareRealGrowth: 0, extra: [],
+  };
+  p.goals = [];
+  p.liabilities = [];
+  p.properties = [];
+  p.ltc = { amount: 0, onsetAge: 99 };
+
+  const params = resolveInputs(p, { livingAnnual: 24_000 });
+  const result = runSinglePath(params, [{ y: 2026, proxyReturn: 0 }], {
+    taxPolicy: () => 0,
+    fundTaxPolicyDelta: true,
+  });
+
+  assert.equal(params.expenses.living, 24_000);
+  assert.equal(result.rows[0].expenses, 24_000);
+  assert.equal(result.rows[0].withdrawal, 24_000);
+  assert.equal(result.rows[0].taxFundingConvergence.taxSavingsReinvested, 0);
+});
+
+test('federal funding rejects non-finite spending inputs before convergence', () => {
+  const p = structuredClone(defaultPlan);
+  p.household.primary = { currentAge: 65, retirementAge: 65, planEndAge: 66 };
+  p.household.spouse = null;
+  p.expenses = {
+    living: 10_000, housing: 0, debt: 0, healthcare: 0,
+    healthcareRealGrowth: 0, extra: [],
+  };
+
+  assert.throws(
+    () => resolveInputs(p, { spendBump: Infinity }),
+    /spendBump must be finite/
+  );
+  assert.throws(
+    () => resolveInputs(p, { spendCut: NaN }),
+    /spendCut must be finite/
+  );
+  for(const value of [NaN, Infinity, -1, null, '24000']){
+    assert.throws(
+      () => resolveInputs(p, { livingAnnual: value }),
+      /livingAnnual must be a finite non-negative number/
+    );
+  }
+
+  p.expenses.housing = undefined;
+  const params = resolveInputs(p, {});
+  assert.throws(
+    () => runSinglePath(params, [{ y: 2026, proxyReturn: 0 }], {
+      taxPolicy: () => 0,
+      fundTaxPolicyDelta: true,
+    }),
+    /Federal funding inputs must be finite at age 65: housing=NaN, expenses=NaN, gap=NaN/
+  );
+});
+
+test('converged age-68 cash-flow row funds the visible federal-tax identity', () => {
+  const p = structuredClone(defaultPlan);
+  p.household.primary = { currentAge: 68, retirementAge: 68, planEndAge: 69 };
+  p.household.spouse = null;
+  p.portfolio.accounts = {
+    taxable: { balance: 1_000_000, basisPct: 1 },
+    traditional: { balance: 0 },
+    roth: { balance: 0 },
+  };
+  p.portfolio.extraAccounts = [];
+  p.portfolio.withdrawalStrategy = 'taxable-first';
+  p.income.socialSecurity = { primary: { pia: 0, claimAge: 70 }, spouse: null };
+  p.income.other = [{
+    label: 'Retirement income', amount: 65_000,
+    startAge: 68, endAge: 68, taxablePct: 1,
+  }];
+  p.income.pension = { benefitByAge: {}, base: 0, startAge: 99, colaPct: 0 };
+  p.expenses = {
+    living: 170_000, housing: 0, debt: 0, healthcare: 0,
+    healthcareRealGrowth: 0, extra: [],
+  };
+  p.goals = [{ name: 'Age-68 goal', amount: 50_000, startAge: 68, endAge: 68 }];
+  p.liabilities = [];
+  p.properties = [];
+  p.ltc = { amount: 0, onsetAge: 99 };
+
+  const params = resolveInputs(p, {});
+  const result = runSinglePath(params, [{ y: 2026, proxyReturn: 0 }], {
+    taxPolicy: () => 30_000,
+    fundTaxPolicyDelta: true,
+  });
+  const row = result.rows[0];
+  const grossIncome = row.socialSecurity + row.otherIncome + row.pension;
+  const visibleOutflows = row.expenses + row.goals + row.taxes;
+  const visibleResidual = grossIncome + row.withdrawal - visibleOutflows;
+
+  assert.equal(row.age, 68);
+  assert.equal(grossIncome, 65_000);
+  assert.equal(row.expenses, 170_000);
+  assert.equal(row.goals, 50_000);
+  assert.equal(row.taxes, 30_000);
+  assert.equal(row.rmd, 0);
+  assert.equal(row.rmdRequired, 0);
+  assert.equal(row.liabilities, 0);
+  assert.equal(row.lumpSum, 0);
+  assert.equal(row.assetSale, 0);
+  assert.equal(row.failed, false, 'ample taxable assets must leave no funding shortfall');
+  assert.equal(row.taxFundingConvergence.status, 'converged');
+  assert.ok(Math.abs(row.taxFundingConvergence.residual) <= 0.01);
+  assert.ok(Math.abs(row.withdrawal - 185_000) <= 0.01,
+    'the converged portfolio draw must fund expenses, goals, and resolved federal tax');
+  assert.ok(Math.abs(visibleResidual) <= 0.01,
+    `visible cash-flow columns must reconcile within one cent; residual=${visibleResidual}`);
+});
+
+test('converged taxable funding rebuilds exact final gain facts from the opening state', () => {
   const p = structuredClone(defaultPlan);
   p.household.primary = { currentAge: 73, retirementAge: 73, planEndAge: 74 };
   p.portfolio.accounts = {
@@ -858,19 +993,10 @@ test('federal-delta taxable tranches expose exact aggregate capital gain', () =>
     fundTaxPolicyDelta: true,
   });
   const row = result.rows[0];
-  const firstGainFraction = 0.80;
-  const firstWithdrawal = 100_000 / (1 - firstGainFraction * 0.15);
-  const requiredRmd = 10_000_000 / 26.5;
-  const rmdReinvestment = requiredRmd * (1 - 0.22);
-  const secondStartBalance = 1_000_000 - firstWithdrawal + rmdReinvestment;
-  const secondStartBasis = 200_000
-    - firstWithdrawal * (200_000 / 1_000_000)
-    + rmdReinvestment;
-  const secondGainFraction = (secondStartBalance - secondStartBasis) / secondStartBalance;
-  const secondWithdrawal = 200_000 / (1 - secondGainFraction * 0.15);
-  const expectedWithdrawal = firstWithdrawal + secondWithdrawal;
-  const expectedGain = firstWithdrawal * firstGainFraction
-    + secondWithdrawal * secondGainFraction;
+  const gainFraction = 0.80;
+  const firstWithdrawal = 100_000 / (1 - gainFraction * 0.15);
+  const expectedWithdrawal = 300_000 / (1 - gainFraction * 0.15);
+  const expectedGain = expectedWithdrawal * gainFraction;
 
   assert.ok(Math.abs(row.accountBreakdown.taxable - expectedWithdrawal) < 0.01);
   assert.ok(Math.abs(
@@ -878,13 +1004,79 @@ test('federal-delta taxable tranches expose exact aggregate capital gain', () =>
   ) < 0.01);
   assert.ok(Math.abs(row.taxableCapitalGain - expectedGain) < 0.01);
   assert.ok(Math.abs(row.taxableGainFraction - expectedGain / expectedWithdrawal) < 1e-12);
-  assert.notEqual(row.taxableGainFraction, firstGainFraction);
+  assert.equal(row.taxableGainFraction, gainFraction);
   assert.deepEqual(row.accountStartingBalances, {
     taxable: 1_000_000,
     traditional: 10_000_000,
     roth: 0,
   });
   assert.equal(row.taxableStartingBasis, 200_000);
+  assert.equal(row.taxFundingConvergence.status, 'converged');
+});
+
+test('lower federal tax beyond a zero draw retains only the incremental saving as taxable basis', () => {
+  const p = structuredClone(defaultPlan);
+  p.household.primary = { currentAge: 65, retirementAge: 65, planEndAge: 66 };
+  p.household.spouse = null;
+  p.portfolio.accounts = {
+    taxable: { balance: 100_000, basisPct: 1 },
+    traditional: { balance: 0 },
+    roth: { balance: 0 },
+  };
+  p.income.socialSecurity = { primary: { pia: 0, claimAge: 67 }, spouse: null };
+  p.income.other = [{
+    label: 'Pension-like income', amount: 100_000,
+    startAge: 65, endAge: 65, taxablePct: 1,
+  }];
+  p.income.pension = { benefitByAge: {}, base: 0, startAge: 99, colaPct: 0 };
+  p.expenses = {
+    living: 90_000, housing: 0, debt: 0, healthcare: 0,
+    healthcareRealGrowth: 0, extra: [],
+  };
+  p.goals = [];
+  p.liabilities = [];
+  p.properties = [];
+  p.ltc = { amount: 0, onsetAge: 99 };
+  const params = resolveInputs(p, {});
+  const shortcut = runSinglePath(params, [{ y: 2026, proxyReturn: 0 }]);
+  const funded = runSinglePath(params, [{ y: 2026, proxyReturn: 0 }], {
+    taxPolicy: () => 0,
+    fundTaxPolicyDelta: true,
+  });
+
+  assert.equal(shortcut.rows[0].withdrawal, 12_000);
+  assert.equal(funded.rows[0].withdrawal, 0);
+  assert.equal(funded.rows[0].taxFundingConvergence.taxSavingsReinvested, 10_000);
+  assert.equal(funded.rows[0].accountBalances.taxable, 110_000);
+  assert.equal(funded.rows[0].taxableStartingBasis, 100_000);
+});
+
+test('converged funding fails closed when a discontinuous tax policy has no fixed point', () => {
+  const p = structuredClone(defaultPlan);
+  p.household.primary = { currentAge: 65, retirementAge: 65, planEndAge: 66 };
+  p.household.spouse = null;
+  p.portfolio.accounts = {
+    taxable: { balance: 100_000, basisPct: 1 },
+    traditional: { balance: 0 },
+    roth: { balance: 0 },
+  };
+  p.income.socialSecurity = { primary: { pia: 0, claimAge: 67 }, spouse: null };
+  p.income.other = [];
+  p.income.pension = { benefitByAge: {}, base: 0, startAge: 99, colaPct: 0 };
+  p.expenses = {
+    living: 10_000, housing: 0, debt: 0, healthcare: 0,
+    healthcareRealGrowth: 0, extra: [],
+  };
+  p.goals = [];
+  p.liabilities = [];
+  p.properties = [];
+  p.ltc = { amount: 0, onsetAge: 99 };
+  const params = resolveInputs(p, {});
+
+  assert.throws(() => runSinglePath(params, [{ y: 2026, proxyReturn: 0 }], {
+    taxPolicy: row => row.withdrawal > 12_000 ? 0 : 5_000,
+    fundTaxPolicyDelta: true,
+  }), error => error?.code === 'TAX_POLICY_FUNDING_DID_NOT_CONVERGE');
 });
 
 test('engine rows expose taxable other income matching taxBySource', () => {

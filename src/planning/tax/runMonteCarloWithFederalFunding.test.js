@@ -3,7 +3,10 @@ import assert from 'node:assert';
 import { defaultPlan, runSimulation } from '../../../engine.js';
 import { promoteTaxFundedProbability } from '../../scenarios/promoteTaxFundedProbability.js';
 import { rerunMonteCarloWithFederalTax } from './rerunMonteCarloWithFederalTax.js';
-import { runMonteCarloWithFederalFunding } from './runMonteCarloWithFederalFunding.js';
+import {
+  runFederalFundingSimulation,
+  runMonteCarloWithFederalFunding,
+} from './runMonteCarloWithFederalFunding.js';
 
 function controlledFixture(){
   const plan = structuredClone(defaultPlan);
@@ -53,7 +56,7 @@ function shortcutSnapshot(analysis){
   };
 }
 
-test('federalSuccessRate can differ while shortcut MC aggregates remain unchanged', () => {
+test('returns one coherent federally funded Monte Carlo analysis', () => {
   const { plan, returnPaths } = controlledFixture();
   const shortcutAnalysis = runSimulation(plan, {}, returnPaths);
   const result = runMonteCarloWithFederalFunding(shortcutAnalysis, plan, {}, {
@@ -62,11 +65,14 @@ test('federalSuccessRate can differ while shortcut MC aggregates remain unchange
     scenarioId: 't8_federal_success_rate_test',
   });
 
-  assert.deepStrictEqual(shortcutSnapshot(result), shortcutSnapshot(shortcutAnalysis));
-  assert.strictEqual(result.successRate, 100, 'controlled shortcut paths must survive');
-  assert.strictEqual(result.federalSuccessRate, 0,
-    'federal tax funding must deplete the controlled paths');
-  assert.notStrictEqual(result.federalSuccessRate, result.successRate);
+  assert.notDeepStrictEqual(shortcutSnapshot(result), shortcutSnapshot(shortcutAnalysis));
+  assert.strictEqual(shortcutAnalysis.successRate, 100,
+    'controlled shortcut paths must survive before federal funding');
+  assert.strictEqual(result.successRate, 0,
+    'the returned analysis must use federally funded survival truth');
+  assert.strictEqual(result.federalSuccessRate, result.successRate);
+  assert.strictEqual(result.survived, result.federalFunding.survived);
+  assert.strictEqual(result.total, result.federalFunding.total);
   assert.strictEqual(result.federalFunding.paths.p50.terminalBalance, 0,
     'sidecar must retain the federally funded depletion path');
   assert.ok(shortcutAnalysis.paths.p50.terminalBalance > 0,
@@ -76,19 +82,36 @@ test('federalSuccessRate can differ while shortcut MC aggregates remain unchange
     'p10', 'p25', 'p50', 'p75', 'p90',
   ]);
   for(const pathKey of Object.keys(result.federalFunding.paths)){
+    const selected = result.paths[pathKey];
+    const selectedSim = result.sims.find((sim) =>
+      sim.simIndex === selected.simIndex && sim.returnPath === selected.returnPath
+    );
+    assert.strictEqual(selected, selectedSim,
+      `${pathKey} must reference a sim from the same funded analysis`);
     assert.strictEqual(
       result.federalFunding.paths[pathKey].simIndex,
-      shortcutAnalysis.paths[pathKey].simIndex,
-      `${pathKey} must preserve the shortcut-selected market path`
+      selected.simIndex,
+      `${pathKey} sidecar must compact the funded analysis selection`
     );
+    assert.strictEqual(
+      result.federalFunding.paths[pathKey].terminalBalance,
+      selected.terminalBalance
+    );
+    assert.ok(selected.rows
+      .filter((row) => row.source !== null && row.phase !== 'accum')
+      .every((row) => row.taxFundingConvergence?.status === 'converged'));
   }
+  assert.strictEqual(
+    result.federalFunding.semantics.pathSelection,
+    'federal-funded-selected-anchors'
+  );
   assert.strictEqual(shortcutAnalysis.federalSuccessRate, undefined,
     'sidecar attachment must not mutate the shortcut analysis');
   assert.strictEqual(shortcutAnalysis.federalFunding, undefined,
     'sidecar attachment must not mutate the shortcut analysis');
 });
 
-test('federal funding sidecar survives probability promotion and reporting-only reruns', () => {
+test('federal funding evidence survives helper composition without splitting analysis truth', () => {
   const { plan, returnPaths } = controlledFixture();
   const shortcutAnalysis = runSimulation(plan, {}, returnPaths);
   const options = {
@@ -102,7 +125,38 @@ test('federal funding sidecar survives probability promotion and reporting-only 
 
   assert.strictEqual(promoted.federalFunding, funded.federalFunding);
   assert.strictEqual(reported.federalFunding, funded.federalFunding);
-  assert.strictEqual(reported.successRate, funded.federalSuccessRate);
+  assert.strictEqual(promoted.successRate, funded.successRate);
+  assert.strictEqual(reported.successRate, funded.successRate);
+  for(const pathKey of ['p10', 'p25', 'p50', 'p75', 'p90']){
+    assert.strictEqual(
+      reported.paths[pathKey],
+      reported.sims.find((sim) =>
+        sim.simIndex === reported.paths[pathKey].simIndex
+        && sim.returnPath === reported.paths[pathKey].returnPath
+      )
+    );
+  }
+});
+
+test('direct production run matches the shortcut-anchored compatibility wrapper', () => {
+  const { plan, returnPaths } = controlledFixture();
+  const options = {
+    filingStatus: 'single',
+    baseTaxYear: 2025,
+    scenarioId: 'direct_federal_funding_test',
+  };
+  const shortcutAnalysis = runSimulation(plan, {}, returnPaths);
+  const compatibility = runMonteCarloWithFederalFunding(
+    shortcutAnalysis,
+    plan,
+    {},
+    options
+  );
+  const direct = runFederalFundingSimulation(plan, {}, returnPaths, options);
+
+  assert.deepStrictEqual(shortcutSnapshot(direct), shortcutSnapshot(compatibility));
+  assert.deepStrictEqual(direct.sims, compatibility.sims);
+  assert.deepStrictEqual(direct.federalFunding, compatibility.federalFunding);
 });
 
 test('federal funding rejects tax overrides that contradict its Household fact contract', () => {

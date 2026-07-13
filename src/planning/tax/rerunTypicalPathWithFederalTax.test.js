@@ -38,6 +38,16 @@ function aggregateSnapshot(analysis){
   };
 }
 
+function fundingSnapshot(path){
+  return path.rows.map((row) => ({
+    withdrawal: row.withdrawal,
+    rmd: row.rmd,
+    balance: row.balance,
+    accountBreakdown: row.accountBreakdown,
+    accountBalances: row.accountBalances,
+  }));
+}
+
 test('p10, p50, and p90 retirement row taxes equal federal Form 1040 line 24', () => {
   const { federalAnalysis, options } = fixture();
   for(const pathKey of ['p10', 'p50', 'p90']){
@@ -47,10 +57,13 @@ test('p10, p50, and p90 retirement row taxes equal federal Form 1040 line 24', (
     assert.ok(summary.years.every((year) =>
       Math.abs(year.engineTax - year.federalTaxLiability) < 0.01
     ));
+    assert.ok(federalAnalysis.paths[pathKey].rows
+      .filter((row) => row.source !== null && row.phase !== 'accum')
+      .every((row) => row.taxFundingConvergence?.status === 'converged'));
   }
 });
 
-test('story-path federal reruns patch matching sims while leaving MC aggregates unchanged', () => {
+test('story-path federal reruns keep selected paths, matching sims, and funded rows coherent', () => {
   const { analysis, federalAnalysis } = fixture();
   const federalKeys = ['p10', 'p50', 'p90'];
   const federalIndexes = new Set(federalKeys.map((key) => analysis.paths[key].simIndex));
@@ -78,25 +91,17 @@ test('story-path federal reruns patch matching sims while leaving MC aggregates 
     }
   }
   assert.deepStrictEqual(aggregateSnapshot(federalAnalysis), aggregateSnapshot(analysis));
-  for(const pathKey of federalKeys){
-    assert.deepStrictEqual(
-      federalAnalysis.paths[pathKey].rows.map((row) => ({
-        withdrawal: row.withdrawal,
-        rmd: row.rmd,
-        balance: row.balance,
-        accountBreakdown: row.accountBreakdown,
-        accountBalances: row.accountBalances,
-      })),
-      analysis.paths[pathKey].rows.map((row) => ({
-        withdrawal: row.withdrawal,
-        rmd: row.rmd,
-        balance: row.balance,
-        accountBreakdown: row.accountBreakdown,
-        accountBalances: row.accountBalances,
-      })),
-      `${pathKey} federal reporting must not change shortcut funding, gross-up, RMDs, or balances`
-    );
-  }
+  assert.ok(federalKeys.some((pathKey) => {
+    try{
+      assert.deepStrictEqual(
+        fundingSnapshot(federalAnalysis.paths[pathKey]),
+        fundingSnapshot(analysis.paths[pathKey])
+      );
+      return false;
+    }catch{
+      return true;
+    }
+  }), 'converged federal tax must be allowed to change selected-path funding');
 });
 
 test('attached federal-vs-path deltas are approximately zero after story-path reruns', () => {

@@ -1,11 +1,11 @@
-/* Planning-owned historical run with federal Form 1040 line 24 row taxes. */
+/* Planning-owned historical run with converged federal Form 1040 funding. */
 
 import { resolveInputs, runHistoricalPath } from '../../../engine.js';
 import { createFederalTaxResolver } from './createFederalTaxResolver.js';
 
 /**
- * Run one historical sequence with federal-reported row taxes. The engine's
- * funding, withdrawal gross-up, RMD, and balance mechanics remain unchanged.
+ * Run one historical sequence whose retirement withdrawals and balances fund
+ * the same federal line 24 shown on every row.
  */
 export function runHistoricalPathWithFederalTax(
   plan,
@@ -26,6 +26,6 @@ export function runHistoricalPathWithFederalTax(
     strategy,
     transform,
     overrides,
-    { taxPolicy }
+    { taxPolicy, fundTaxPolicyDelta: true }
   );
 }

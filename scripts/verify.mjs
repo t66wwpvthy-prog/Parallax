@@ -1204,7 +1204,9 @@ try {
       status = await page.evaluate(() => document.querySelector('#status')?.textContent || '');
       if(/Complete/i.test(status)) break;
     }
-    if(!/Complete/i.test(status)) throw new Error(`Run did not complete after adding the account (status: "${status}")`);
+    if(status.trim() !== 'Complete'){
+      throw new Error(`All blank-household scenarios must complete after adding the account (status: "${status}")`);
+    }
     const medianTxt = await page.evaluate(() => document.querySelector('#scn-view .scol__median b')?.textContent.trim() || '');
     const parsed = (() => {
       const m = medianTxt.match(/^\$([\d.,]+)\s*([MK]?)$/i);
@@ -1773,14 +1775,10 @@ try {
     if(m.rows < 10) throw new Error(`cash-flow rows = ${m.rows} (expected >=10)`);
     if(JSON.stringify(m.cols) !== JSON.stringify(EXPECT)) throw new Error(`cash-flow columns are not the exact contract: ${JSON.stringify(m.cols)}`);
     if(m.cols.filter(c => /tax/i.test(c)).length !== 1) throw new Error(`cash flow must have exactly one scoped tax column: ${JSON.stringify(m.cols)}`);
-    if(m.taxHeader?.source !== 'federal-sidecar' || m.taxHeader?.scope !== 'INCOME_TAX_ONLY') throw new Error(`typical path tax scope missing: ${JSON.stringify(m.taxHeader)}`);
-    if(!/income tax only/i.test(m.taxHeader?.title || '')) throw new Error(`typical path tax tooltip missing scope: ${JSON.stringify(m.taxHeader)}`);
-    if(!m.taxCompare) throw new Error('typical path federal-vs-engine summary is missing');
-    if(JSON.stringify(m.taxCompare.labels) !== JSON.stringify(['Federal Total', 'Engine Path', 'Delta'])) throw new Error(`tax comparison labels mismatch: ${JSON.stringify(m.taxCompare)}`);
-    if(![m.taxCompare.federalTotal, m.taxCompare.enginePathTotal, m.taxCompare.delta].every(Number.isFinite)) throw new Error(`tax comparison totals are not numeric: ${JSON.stringify(m.taxCompare)}`);
-    if(Math.abs((m.taxCompare.federalTotal - m.taxCompare.enginePathTotal) - m.taxCompare.delta) > 0.01) throw new Error(`tax comparison delta does not match supplied totals: ${JSON.stringify(m.taxCompare)}`);
-    if(Math.abs(m.taxCompare.delta) > 0.01) throw new Error(`typical path was not re-run with federal row taxes: ${JSON.stringify(m.taxCompare)}`);
-    if(m.taxDisclosure?.state !== 'federal-sidecar' || !/federal tax scope:\s*income tax only/i.test(m.taxDisclosure?.scope || '')) throw new Error(`typical path federal scope disclosure missing: ${JSON.stringify(m.taxDisclosure)}`);
+    if(m.taxHeader?.source !== 'federal-converged-row' || m.taxHeader?.scope !== 'MODELED_FEDERAL_LINE_24') throw new Error(`typical path converged tax scope missing: ${JSON.stringify(m.taxHeader)}`);
+    if(!/retirement rows funded and converged; working years reporting-only/i.test(m.taxHeader?.title || '')) throw new Error(`typical path tax tooltip missing phase scope: ${JSON.stringify(m.taxHeader)}`);
+    if(m.taxCompare) throw new Error(`obsolete federal-vs-engine comparison is still shown: ${JSON.stringify(m.taxCompare)}`);
+    if(m.taxDisclosure?.state !== 'federal-converged-row' || !/retirement rows funded and converged, working years reporting-only/i.test(m.taxDisclosure?.scope || '')) throw new Error(`typical path converged federal scope disclosure missing: ${JSON.stringify(m.taxDisclosure)}`);
     if(m.taxDisclosure?.fallback) throw new Error(`typical path unexpectedly uses engine fallback: ${JSON.stringify(m.taxDisclosure)}`);
     if(!/^\$[\d,]+/.test(m.accumTax)) throw new Error(`accumulation-year Tax cell is not populated: "${m.accumTax}"`);
     if(m.cols.some(c => ['Withdraw', 'One-time', 'Return $', 'Starting value', 'Inflows', 'Outflows', 'Annual return', 'Ending value'].includes(c))) throw new Error(`old cash-flow columns still present: ${JSON.stringify(m.cols)}`);
@@ -1844,7 +1842,7 @@ try {
     }));
     if(advanced.chooseOpt || advanced.indexInput || advanced.seedInput) throw new Error(`removed path #/seed controls still present: ${JSON.stringify(advanced)}`);
     const availableModes = await page.evaluate(() => [...document.querySelectorAll('#path-mode option')].map(o => o.value));
-    for(const [mode, expectedPath] of [['stressed', 'p10'], ['favorable', 'p90']]){
+    for(const mode of ['stressed', 'favorable']){
       if(!availableModes.includes(mode)) throw new Error(`${mode} option missing from path-mode select`);
       await page.select('#path-mode', mode);
       await new Promise(r => setTimeout(r, 400));
@@ -1873,11 +1871,9 @@ try {
         };
       });
       if(federalPath.mode !== mode) throw new Error(`${mode} path mode did not stay selected: ${JSON.stringify(federalPath)}`);
-      if(federalPath.header?.label !== 'Tax' || federalPath.header?.source !== 'federal-sidecar' || federalPath.header?.scope !== 'INCOME_TAX_ONLY') throw new Error(`${mode} path tax scope is not federal: ${JSON.stringify(federalPath)}`);
-      if(federalPath.compare?.path !== expectedPath) throw new Error(`${mode} path sidecar mismatch: ${JSON.stringify(federalPath)}`);
-      if(![federalPath.compare?.federalTotal, federalPath.compare?.enginePathTotal, federalPath.compare?.delta].every(Number.isFinite)) throw new Error(`${mode} path tax totals are not numeric: ${JSON.stringify(federalPath)}`);
-      if(Math.abs(federalPath.compare.delta) > 0.01) throw new Error(`${mode} Cash Flow rows were not re-run with federal tax: ${JSON.stringify(federalPath)}`);
-      if(federalPath.disclosure?.state !== 'federal-sidecar' || !/income tax only/i.test(federalPath.disclosure?.scope || '')) throw new Error(`${mode} federal scope disclosure missing: ${JSON.stringify(federalPath)}`);
+      if(federalPath.header?.label !== 'Tax' || federalPath.header?.source !== 'federal-converged-row' || federalPath.header?.scope !== 'MODELED_FEDERAL_LINE_24') throw new Error(`${mode} path tax scope is not converged federal: ${JSON.stringify(federalPath)}`);
+      if(federalPath.compare) throw new Error(`${mode} path still shows an obsolete sidecar comparison: ${JSON.stringify(federalPath)}`);
+      if(federalPath.disclosure?.state !== 'federal-converged-row' || !/retirement rows funded and converged, working years reporting-only/i.test(federalPath.disclosure?.scope || '')) throw new Error(`${mode} converged federal scope disclosure missing: ${JSON.stringify(federalPath)}`);
       await new Promise(r => setTimeout(r, 700));
       await page.screenshot({ path: join(OUT, `04-cashflow-${mode}.png`), fullPage: true });
     }
@@ -1887,9 +1883,9 @@ try {
       const th = document.querySelector('#scn-view .cf-table__head .cf-th[data-tax-source]');
       return th ? { label: th.textContent.trim(), source: th.dataset.taxSource || '' } : null;
     });
-    if(restoredTaxHeader?.label !== 'Tax' || restoredTaxHeader?.source !== 'federal-sidecar') throw new Error(`typical path tax scope did not restore: ${JSON.stringify(restoredTaxHeader)}`);
-    if(!await page.evaluate(() => !!document.querySelector('#scn-view [data-tax-compare]'))) throw new Error('federal-vs-engine summary did not restore on typical path');
-    if(!await page.evaluate(() => /income tax only/i.test(document.querySelector('#scn-view [data-tax-scope-disclosure]')?.textContent || ''))) throw new Error('readable federal scope disclosure did not restore on typical path');
+    if(restoredTaxHeader?.label !== 'Tax' || restoredTaxHeader?.source !== 'federal-converged-row') throw new Error(`typical path tax scope did not restore: ${JSON.stringify(restoredTaxHeader)}`);
+    if(await page.evaluate(() => !!document.querySelector('#scn-view [data-tax-compare]'))) throw new Error('obsolete federal-vs-engine summary restored on typical path');
+    if(!await page.evaluate(() => /retirement rows funded and converged, working years reporting-only/i.test(document.querySelector('#scn-view [data-tax-scope-disclosure]')?.textContent || ''))) throw new Error('readable phase-scoped federal disclosure did not restore on typical path');
 
     // Exercise warning and attach-failure states directly through the production
     // Cash Flow renderer. This avoids changing real scenario or Household state.
@@ -2176,6 +2172,9 @@ try {
 
     await page.click('#scn-solve');
     await page.waitForSelector('#sf-pct', { visible: true });
+    const solverScope = await page.$eval('.solve-scope', el => el.textContent.trim());
+    if(!/simplified tax estimate/i.test(solverScope) || !/recalculated with modeled federal tax/i.test(solverScope))
+      throw new Error(`Solver tax scope disclosure missing: ${solverScope}`);
     const solverTarget = await page.$eval('#sf-pct', input => Number(input.value));
     const expectedTarget = Math.min(95, Math.ceil((expected + 1) / 5) * 5);
     const shortcutTarget = Math.min(95, Math.ceil((oldShortcut + 1) / 5) * 5);

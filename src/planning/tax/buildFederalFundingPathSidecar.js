@@ -11,15 +11,15 @@ const RECONCILIATION_TOLERANCE = 0.01;
 
 const SEMANTICS = Object.freeze({
   taxSource: 'federal-form-1040-line-24',
-  fundingMethod: 'single-pass-positive-delta',
+  fundingMethod: 'signed-fixed-point',
   phaseScope: 'retirement-only',
-  lowerTaxTreatment: 'no-refund-or-redeposit',
-  convergence: 'not-converged',
-  pathSelection: 'shortcut-selected-anchors',
+  lowerTaxTreatment: 'reduce-withdrawals-then-reinvest-excess-tax-saving',
+  convergence: 'per-year-to-one-cent',
+  pathSelection: 'federal-funded-selected-anchors',
   attachmentScope: 'parent-analysis-sim-index',
   balanceTiming: 'row-opening-and-row-ending',
   withdrawals: 'gross-by-bucket-rmd-forced-and-required-separate',
-  withdrawalTaxCounterfactuals: 'eight-coalition-line-24-shapley-not-converged',
+  withdrawalTaxCounterfactuals: 'eight-coalition-line-24-shapley-on-converged-row',
 });
 
 function assertPlainObject(value, path){
@@ -31,7 +31,10 @@ function assertPlainObject(value, path){
 
 function assertFiniteNonNegative(value, path){
   if(typeof value !== 'number' || !Number.isFinite(value) || value < 0){
-    throw new TaxInputError(`${path} must be a finite non-negative number`);
+    const received = typeof value === 'number' ? String(value) : typeof value;
+    throw new TaxInputError(
+      `${path} must be a finite non-negative number (received ${received})`
+    );
   }
   return value;
 }
@@ -188,7 +191,7 @@ function compactRow(row, expectedSourceYear, path, previous, counterfactualConte
     throw new TaxInputError(`${path} depleted filler must be zero`);
   }
 
-  const onePassFederalTax = phase === 'retirement'
+  const convergedFederalTax = phase === 'retirement'
     ? assertFiniteNonNegative(row.taxes, `${path}.taxes`)
     : null;
   let startingBalances = null;
@@ -197,6 +200,7 @@ function compactRow(row, expectedSourceYear, path, previous, counterfactualConte
   let rmdRequired = 0;
   let preTaxDeltaWithdrawalBuckets = null;
   let withdrawalTaxCounterfactual = null;
+  let convergence = null;
   if(phase === 'retirement'){
     preTaxDeltaWithdrawalBuckets = freezeBuckets(
       row.preTaxDeltaAccountBreakdown,
@@ -220,21 +224,51 @@ function compactRow(row, expectedSourceYear, path, previous, counterfactualConte
       throw new TaxInputError(`${path}.taxableCapitalGain exceeds taxable withdrawals`);
     }
     rmdRequired = assertFiniteNonNegative(row.rmdRequired, `${path}.rmdRequired`);
-    for(const bucket of BUCKET_KEYS){
-      if(preTaxDeltaWithdrawalBuckets[bucket]
-        > withdrawalBuckets[bucket] + RECONCILIATION_TOLERANCE){
-        throw new TaxInputError(
-          `${path}.preTaxDeltaAccountBreakdown.${bucket} exceeds final funding`
-        );
-      }
-    }
     const maximumRmdForced = Math.max(
       0,
-      rmdRequired - preTaxDeltaWithdrawalBuckets.traditional
+      rmdRequired - withdrawalBuckets.traditional
     );
     if(rmdForced > maximumRmdForced + RECONCILIATION_TOLERANCE){
-      throw new TaxInputError(`${path}.rmd exceeds the pre-tax-delta forced amount`);
+      throw new TaxInputError(`${path}.rmd exceeds the final-funding forced amount`);
     }
+    assertPlainObject(row.taxFundingConvergence, `${path}.taxFundingConvergence`);
+    if(row.taxFundingConvergence.status !== 'converged'){
+      throw new TaxInputError(`${path}.taxFundingConvergence.status must be converged`);
+    }
+    const iterations = assertNonNegativeInteger(
+      row.taxFundingConvergence.iterations,
+      `${path}.taxFundingConvergence.iterations`
+    );
+    if(iterations === 0){
+      throw new TaxInputError(`${path}.taxFundingConvergence.iterations must be positive`);
+    }
+    const tolerance = assertFiniteNonNegative(
+      row.taxFundingConvergence.tolerance,
+      `${path}.taxFundingConvergence.tolerance`
+    );
+    const residual = row.taxFundingConvergence.residual;
+    if(typeof residual !== 'number' || !Number.isFinite(residual)){
+      throw new TaxInputError(`${path}.taxFundingConvergence.residual must be finite`);
+    }
+    if(Math.abs(residual) > tolerance + Number.EPSILON){
+      throw new TaxInputError(`${path}.taxFundingConvergence residual exceeds tolerance`);
+    }
+    const fundingAdjustment = row.taxFundingConvergence.fundingAdjustment;
+    if(typeof fundingAdjustment !== 'number' || !Number.isFinite(fundingAdjustment)){
+      throw new TaxInputError(`${path}.taxFundingConvergence.fundingAdjustment must be finite`);
+    }
+    const taxSavingsReinvested = assertFiniteNonNegative(
+      row.taxFundingConvergence.taxSavingsReinvested,
+      `${path}.taxFundingConvergence.taxSavingsReinvested`
+    );
+    convergence = Object.freeze({
+      status: 'converged',
+      iterations,
+      tolerance,
+      residual,
+      fundingAdjustment,
+      taxSavingsReinvested,
+    });
     withdrawalTaxCounterfactual = runWithdrawalTaxCounterfactual(
       row,
       counterfactualContext
@@ -247,7 +281,7 @@ function compactRow(row, expectedSourceYear, path, previous, counterfactualConte
     phase,
     sourceYear,
     failed: row.failed,
-    onePassFederalTax,
+    convergedFederalTax,
     grossWithdrawal,
     grossWithdrawalsByBucket: withdrawalBuckets,
     ...(phase === 'retirement' ? {
@@ -258,6 +292,7 @@ function compactRow(row, expectedSourceYear, path, previous, counterfactualConte
       taxableStartingBasis,
       taxableCapitalGain,
       withdrawalTaxCounterfactual,
+      convergence,
     } : {}),
     endingBalances: Object.freeze({
       ...endingBuckets,
@@ -328,7 +363,7 @@ function buildStartingBalances(params){
   const traditional = assertFiniteNonNegative(accounts.traditional?.balance, 'shortcutAnalysis.params.accounts.traditional.balance');
   const roth = assertFiniteNonNegative(accounts.roth?.balance, 'shortcutAnalysis.params.accounts.roth.balance');
   return Object.freeze({
-    source: 'shortcut-analysis-resolved-engine-accounts',
+    source: 'resolved-engine-accounts',
     accountScope: 'engine-compatible',
     taxable,
     traditional,
@@ -372,9 +407,9 @@ function buildProjectionScope(plan){
 }
 
 /**
- * Compact, immutable evidence from the existing one-pass federal funding run.
- * Paths remain anchored to the shortcut analysis so later comparisons use the
- * same market sequence. This module creates no tax or projection math.
+ * Compact, immutable evidence from the converged federal funding run. Selected
+ * paths come from that same funded analysis, while simIndex and returnPath keep
+ * every row traceable to the original shared market bundle.
  */
 export function buildFederalFundingPathSidecar(
   shortcutAnalysis,
@@ -413,23 +448,24 @@ export function buildFederalFundingPathSidecar(
   const paths = {};
   const compactBySimIndex = new Map();
   for(const pathKey of PATH_KEYS){
-    const anchor = shortcutAnalysis.paths?.[pathKey];
-    assertPlainObject(anchor, `shortcutAnalysis.paths.${pathKey}`);
-    assertNonNegativeInteger(anchor.simIndex, `shortcutAnalysis.paths.${pathKey}.simIndex`);
+    const anchor = federalAnalysis.paths?.[pathKey];
+    assertPlainObject(anchor, `federalAnalysis.paths.${pathKey}`);
+    assertNonNegativeInteger(anchor.simIndex, `federalAnalysis.paths.${pathKey}.simIndex`);
     if(!Array.isArray(anchor.returnPath)){
-      throw new TaxInputError(`shortcutAnalysis.paths.${pathKey}.returnPath is required`);
+      throw new TaxInputError(`federalAnalysis.paths.${pathKey}.returnPath is required`);
     }
-    const shortcutSim = shortcutByIndex.get(anchor.simIndex);
-    if(!shortcutSim || shortcutSim.returnPath !== anchor.returnPath){
+    const federalSim = federalByIndex.get(anchor.simIndex);
+    if(!federalSim || federalSim.returnPath !== anchor.returnPath){
       throw new TaxInputError(
-        `shortcutAnalysis.paths.${pathKey} must reference shortcutAnalysis.sims`
+        `federalAnalysis.paths.${pathKey} must reference federalAnalysis.sims`
       );
     }
+    const shortcutSim = shortcutByIndex.get(anchor.simIndex);
     let compact = compactBySimIndex.get(anchor.simIndex);
     if(!compact){
       compact = compactPath(
-        federalByIndex.get(anchor.simIndex),
-        anchor,
+        federalSim,
+        shortcutSim,
         `federalAnalysis.paths.${pathKey}`,
         counterfactualContext
       );
@@ -439,7 +475,7 @@ export function buildFederalFundingPathSidecar(
   }
 
   return Object.freeze({
-    schemaVersion: 2,
+    schemaVersion: 3,
     successRate,
     survived,
     total,

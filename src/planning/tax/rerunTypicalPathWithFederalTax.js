@@ -33,7 +33,10 @@ export function rerunTypicalPathWithFederalTax(analysis, options = {}){
     }
     let federalPath = federalBySimIndex.get(selected.simIndex);
     if(!federalPath){
-      federalPath = runSinglePath(analysis.params, selected.returnPath, { taxPolicy });
+      federalPath = runSinglePath(analysis.params, selected.returnPath, {
+        taxPolicy,
+        fundTaxPolicyDelta: true,
+      });
       federalPath.simIndex = selected.simIndex;
       federalPath.returnPath = selected.returnPath;
       federalBySimIndex.set(selected.simIndex, federalPath);

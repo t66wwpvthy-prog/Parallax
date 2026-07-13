@@ -4,7 +4,7 @@ import { defaultPlan, resolveInputs, runHistoricalPath } from '../../../engine.j
 import { createFederalTaxResolver } from './createFederalTaxResolver.js';
 import { runHistoricalPathWithFederalTax } from './runHistoricalPathWithFederalTax.js';
 
-test('historical retirement row taxes equal federal Form 1040 line 24', () => {
+test('historical path funds and reports federal Form 1040 line 24 coherently', () => {
   const plan = structuredClone(defaultPlan);
   plan.meta.filingStatus = 'single';
   const taxOptions = {
@@ -22,14 +22,30 @@ test('historical retirement row taxes equal federal Form 1040 line 24', () => {
     taxOptions
   );
   const resolver = createFederalTaxResolver(resolveInputs(plan, {}), taxOptions);
-  const retirementRows = shortcut.rows.filter((row) => row.phase !== 'accum' && row.source !== null);
-  const expectedTaxes = retirementRows.map((row) => resolver(row));
   const federalRetirementRows = federal.rows.filter((row) => row.phase !== 'accum' && row.source !== null);
 
-  assert.deepStrictEqual(federalRetirementRows.map((row) => row.taxes), expectedTaxes);
-  assert.ok(federalRetirementRows.some((row, index) => row.taxes !== retirementRows[index].taxes),
+  for(const [index, row] of federal.rows.entries()){
+    if(row.source === null){
+      assert.strictEqual(row.taxes, 0);
+      continue;
+    }
+    assert.ok(Math.abs(row.taxes - resolver(row)) < 0.01,
+      `historical row ${index} must resolve tax from its final funded facts`);
+    if(row.phase !== 'accum'){
+      assert.strictEqual(row.taxFundingConvergence?.status, 'converged');
+      assert.ok(
+        Math.abs(row.taxFundingConvergence.residual)
+          <= row.taxFundingConvergence.tolerance
+      );
+    }
+  }
+  assert.ok(federalRetirementRows.some((row, index) =>
+    row.taxes !== shortcut.rows.filter(
+      (candidate) => candidate.phase !== 'accum' && candidate.source !== null
+    )[index]?.taxes
+  ),
     'fixture must prove federal tax differs from the shortcut');
-  assert.deepStrictEqual(
+  assert.notDeepStrictEqual(
     federal.rows.map((row) => ({
       withdrawal: row.withdrawal,
       rmd: row.rmd,
@@ -44,9 +60,16 @@ test('historical retirement row taxes equal federal Form 1040 line 24', () => {
       accountBreakdown: row.accountBreakdown,
       accountBalances: row.accountBalances,
     })),
-    'federal reporting must not change shortcut funding, gross-up, RMDs, or balances'
+    'converged federal tax must be allowed to change funding and balances'
   );
+  federal.rows.forEach((row, index) => {
+    const shortcutRow = shortcut.rows[index];
+    if(row.source !== null && shortcutRow.source !== null){
+      assert.strictEqual(row.source, shortcutRow.source);
+      assert.strictEqual(row.returnRate, shortcutRow.returnRate);
+    }
+  });
   assert.ok(Math.abs(
-    federal.lifetimeTax - federalRetirementRows.reduce((sum, row) => sum + row.taxes, 0)
+    federal.lifetimeTax - federal.rows.reduce((sum, row) => sum + row.taxes, 0)
   ) < 0.01);
 });
