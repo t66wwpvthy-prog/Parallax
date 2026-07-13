@@ -141,7 +141,7 @@ function unavailableResult({
 }){
   const taxCoverage = mergeTaxCoverage([]);
   return cloneFreeze({
-    schemaVersion: 1,
+    schemaVersion: 2,
     status: 'unavailable',
     reasonCodes: unique(reasonCodes),
     calendarYear,
@@ -158,8 +158,8 @@ function unavailableResult({
     incrementalWithdrawalModeledFederalIncomeTax: null,
     attributedModeledFederalIncomeTaxByBucket: null,
     displayAttributedModeledFederalIncomeTaxByBucket: null,
-    onePassFederalTax: row.taxes,
-    deltaVsOnePassFederalTax: null,
+    fundedFederalTax: row.taxes,
+    deltaVsFundedFederalTax: null,
     comparisonEligibility: buildComparisonEligibility(
       row,
       context,
@@ -168,7 +168,7 @@ function unavailableResult({
       reasonCodes
     ),
     distributionTaxEvidence: null,
-    semantics: counterfactualSemantics(),
+    semantics: counterfactualSemantics(row),
   });
 }
 
@@ -269,7 +269,7 @@ export function runWithdrawalTaxCounterfactual(row, context){
   assertFiniteNonNegative(row.age, 'row.age');
   if(row.phase === 'accum' || (row.failed === true && row.source === null)){
     return cloneFreeze({
-      schemaVersion: 1,
+      schemaVersion: 2,
       status: 'not-applicable',
       reasonCodes: [row.phase === 'accum' ? 'ACCUMULATION_YEAR' : 'DEPLETED_FILLER_YEAR'],
       calendarYear: context.baseCalendarYear + row.year - 1,
@@ -282,23 +282,16 @@ export function runWithdrawalTaxCounterfactual(row, context){
     row.preTaxDeltaAccountBreakdown,
     'row.preTaxDeltaAccountBreakdown'
   );
-  for(const bucket of WITHDRAWAL_BUCKETS){
-    if(preTaxDeltaFundingByBucket[bucket] > grossFundingByBucket[bucket] + TOLERANCE){
-      throw new TaxInputError(
-        `row.preTaxDeltaAccountBreakdown.${bucket} cannot exceed final funding`
-      );
-    }
-  }
   const grossFunding = sumBuckets(grossFundingByBucket);
   assertClose(grossFunding, assertFiniteNonNegative(row.withdrawal, 'row.withdrawal'), 'row.withdrawal');
   const rmdForced = assertFiniteNonNegative(row.rmd, 'row.rmd');
   const rmdRequired = assertFiniteNonNegative(row.rmdRequired, 'row.rmdRequired');
   const maximumRmdForced = Math.max(
     0,
-    rmdRequired - preTaxDeltaFundingByBucket.traditional
+    rmdRequired - grossFundingByBucket.traditional
   );
   if(rmdForced > maximumRmdForced + TOLERANCE){
-    throw new TaxInputError('row.rmd exceeds the pre-tax-delta forced amount');
+    throw new TaxInputError('row.rmd exceeds the final-funding forced amount');
   }
   const openingBalances = freezeBuckets(
     row.accountStartingBalances,
@@ -320,7 +313,7 @@ export function runWithdrawalTaxCounterfactual(row, context){
   if(grossFundingByBucket.taxable === 0 && taxableCapitalGain !== 0){
     throw new TaxInputError('row.taxableCapitalGain must be zero without taxable withdrawals');
   }
-  const onePassFederalTax = assertFiniteNonNegative(row.taxes, 'row.taxes');
+  const fundedFederalTax = assertFiniteNonNegative(row.taxes, 'row.taxes');
   assertFiniteNonNegative(row.socialSecurity, 'row.socialSecurity');
   assertFiniteNonNegative(row.pension, 'row.pension');
   const otherIncome = assertFiniteNonNegative(row.otherIncome, 'row.otherIncome');
@@ -380,7 +373,7 @@ export function runWithdrawalTaxCounterfactual(row, context){
   const uniqueGlobalReasons = unique(globalReasons);
   if(uniqueGlobalReasons.length > 0){
     return unavailableResult({
-      row: { ...row, taxes: onePassFederalTax, taxableCapitalGain },
+      row: { ...row, taxes: fundedFederalTax, taxableCapitalGain },
       context,
       calendarYear,
       taxLawYear,
@@ -436,14 +429,14 @@ export function runWithdrawalTaxCounterfactual(row, context){
   const full = coalitionResults.find(item => (
     item.id === 'taxable+traditional+roth' && item.status === 'modeled'
   ));
-  const deltaVsOnePassFederalTax = full
+  const deltaVsFundedFederalTax = full
     ? Math.round(
-      (full.modeledFederalIncomeTax - onePassFederalTax + Number.EPSILON) * 100
+      (full.modeledFederalIncomeTax - fundedFederalTax + Number.EPSILON) * 100
     ) / 100
     : null;
 
   return cloneFreeze({
-    schemaVersion: 1,
+    schemaVersion: 2,
     status,
     reasonCodes: coalitionReasonCodes,
     calendarYear,
@@ -463,8 +456,8 @@ export function runWithdrawalTaxCounterfactual(row, context){
     attributionExactSixthCentsByBucket: attribution?.exactSixthCentsByBucket ?? null,
     attributionReconciliation: attribution?.reconciliation ?? null,
     attributionDisplayReconciliation: attribution?.displayReconciliation ?? null,
-    onePassFederalTax,
-    deltaVsOnePassFederalTax,
+    fundedFederalTax,
+    deltaVsFundedFederalTax,
     comparisonEligibility: buildComparisonEligibility(
       { ...row, taxableCapitalGain },
       context,
@@ -479,7 +472,7 @@ export function runWithdrawalTaxCounterfactual(row, context){
       },
     },
     semantics: {
-      ...counterfactualSemantics(),
+      ...counterfactualSemantics(row),
       attribution: attribution?.method ?? null,
     },
   });

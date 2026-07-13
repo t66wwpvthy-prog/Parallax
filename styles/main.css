@@ -138,6 +138,7 @@ select option{background:#14161b;color:var(--text-2,#d9d4c9)}
 .solve-panel-head{display:flex;align-items:baseline;justify-content:space-between;gap:18px;margin-bottom:14px}
 .solve-panel-title{font-family:var(--font-sans);font-size:14px;letter-spacing:.02em;color:var(--ink-mute);font-weight:500;line-height:1.5}
 .solve-panel-title b{font-family:var(--font-sans);color:var(--ink-bright);font-weight:700}
+.solve-scope{font-family:var(--font-sans);font-size:13px;line-height:1.45;color:var(--ink-faint);margin:4px 0 14px}
 .solve-clear{font-family:var(--font-sans);font-size:14px;color:var(--ink-faint);background:none;border:none;cursor:pointer;letter-spacing:.1em;text-transform:uppercase;font-weight:600;padding:0;white-space:nowrap}
 .solve-clear:hover{color:var(--negative)}
 .sf-select{font-family:var(--font-sans);font-size:18px;font-weight:500;color:var(--ink);background:transparent;border:none;padding:2px 18px 2px 3px;outline:none;cursor:pointer;-webkit-appearance:none;appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--ink-mute) 50%),linear-gradient(135deg,var(--ink-mute) 50%,transparent 50%);background-position:calc(100% - 9px) 11px,calc(100% - 4px) 11px;background-size:5px 5px,5px 5px;background-repeat:no-repeat}
@@ -626,6 +627,7 @@ select option{background:#14161b;color:var(--text-2,#d9d4c9)}
 .gl-adds .hp-add{margin-top:16px}
 .gl-runs{margin-top:20px;padding-top:12px;border-top:1px solid var(--rule-faint);font-family:var(--font-sans);font-size:14px;color:var(--ink-mute);display:flex;gap:34px;flex-wrap:wrap}
 .gl-runs b{font-family:var(--font-sans);color:var(--ink-bright);font-weight:600;font-variant-numeric:tabular-nums}
+.gl-runs .gl-scope{flex-basis:100%;font-size:13px;color:var(--ink-faint)}
 .gl-none{font-family:var(--font-serif);font-style:italic;color:var(--ink-faint);padding:18px 0}
 /* Life-area chips + intake strip. Areas are STRUCTURE only — the tool never
    suggests goal content; the client names the goal in their own words. */

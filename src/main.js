@@ -1,7 +1,5 @@
-import { runSimulation, runHistoricalPath, generateReturnPath, resetSeed, annualMortgagePayment, LONGRUN_INFLATION, pathDigest, assessPlan, RISK_PROFILES, defaultPlan as plan } from '../engine.js';
-import { attachPathFederalTax } from './planning/tax/attachTypicalPathFederalTax.js';
-import { rerunMonteCarloWithFederalTax } from './planning/tax/rerunMonteCarloWithFederalTax.js';
-import { runMonteCarloWithFederalFunding } from './planning/tax/runMonteCarloWithFederalFunding.js';
+import { runSimulation, resolveInputs, generateReturnPath, resetSeed, annualMortgagePayment, LONGRUN_INFLATION, pathDigest, assessPlan, RISK_PROFILES, defaultPlan as plan } from '../engine.js';
+import { runFederalFundingSimulation } from './planning/tax/runMonteCarloWithFederalFunding.js';
 import { runHistoricalPathWithFederalTax } from './planning/tax/runHistoricalPathWithFederalTax.js';
 import { buildHouseholdTaxFactContract } from './planning/tax/buildHouseholdTaxFactContract.js';
 import { fmtM, fmtMoney, fmtMDelta, fmtPts, cfMoney, cfRetPct, cfGain } from '../ui/formatters.js';
@@ -31,7 +29,10 @@ import { buildPathRows, buildCashSummary, renderCashflow } from '../ui/cashflow.
 import { toneForProb, toneGlow, wdColor, ring, num as scenarioNum, renderCompare, renderFocus } from '../ui/scenarios.js';
 import { solvePanelHTML, goalParamsHtml, comboPillValue } from '../ui/solver.js';
 import { createHouseholdWizard } from '../ui/householdWizard.js';
-import { promoteTaxFundedProbability } from './scenarios/promoteTaxFundedProbability.js';
+import {
+  buildRetirementEntryPlan,
+  deriveRetirementEntryAccounts,
+} from './scenarios/buildRetirementEntryPlan.js';
 import {
   investableTotal, realAssetsTotal, hhAllAccounts, hhDebtTotal, hhNetWorthTotal,
   hhAgeFromYear, hhInitial, hhMoney, hhShort, hhSelect, wizField,
@@ -806,10 +807,21 @@ function leversToOverrides(L){
   // spend vs plan.expenses.living. The engine takes INCREASES via spendBump and
   // CUTS via spendCut — a negative spendBump is ignored (engine clamps it to 0).
   // So we MUST split by direction or lowering the spend lever silently no-ops.
-  const baseSpend = plan.expenses.living;
-  const spendFrac = (L.spend - baseSpend)/baseSpend;
-  if(spendFrac > 0)      ov.spendBump = spendFrac;
-  else if(spendFrac < 0) ov.spendCut  = -spendFrac;   // engine caps the cut at 50%
+  const baseSpend = Number(plan.expenses.living);
+  const scenarioSpend = Number(L.spend);
+  if(!Number.isFinite(baseSpend) || baseSpend < 0
+    || !Number.isFinite(scenarioSpend) || scenarioSpend < 0){
+    throw new TypeError('Scenario spending must be a finite non-negative number');
+  }
+  if(baseSpend > 0){
+    const spendFrac = (scenarioSpend - baseSpend)/baseSpend;
+    if(spendFrac > 0)      ov.spendBump = spendFrac;
+    else if(spendFrac < 0) ov.spendCut  = -spendFrac;   // engine caps the cut at 50%
+  }else if(scenarioSpend > 0){
+    // A percentage change has no meaning from a $0 base. Preserve the scenario's
+    // entered dollar truth through the engine's narrow absolute fallback.
+    ov.livingAnnual = scenarioSpend;
+  }
   if(L.eventAmt>0){ ov.lumpSum = L.eventAmt; ov.lumpSumYear = Math.max(0, L.eventAge - plan.household.primary.currentAge); }
   if(L.savings !== plan.savings.annual) ov.savingsBump = (L.savings - plan.savings.annual)/Math.max(1,plan.savings.annual);
   // Pension: always pass the chosen age as an absolute override so the engine
@@ -987,8 +999,13 @@ function reseedScenarios({ markDirty = true } = {}){
       if(s.base){ s.lev[k]=nb[k]; return; }   // baseline always mirrors the base
       if(!LINKED.includes(k)) return;         // allocation / one-time event stay as set
       const cfg=LEVCFG.find(c=>c.key===k);
-      let v=nb[k]+(s.lev[k]-baseSnapshot[k]);  // new base + this scenario's delta
-      if(cfg){ const r=levRange(cfg); v=Math.max(r.min,Math.min(r.max,v)); }
+      const priorDelta = s.lev[k]-baseSnapshot[k];
+      let v=nb[k]+priorDelta;  // new base + this scenario's delta
+      // A blank household's $0 spending is valid. Do not manufacture an $80k
+      // scenario merely because the interactive slider's range starts there.
+      if(cfg && !(k==='spend' && nb[k]===0 && priorDelta===0)){
+        const r=levRange(cfg); v=Math.max(r.min,Math.min(r.max,v));
+      }
       s.lev[k]=v;
     });
     syncPension(s.lev);   // auto-linked pension follows the (possibly new) retire age
@@ -1202,6 +1219,7 @@ function newHousehold(){
   persistHouseholdsDb(); persistActiveId();
   hydratePlan(blank);
   uiState.scenarios = demoScenarios();
+  uiState.baseSnapshot = defaultLevers();
   saveScenarios();
   hhLoadRecord('New household created');
 }
@@ -1219,6 +1237,7 @@ function switchHousehold(id){
   if(!readOnly) persistActiveId();
   hydratePlan(householdsDb[id]);
   uiState.scenarios = loadScenarios(id) || demoScenarios();
+  uiState.baseSnapshot = defaultLevers();
   if(!readOnly) saveScenarios();
   hhLoadRecord('Loaded ' + ((plan.meta && plan.meta.name) || 'household'));
 }
@@ -2240,9 +2259,9 @@ function eraPasses(h){
 // the Scenarios / Sequencing tabs exactly (one shared-path truth, not a re-roll).
 function computeHistoricalStress(s, p, ov){
   const curAge     = plan.household.primary.currentAge;
-  const retAge     = (s.lev.retireAge != null) ? s.lev.retireAge : p.household.primary.retirementAge;
+  const retAge     = resolveInputs(p, ov).retirementAge;
   const accumYears = Math.max(0, retAge - curAge);
-  const rp    = retireNowClone(p, ov, curAge, retAge, accumYears, s.res && s.res.envelope);
+  const rp    = retireNowClone(p, ov, curAge, retAge, accumYears, s.res);
   // Guard: ensure rp has a valid risk profile so resolveInputs doesn't throw on
   // RISK_PROFILES[undefined].eq. A stale localStorage save can carry an invalid
   // risk lever; fall back to the base plan's profile (or Moderate = 3).
@@ -2256,13 +2275,33 @@ function computeHistoricalStress(s, p, ov){
   // null entries are filtered out; if any eras succeed the card renders those rows.
   const results = STRESS_ERAS.map(e => {
     try {
-      const h = runHistoricalPath(rp, e.y, strat, undefined, ov2);
+      const h = runHistoricalPathWithFederalTax(
+        rp,
+        e.y,
+        strat,
+        undefined,
+        ov2,
+        {
+          baseTaxYear: new Date().getFullYear(),
+          filingStatus: rp.meta?.filingStatus,
+          scenarioId: `historical_stress_${s.name}_${e.y}`,
+        }
+      );
       return { year: e.year, name: e.name, pass: eraPasses(h) };
     } catch (_) {
       return null;
     }
   }).filter(Boolean);
   return results;
+}
+function scenarioRunFailureMessage(error){
+  if(error?.code === 'TAX_POLICY_FUNDING_DID_NOT_CONVERGE'){
+    return 'federal tax funding did not settle';
+  }
+  if(/filing status|filingStatus/i.test(error?.message || '')){
+    return 'Household filing status needs review';
+  }
+  return 'calculation inputs need review';
 }
 function runAll(){
   if(!canRunEngine()) return;
@@ -2293,53 +2332,38 @@ function runAll(){
         try{
           const p=planForScenario(s.lev);
           const ov=leversToOverrides(s.lev);
-          s.res=runSimulation(p, ov, sharedPaths);
           const taxOptions = {
             baseTaxYear,
             scenarioId: s.name,
             filingStatus: p.meta?.filingStatus,
           };
-          // Promote the tax-funded run into the one probability consumed by
-          // Scenarios, Solver defaults, Compare deltas, and Cash Flow. Shortcut
-          // terminal/envelope aggregates remain available for their own views.
-          try{
-            s.res = promoteTaxFundedProbability(
-              runMonteCarloWithFederalFunding(s.res, p, ov, taxOptions)
-            );
-          }catch(fundingTaxErr){
-            s.res = promoteTaxFundedProbability({
-              ...s.res,
-              federalSuccessRate: null,
-            });
-            console.warn('Federal success-rate rerun failed:', s.name, fundingTaxErr);
-          }
-          // Re-run every MC path with federal row taxes, then attach auditable
-          // p10/p50/p90 summaries. All shortcut MC aggregates stay authoritative.
-          try{
-            const federalResult = rerunMonteCarloWithFederalTax(s.res, taxOptions);
-            federalResult.pathFederalTax = Object.fromEntries(
-              ['p10', 'p50', 'p90'].map((pathKey) => [
-                pathKey,
-                attachPathFederalTax(federalResult, pathKey, taxOptions),
-              ])
-            );
-            federalResult.typicalPathFederalTax = federalResult.pathFederalTax.p50;
-            s.res = federalResult;
-          }catch(taxErr){
-            s.res.federalMedianLifetimeTax = null;
-            s.res.typicalPathFederalTax = null;
-            s.res.pathFederalTax = null;
-            console.warn('Federal Monte Carlo rerun failed:', s.name, taxErr);
-          }
+          // One converged federal run now supplies probability, paths, taxes,
+          // withdrawals, and balances together. A failed convergence is a
+          // failed scenario; never fall back to a hybrid shortcut display.
+          s.res = runFederalFundingSimulation(
+            p,
+            ov,
+            sharedPaths,
+            taxOptions
+          );
+          s.runError = null;
           // Historical Stress (Focus rail): engine-derived per-scenario eras.
           // Isolated so a stress hiccup never blanks the scenario's main result.
           try{ s.res.stress = computeHistoricalStress(s, p, ov); }
           catch(stressErr){ s.res.stress = []; console.warn('Historical stress failed:', s.name, stressErr); }
-        }catch(err){ s.res=null; failed++; console.error('Scenario failed:', s.name, err); }
+        }catch(err){
+          s.res=null;
+          s.runError=scenarioRunFailureMessage(err);
+          failed++;
+          console.error('Scenario failed:', s.name, err);
+        }
       });
       renderSolvePanel(); buildSeqSelect(); runSeq();
       if(window.ScenariosUI) window.ScenariosUI.sync();   // one authoritative Scenarios renderer
-      syncHeaderStatus(failed ? `Complete · ${failed} scenario${failed>1?'s':''} could not run` : 'Complete');
+      const firstFailure = scenarios.find(s => s.runError)?.runError;
+      syncHeaderStatus(failed
+        ? `Complete · ${failed} scenario${failed>1?'s':''} could not run${firstFailure ? `: ${firstFailure}` : ''}`
+        : 'Complete');
       uiState.plansDirty = false;
     }catch(e){ syncHeaderStatus('Error'); console.error(e); }
     btn.disabled=false; running=false;
@@ -2357,7 +2381,7 @@ $('#solve-panel').addEventListener('input', e=>{
 $('#solve-panel').addEventListener('change', e=>{
   if(e.target.id === 'sf-goal'){
     const baseLev = scenarios.find(s=>s.base)?.lev || defaultLevers();
-    const baseSucc = scenarios.find(s=>s.base)?.res?.successRate || 85;
+    const baseSucc = scenarios.find(s=>s.base)?.res?.successRate ?? 85;
     const defPct = Math.min(95, Math.ceil((baseSucc+1)/5)*5);
     const wrap = $('#sf-params');
     if(wrap) wrap.innerHTML = goalParamsHtml(e.target.value, baseLev, defPct, { goals:GOALS, currentAge:plan.household.primary.currentAge });
@@ -2462,15 +2486,11 @@ function baselineResult(){
    selected sim the cash-flow drawer replays (selectedPathIndex), digested by
    the engine (pathDigest) — the prose here and the table below are two views
    of one path. Pure formatting of engine fields; no UI math. */
-const TAX_SOURCE_LABELS = {
-  socialSecurity:'Social Security', otherIncome:'other income',
-  traditional:'Traditional withdrawals', taxable:'capital gains'
-};
 function renderStory(){
   const el = $('#story-panel'); if(!el) return;
   const res = baselineResult();
   if(!res || !Array.isArray(res.sims) || !res.sims.length){ el.innerHTML=''; return; }
-  const sim = simByIndex(res, selectedPathIndex());
+  const sim = simByIndex(res, selectedPathIndex(res));
   if(!sim){ el.innerHTML=''; return; }
   const d = pathDigest(sim);
   const pc = v => (v>=0?'+':'−') + Math.abs(v*100).toFixed(1) + '%';
@@ -2486,8 +2506,8 @@ function renderStory(){
      `The first 10 years ${d.first10Supports?'support':'work against'} the plan. ${d.negEarlyYears} of the first ${d.earlyWindowYears} ${d.negEarlyYears===1?'year is':'years are'} negative.`],
     [d.avgWdRate.toFixed(1)+'%', 'Spending pressure',
      `Average withdrawal pressure is ${d.avgWdRate.toFixed(1)}% across ${d.withdrawalYears} withdrawal years${d.peakWdAge!=null?` — the peak year touches ${d.peakWdRate.toFixed(1)}% at age ${d.peakWdAge}`:''}.`],
-    [fmtM(d.avgTax)+'/yr', 'Tax + sourcing',
-     `${TAX_SOURCE_LABELS[d.dominantTaxSource]||'Withdrawals'} drive ${Math.round(d.dominantTaxShare*100)}% of the ${fmtM(d.lifetimeTax)} lifetime tax bill.`]
+    [fmtM(d.avgTax)+'/yr', 'Federal tax',
+     `${fmtM(d.lifetimeTax)} of modeled federal tax is funded across this path and carried through its withdrawals and balances.`]
   ].map(([b,h,t]) => `<div class="story-read"><b>${b}</b><div><span class="rd-h">${h}</span><span class="rd-b">${t}</span></div></div>`).join('');
   el.innerHTML = `
     <div class="story-sec"><span>Path Story · ${escHtml((scenarios.find(s=>s.base)||scenarios[0]||{}).name||'Base plan')}</span></div>
@@ -2599,29 +2619,24 @@ function buildSeqChips(){
     m.on=!m.on; buildSeqChips(); runSeq();
   });
 }
-// Build a "retire-now" clone: the household standing at its retirement age with
-// the plan's MEDIAN projected balance (read from the engine envelope, not
-// invented). Every real market then runs from this ONE shared starting point, so
-// the only thing differing between lines is the market — not the entry balance.
-function retireNowClone(p, ov, curAge, retAge, accumYears, envelope){
-  // `envelope` is the chosen scenario's already-computed envelope, passed in
-  // from runSeq. Reusing it (a) keeps the sequencing entry balance IDENTICAL to
-  // the Scenarios tab — both read the same shared-path run — and (b) avoids
-  // re-running a full Monte Carlo on every chip toggle. Fall back to a
-  // shared-path run only if the scenario hasn't been computed yet.
-  const env = envelope || (runSimulation(p, ov, sharedPaths) || {}).envelope;
-  const accs=p.portfolio.accounts;
-  const tot=accs.taxable.balance+accs.traditional.balance+accs.roth.balance;
-  const entry=(env && env[accumYears] && env[accumYears].p50!=null) ? env[accumYears].p50 : tot;
-  const rp=JSON.parse(JSON.stringify(p));
-  const ra=rp.portfolio.accounts;
-  if(tot>0){ const f=entry/tot; ra.taxable.balance*=f; ra.traditional.balance*=f; ra.roth.balance*=f; }
-  else { ra.taxable.balance=entry; }
-  rp.household.primary.currentAge=retAge;          // standing at retirement → no accumulation phase
-  rp.household.primary.retirementAge=retAge;
-  if(rp.household.spouse && rp.household.spouse.currentAge!=null)
-    rp.household.spouse.currentAge += (retAge-curAge);
-  return rp;
+// Build a "retire-now" clone from the funded p50 path's projected bucket mix
+// and taxable basis, scaled to the engine envelope's median entry balance.
+// Every real market then runs from this one shared, tax-coherent starting point.
+function retireNowClone(p, ov, curAge, retAge, accumYears, analysis){
+  // Reuse the chosen scenario's computed result so Sequencing never re-rolls
+  // its market entry state. Fall back only before that scenario has run.
+  const result = analysis || runSimulation(p, ov, sharedPaths);
+  const resolvedAccounts = resolveInputs(p, ov).accounts;
+  const entryAccounts = deriveRetirementEntryAccounts(
+    result,
+    accumYears,
+    resolvedAccounts
+  );
+  return buildRetirementEntryPlan(p, {
+    entryAccounts,
+    currentAge: curAge,
+    retirementAge: retAge,
+  });
 }
 function runSeq(){
   if(!canRunEngine()){ renderBlockedRecoverySurfaces(); return; }
@@ -2633,9 +2648,9 @@ function runSeq(){
   const ov=leversToOverrides(s.lev);
   const strat=normalizeHistoricalStrategy(p.portfolio.withdrawalStrategy);
   const curAge=plan.household.primary.currentAge;
-  const retAge=(s.lev.retireAge!=null?s.lev.retireAge:p.household.primary.retirementAge);
+  const retAge=resolveInputs(p, ov).retirementAge;
   const accumYears=Math.max(0, retAge-curAge);
-  const rp=retireNowClone(p, ov, curAge, retAge, accumYears, s.res && s.res.envelope);
+  const rp=retireNowClone(p, ov, curAge, retAge, accumYears, s.res);
   const ov2={...ov, retireDelay:0};                // retirement age is baked into the clone now
   const historicalTaxOptions={
     baseTaxYear:new Date().getFullYear(),

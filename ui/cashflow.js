@@ -58,6 +58,16 @@ export function buildCashSummary(s, {
   }
 
 export function taxSidecarFor(scn, { isTypicalPath, typicalPathFederalTax, pathFederalTax }) {
+    if (scn?.res?.federalFunding?.semantics?.convergence === 'per-year-to-one-cent') {
+      return {
+        byAge: new Map(),
+        byYear: new Map(),
+        scope: 'MODELED_FEDERAL_LINE_24',
+        path: 'converged-engine-row',
+        totals: null,
+        warnings: [],
+      };
+    }
     const raw = typeof pathFederalTax === 'function'
       ? pathFederalTax(scn)
       : (isTypicalPath() ? typicalPathFederalTax(scn) : (scn.res && scn.res.pathFederalTax));
@@ -108,6 +118,14 @@ export function taxColumnMeta(sidecar) {
         title: 'Federal sidecar · income tax only',
       };
     }
+    if (sidecar.scope === 'MODELED_FEDERAL_LINE_24') {
+      return {
+        label: 'Tax',
+        source: 'federal-converged-row',
+        scope: sidecar.scope,
+        title: 'Modeled federal Form 1040 line 24 · retirement rows funded and converged; working years reporting-only',
+      };
+    }
     return {
       label: 'Tax',
       source: 'federal-sidecar',
@@ -140,6 +158,7 @@ export function fmtSignedMoney(n, fmtMoney) {
 export function federalScopeLabel(scope) {
     if (scope === 'INCOME_TAX_ONLY') return 'income tax only';
     if (scope === 'FULL_1040') return 'full Form 1040';
+    if (scope === 'MODELED_FEDERAL_LINE_24') return 'modeled Form 1040 line 24; retirement rows funded and converged, working years reporting-only';
     return 'scope not specified';
   }
 
@@ -175,6 +194,11 @@ export function renderCashflow(scn, allScns, {
     const taxColumn = taxColumnMeta(sidecar);
     const taxComparison = taxComparisonFor(sidecar);
     const federalAttachFailed = typicalPath && !!scn.raw.res && !sidecar;
+    const taxDisclosureState = federalAttachFailed
+      ? 'engine-fallback'
+      : taxColumn.source === 'federal-converged-row'
+        ? 'federal-converged-row'
+        : 'federal-sidecar';
 
     const pills = allScns.map((s) => (
       '<button class="cf-pill ' + (s.id === scn.id ? 'is-active' : '') + '" type="button" data-cash-pick="' + esc(s.id) + '" aria-pressed="' + (s.id === scn.id ? 'true' : 'false') + '" style="--tone:' + s.tone + ';">' +
@@ -215,7 +239,7 @@ export function renderCashflow(scn, allScns, {
     );
 
     const taxDisclosure = (typicalPath || sidecar) && scn.raw.res ? (
-      '<div class="cf-tax-disclosure" data-tax-disclosure data-tax-state="' + (federalAttachFailed ? 'engine-fallback' : 'federal-sidecar') + '">' +
+      '<div class="cf-tax-disclosure" data-tax-disclosure data-tax-state="' + taxDisclosureState + '">' +
         (federalAttachFailed
           ? '<div class="cf-tax-fallback" data-tax-fallback role="status">Federal tax detail isn\'t available for this run. The Tax column uses engine estimates.</div>'
           : '<div class="cf-tax-scope" data-tax-scope-disclosure>Federal tax scope: ' + esc(federalScopeLabel(sidecar.scope)) + '.</div>' +

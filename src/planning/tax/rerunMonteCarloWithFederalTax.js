@@ -1,10 +1,8 @@
-/* Planning-owned full-MC rerun: preserve shortcut aggregates, replace sim tax reporting. */
+/* Planning-owned full-MC rerun with converged federal-tax funding. */
 
-import { runSinglePath } from '../../../engine.js';
+import { analyzeResults, runSinglePath } from '../../../engine.js';
 import { TaxInputError } from '../../tax/core/errors.js';
 import { createFederalTaxResolver } from './createFederalTaxResolver.js';
-
-const PATH_KEYS = ['p10', 'p25', 'p50', 'p75', 'p90'];
 
 function assertSim(sim, label){
   if(sim === null || typeof sim !== 'object' || Array.isArray(sim)){
@@ -19,9 +17,9 @@ function assertSim(sim, label){
 }
 
 /**
- * Re-run every Monte Carlo sim with federal Form 1040 line 24 as reported
- * row.taxes. The shortcut analysis remains the source for success rate,
- * terminal distribution, envelope, metrics, and medianLifetimeTax.
+ * Re-run every Monte Carlo sim with federal Form 1040 line 24 both reported
+ * and funded. All visible paths and aggregates are rebuilt from those same
+ * converged simulations.
  *
  * Engine analyses share the exact returnPath array between a sim and any
  * selected percentile path that references it. The nested maps therefore
@@ -50,7 +48,10 @@ export function rerunMonteCarloWithFederalTax(analysis, options = {}){
     }
     let federalSim = byReturnPath.get(sim.returnPath);
     if(!federalSim){
-      federalSim = runSinglePath(analysis.params, sim.returnPath, { taxPolicy });
+      federalSim = runSinglePath(analysis.params, sim.returnPath, {
+        taxPolicy,
+        fundTaxPolicyDelta: true,
+      });
       federalSim.simIndex = sim.simIndex;
       federalSim.returnPath = sim.returnPath;
       byReturnPath.set(sim.returnPath, federalSim);
@@ -62,32 +63,16 @@ export function rerunMonteCarloWithFederalTax(analysis, options = {}){
     getOrRunFederalSim(sim, `analysis.sims[${index}]`)
   );
 
-  const federalPaths = {};
-  for(const pathKey of PATH_KEYS){
-    const selected = analysis.paths?.[pathKey];
-    assertSim(selected, `analysis.paths.${pathKey}`);
-    const federalPath = federalBySimIndex.get(selected.simIndex)?.get(selected.returnPath);
-    if(!federalPath){
-      throw new TaxInputError(
-        `analysis.paths.${pathKey} must reference analysis.sims by simIndex and returnPath`
-      );
-    }
-    federalPaths[pathKey] = federalPath;
-  }
-
   const federalLifetimeTaxes = federalSims
     .map((sim) => sim.lifetimeTax)
     .sort((a, b) => a - b);
   const federalMedianLifetimeTax =
     federalLifetimeTaxes[Math.floor(federalLifetimeTaxes.length * 0.50)];
 
+  const fundedAnalysis = analyzeResults(federalSims, analysis.params);
   return {
     ...analysis,
-    paths: {
-      ...analysis.paths,
-      ...federalPaths,
-    },
-    sims: federalSims,
+    ...fundedAnalysis,
     federalMedianLifetimeTax,
   };
 }

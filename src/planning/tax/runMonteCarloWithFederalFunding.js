@@ -1,6 +1,6 @@
-/* Planning-owned federal-funding MC sidecar; shortcut aggregates remain authoritative. */
+/* Planning-owned converged federal-funding Monte Carlo analysis. */
 
-import { runSimulation } from '../../../engine.js';
+import { resolveInputs, runSimulation } from '../../../engine.js';
 import { TaxInputError } from '../../tax/core/errors.js';
 import { buildFederalFundingPathSidecar } from './buildFederalFundingPathSidecar.js';
 import { createFederalTaxResolver } from './createFederalTaxResolver.js';
@@ -53,8 +53,8 @@ function assertHouseholdTaxOptions(shortcutAnalysis, plan, options){
 
 /**
  * Re-run the exact shortcut Monte Carlo return paths with federal Form 1040
- * line 24 driving positive tax-delta funding. A compact sidecar preserves the
- * funded bucket paths while shortcut aggregates remain unchanged.
+ * line 24 driving signed, converged funding. The returned analysis is the one
+ * coherent funded result consumed by probability, paths, balances, and UI.
  */
 export function runMonteCarloWithFederalFunding(
   shortcutAnalysis,
@@ -101,7 +101,43 @@ export function runMonteCarloWithFederalFunding(
   );
 
   return {
-    ...shortcutAnalysis,
+    ...federalAnalysis,
+    federalSuccessRate: federalFunding.successRate,
+    federalFunding,
+  };
+}
+
+/**
+ * Run a converged federal analysis directly when the caller already owns the
+ * shared market paths. The converged rows contain their own pre-adjustment
+ * funding evidence, so production does not need a duplicate shortcut MC pass.
+ */
+export function runFederalFundingSimulation(
+  plan,
+  overrides = {},
+  returnPaths,
+  options = {}
+){
+  if(!Array.isArray(returnPaths) || returnPaths.length === 0){
+    throw new TaxInputError('returnPaths is required');
+  }
+  const params = resolveInputs(plan, overrides);
+  const anchor = { params };
+  assertHouseholdTaxOptions(anchor, plan, options);
+  const taxPolicy = createFederalTaxResolver(params, options);
+  const federalAnalysis = runSimulation(plan, overrides, returnPaths, {
+    taxPolicy,
+    fundTaxPolicyDelta: true,
+  });
+  const federalFunding = buildFederalFundingPathSidecar(
+    federalAnalysis,
+    federalAnalysis,
+    plan,
+    overrides,
+    options
+  );
+  return {
+    ...federalAnalysis,
     federalSuccessRate: federalFunding.successRate,
     federalFunding,
   };

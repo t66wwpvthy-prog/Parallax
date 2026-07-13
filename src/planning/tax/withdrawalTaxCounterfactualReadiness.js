@@ -5,7 +5,6 @@ const MODEL_LIMITATION_CODES = Object.freeze([
   'NIIT_NOT_MODELED',
   'AMT_NOT_MODELED',
   'FULL_CREDIT_RULES_NOT_MODELED',
-  'PHASE_6_FUNDING_NOT_CONVERGED',
 ]);
 
 function cloneFreeze(value){
@@ -201,6 +200,9 @@ export function retirementBeforeRmdReasons(context){
 
 function modelLimitationReasons(row, context, calendarYear, taxCoverage){
   const reasons = [...MODEL_LIMITATION_CODES];
+  if(row.taxFundingConvergence?.status !== 'converged'){
+    reasons.push('PHASE_6_FUNDING_NOT_CONVERGED');
+  }
   if(taxCoverage.taxTotalScope !== null && taxCoverage.taxTotalScope !== 'FULL_1040'){
     reasons.push('TAX_TOTAL_SCOPE_INCOME_TAX_ONLY');
   }
@@ -268,7 +270,7 @@ export function buildComparisonEligibility(
   });
 }
 
-export function counterfactualSemantics(){
+export function counterfactualSemantics(row = null){
   return Object.freeze({
     taxSource: 'federal-form-1040-line-24-modeled-scope',
     taxLabel: 'modeled-federal-income-tax',
@@ -279,7 +281,9 @@ export function counterfactualSemantics(){
     traditionalDistributionTreatment: 'fully-taxable-only-when-proven',
     rothDistributionTreatment: 'qualified-only-when-proven',
     rmdTreatment: 'withheld-unless-owner-and-account-legal-baseline-is-proven',
-    convergence: 'not-converged',
+    convergence: row?.taxFundingConvergence?.status === 'converged'
+      ? 'converged'
+      : 'not-converged',
     recommendation: 'none',
   });
 }

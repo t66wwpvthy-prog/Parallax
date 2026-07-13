@@ -77,7 +77,7 @@ export function solvePanelHTML({
   // The goal-entry FORM takes priority — full-width card so it has room to breathe.
   if(solverFormOpen){
     const baseLev = scenarios.find(s=>s.base)?.lev || defaultLevers();
-    const baseSucc = scenarios.find(s=>s.base)?.res?.successRate || 85;
+    const baseSucc = scenarios.find(s=>s.base)?.res?.successRate ?? 85;
     const defPct = Math.min(95, Math.ceil((baseSucc+1)/5)*5);
     const goalOpts = Object.entries(goals).map(([k,g])=>`<option value="${k}"${k==='retire'?' selected':''}>${g.label}</option>`).join('');
     return `
@@ -86,6 +86,7 @@ export function solvePanelHTML({
           <span class="solve-panel-title">What would it take? — solve each lever to a goal</span>
           <button class="solve-clear" id="sf-cancel">✕ Cancel</button>
         </div>
+        <div class="solve-scope">Quick solve uses the simplified tax estimate. Loaded scenarios are recalculated with modeled federal tax.</div>
         <form class="sf-form" id="solver-form">
           <label class="sf-field"><span class="sf-lbl">Goal</span>
             <select class="sf-select" id="sf-goal">${goalOpts}</select></label>
@@ -150,6 +151,7 @@ export function solvePanelHTML({
         <span class="solve-panel-title">${goal}</span>
         <button class="solve-clear" id="solve-clear-btn">✕ Clear</button>
       </div>
+      <div class="solve-scope">Quick solve uses the simplified tax estimate. Loaded scenarios are recalculated with modeled federal tax.</div>
       <div class="solo-list">${rows}</div>
       ${allCappedNote}
     </div>

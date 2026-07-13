@@ -1,9 +1,13 @@
 /* Planning-owned bridge: completed engine row -> federal Form 1040 line 24. */
 
 import { buildPlanMetaFromEngineParams, buildRowPlanMetaFromOptions } from './buildPlanMetaFromEngineParams.js';
-import { runTaxForScenarioPath } from './runTaxForScenarioPath.js';
 import { buildRowTaxableGainPlanMeta } from './taxableBasisTracker.js';
 import { TaxInputError } from '../../tax/core/errors.js';
+import {
+  buildDefaultTaxContext,
+  mapSimulationRowToYearFacts,
+  runEngineYearTax,
+} from '../../tax/annual1040.js';
 
 /**
  * Create the synchronous tax-policy callback accepted by engine.runSinglePath.
@@ -22,19 +26,32 @@ export function createFederalTaxResolver(params, options = {}){
     ...(options.contextOverrides ?? {}),
     scenarioId: options.scenarioId ?? 'engine_single_path',
   };
+  const contextByTaxYear = new Map();
+  const line24ByFacts = new Map();
 
   return (row) => {
-    const { results } = runTaxForScenarioPath([row], planMeta, {
-      contextOverrides,
-      rowPlanMeta,
-    });
-    const annual = results[0]?.annual1040Result;
+    const meta = {
+      ...planMeta,
+      ...(rowPlanMeta ? rowPlanMeta(row, 0) : {}),
+    };
+    const facts = mapSimulationRowToYearFacts(row, meta);
+    const factsKey = JSON.stringify(facts);
+    if(line24ByFacts.has(factsKey)) return line24ByFacts.get(factsKey);
+
+    const taxYear = meta.taxYear ?? contextOverrides.taxYear ?? 2026;
+    let context = contextByTaxYear.get(taxYear);
+    if(!context){
+      context = buildDefaultTaxContext({ ...contextOverrides, taxYear });
+      contextByTaxYear.set(taxYear, context);
+    }
+    const annual = runEngineYearTax(facts, context).annual1040Result;
     const line24 = annual?.lines?.line24?.value;
     if(!Number.isFinite(line24)){
       throw new TaxInputError('federal tax resolver did not produce Form 1040 line 24', {
         rowYear: row?.year ?? null,
       });
     }
+    line24ByFacts.set(factsKey, line24);
     return line24;
   };
 }
