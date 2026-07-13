@@ -227,4 +227,65 @@ Household phase result: passed
 - Browser checks: Sequencing all-era state, explicit Playback absence, shared theme, header, Household, Goals, Scenarios, persistence, and cross-page behavior all passed.
 - Console: no browser-console failure was reported by the verification run.
 
+Sequencing phase result: passed
+
+---
+
+# Goals Horizon Design QA
+
+## Comparison target
+
+- Source visual truth:
+  - `C:\Users\amans\.codex\visualizations\2026\07\12\019f5784-d13e-7cc2-8832-0ee5a1cec2a6\goals-horizon-reference.png`
+  - `C:\Users\amans\.codex\visualizations\2026\07\12\019f5784-d13e-7cc2-8832-0ee5a1cec2a6\goals-horizon-source-editor-1280.png`
+- Browser-rendered implementation:
+  - `C:\Users\amans\.codex\visualizations\2026\07\12\019f5784-d13e-7cc2-8832-0ee5a1cec2a6\goals-horizon-implementation-1280-v2.png`
+  - `C:\Users\amans\.codex\visualizations\2026\07\12\019f5784-d13e-7cc2-8832-0ee5a1cec2a6\goals-horizon-editor-1280.png`
+  - `C:\Dev\Parallax\verify-out\02-goals.png`
+- Viewports: 1280 x 720 in the in-app browser for direct source comparison; 1920 x 1080 in project verification.
+- States: production demo Horizon, recurring Travel goal editor, add-goal starters, one-time and recurring cadence, drag, duplicate, delete/undo, blank household, saved household reload, and read-only storage.
+
+## Full-view comparison evidence
+
+- The production page matches the source's Spectral title, near-black charcoal field, one restrained glass timeline card, warm hairlines, 62-96 axis, champagne retirement marker, vertical guides, translucent goal bands, pill chips, in-card add action, and quiet instructional footer.
+- The live application keeps its established 56px header and 32px centered content gutter. The prototype-only variant links were intentionally excluded as specified.
+- Production demo content remains authoritative: one Travel & leisure goal at ages 66-81 replaces the prototype's three sample records. Blank households remain blank.
+- The user-requested Lifetime goal spend is absent from every Goals Horizon state.
+
+## Focused region comparison evidence
+
+- Timeline and chips: the source and final implementation captures were reviewed together at native 1280 x 720 scale. Band opacity, 10px height, pill radius, type hierarchy, retirement guide, axis labels, and category color now align closely.
+- Edit rail: source and implementation editor captures were reviewed together. The implementation preserves the 396px fixed rail, section order, amount controls, cadence segments, timing presets, age inputs, category icons, delete/duplicate actions, and gold Done control. The rail remains live and does not block timeline updates.
+- Icons and assets: all eight category icons are the source SVG assets copied from the handoff, not re-created in CSS or inline markup. The production Parallax logo remains unchanged.
+- No separate crop was needed because the 1280 x 720 base and editor captures keep the full title, timeline, chip assets, form labels, and controls legible at native scale.
+
+## Findings
+
+- No actionable P0, P1, or P2 mismatch remains.
+- The implementation uses the production header height of 56px instead of the prototype rail's 64px offset. This is intentional because the user explicitly directed the current live header to remain authoritative.
+- The source editor capture visually dims the panel as part of the handoff prototype's overlay behavior, while the specification says the rail must not block the timeline. The production rail follows the written interaction contract and stays readable without a blocking scrim.
+- Responsive behavior is desktop-first like the source. At narrower widths, the timeline preserves its usable axis through horizontal overflow and the 396px editor rail caps at the viewport width.
+
+## Required fidelity surfaces
+
+- Fonts and typography: Spectral carries the title and financial emphasis; Hanken Grotesk carries labels and controls. Weight, scale, tracking, line height, truncation, and number alignment match the source hierarchy without substituting generic fonts.
+- Spacing and layout rhythm: the 1560px maximum page, 34px/32px padding contract, 20px card radius, timeline rhythm, 48px lanes, 396px editor rail, and footer rules follow the handoff. No persistent controls overlap or clip.
+- Colors and visual tokens: charcoal surfaces, champagne text, muted gold, category sage/blue/violet/rust accents, low-opacity gradients, hairlines, and restrained shadows map to the existing shared production tokens.
+- Image quality and asset fidelity: source SVG category assets remain sharp and correctly tinted at chip, starter, editor-header, and category-picker sizes. No emoji, placeholder image, CSS icon, or handcrafted inline SVG replacement is present.
+- Copy and content: the title, add action, editor labels, cadence language, timing presets, drag instruction, toast, and blank state are coherent and match the handoff's product language. Prototype navigation artifacts and Lifetime total are absent.
+- Accessibility and interactions: semantic buttons and labeled inputs retain focus-visible treatment, reduced-motion support, disabled read-only states, and practical 38-44px control targets. Add, live edit, cadence, ranges, category, drag threshold, duplicate, delete/undo, Save, Scenarios propagation, persistence, and blank-household behavior passed.
+
+## Comparison history
+
+1. Initial full-view comparison found one P2 fidelity issue: the legacy Travel & leisure record rendered with the generic Custom star and gray band because its old `purpose` metadata did not identify a visual category.
+2. Fix applied: legacy generic categories now infer a safe display category from the existing goal name while preserving the engine's amount/start/end contract. Travel & leisure now uses the source globe asset and muted-gold band.
+3. Post-fix evidence: `goals-horizon-implementation-1280-v2.png` was compared directly with `goals-horizon-reference.png`; the source asset, gold line treatment, typography, spacing, and card hierarchy now align. No additional P0/P1/P2 issue was found.
+
+## Verification
+
+- `npm test`: 355 total, 354 passed, 1 skipped, 0 failed.
+- `node scripts/verify.mjs`: passed the complete unit and browser suite, including Goals Horizon rendering, starter add, live edits, monthly cadence conversion, one-time/recurring timing, category changes, duplicate, delete/undo, drag, Scenarios propagation, blank household, saved reload, theme, header, and read-only persistence.
+- In-app browser console: no errors or warnings.
+- Primary interactions tested in the in-app browser and the project verifier: navigation, goal selection, rail opening, add panel, edits, cadence, timing, category, drag, duplicate, delete/undo, save/reload, cross-page Scenarios flow, and blank/read-only states.
+
 final result: passed

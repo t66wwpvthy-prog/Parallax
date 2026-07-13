@@ -1320,279 +1320,178 @@ try {
     await sleep(200);
   });
 
-    await step('goals renders the Ledger view (title, columns, rows, adds, footer)', async () => {
-    // Contract for the Goals Ledger: one always-editable sheet over flat
-    // plan.goals (one goal = one row), replacing the retired Life Chapters
-    // view (chapter cards + composers + inline editors — all removed).
-    // Chapters survive as UI-only derivations: per-row range chips and a
-    // one-line footer of per-chapter input sums. Demo household resolves
-    // retirement 66 -> plan end 95, so derived chapters are 66-75/76-85/86-95.
+    await step('goals Horizon: timeline, glass card, lanes, and no lifetime aggregate', async () => {
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
     await page.click('.htab[data-sub-target="goals"]');
-    await new Promise(r => setTimeout(r, 400));
+    await sleep(450);
     const m = await page.evaluate(() => {
-      const led = document.querySelector('#gl-ledger');
-      const text = (led?.textContent || '').replace(/\s+/g, ' ').trim();
-      const px = sel => {
-        const el = document.querySelector(sel);
-        return el ? parseFloat(getComputedStyle(el).fontSize) : null;
-      };
+      const pageRoot = document.querySelector('.gh-page');
+      const text = (pageRoot?.textContent || '').replace(/\s+/g, ' ').trim();
       return {
-        ledger: !!led,
-        title: /Lifestyle Goals/.test(text),
-        caps: [...document.querySelectorAll('.glx-cap')].map(el => el.textContent.trim()),
-        rows: document.querySelectorAll('.glx-row').length,
-        names: [...document.querySelectorAll('.glx-name')].map(el => el.value),
-        chipsPerRow: document.querySelector('.glx-row') ?
-          document.querySelector('.glx-row').querySelectorAll('.glx-chip').length : 0,
-        segs: document.querySelectorAll('.glx-row .glx-seg').length,
-        quickAdds: document.querySelectorAll('.glx-qa').length,
-        footer: (document.querySelector('.glx-footer')?.textContent || '').replace(/\s+/g, ' '),
-        composersGone: !document.querySelector('.glc-csw, #glc-composer-a, #glc-composer-b, .glc-ed, .glc-card'),
-        travelChips: (() => {
-          const row = [...document.querySelectorAll('.glx-row')]
-            .find(r => (r.querySelector('.glx-name')?.value || '').includes('Travel'));
-          return row ? [...row.querySelectorAll('.glx-chip')].map(c =>
-            c.classList.contains('glx-chip--on') ? 'on' :
-            c.classList.contains('glx-chip--part') ? 'part' : 'off').join(',') : '';
-        })(),
-        fontFloor: Math.min(...['.glx-cap', '.glx-name', '.glx-amt', '.glx-row .glx-seg',
-          '.glx-chip', '.glx-ain', '.glx-f-lbl', '.glx-f-note'].map(px).filter(v => v != null)),
-        textLen: text.length,
+        page: !!pageRoot,
+        card: !!document.querySelector('.gh-card'),
+        title: document.querySelector('.gh-title')?.textContent.trim() || '',
+        lanes: document.querySelectorAll('.gh-lane').length,
+        chips: document.querySelectorAll('.gh-chip').length,
+        marks: document.querySelectorAll('.gh-band, .gh-diamond').length,
+        ticks: document.querySelectorAll('.gh-tick').length,
+        add: !!document.querySelector('.gh-add-toggle'),
+        lifetime: /Lifetime goal spend|Lifetime total|Lifetime/i.test(text),
+        legacy: !!document.querySelector('#gl-ledger, .glx-row, .glc-card, .ga-board'),
+        overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
       };
     });
-    if(!m.ledger) throw new Error('Goals Ledger (#gl-ledger) did not render');
-    if(!m.title) throw new Error('Goals title "Lifestyle Goals" missing from rendered view');
-    if(!m.composersGone) throw new Error('retired Life Chapters DOM (composer/cards/editor) still renders');
-    const wantCaps = ['GOAL','AMOUNT','HOW OFTEN','WHICH YEARS'];
-    if(!wantCaps.every(c => m.caps.includes(c)))
-      throw new Error(`ledger column captions wrong: ${JSON.stringify(m.caps)}`);
-    if(m.rows < 1) throw new Error(`expected the demo goal row, got ${m.rows}`);
-    if(!m.names.some(n => n.includes('Travel'))) throw new Error('demo goal name missing from name inputs');
-    if(m.chipsPerRow !== 3) throw new Error(`expected 3 chapter chips per recurring row, got ${m.chipsPerRow}`);
-    if(m.segs < m.rows * 2) throw new Error('cadence segments missing from rows');
-    if(m.quickAdds !== 4) throw new Error(`expected 4 quick adds, got ${m.quickAdds}`);
-    if(!/I \u00b7 66\u201375/.test(m.footer) || !/II \u00b7 76\u201385/.test(m.footer) || !/III \u00b7 86\u201395/.test(m.footer))
-      throw new Error(`footer chapters not derived 66-75/76-85/86-95: "${m.footer}"`);
-    if(/Lifetime/.test(m.footer) || /sum of entered goals/.test(m.footer))
-      throw new Error(`footer must not show a lifetime aggregate: "${m.footer}"`);
-    if(m.travelChips !== 'on,part,off')
-      throw new Error(`Travel & leisure 66\u201381 chips should be on,part,off \u2014 got "${m.travelChips}"`);
-    if(m.fontFloor < 16) throw new Error(`ledger type floor broken: ${m.fontFloor}px < 16px`);
-    if(m.textLen < 40) throw new Error(`Goals page appears blank (textLen=${m.textLen})`);
+    if(!m.page || !m.card) throw new Error('Goals Horizon page/card did not render');
+    if(m.title !== 'Retirement Lifestyle') throw new Error(`Goals Horizon title wrong: "${m.title}"`);
+    if(m.lanes < 1 || m.chips !== m.lanes || m.marks !== m.lanes)
+      throw new Error(`Goals Horizon lanes incomplete (${JSON.stringify(m)})`);
+    if(m.ticks < 5 || !m.add) throw new Error(`Goals Horizon axis/add control incomplete (${JSON.stringify(m)})`);
+    if(m.lifetime) throw new Error('Goals Horizon must not render Lifetime goal spend');
+    if(m.legacy) throw new Error('retired Goals implementation still renders');
+    if(m.overflow > 2) throw new Error(`Goals Horizon caused ${m.overflow}px document overflow`);
     await page.screenshot({ path: join(OUT, '02-goals.png'), fullPage: true });
   });
 
-  await step('goals Ledger: add, type-through, steppers, cadence, chips, age boxes, delete', async () => {
+  await step('goals Horizon: add, edit, cadence, timing, category, duplicate, delete, undo', async () => {
     const sleep = ms => new Promise(r => setTimeout(r, ms));
     await page.click('.htab[data-sub-target="goals"]');
-    await sleep(350);
-    const rowCount = () => page.evaluate(() => document.querySelectorAll('.glx-row').length);
-    const rowVal = (gi, sel) => page.evaluate(({g, s}) =>
-      document.querySelector(`${s}[data-i="${g}"]`)?.value ?? null, {g: gi, s: sel});
-    const n0 = await rowCount();
-
-    // 1) + Add a goal -> one new flat record, flashgold, name focused+selected
-    await page.click('#glx-add');
-    await sleep(400);
-    const gi = n0;   // appended at the end of plan.goals
-    let m = await page.evaluate(g => ({
-      rows: document.querySelectorAll('.glx-row').length,
-      flash: document.querySelectorAll('.glx-row--flash').length,
-      name: document.querySelector(`.glx-name[data-i="${g}"]`)?.value,
-      focused: document.activeElement?.classList.contains('glx-name'),
+    await sleep(300);
+    const before = await page.evaluate(() => document.querySelectorAll('.gh-lane').length);
+    await page.click('.gh-add-toggle');
+    await sleep(150);
+    const starters = await page.evaluate(() => document.querySelectorAll('.gh-starter').length);
+    if(starters !== 8) throw new Error(`expected 8 goal starters, got ${starters}`);
+    await page.click('.gh-starter[data-add-category="travel"]');
+    await sleep(450);
+    let m = await page.evaluate(() => ({
+      lanes: document.querySelectorAll('.gh-lane').length,
+      rail: !!document.querySelector('.gh-rail'),
+      name: document.querySelector('.gh-name-input')?.value || '',
+      amount: document.querySelector('.gh-amount-input')?.value || '',
       status: document.querySelector('#status')?.textContent || '',
-    }), gi);
-    if(m.rows !== n0 + 1) throw new Error(`+ Add a goal did not append a row (${n0} -> ${m.rows})`);
-    if(m.flash < 1) throw new Error('newly added row did not flash');
-    if(m.name !== 'New goal') throw new Error(`new row name wrong: "${m.name}"`);
-    if(!m.focused) throw new Error('new row name field not focused after add');
-    if(!/Plan edited/.test(m.status)) throw new Error(`add did not arm the plan-edited status ("${m.status}")`);
-
-    // 2) typing the name replaces the selected seed text and never re-renders
-    await page.keyboard.type('Boat fund');
-    await sleep(150);
-    m = await page.evaluate(g => ({
-      name: document.querySelector(`.glx-name[data-i="${g}"]`)?.value,
-      stillFocused: document.activeElement?.classList.contains('glx-name'),
-    }), gi);
-    if(m.name !== 'Boat fund') throw new Error(`typed name did not write through ("${m.name}")`);
-    if(!m.stillFocused) throw new Error('name typing lost focus (row re-rendered mid-keystroke)');
-
-    // 3) amount typing: live commas, chapter footer repaints, focus survives.
-    const chapterBefore = await page.evaluate(() => document.querySelector('[data-fsum="0"]')?.textContent);
-    await page.click(`.glx-amt[data-i="${gi}"]`);
-    await page.evaluate(g => {
-      const el = document.querySelector(`.glx-amt[data-i="${g}"]`);
-      el.value = '900000';
-      el.dispatchEvent(new Event('input', { bubbles: true }));
-    }, gi);
-    await sleep(150);
-    m = await page.evaluate(g => ({
-      amt: document.querySelector(`.glx-amt[data-i="${g}"]`)?.value,
-      focused: document.activeElement?.classList.contains('glx-amt'),
-      chapter: document.querySelector('[data-fsum="0"]')?.textContent,
-    }), gi);
-    if(m.amt !== '900,000') throw new Error(`amount live-commas failed ("${m.amt}")`);
-    if(!m.focused) throw new Error('amount typing lost focus (row re-rendered mid-keystroke)');
-    if(m.chapter === chapterBefore) throw new Error('footer chapter sum did not repaint on amount typing');
-
-    // 4) recurring stepper is +-$1,000
-    await page.click(`.glx-step[data-act="plus"][data-i="${gi}"]`);
-    await sleep(300);
-    if(await rowVal(gi, '.glx-amt') !== '901,000')
-      throw new Error('recurring + stepper did not add $1,000');
-
-    // 5) cadence -> One-time: endAge=startAge, "at age" control, +-$5,000 stepper
-    await page.click(`.glx-seg[data-act="cad-once"][data-i="${gi}"]`);
-    await sleep(300);
-    m = await page.evaluate(g => {
-      const row = document.querySelector(`.glx-row[data-row="${g}"]`);
-      return {
-        onceVisible: !row.querySelector('.glx-agewrap').hidden,
-        yrHidden: row.querySelector('.glx-when').hidden,
-        age: row.querySelector('.glx-ageval')?.textContent,
-      };
-    }, gi);
-    if(!m.onceVisible || !m.yrHidden) throw new Error('cadence -> One-time did not switch the which-years control');
-    if(m.age !== '66') throw new Error(`one-time age should collapse to startAge 66, got ${m.age}`);
-    await page.click(`.glx-step[data-act="plus"][data-i="${gi}"]`);
-    await sleep(300);
-    if(await rowVal(gi, '.glx-amt') !== '906,000')
-      throw new Error('one-time + stepper did not add $5,000');
-    await page.click(`.glx-step--sm[data-act="age-plus"][data-i="${gi}"]`);
-    await sleep(300);
-    m = await page.evaluate(g =>
-      document.querySelector(`.glx-row[data-row="${g}"] .glx-ageval`)?.textContent, gi);
-    if(m !== '67') throw new Error(`one-time age + did not step to 67 (got ${m})`);
-
-    // 6) cadence -> Every year restores a real span (start+9, plan-end capped)
-    await page.click(`.glx-seg[data-act="cad-yr"][data-i="${gi}"]`);
-    await sleep(300);
-    if(await rowVal(gi, '.glx-ain[data-t="s"]') !== '67' || await rowVal(gi, '.glx-ain[data-t="e"]') !== '76')
-      throw new Error('cadence -> Every year did not restore a 67-76 span');
-
-    // 7) chips set contiguous ranges over the derived chapters
-    await page.click(`.glx-chip[data-ch="0"][data-i="${gi}"]`);   // no full chapters lit -> I
-    await sleep(300);
-    if(await rowVal(gi, '.glx-ain[data-t="s"]') !== '66' || await rowVal(gi, '.glx-ain[data-t="e"]') !== '75')
-      throw new Error('chip I did not set 66-75');
-    await page.click(`.glx-chip[data-ch="1"][data-i="${gi}"]`);   // I+II -> 66-85
-    await sleep(300);
-    if(await rowVal(gi, '.glx-ain[data-t="e"]') !== '85')
-      throw new Error('chip II did not extend the range to 85');
-    await page.click(`.glx-chip[data-ch="0"][data-i="${gi}"]`);   // drop I -> 76-85
-    await sleep(300);
-    if(await rowVal(gi, '.glx-ain[data-t="s"]') !== '76')
-      throw new Error('unlighting chip I did not trim the range to 76-85');
-
-    // 8) exact age boxes clamp to the resolved span and hold start <= end
-    const setAge = (t, v) => page.evaluate(({g, tt, vv}) => {
-      const el = document.querySelector(`.glx-ain[data-t="${tt}"][data-i="${g}"]`);
-      el.value = vv;
-      el.dispatchEvent(new Event('change', { bubbles: true }));
-    }, {g: gi, tt: t, vv: v});
-    await setAge('s', '60'); await sleep(300);
-    if(await rowVal(gi, '.glx-ain[data-t="s"]') !== '66')
-      throw new Error('start age 60 did not clamp to retirement (66)');
-    await setAge('e', '99'); await sleep(300);
-    if(await rowVal(gi, '.glx-ain[data-t="e"]') !== '95')
-      throw new Error('end age 99 did not clamp to plan end (95)');
-
-    // 9) delete floats the row away and the store shrinks with it
-    await page.click(`.glx-del[data-i="${gi}"]`);
-    await sleep(300);
-    m = await page.evaluate(() => ({
-      rows: document.querySelectorAll('.glx-row').length,
-      gone: ![...document.querySelectorAll('.glx-name')].some(el => el.value === 'Boat fund'),
     }));
-    if(m.rows !== n0) throw new Error(`delete did not remove the row (${m.rows} rows, want ${n0})`);
-    if(!m.gone) throw new Error('deleted goal still renders');
+    if(m.lanes !== before + 1 || !m.rail || m.name !== 'Travel' || m.amount !== '10,000')
+      throw new Error(`Travel starter did not create the expected editable lane (${JSON.stringify(m)})`);
+    if(!/Plan edited/.test(m.status)) throw new Error(`goal add did not arm plan status: "${m.status}"`);
+
+    await page.click('.gh-name-input');
+    await page.keyboard.down('Control'); await page.keyboard.press('A'); await page.keyboard.up('Control');
+    await page.keyboard.type('European summers');
+    await page.evaluate(() => {
+      const el = document.querySelector('.gh-amount-input');
+      el.value = '24000';
+      el.dispatchEvent(new Event('input', { bubbles:true }));
+    });
+    await sleep(150);
+    m = await page.evaluate(() => ({
+      railName: document.querySelector('.gh-name-input')?.value,
+      chipName: [...document.querySelectorAll('.gh-chip__name')].some(el => el.textContent === 'European summers'),
+      amount: document.querySelector('.gh-amount-input')?.value,
+      chipAmount: [...document.querySelectorAll('.gh-chip__amount')].find(el => el.closest('.gh-chip')?.querySelector('.gh-chip__name')?.textContent === 'European summers')?.textContent,
+    }));
+    if(m.railName !== 'European summers' || !m.chipName || m.amount !== '24,000' || !/24k/.test(m.chipAmount || ''))
+      throw new Error(`live goal editing failed (${JSON.stringify(m)})`);
+
+    await page.click('[data-action="per-month"]'); await sleep(250);
+    m = await page.evaluate(() => ({
+      amount: document.querySelector('.gh-amount-input')?.value,
+      monthly: document.querySelector('[data-action="per-month"]')?.classList.contains('is-selected'),
+    }));
+    if(m.amount !== '2,000' || !m.monthly) throw new Error(`monthly cadence conversion failed (${JSON.stringify(m)})`);
+    await page.click('[data-action="kind-once"]'); await sleep(250);
+    if(!await page.evaluate(() => !!document.querySelector('[data-field="once-age"]')))
+      throw new Error('one-time cadence did not expose a single age control');
+    await page.click('[data-action="kind-rec"]'); await sleep(250);
+    if(!await page.evaluate(() => !!document.querySelector('[data-field="start-age"]') && !!document.querySelector('[data-field="end-age"]')))
+      throw new Error('recurring cadence did not restore a range');
+    await page.click('[data-action="preset"][data-preset="later"]'); await sleep(250);
+    m = await page.evaluate(() => ({
+      start: document.querySelector('[data-field="start-age"]')?.value,
+      end: document.querySelector('[data-field="end-age"]')?.value,
+    }));
+    if(!m.start || !m.end || +m.start >= +m.end) throw new Error(`later preset produced an invalid range (${JSON.stringify(m)})`);
+    await page.click('[data-action="category"][data-category="home"]'); await sleep(250);
+    if(!await page.evaluate(() => document.querySelector('.gh-rail__icon img')?.getAttribute('src')?.endsWith('/home.svg')))
+      throw new Error('category change did not update the source icon');
+
+    const beforeDuplicate = await page.evaluate(() => document.querySelectorAll('.gh-lane').length);
+    await page.click('[data-action="duplicate"]'); await sleep(350);
+    m = await page.evaluate(() => ({
+      lanes: document.querySelectorAll('.gh-lane').length,
+      name: document.querySelector('.gh-name-input')?.value || '',
+    }));
+    if(m.lanes !== beforeDuplicate + 1 || !m.name.endsWith(' copy'))
+      throw new Error(`duplicate failed (${JSON.stringify(m)})`);
+    await page.click('[data-action="delete"]'); await sleep(350);
+    m = await page.evaluate(() => ({
+      lanes: document.querySelectorAll('.gh-lane').length,
+      toast: document.querySelector('.gh-toast')?.textContent || '',
+    }));
+    if(m.lanes !== beforeDuplicate || !/Undo/.test(m.toast)) throw new Error(`delete/toast failed (${JSON.stringify(m)})`);
+    await page.click('[data-action="undo"]'); await sleep(350);
+    if(await page.evaluate(() => document.querySelectorAll('.gh-lane').length) !== beforeDuplicate + 1)
+      throw new Error('undo did not restore the deleted goal');
+    await page.click('#save-btn'); await sleep(250);
   });
 
-  await step('goals Ledger: quick adds derive ages from the plan and reach Scenarios', async () => {
+  await step('goals Horizon: drag preserves a lane span and reaches Scenarios', async () => {
     const sleep = ms => new Promise(r => setTimeout(r, ms));
-    const goalPillCount = async () => {
-      await page.click('button[data-page="scenarios"]'); await sleep(900);
-      await page.click('#scn-seg-compare'); await sleep(400);
-      const t = await page.evaluate(() =>
-        document.querySelector('#scn-view .goal-pill, #scn-view .goal-note')?.textContent || '');
-      const m = t.match(/(\d+)\s*active/);
-      return m ? +m[1] : null;
-    };
-
-    // Baseline scenario goal count with the demo goal.
-    const before = await goalPillCount();
-    if(before == null) throw new Error('Scenarios goal pill missing (precondition)');
-
-    // Quick add Travel: ages derive from the resolved demo plan (66-95).
-    await page.click('.htab[data-sub-target="goals"]'); await sleep(400);
-    const n0 = await page.evaluate(() => document.querySelectorAll('.glx-row').length);
-    await page.click('.glx-qa[data-q="0"]');
-    await sleep(400);
-    const m = await page.evaluate(g => {
-      const row = document.querySelector(`.glx-row[data-row="${g}"]`);
-      return row ? {
-        name: row.querySelector('.glx-name')?.value,
-        amt: row.querySelector('.glx-amt')?.value,
-        s: row.querySelector('.glx-ain[data-t="s"]')?.value,
-        e: row.querySelector('.glx-ain[data-t="e"]')?.value,
-        chips: [...row.querySelectorAll('.glx-chip')].every(c => c.classList.contains('glx-chip--on')),
-      } : null;
-    }, n0);
-    if(!m) throw new Error('quick add did not append a row');
-    if(m.name !== 'Travel' || m.amt !== '12,000') throw new Error(`Travel quick add wrong (${m.name} / ${m.amt})`);
-    if(m.s !== '66' || m.e !== '95') throw new Error(`Travel ages must derive 66-95 from the plan, got ${m.s}-${m.e}`);
-    if(!m.chips) throw new Error('full-span quick add should light all three chapter chips');
-
-    // The new goal flows to the planning surface: Scenarios sees one more active goal.
-    const after = await goalPillCount();
-    if(after !== before + 1)
-      throw new Error(`quick-added goal did not reach Scenarios (${before} -> ${after} active)`);
-
-    // Cleanup: delete the Travel row; Scenarios returns to the seed count.
-    await page.click('.htab[data-sub-target="goals"]'); await sleep(400);
-    await page.click(`.glx-del[data-i="${n0}"]`); await sleep(300);
-
-    // Blank household: clean first-run sheet — no rows, no column headers, no
-    // helper copy; quick adds stay as the entry point and derive from THIS
-    // plan (blank household resolves 65->90, so Home improvements = 65-80).
-    await page.click('.htab[data-page="household"]'); await sleep(300);
-    await page.evaluate(() => document.querySelector('#hh-new').click()); await sleep(600);
-    await page.click('.htab[data-sub-target="goals"]'); await sleep(400);
-    let b = await page.evaluate(() => ({
-      rows: document.querySelectorAll('.glx-row').length,
-      colsHidden: (document.querySelector('.glx-cols')?.style.display || '') === 'none',
-      adds: !!document.querySelector('#glx-add'),
-      quickAdds: document.querySelectorAll('.glx-qa').length,
-      noCoaching: !/Every plan starts|Add one below/.test(document.querySelector('#gl-ledger')?.textContent || ''),
-    }));
-    if(b.rows !== 0) throw new Error(`blank household should show zero rows, got ${b.rows}`);
-    if(!b.colsHidden) throw new Error('blank state should hide the column captions');
-    if(!b.adds || b.quickAdds !== 4) throw new Error('blank state must keep the add line as the entry point');
-    if(!b.noCoaching) throw new Error('helper/guiding copy leaked into the blank state');
-    await page.click('.glx-qa[data-q="1"]');   // Home improvements
-    await sleep(400);
-    b = await page.evaluate(() => {
-      const row = document.querySelector('.glx-row[data-row="0"]');
-      return row ? {
-        headers: (document.querySelector('.glx-cols')?.style.display || '') !== 'none',
-        s: row.querySelector('.glx-ain[data-t="s"]')?.value,
-        e: row.querySelector('.glx-ain[data-t="e"]')?.value,
-      } : null;
+    await page.click('.htab[data-sub-target="goals"]'); await sleep(300);
+    const target = await page.evaluate(() => {
+      const chip = [...document.querySelectorAll('.gh-chip')]
+        .find(el => el.querySelector('.gh-chip__name')?.textContent.includes('European summers'));
+      if(!chip) return null;
+      const rect = chip.getBoundingClientRect();
+      return { x:rect.left + rect.width/2, y:rect.top + rect.height/2, title:chip.title };
     });
-    if(!b) throw new Error('first quick add on a blank household did not create a row');
-    if(!b.headers) throw new Error('first row should reveal the column captions');
-    if(b.s !== '65' || b.e !== '80')
-      throw new Error(`blank-household quick add must derive 65-80 from ITS plan, got ${b.s}-${b.e}`);
+    if(!target) throw new Error('drag target missing');
+    await page.mouse.move(target.x,target.y);
+    await page.mouse.down();
+    await page.mouse.move(target.x-100,target.y,{steps:8});
+    await page.mouse.up();
+    await sleep(450);
+    const after = await page.evaluate(() => [...document.querySelectorAll('.gh-chip')]
+      .find(el => el.querySelector('.gh-chip__name')?.textContent.includes('European summers'))?.title || '');
+    if(after === target.title || !/Every year, ages/.test(after))
+      throw new Error(`goal drag did not shift the recurring range ("${target.title}" -> "${after}")`);
 
-    // Return to the saved demo household for the steps that follow.
-    await page.click('.htab[data-page="household"]'); await sleep(300);
-    await page.evaluate(() => document.querySelector('#hh-load-demo').click()); await sleep(800);
-    await page.click('.htab[data-sub-target="goals"]'); await sleep(400);
-    const restored = await page.evaluate(() =>
-      [...document.querySelectorAll('.glx-name')].map(el => el.value));
-    if(!restored.some(n => n.includes('Travel')))
-      throw new Error(`Load Demo did not reopen the saved goal set (${JSON.stringify(restored)})`);
+    const laneCount = await page.evaluate(() => document.querySelectorAll('.gh-lane').length);
+    await page.click('button[data-page="scenarios"]'); await sleep(900);
+    await page.click('#scn-seg-compare'); await sleep(350);
+    const active = await page.evaluate(() => {
+      const text = document.querySelector('#scn-view .goal-pill, #scn-view .goal-note')?.textContent || '';
+      return +(text.match(/(\d+)\s*active/)?.[1] || -1);
+    });
+    if(active !== laneCount) throw new Error(`Goals Horizon inventory did not reach Scenarios (${laneCount} lanes / ${active} active)`);
+  });
+
+  await step('goals Horizon: blank household stays blank and derives starter timing from its plan', async () => {
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
+    await page.click('.htab[data-page="household"]'); await sleep(250);
+    await page.evaluate(() => document.querySelector('#hh-new').click()); await sleep(650);
+    await page.click('.htab[data-sub-target="goals"]'); await sleep(350);
+    let m = await page.evaluate(() => ({
+      lanes: document.querySelectorAll('.gh-lane').length,
+      empty: document.querySelector('.gh-empty')?.textContent || '',
+      lifetime: /Lifetime/i.test(document.querySelector('.gh-page')?.textContent || ''),
+    }));
+    if(m.lanes !== 0 || !/Nothing on the horizon yet/.test(m.empty) || m.lifetime)
+      throw new Error(`blank Goals Horizon state wrong (${JSON.stringify(m)})`);
+    await page.click('.gh-add-toggle'); await page.click('.gh-starter[data-add-category="home"]'); await sleep(350);
+    m = await page.evaluate(() => ({
+      lanes: document.querySelectorAll('.gh-lane').length,
+      name: document.querySelector('.gh-name-input')?.value,
+      age: document.querySelector('[data-field="once-age"]')?.value,
+    }));
+    if(m.lanes !== 1 || m.name !== 'Home improvements' || m.age !== '68')
+      throw new Error(`blank-household starter did not derive from its 65 retirement age (${JSON.stringify(m)})`);
+
+    await page.click('.htab[data-page="household"]'); await sleep(250);
+    await page.evaluate(() => document.querySelector('#hh-load-demo').click()); await sleep(850);
+    await page.click('.htab[data-sub-target="goals"]'); await sleep(350);
+    const restored = await page.evaluate(() => [...document.querySelectorAll('.gh-chip__name')].map(el => el.textContent));
+    if(!restored.includes('European summers') || !restored.some(name => name.endsWith(' copy')))
+      throw new Error(`saved demo Goals Horizon inventory did not persist (${JSON.stringify(restored)})`);
   });
 
   await step('scenarios Compare view: columns, rings, levers, goals', async () => {
@@ -2008,8 +1907,8 @@ try {
     if(scnBg.includes(NAVY)) throw new Error(`Scenarios page still shows retired navy: ${scnBg}`);
 
     await page.click('.htab[data-sub-target="goals"]'); await sleep(600);
-    // Goals mounts the Ledger view (.gl-ledger) now, not the retired Life Chapters.
-    if(!await page.evaluate(() => !!document.querySelector('#np-content .gl-ledger'))) throw new Error('Goals view did not mount .gl-ledger');
+    // Goals mounts the Horizon card, with the retired ledger/chapters absent.
+    if(!await page.evaluate(() => !!document.querySelector('#np-content .gh-card'))) throw new Error('Goals view did not mount .gh-card');
     const goalsBg = await bgOf('.page[data-page="net-worth"]');
 
     await page.click('button[data-page="sequencing"]'); await sleep(450);

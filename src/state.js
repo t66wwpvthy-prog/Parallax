@@ -11,10 +11,6 @@ export let comboSearching = false;
 export let solverFormOpen = false;
 export let solving = false;
 
-export let goalSelected = null;
-export let goalAreaOpen = null;
-export let goalAreaTiming = 'ongoing';
-
 export const uiState = {
   get scenarios(){ return scenarios; },
   set scenarios(value){ scenarios = value; },
@@ -44,13 +40,6 @@ export const uiState = {
   set solverFormOpen(value){ solverFormOpen = value; },
   get solving(){ return solving; },
   set solving(value){ solving = value; },
-
-  get goalSelected(){ return goalSelected; },
-  set goalSelected(value){ goalSelected = value; },
-  get goalAreaOpen(){ return goalAreaOpen; },
-  set goalAreaOpen(value){ goalAreaOpen = value; },
-  get goalAreaTiming(){ return goalAreaTiming; },
-  set goalAreaTiming(value){ goalAreaTiming = value; },
 };
 
 const PATH_KEY = 'parallax.pathReplay.v1';
