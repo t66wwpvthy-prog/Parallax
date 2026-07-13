@@ -8,7 +8,6 @@ import { fmtM, fmtMoney, fmtMDelta, fmtPts, cfMoney, cfRetPct, cfGain } from '..
 import { storyChart, seqChartSvg } from '../ui/charts.js?v=2';
 import { escHtml } from '../ui/dom.js';
 import { CHART_LAYOUT } from '../ui/chartLayout.js';
-import { GOAL_AREAS, GOAL_AREA_LBL, GOAL_ICONS_SVG, GOAL_COLOR_MAP } from '../ui/goalPalette.js';
 import { createDemoHousehold, createBlankHousehold } from '../ui/householdFactories.js';
 import { getWizardAccountTypes, resolveTypeFromLabel } from './household/accountTypes.js';
 import { createAccount, hasSpouseOwnedAccounts } from './household/createAccount.js';
@@ -26,7 +25,7 @@ import {
   prepareHouseholdStore,
   readHouseholdStore,
 } from './household/persistence.js';
-import { droppedGoals, goalAreaAges, renderGoalsPage, syncGoalSelection } from '../ui/goals.js';
+import { createGoalsHorizonController } from '../ui/goalsHorizon.js';
 import { pathModeLabel, pathOutcomeText, drawSeqChart, renderPrints, syncPathControls, updatePathReplayMode } from '../ui/sequencing.js';
 import { buildPathRows, buildCashSummary, renderCashflow } from '../ui/cashflow.js';
 import { toneForProb, toneGlow, wdColor, ring, num as scenarioNum, renderCompare, renderFocus } from '../ui/scenarios.js';
@@ -40,7 +39,6 @@ import {
 import {
   scenarios, sharedPaths, plansDirty, baseSnapshot,
   solverResults, solverSearching, comboResults, comboOpen, comboSearching, solverFormOpen, solving,
-  goalSelected, goalAreaOpen, goalAreaTiming,
   pathReplay, uiState, scenariosUiState as state,
 } from './state.js';
 /* ╔══════════════════════════════════════════════════════════════╗
@@ -1019,6 +1017,66 @@ function commitPlanEdit(){
   reseedScenarios(); uiState.sharedPaths=null; uiState.plansDirty=true; renderInputs();
   syncHeaderStatus('Plan edited · open Scenarios');
 }
+
+function remapGoalOverridesForRemoval(index){
+  if(!Array.isArray(scenarios)) return [];
+  return scenarios.map((scenario,scenarioIndex)=>{
+    const current=scenario?.lev?.goalOv;
+    if(!current) return { scenarioIndex, override:null };
+    const next={};
+    let removed=null;
+    Object.entries(current).forEach(([key,value])=>{
+      const goalIndex=+key;
+      if(goalIndex===index){ removed=JSON.parse(JSON.stringify(value)); return; }
+      next[goalIndex>index?goalIndex-1:goalIndex]=value;
+    });
+    if(Object.keys(next).length) scenario.lev.goalOv=next;
+    else delete scenario.lev.goalOv;
+    return { scenarioIndex, override:removed };
+  });
+}
+
+function insertGoalAt(index,goal,restoredOverrides=[]){
+  if(!Array.isArray(plan.goals)) plan.goals=[];
+  const at=Math.max(0,Math.min(index,plan.goals.length));
+  plan.goals.splice(at,0,goal);
+  if(!Array.isArray(scenarios)) return;
+  const restoredByScenario=new Map(restoredOverrides.map(item=>[item.scenarioIndex,item.override]));
+  scenarios.forEach((scenario,scenarioIndex)=>{
+    if(!scenario?.lev) return;
+    const current=scenario.lev.goalOv || {};
+    const next={};
+    Object.entries(current).forEach(([key,value])=>{
+      const goalIndex=+key;
+      next[goalIndex>=at?goalIndex+1:goalIndex]=value;
+    });
+    const restored=restoredByScenario.get(scenarioIndex);
+    if(restored) next[at]=restored;
+    if(Object.keys(next).length) scenario.lev.goalOv=next;
+    else delete scenario.lev.goalOv;
+  });
+}
+
+function removeGoalAt(index){
+  if(!Array.isArray(plan.goals) || !plan.goals[index]) return { goal:null, overrides:[] };
+  const [goal]=plan.goals.splice(index,1);
+  return { goal, overrides:remapGoalOverridesForRemoval(index) };
+}
+
+const goalsHorizon=createGoalsHorizonController({
+  getPlan:()=>plan,
+  isReadOnly:()=>isHouseholdStorageReadOnly() || isHouseholdStorageBlocked(),
+  guardMutation:guardPlanMutation,
+  arm:()=>{
+    reseedScenarios();
+    uiState.sharedPaths=null;
+    uiState.plansDirty=true;
+    syncHeaderStatus('Plan edited · open Scenarios');
+  },
+  commit:commitPlanEdit,
+  insertGoal:insertGoalAt,
+  removeGoal:removeGoalAt,
+});
 // Real assets are current balance-sheet values. The Household module keeps
 // recurring payment streams out of strict net-worth liability totals.
 
@@ -1652,479 +1710,6 @@ function renderSnapshot(){
   return `<div class="snap">${incomeFloor}${withdrawal}${taxLocation}${replacement}</div>`;
 }
 
-/* ── Goals board (the approved prioritisation surface) ─────────────
-   The Goals sub-tab is NOT the ledger — it's a board. Each card is a VIEW of a
-   plan.goals entry: recurring goals (startAge≠endAge) carry a /yr tag; one-time
-   goals (startAge===endAge) get a highlighted card + ONE-TIME tag. The hero sums the
-   recurring goals (annual goal spend) and notes any one-time total. Drag a card
-   onto a ghost slot to rank it (absorb + accent flash; swap, not bounce). The
-   ranking is a planning/conversation surface — it adds NO engine math. */
-
-/* ── Goals — tributaries ──────────────────────────────────────────────────
-   A picture of the plan's goal spending: one gold thread across the plan's
-   ages, one ribbon per kept recurring goal (width ∝ its annual amount)
-   peeling off at its start age, one-time goals as diamonds on the spine.
-   Statement rows below edit plan.goals through the same delegated data-path
-   change handler every ledger page uses.
-   The keep/drop toggle is WHAT-IF ONLY: it never touches plan.goals
-   (Scenarios keep funding every goal — that sameness is the truth); it only
-   changes which engine runs this page composes. Per-goal cost cells are
-   differences of runSimulation outputs — no UI math. */
-const GOAL_DROP_KEY='parallax.goals.dropped';
-
-function saveDroppedGoals(set){
-  if(!guardPlanMutation()) return;
-  try{ localStorage.setItem(GOAL_DROP_KEY, JSON.stringify({n:(plan.goals||[]).length, dropped:[...set]})); }catch{}
-}
-
-/* ── Goals — life-area intake ─────────────────────────────────────────────
-   A row of dimmed life-area chips. Clicking one glows it open and shows an
-   intake strip: the client names the goal IN THEIR OWN WORDS (the tool never
-   suggests content — areas are empty structure), picks rough timing, and the
-   goal lands in plan.goals with amount 0 — "price later". Amount 0 is
-   engine-inert (goals add via goalsA += g.amount), so an unpriced goal can
-   sit in the picture without inventing a number. Timing presets are input
-   defaulting from household ages, not financial math; the row's age inputs
-   stay the source of truth. */
-let glhFilter = 'all'; // persists across re-renders; reset by filter pill clicks
-
-
-
-
-
-
-
-
-
-
-function initGoalsPage(){
-  const np=$('#np-content');
-  // Life-area chips: toggle open (re-render shows/hides the intake strip).
-  np.querySelectorAll('.ga-chip').forEach(b=>b.onclick=()=>{
-    const k=b.dataset.area;
-    uiState.goalAreaOpen = goalAreaOpen===k ? null : k;
-    renderInputs();
-    const inp=$('#ga-name'); if(inp) inp.focus();
-  });
-  // Timing presets: class swap only — no re-render, typed text survives.
-  np.querySelectorAll('.ga-preset').forEach(b=>b.onclick=()=>{
-    uiState.goalAreaTiming=b.dataset.preset;
-    np.querySelectorAll('.ga-preset').forEach(x=>x.classList.toggle('sel', x===b));
-  });
-  const addAreaGoal=()=>{
-    if(!guardPlanMutation()) return;
-    const inp=$('#ga-name'), nm=((inp&&inp.value)||'').trim();
-    if(!nm){ if(inp) inp.focus(); return; }
-    if(!Array.isArray(plan.goals)) plan.goals=[];
-    plan.goals.push({ name:nm, amount:0, area:goalAreaOpen, ...goalAreaAges(plan, goalAreaTiming) });
-    commitPlanEdit();   // re-render keeps the chip open (and now lit) for the next one
-    const again=$('#ga-name'); if(again) again.focus();
-  };
-  const go=$('#ga-go');
-  if(go){
-    go.onclick=addAreaGoal;
-    const inp=$('#ga-name');
-    if(inp) inp.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); addAreaGoal(); } });
-  }
-  np.querySelectorAll('[data-drop]').forEach(b=>b.onclick=()=>{
-    if(!guardPlanMutation()) return;
-    const i=+b.dataset.drop, set=droppedGoals(plan, GOAL_DROP_KEY);
-    if(set.has(i)) set.delete(i); else set.add(i);
-    saveDroppedGoals(set);
-    renderInputs();             // redraw thread + rows; plan.goals untouched
-  });
-  np.querySelectorAll('.gt-hit').forEach(p=>p.onclick=()=>{
-    uiState.goalSelected = goalSelected===+p.dataset.goalI ? null : +p.dataset.goalI;
-    syncGoalSelection(np);
-  });
-  np.querySelectorAll('.gl-row').forEach(r=>r.addEventListener('click', e=>{
-    if(e.target.closest('input,button')) return;
-    uiState.goalSelected = goalSelected===+r.dataset.glRow ? null : +r.dataset.glRow;
-    syncGoalSelection(np);
-  }));
-  scheduleGoalCosts();
-}
-/* Engine-measured per-goal cost. Composes runSimulation over plan clones on
-   the SAME seeded path bundle the scenarios use: baseline (kept goals), one
-   run per goal (kept minus it — or, for a dropped goal, kept plus it), and
-   all-goals-off. Every figure painted below is an engine output or a
-   difference of two engine outputs; the UI adds no math. Async with a token
-   so a stale run set never paints over a newer page state. */
-let goalCostCache=null, goalCostToken=0;
-function goalCostKey(dropped){
-  return JSON.stringify([plan.goals, [...dropped].sort((a,b)=>a-b), pathReplay.seed, plan.simulation.iterations]);
-}
-function scheduleGoalCosts(){
-  if(!canRunEngine()){ renderBlockedRecoverySurfaces(); return; }
-  if(!$('#gl-runs')) return;                       // not on the goals page
-  const dropped=droppedGoals(plan, GOAL_DROP_KEY);
-  const key=goalCostKey(dropped);
-  if(goalCostCache && goalCostCache.key===key){ paintGoalCosts(goalCostCache); return; }
-  const token=++goalCostToken;
-  setTimeout(()=>{                                  // paint first, run after
-    if(token!==goalCostToken || !$('#gl-runs')) return;
-    const paths=ensureSharedPaths();
-    if(!paths) return;
-    const goals=plan.goals||[];
-    const keptIdx=goals.map((g,i)=>i).filter(i=>!dropped.has(i));
-    const runFor=idx=>{
-      const clone=structuredClone(plan);
-      clone.goals=idx.map(i=>goals[i]);
-      const r=runSimulation(clone, {}, paths);
-      return { success:r.successRate, median:r.terminal.p50 };
-    };
-    try{
-      const base=runFor(keptIdx);
-      const allOff=runFor([]);
-      const per={};
-      for(let i=0;i<goals.length;i++){
-        if(token!==goalCostToken) return;
-        if(!(goals[i].amount>0)) continue;          // unpriced: $0 is inert — no runs to make
-        per[i]=dropped.has(i)
-          ? runFor([...keptIdx, i].sort((a,b)=>a-b))   // what keeping it back would do
-          : runFor(keptIdx.filter(j=>j!==i));          // what dropping it would free
-      }
-      goalCostCache={ key, base, allOff, per, dropped:[...dropped] };
-      if(token===goalCostToken) paintGoalCosts(goalCostCache);
-    }catch(err){ console.error('goal cost runs failed', err); }
-  }, 20);
-}
-function paintGoalCosts(c){
-  const dropped=new Set(c.dropped);
-  $$('#np-content .gl-cost').forEach(el=>{
-    const i=+el.dataset.costI, r=c.per[i];
-    if(!r){ el.textContent=el.classList.contains('unpriced-cell')?'unpriced':'—'; return; }
-    if(dropped.has(i)){
-      el.innerHTML=`if kept: <b>${fmtPts(r.success-c.base.success)}</b> · ${fmtMDelta(r.median-c.base.median)} median`;
-    }else{
-      el.innerHTML=`if dropped: <b>${fmtPts(r.success-c.base.success)}</b> · ${fmtMDelta(r.median-c.base.median)} median`;
-    }
-  });
-  const runs=$('#gl-runs');
-  if(runs) runs.innerHTML=`
-    <span>kept goals: <b>${c.base.success.toFixed(1)}%</b> success · <b>${fmtM(c.base.median)}</b> median end</span>
-    <span>all goals off: <b>${c.allOff.success.toFixed(1)}%</b> · <b>${fmtM(c.allOff.median)}</b></span>`;
-}
-
-/* ================================================================
-   Goals · Ledger view — the live Goals sub-page
-   ----------------------------------------------------------------
-   One always-editable sheet over the flat plan.goals store
-   ({ name, amount, startAge, endAge }) — one goal = one row, every
-   field permanently visible and directly editable. No edit modes,
-   no popovers, no composers. Replaces the Life Chapters view
-   (chapter cards + two composers + inline row editors), removed.
-
-   - ONE-TIME = startAge === endAge (the engine's own convention);
-     the Every year / One-time toggle is UI sugar over the ages —
-     no cadence field is ever stored.
-   - CHAPTERS are a UI-only derivation (floor-thirds over the
-     resolved [retirement, planEnd] span). Row chips are coarse
-     presets over the exact age boxes; the footer shows entered
-     input totals by chapter, never an engine output or invented
-     confidence number.
-   - WRITE-THROUGH: every edit mutates plan.goals[i], arms SAVE
-     (planSaveDirty via reseedScenarios) and marks scenario results
-     stale (plansDirty). Typing never re-renders the row — focus
-     survives the keystroke; footer sums repaint in place.
-   ================================================================ */
-
-/* ── PROD seam — every production symbol the view touches ─────── */
-const GL_PROD = {
-  goals:     () => {
-    if(Array.isArray(plan.goals)) return plan.goals;
-    if(!guardPlanMutation()) return [];
-    plan.goals = [];
-    return plan.goals;
-  },
-  household: () => plan.household,
-  commit:    () => commitPlanEdit(),            // reseed + re-render + status
-  // Write-through for typing: everything commitPlanEdit does EXCEPT the
-  // re-render (renderInputs) — the focused field must survive the keystroke.
-  arm: () => {
-    if(!guardPlanMutation()) return;
-    reseedScenarios(); uiState.sharedPaths = null; uiState.plansDirty = true;
-    syncHeaderStatus('Plan edited \u00b7 open Scenarios');
-  },
-  esc:     (s) => escHtml(s),
-  compact: (n) => fmtM(n),                      // $120K / $1.2M
-};
-
-/* View state that survives the commit re-render */
-let glFlashGi = null;   // goal index whose new row flashes gold after an add
-let glFocusGi = null;   // goal index whose name field takes focus after an add
-
-/* ── Resolved span + derived chapters — never hardcoded ─────────
-   lo = resolved retirement age: the LATER working spouse mapped
-   onto the primary timeline (mirrors engine resolveInputs);
-   hi = planEndAge. The demo household resolves 66→95, so the
-   derived chapters are 66–75 / 76–85 / 86–95. */
-function glSpan() {
-  const hh = GL_PROD.household(), pr = hh.primary || {};
-  let ret = +pr.retirementAge;
-  if (!isFinite(ret)) ret = isFinite(+pr.currentAge) ? +pr.currentAge : 65;
-  const sp = hh.spouse;
-  if (sp && sp.retirementAge != null && sp.currentAge != null && pr.currentAge != null) {
-    ret = Math.max(ret, +pr.currentAge + (+sp.retirementAge - +sp.currentAge));
-  }
-  const end = isFinite(+pr.planEndAge) ? +pr.planEndAge : 95;
-  const lo = Math.min(ret, end);
-  return { lo, hi: Math.max(lo + 2, end) };
-}
-
-/* Floor-thirds split; Chapter III absorbs the remainder years. */
-function glChapters() {
-  const { lo, hi } = glSpan();
-  const a = Math.max(1, Math.floor((hi - lo + 1) / 3));
-  return [
-    { i: 0, roman: 'I',   lo,             hi: lo + a - 1 },
-    { i: 1, roman: 'II',  lo: lo + a,     hi: lo + 2 * a - 1 },
-    { i: 2, roman: 'III', lo: lo + 2 * a, hi },
-  ];
-}
-
-/* Row dot color — presentation only, never stored. Area-keyed when the
-   goal carries one; otherwise a stable palette cycle by row index. */
-const GL_DOT_KEYS = ['travel', 'home', 'family', 'health', 'purpose', 'other'];
-function glDotRGB(g, gi) {
-  const k = g.area && GOAL_COLOR_MAP[g.area] ? g.area : GL_DOT_KEYS[gi % GL_DOT_KEYS.length];
-  return GOAL_COLOR_MAP[k].rgb;   // "R,G,B"
-}
-
-/* Quick-add seeds — ages derived from the resolved plan at click time,
-   never constants. Ordinary rows once added: fully editable, deletable. */
-function glQuickAdds() {
-  const { lo, hi } = glSpan();
-  const ch = glChapters();
-  const onceAt = Math.min(lo + 2, hi);
-  return [
-    { name: 'Travel',            amount: 12000,  area: 'travel', startAge: lo,     endAge: hi },
-    { name: 'Home improvements', amount: 5000,   area: 'home',   startAge: lo,     endAge: ch[1].hi },
-    { name: 'Gifts',             amount: 5000,   area: 'family', startAge: lo,     endAge: hi },
-    { name: 'Second home',       amount: 150000, area: 'other',  startAge: onceAt, endAge: onceAt },
-  ];
-}
-
-/* Per-chapter input sums (amount × overlap years). Edge chapters extend
-   outward so spending entered outside [retirement, planEnd] is still
-   attributed to a chapter. */
-function glChapterSums(ch) {
-  const sums = [0, 0, 0];
-  GL_PROD.goals().forEach(g => {
-    const sa = +g.startAge, ea = +g.endAge, amt = +g.amount || 0;
-    ch.forEach(c => {
-      const lo = c.i === 0 ? -Infinity : c.lo;
-      const hi = c.i === 2 ?  Infinity : c.hi;
-      const years = Math.min(ea, hi) - Math.max(sa, lo) + 1;
-      if (years > 0) sums[c.i] += amt * years;
-    });
-  });
-  return sums;
-}
-
-/* ── Render ───────────────────────────────────────────────────── */
-
-function glRowHTML(g, gi, ch) {
-  const once = +g.startAge === +g.endAge;
-  const rgb  = glDotRGB(g, gi);
-  const amt  = +g.amount || 0;
-  const chips = ch.map(c => {
-    const full = +g.startAge <= c.lo && +g.endAge >= c.hi;
-    const part = !full && Math.min(+g.endAge, c.hi) >= Math.max(+g.startAge, c.lo);
-    const cls  = full ? ' glx-chip--on' : part ? ' glx-chip--part' : '';
-    return `<span class="glx-chip${cls}" data-act="chip" data-i="${gi}" data-ch="${c.i}">${c.roman} \u00b7 ${c.lo}\u2013${c.hi}</span>`;
-  }).join('');
-  const whenYr = `
-      <div class="glx-when"${once ? ' hidden' : ''}>${chips}
-        <span class="glx-agepair">
-          <input class="glx-ain" data-t="s" data-i="${gi}" inputmode="numeric" value="${+g.startAge}">
-          <span class="glx-dash">\u2013</span>
-          <input class="glx-ain" data-t="e" data-i="${gi}" inputmode="numeric" value="${+g.endAge}">
-        </span>
-      </div>`;
-  const whenOnce = `
-      <div class="glx-agewrap"${once ? '' : ' hidden'}>
-        <span class="glx-agelbl">at age</span>
-        <span class="glx-step glx-step--sm" data-act="age-minus" data-i="${gi}">\u2212</span>
-        <span class="glx-ageval">${+g.startAge}</span>
-        <span class="glx-step glx-step--sm" data-act="age-plus" data-i="${gi}">+</span>
-      </div>`;
-  return `
-    <div class="glx-row${gi === glFlashGi ? ' glx-row--flash' : ''}" data-row="${gi}">
-      <span class="glx-dot" style="background:rgb(${rgb});box-shadow:0 0 10px rgba(${rgb},0.5)"></span>
-      <input class="glx-name" data-i="${gi}" value="${GL_PROD.esc(g.name || '')}">
-      <div class="glx-amtcell">
-        <span class="glx-step" data-act="minus" data-i="${gi}">\u2212</span>
-        <span class="glx-amtwrap"><span class="glx-dollar">$</span><input class="glx-amt" data-i="${gi}" inputmode="numeric" value="${amt ? amt.toLocaleString('en-US') : ''}"></span>
-        <span class="glx-step" data-act="plus" data-i="${gi}">+</span>
-      </div>
-      <div class="glx-seggroup">
-        <span class="glx-seg${once ? '' : ' glx-seg--on'}" data-act="cad-yr" data-i="${gi}">Every year</span>
-        <span class="glx-seg${once ? ' glx-seg--on' : ''}" data-act="cad-once" data-i="${gi}">One-time</span>
-      </div>
-      <div>${whenYr}${whenOnce}</div>
-      <span class="glx-del" data-act="del" data-i="${gi}" title="Delete this goal">\u00d7</span>
-    </div>`;
-}
-
-function glFooterHTML(ch, sums) {
-  return `<span class="glx-f-cap">CHAPTERS</span>` +
-    ch.map((c, i) =>
-      (i ? '<span class="glx-f-dot">\u00b7</span>' : '') +
-      `<span class="glx-f-lbl">${c.roman} \u00b7 ${c.lo}\u2013${c.hi}</span>` +
-      `<span class="glx-f-val" data-fsum="${c.i}">${GL_PROD.compact(sums[c.i])}</span>`
-    ).join('');
-}
-
-function renderGoalsLedger() {
-  const ch = glChapters();
-  const goals = GL_PROD.goals();
-  const sums = glChapterSums(ch);
-  const rows = goals.map((g, gi) => glRowHTML(g, gi, ch)).join('');
-  glFlashGi = null;
-  const quicks = glQuickAdds().map((q, qi) => {
-    const rgb = GOAL_COLOR_MAP[q.area].rgb;
-    return `<button class="glx-qa" type="button" data-q="${qi}">` +
-      `<span class="glx-qa-dot" style="background:rgb(${rgb});box-shadow:0 0 8px rgba(${rgb},0.5)"></span>` +
-      `<span class="glx-qa-name">${q.name}</span></button>`;
-  }).join('');
-  return `
-    <div class="gl-ledger" id="gl-ledger">
-      <h1 class="glx-h1">Lifestyle Goals</h1>
-      <div class="glx-sheet">
-        <div class="glx-cols"${goals.length ? '' : ' style="display:none"'}>
-          <div></div>
-          <div class="glx-cap">GOAL</div>
-          <div class="glx-cap">AMOUNT</div>
-          <div class="glx-cap">HOW OFTEN</div>
-          <div class="glx-cap">WHICH YEARS</div>
-          <div></div>
-        </div>
-        <div class="glx-rows" id="glx-rows">${rows}</div>
-        <div class="glx-adds">
-          <button class="glx-add-btn" id="glx-add" type="button"><span class="glx-add-plus">+</span>Add a goal</button>
-          <div class="glx-adds-sep"></div>
-          <div class="glx-f-cap">QUICK ADD</div>
-          ${quicks}
-        </div>
-        <div class="glx-footer" id="glx-footer">${glFooterHTML(ch, sums)}</div>
-      </div>
-    </div>`;
-}
-
-/* ── Init (bindings; runs after every render) ─────────────────── */
-
-function initGoalsLedger() {
-  const wrap = document.getElementById('gl-ledger');
-  if (!wrap) return;
-  const ch = glChapters();
-  const { lo: LO, hi: HI } = glSpan();
-  const clampAge = v => Math.max(LO, Math.min(HI, v));
-  const goals = GL_PROD.goals();
-
-  // Footer repaint in place — used by amount typing (no row re-render).
-  const repaintFooter = () => {
-    const sums = glChapterSums(ch);
-    wrap.querySelectorAll('[data-fsum]').forEach(el =>
-      el.textContent = GL_PROD.compact(sums[+el.dataset.fsum]));
-  };
-
-  const addGoal = g => {
-    goals.push(g);
-    glFlashGi = glFocusGi = goals.length - 1;
-    GL_PROD.commit();
-  };
-
-  // Clicks: adds, steppers, cadence, chips, one-time age, delete.
-  wrap.addEventListener('click', e => {
-    if(!guardPlanMutation()) return;
-    const qa = e.target.closest('.glx-qa');
-    if (qa) {
-      const q = glQuickAdds()[+qa.dataset.q];
-      if (q) addGoal({ name: q.name, amount: q.amount, area: q.area, startAge: q.startAge, endAge: q.endAge });
-      return;
-    }
-    if (e.target.closest('#glx-add')) {
-      addGoal({ name: 'New goal', amount: 5000, startAge: ch[0].lo, endAge: ch[0].hi });
-      return;
-    }
-    const el = e.target.closest('[data-act]');
-    if (!el) return;
-    const i = +el.dataset.i, g = goals[i];
-    if (!g) return;
-    const once = +g.startAge === +g.endAge;
-    const act = el.dataset.act;
-    if (act === 'minus' || act === 'plus') {
-      const step = once ? 5000 : 1000;               // ±$5K one-time · ±$1K recurring
-      g.amount = Math.max(0, (+g.amount || 0) + (act === 'plus' ? step : -step));
-      GL_PROD.commit();
-    } else if (act === 'cad-once') {
-      if (!once) { g.endAge = g.startAge; GL_PROD.commit(); }
-    } else if (act === 'cad-yr') {
-      if (once) { g.endAge = Math.min(+g.startAge + 9, HI); GL_PROD.commit(); }
-    } else if (act === 'chip') {
-      // Chips are coarse presets over the age boxes. New range = min..max of
-      // the lit set (engine model is a single contiguous range); clicking a
-      // partial chip lights it fully; the set can never be emptied.
-      const ci = +el.dataset.ch;
-      const lit = ch.filter(c => +g.startAge <= c.lo && +g.endAge >= c.hi).map(c => c.i);
-      let set;
-      if (lit.includes(ci)) { set = lit.filter(j => j !== ci); if (!set.length) return; }
-      else set = lit.concat([ci]);
-      g.startAge = ch[Math.min(...set)].lo;
-      g.endAge   = ch[Math.max(...set)].hi;
-      GL_PROD.commit();
-    } else if (act === 'age-minus' || act === 'age-plus') {
-      const a = clampAge(+g.startAge + (act === 'age-plus' ? 1 : -1));
-      g.startAge = a; g.endAge = a;
-      GL_PROD.commit();
-    } else if (act === 'del') {
-      goals.splice(i, 1);
-      GL_PROD.commit();
-    }
-  });
-
-  // Typing writes through WITHOUT a re-render — focus never leaves the field.
-  // Amount keystrokes reformat commas in place and repaint the footer sums.
-  wrap.addEventListener('input', e => {
-    if(!guardPlanMutation()){ renderInputs(); return; }
-    const t = e.target, i = +t.dataset.i, g = goals[i];
-    if (!g) return;
-    if (t.classList.contains('glx-name')) {
-      g.name = t.value;
-      GL_PROD.arm();
-    } else if (t.classList.contains('glx-amt')) {
-      liveCommas(t);
-      g.amount = parseInt(t.value.replace(/[^0-9]/g, ''), 10) || 0;   // blank = unpriced ($0, engine-inert)
-      GL_PROD.arm();
-      repaintFooter();
-    }
-  });
-
-  // Exact age boxes commit on change (blur/Enter): clamp to the resolved
-  // span and keep start ≤ end, dragging the other bound along.
-  wrap.addEventListener('change', e => {
-    if(!guardPlanMutation()){ renderInputs(); return; }
-    const t = e.target;
-    if (!t.classList.contains('glx-ain')) return;
-    const g = goals[+t.dataset.i];
-    if (!g) return;
-    let v = parseInt(t.value.replace(/[^0-9]/g, ''), 10);
-    if (!isFinite(v)) v = t.dataset.t === 's' ? +g.startAge : +g.endAge;
-    v = clampAge(v);
-    if (t.dataset.t === 's') { g.startAge = v; if (+g.endAge < v) g.endAge = v; }
-    else                     { g.endAge = v;   if (+g.startAge > v) g.startAge = v; }
-    GL_PROD.commit();
-  });
-
-  // A just-added row takes focus on its name, selected so typing replaces it.
-  if (glFocusGi != null) {
-    const el = wrap.querySelector(`.glx-name[data-i="${glFocusGi}"]`);
-    glFocusGi = null;
-    if (el) { el.focus(); el.select(); }
-  }
-}
-
 /* ── Sub-page render + wiring ─────────────────────────────────────
    One renderInputs() drives whichever sub-page is active. Re-renders on
    sub-nav click, on field change, and on row delete — same wiring pattern
@@ -2142,10 +1727,10 @@ function renderInputs(){
   // Snapshot is its own diagnostic page again — embedding it on the Net Worth
   // page made that page too busy to read.
   const html = layout==='snapshot'  ? `<div class="np-snapshot-page">${renderSnapshot()}</div>`
-             : layout==='goals'     ? renderGoalsLedger()   // Goals Ledger view
+             : layout==='goals'     ? goalsHorizon.render()
              :                        renderHybrid(activeSub);
   np.innerHTML = html;
-  if(layout==='goals') initGoalsLedger();
+  if(layout==='goals') goalsHorizon.bind(np);
   syncRecoveryControls();
 }
 // ── Net Worth input bindings — delegated on the stable #np-content ────────────
