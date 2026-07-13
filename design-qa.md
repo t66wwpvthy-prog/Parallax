@@ -289,3 +289,52 @@ Sequencing phase result: passed
 - Primary interactions tested in the in-app browser and the project verifier: navigation, goal selection, rail opening, add panel, edits, cadence, timing, category, drag, duplicate, delete/undo, save/reload, cross-page Scenarios flow, and blank/read-only states.
 
 final result: passed
+
+---
+
+# Tax Buckets Phase 7 Design QA
+
+## Comparison target
+
+- Source visual truth:
+  - `C:\Dev\Parallax\Claude Tax Buckets\concept-a.html`
+  - `C:\Dev\Parallax\Claude Tax Buckets\glass-pod-spec.md`
+  - `C:\Dev\Parallax\Claude Tax Buckets\handoff-spec.md`
+- Browser-rendered implementation:
+  - `C:\Dev\Parallax\.worktrees\tax-buckets-phase-7\verify-out\02-tax-buckets-entry.png`
+  - `C:\Dev\Parallax\.worktrees\tax-buckets-phase-7\verify-out\02-tax-buckets.png`
+- Direct comparison viewport: 1440 x 900.
+- States: entrance, live three-pod view, empty household, incomplete snapshot, and blocked recovery.
+
+## Comparison evidence
+
+- The source and implementation were reviewed together at the same 1440 x 900 viewport, including a focused pod comparison.
+- Final desktop frame geometry matches the source: 1240px wide at x=100, with the live view beginning at y=108. Each pod is 396px wide with a 26px gap and 18px radius.
+- The implementation uses the locked glass gradient, borders, shadows, fixed ambient glow, and `blur(26px) saturate(1.35)` treatment from the approved specification.
+- Typography, title placement, balance hierarchy, labels, rules, and pod spacing match the approved Spectral and Hanken Grotesk treatment.
+- The production header is intentionally retained. Its height is compensated inside the entrance and live layouts so the approved content aligns with the source.
+- The prototype-only Replay control is intentionally absent. The entrance still plays on the first visit, then reveals the live bucket view.
+- Mock balances were intentionally replaced with current Household values. Unknown taxable basis remains visibly unconfirmed rather than fabricating gain data.
+
+## Findings and iteration
+
+- No actionable P0, P1, or P2 mismatch remains.
+- The first production comparison placed the content 56px below the source because of the live header. The page offsets were corrected and remeasured.
+- Extra text line-height differences were removed after the focused comparison. Final title and pod metrics align with the approved source.
+- Empty, incomplete, and blocked states remain quiet and fail closed; none presents invented calculations.
+
+## Required fidelity surfaces
+
+- Fonts and hierarchy: Spectral for display and financial emphasis; Hanken Grotesk for labels and supporting copy.
+- Layout: three equal desktop columns, 26px gaps, responsive single-column fallback, and no overlapping controls.
+- Surfaces: identical glass treatment across all three pods, subtle warm hairlines, approved radii, restrained shadows, and fixed ambient lighting.
+- Content truth: display-only UI backed by the shared current-bucket snapshot; no UI-side financial math and no replay affordance.
+- Interaction and accessibility: semantic navigation, reduced-motion support, entrance-to-view transition, honest empty/incomplete/recovery messaging, and clean browser console.
+
+## Verification
+
+- `npm test`: 368 total, 367 passed, 1 skipped, 0 failed.
+- `node scripts/verify.mjs`: passed the complete unit and browser suite, including entrance, exactly three live pods, live balances, basis disclosure, identical glass treatment, empty household, blocked recovery, persistence, and cross-page behavior.
+- In-app browser console: no errors or warnings.
+
+final result: passed

@@ -2,6 +2,7 @@ import { runSimulation, resolveInputs, generateReturnPath, resetSeed, annualMort
 import { runFederalFundingSimulation } from './planning/tax/runMonteCarloWithFederalFunding.js';
 import { runHistoricalPathWithFederalTax } from './planning/tax/runHistoricalPathWithFederalTax.js';
 import { buildHouseholdTaxFactContract } from './planning/tax/buildHouseholdTaxFactContract.js';
+import { buildCurrentTaxBucketSnapshot } from './planning/taxBuckets/buildCurrentTaxBucketSnapshot.js';
 import { fmtM, fmtMoney, fmtMDelta, fmtPts, cfMoney, cfRetPct, cfGain } from '../ui/formatters.js';
 import { storyChart, seqChartSvg } from '../ui/charts.js?v=2';
 import { escHtml } from '../ui/dom.js';
@@ -24,6 +25,7 @@ import {
   readHouseholdStore,
 } from './household/persistence.js';
 import { createGoalsHorizonController } from '../ui/goalsHorizon.js';
+import { createTaxBucketsController } from '../ui/taxBuckets.js';
 import { pathModeLabel, pathOutcomeText, drawSeqChart, renderPrints, syncPathControls, updatePathReplayMode } from '../ui/sequencing.js';
 import { buildPathRows, buildCashSummary, renderCashflow } from '../ui/cashflow.js';
 import { toneForProb, toneGlow, wdColor, ring, num as scenarioNum, renderCompare, renderFocus } from '../ui/scenarios.js';
@@ -1094,6 +1096,12 @@ const goalsHorizon=createGoalsHorizonController({
   insertGoal:insertGoalAt,
   removeGoal:removeGoalAt,
 });
+const taxBuckets=createTaxBucketsController({
+  getSnapshot:()=>buildCurrentTaxBucketSnapshot(plan),
+  getRecoveryMessage:()=>isHouseholdStorageBlocked() ? getBlockedMessage() : null,
+  onError:error=>console.error('Tax Buckets failed:', error),
+});
+taxBuckets.bind($('#tax-buckets-view'));
 // Real assets are current balance-sheet values. The Household module keeps
 // recurring payment streams out of strict net-worth liability totals.
 
@@ -2689,6 +2697,7 @@ $$('.htab').forEach(t=>t.onclick=()=>{
   if(t.dataset.page==='sequencing' && canRunEngine()) runSeq();
   if(t.dataset.page==='net-worth') renderInputs();
   if(t.dataset.page==='household') syncHousehold();
+  if(t.dataset.page==='tax-buckets') taxBuckets.sync();
   if(isHouseholdStorageBlocked()) renderBlockedRecoverySurfaces();
 });
 // Net Worth sub-nav: switch the active sub-page, persist, re-render.

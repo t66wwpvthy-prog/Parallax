@@ -259,6 +259,36 @@ function verifyHousehold(){
   console.log('  OK household contract (4-step blueprint wizard: stepper + module renderers, account-type bank, data-path write-back, reseed-on-edit, scoped CSS)');
 }
 
+function verifyTaxBuckets(){
+  const read = path => (existsSync(path) ? readFileSync(path, 'utf8') : '');
+  const fails = [];
+  const ok = (condition, message) => { if(!condition) fails.push(message); };
+  const html = read(join(ROOT, 'index.html'));
+  const main = read(join(ROOT, 'src', 'main.js'));
+  const view = read(join(ROOT, 'ui', 'taxBuckets.js'));
+  const css = read(join(ROOT, 'styles', 'tax-buckets.css'));
+
+  ok(/styles\/tax-buckets\.css\?v=1/.test(html), 'Tax Buckets stylesheet is not linked');
+  ok(/data-page="scenarios"[\s\S]*data-page="tax-buckets"[\s\S]*data-page="sequencing"/.test(html), 'Tax Buckets must sit between Scenarios and Sequencing');
+  ok(/<section class="page" data-page="tax-buckets">[\s\S]*id="tax-buckets-view"/.test(html), 'Tax Buckets page mount is missing');
+  ok(/buildCurrentTaxBucketSnapshot/.test(main), 'current Tax Buckets snapshot is not wired');
+  ok(/createTaxBucketsController/.test(main), 'Tax Buckets view controller is not wired');
+  ok(!/(?:engine\.js|src\/tax\/|annual1040|ordinaryIncomeTax)/.test(view), 'Tax Buckets UI must not own engine or federal-tax math');
+  ok(!/replay/i.test(view), 'production Tax Buckets UI must not ship a replay control');
+  ok(/grid-template-columns:\s*repeat\(3,\s*1fr\)/.test(css), 'three-column pod grid is missing');
+  ok(/gap:\s*26px/.test(css), '26px pod gap is missing');
+  ok(/border-radius:\s*18px/.test(css), '18px pod radius is missing');
+  ok(/backdrop-filter:\s*blur\(26px\)\s+saturate\(1\.35\)/.test(css), 'locked 26px glass blur is missing');
+  ok(/\.tb-glow-field\s*\{[\s\S]*position:\s*fixed/.test(css), 'locked fixed ambient glow field is missing');
+
+  if(fails.length){
+    console.error('FAIL Tax Buckets contract:');
+    fails.forEach(failure => console.error('  - ' + failure));
+    process.exit(1);
+  }
+  console.log('  OK Tax Buckets contract (live snapshot, display-only view, approved three-pod glass treatment)');
+}
+
 // Cash Flow is a view inside the ScenariosUI layer, toggled by #scn-cash-toggle
 // (state.cashActive). Click the chip only when it isn't already in the wanted
 // state, then let the single authoritative sync repaint #scn-view.
@@ -299,6 +329,9 @@ if(test.status !== 0){ console.error('npm test failed'); process.exit(1); }
 
 console.log('household contract (static)');
 verifyHousehold();
+
+console.log('Tax Buckets contract (static)');
+verifyTaxBuckets();
 
 console.log('serve + drive');
 const srv = await startStaticServer();
@@ -422,6 +455,71 @@ try {
     await new Promise(r => setTimeout(r, 1500));
   });
 
+  await step('Tax Buckets: entrance reveals three live current-account pods', async () => {
+    await page.setViewport({ width:1440, height:900, deviceScaleFactor:1 });
+    await stableClick('.htab[data-page="tax-buckets"]');
+    await new Promise(r => setTimeout(r, 250));
+
+    const entry = await page.evaluate(() => ({
+      active: document.querySelector('.page.on')?.dataset.page || '',
+      title: document.querySelector('[data-tb-entry] h1')?.textContent.trim() || '',
+      cta: document.querySelector('[data-tb-explore]')?.textContent.trim() || '',
+      entryVisible: !document.querySelector('[data-tb-entry]')?.hidden,
+      viewHidden: !!document.querySelector('[data-tb-view]')?.hidden,
+    }));
+    if(entry.active !== 'tax-buckets' || entry.title !== 'Tax Buckets' || entry.cta !== 'Explore Tax Buckets' || !entry.entryVisible || !entry.viewHidden){
+      throw new Error(`Tax Buckets entrance is incomplete: ${JSON.stringify(entry)}`);
+    }
+    await page.screenshot({ path:join(OUT, '02-tax-buckets-entry.png') });
+
+    await stableClick('[data-tb-explore]');
+    await new Promise(r => setTimeout(r, 1800));
+    const live = await page.evaluate(() => {
+      const pods = [...document.querySelectorAll('.tb-pod')];
+      const styleKeys = pod => {
+        const style = getComputedStyle(pod);
+        return {
+          background:style.backgroundImage,
+          border:style.border,
+          radius:style.borderRadius,
+          shadow:style.boxShadow,
+          backdrop:style.backdropFilter || style.webkitBackdropFilter,
+          padding:style.padding,
+        };
+      };
+      return {
+        live:document.querySelector('[data-tb-view]')?.classList.contains('tb-live') || false,
+        podCount:pods.length,
+        labels:pods.map(pod => pod.querySelector('.tb-pod-label')?.textContent.trim() || ''),
+        balances:pods.map(pod => pod.querySelector('.tb-pod-balance')?.textContent.trim() || ''),
+        taxableRows:pods[0]?.querySelector('.tb-pod-rows')?.textContent.replace(/\s+/g, ' ').trim() || '',
+        styles:pods.map(styleKeys),
+        gridGap:getComputedStyle(document.querySelector('.tb-pods')).columnGap,
+        balanceFont:getComputedStyle(document.querySelector('.tb-pod-balance')).fontFamily,
+        replay:/replay entrance/i.test(document.querySelector('.page.on')?.textContent || ''),
+        footnote:document.querySelector('.tb-footnote')?.textContent.trim() || '',
+      };
+    });
+    if(!live.live || live.podCount !== 3) throw new Error(`Tax Buckets live view did not reveal exactly three pods: ${JSON.stringify(live)}`);
+    if(JSON.stringify(live.balances) !== JSON.stringify(['$800,000', '$1,600,000', '$400,000'])){
+      throw new Error(`Tax Buckets balances are not bound to the demo account snapshot: ${JSON.stringify(live.balances)}`);
+    }
+    if(!/Not confirmed/.test(live.taxableRows) || !/—/.test(live.taxableRows)){
+      throw new Error(`Taxable basis must fail closed when unconfirmed: "${live.taxableRows}"`);
+    }
+    if(live.replay) throw new Error('production Tax Buckets view exposed a replay control');
+    if(live.footnote !== 'Derived from Household account data.') throw new Error(`Tax Buckets footnote mismatch: "${live.footnote}"`);
+    if(live.gridGap !== '26px' || !/Spectral/i.test(live.balanceFont)) throw new Error(`Tax Buckets grid/type treatment drifted: ${JSON.stringify(live)}`);
+    if(live.styles.some(style => style.radius !== '18px' || !style.backdrop.includes('blur(26px)'))){
+      throw new Error(`Tax Buckets glass constants drifted: ${JSON.stringify(live.styles)}`);
+    }
+    if(live.styles.some(style => JSON.stringify(style) !== JSON.stringify(live.styles[0]))){
+      throw new Error(`Tax Bucket pods do not share identical glass: ${JSON.stringify(live.styles)}`);
+    }
+    await page.screenshot({ path:join(OUT, '02-tax-buckets.png') });
+    await page.setViewport({ width:1920, height:1080, deviceScaleFactor:3 });
+  });
+
   // Wizard navigation helper: Household tab → stepper click (all steps are
   // freely clickable — advisor tool, no gating).
   const goStep = async (n) => {
@@ -446,7 +544,7 @@ try {
       menuBtn: !!document.querySelector('#hh-menu-btn'),
       coClientText: /co-client|&/i.test(document.querySelector('.page[data-page="household"]')?.textContent || ''),
     }));
-    const expectedNav = ['Household', 'Goals', 'Scenarios', 'Sequencing'];
+    const expectedNav = ['Household', 'Goals', 'Scenarios', 'Tax Buckets', 'Sequencing'];
     if(JSON.stringify(m.nav) !== JSON.stringify(expectedNav)) throw new Error(`main nav mismatch: ${JSON.stringify(m.nav)}`);
     if(m.hasSubnav) throw new Error('old net-worth subnav is still rendered');
     if(!m.wizard) throw new Error('household wizard frame (.hh-wizard) missing');
@@ -1154,6 +1252,17 @@ try {
       throw new Error(`new household SS defaults are wrong: ${JSON.stringify(afterNew.record?.income?.socialSecurity)}`);
     if(afterNew.step !== '1') throw new Error(`new blank household must land on step 1, got "${afterNew.step}"`);
 
+    await page.click('.htab[data-page="tax-buckets"]'); await sleep(350);
+    await page.evaluate(() => document.querySelector('[data-tb-explore]')?.click()); await sleep(650);
+    const emptyBuckets = await page.evaluate(() => ({
+      message:document.querySelector('.tb-empty')?.textContent.trim() || '',
+      pods:document.querySelectorAll('.tb-pod').length,
+    }));
+    if(emptyBuckets.message !== 'No accounts entered yet — add accounts in Household to populate buckets.' || emptyBuckets.pods !== 0){
+      throw new Error(`blank household Tax Buckets state is not honest: ${JSON.stringify(emptyBuckets)}`);
+    }
+
+    await page.click('.htab[data-page="household"]'); await sleep(300);
     await page.evaluate(() => document.querySelector('#hh-load-demo').click()); await sleep(700);
     const afterDemo = await page.evaluate(() => ({
       active: localStorage.getItem('parallax.activeHouseholdId'),
@@ -2289,6 +2398,7 @@ try {
       '.htab[data-page="household"]',
       '.htab[data-sub-target="goals"]',
       '.htab[data-page="scenarios"]',
+      '.htab[data-page="tax-buckets"]',
       '.htab[data-page="sequencing"]',
     ]){
       await stableClick(selector);
