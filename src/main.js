@@ -1,19 +1,16 @@
-import { runSimulation, resolveInputs, generateReturnPath, resetSeed, annualMortgagePayment, LONGRUN_INFLATION, pathDigest, assessPlan, RISK_PROFILES, defaultPlan as plan } from '../engine.js';
+import { runSimulation, resolveInputs, generateReturnPath, resetSeed, LONGRUN_INFLATION, pathDigest, RISK_PROFILES, defaultPlan as plan } from '../engine.js';
 import { runFederalFundingSimulation } from './planning/tax/runMonteCarloWithFederalFunding.js';
 import { runHistoricalPathWithFederalTax } from './planning/tax/runHistoricalPathWithFederalTax.js';
-import { buildHouseholdTaxFactContract } from './planning/tax/buildHouseholdTaxFactContract.js';
 import { buildCurrentTaxBucketSnapshot } from './planning/taxBuckets/buildCurrentTaxBucketSnapshot.js';
-import { fmtM, fmtMoney, fmtMDelta, fmtPts, cfMoney, cfRetPct, cfGain } from '../ui/formatters.js';
+import { fmtM, fmtMoney } from '../ui/formatters.js';
 import { storyChart, seqChartSvg } from '../ui/charts.js?v=2';
 import { escHtml } from '../ui/dom.js';
 import { CHART_LAYOUT } from '../ui/chartLayout.js';
 import { createDemoHousehold, createBlankHousehold } from '../ui/householdFactories.js';
-import { getWizardAccountTypes, resolveTypeFromLabel } from './household/accountTypes.js';
-import { createAccount, hasSpouseOwnedAccounts } from './household/createAccount.js';
-import { createBlankTaxProfiles, taxProfileHasConfirmedFacts } from './household/factEnvelope.js';
-import { applyHouseholdTaxFactEdit } from './household/taxFactEdits.js';
-import { taxFactEditFromControl } from './household/taxFactEditorController.js';
-import { mergeNonAccountDefaults } from './household/migrateAccounts.js';
+import { resolveTypeFromLabel } from './household/accountTypes.js';
+import { createAccount } from './household/createAccount.js';
+import { bindHouseholdEditor } from './household/commit.js';
+import { createHouseholdWizardController, HOUSEHOLD_WIZARD_ACCOUNT_TYPES } from './household/wizard.js';
 import {
   ACTIVE_KEY,
   HHDB_KEY,
@@ -26,19 +23,15 @@ import {
 } from './household/persistence.js';
 import { createGoalsHorizonController } from '../ui/goalsHorizon.js';
 import { createTaxBucketsController } from '../ui/taxBuckets.js';
-import { pathModeLabel, pathOutcomeText, drawSeqChart, renderPrints, syncPathControls, updatePathReplayMode } from '../ui/sequencing.js';
+import { pathModeLabel, drawSeqChart, renderPrints, syncPathControls, updatePathReplayMode } from '../ui/sequencing.js';
 import { buildPathRows, buildCashSummary, renderCashflow } from '../ui/cashflow.js';
 import { toneForProb, toneGlow, wdColor, ring, num as scenarioNum, renderCompare, renderFocus } from '../ui/scenarios.js';
 import { solvePanelHTML, goalParamsHtml, comboPillValue } from '../ui/solver.js';
-import { createHouseholdWizard } from '../ui/householdWizard.js';
 import {
   buildRetirementEntryPlan,
   deriveRetirementEntryAccounts,
 } from './scenarios/buildRetirementEntryPlan.js';
-import {
-  investableTotal, realAssetsTotal, hhAllAccounts, hhDebtTotal, hhNetWorthTotal,
-  hhAgeFromYear, hhInitial, hhMoney, hhShort, hhSelect, wizField,
-} from '../ui/household.js';
+import { investableTotal, hhAgeFromYear } from '../ui/household.js';
 import {
   scenarios, sharedPaths, plansDirty, baseSnapshot,
   solverResults, solverSearching, comboResults, comboOpen, comboSearching, solverFormOpen, solving,
@@ -173,14 +166,6 @@ function saveActiveHousehold(){
   }
   return false;
 }
-function mergeHouseholdSchema(record, id){
-  const year = new Date().getFullYear();
-  const defaults = id === 'demo'
-    ? createDemoHousehold(PRISTINE_PLAN, year)
-    : createBlankHousehold(PRISTINE_PLAN, id, year);
-  return mergeNonAccountDefaults(record, defaults);
-}
-
 function ensureDemoRecord(){
   if(!householdsDb.demo){
     householdsDb.demo = createDemoHousehold(PRISTINE_PLAN, new Date().getFullYear());
@@ -891,43 +876,6 @@ const SUB_PAGES = {
   'snapshot':      { label:'Snapshot',  layout:'snapshot' },
 };
 
-/* ── Household / Plan input sections ───────────────────────────────
-   One calm planning-input page. The engine still supports more detailed real
-   assets, liabilities, and tax data; those controls stay out of this prototype
-   surface until the core advisor flow is clean. */
-const BALANCE_SHEET = [
-  { head:'Household', col:'left', fields:[
-    {path:'meta.primaryName',               label:'Client name',    type:'text'},
-    {path:'meta.spouseName',                label:'Spouse name',    type:'text'},
-    {path:'household.primary.currentAge',    label:'Client age',     type:'age'},
-    {path:'household.spouse.currentAge',     label:'Spouse age',     type:'age'},
-    {path:'household.primary.retirementAge', label:'Client retirement age', type:'age'},
-    {path:'household.spouse.retirementAge',  label:'Spouse retirement age', type:'age'},
-    {path:'household.primary.planEndAge',    label:'Plan end age',   type:'age'},
-  ]},
-  { head:'Investment accounts', col:'left', subtotal:'invest', fields:[
-    {path:'portfolio.accounts.taxable.balance',     label:'Taxable',     type:'money'},
-    {path:'portfolio.accounts.traditional.balance', label:'Traditional', type:'money'},
-    {path:'portfolio.accounts.roth.balance',        label:'Roth',        type:'money'},
-  ]},
-  { head:'Cash flow', col:'right', fields:[
-    {path:'savings.annual',                         label:'Annual savings',    type:'money'},
-    {path:'expenses.living',                        label:'Monthly spending',  type:'monthlyMoney'},
-    {path:'income.workingIncome',                   label:'Working income',    type:'money'},
-    {path:'income.socialSecurity.primary.pia',      label:'Client Social Security', type:'money'},
-    {path:'income.socialSecurity.primary.claimAge', label:'Client SS age',     type:'age'},
-    {path:'income.socialSecurity.spouse.pia',       label:'Spouse Social Security', type:'money'},
-    {path:'income.socialSecurity.spouse.claimAge',  label:'Spouse SS age',     type:'age'},
-    {path:'income.pension.benefitByAge.65',         label:'Pension',           type:'money'},
-    {path:'income.pension.startAge',                label:'Pension age',       type:'age'},
-    {path:'expenses.healthcare',                    label:'Healthcare',        type:'money'},
-  ]},
-  { head:'Assumptions', col:'right', fields:[
-    {path:'portfolio.riskProfile',        label:'Risk profile',        type:'risk'},
-    {path:'portfolio.withdrawalStrategy', label:'Withdrawal strategy', type:'strategy'},
-    {path:'simulation.iterations',        label:'Simulation paths',    type:'num', min:100, step:100},
-  ]},
-];
 const STRATEGY_NAMES = {
   'taxable-first':'Taxable first',
   'traditional-first':'Traditional first',
@@ -1015,14 +963,6 @@ function reseedScenarios({ markDirty = true } = {}){
   uiState.baseSnapshot=nb;
 }
 
-// Build the Pension group's fields fresh on every render so any new
-// age entered via the Scenarios inline input shows up here as its own row.
-function pensionFields(){
-  const m=(plan.income.pension && plan.income.pension.benefitByAge) || {};
-  return Object.keys(m).map(Number).sort((a,b)=>a-b).map(age=>(
-    {path:`income.pension.benefitByAge.${age}`, label:`Benefit if claimed @ ${age}`, type:'money'}
-  ));
-}
 /* ── Derived totals (pure aggregation of typed inputs, NOT engine output) ──
    These read the live plan and feed the gutter on each sub-page. The gutter
    is the same shape on every page — a big number + breakdown rows — so the
@@ -1102,8 +1042,6 @@ const taxBuckets=createTaxBucketsController({
   onError:error=>console.error('Tax Buckets failed:', error),
 });
 taxBuckets.bind($('#tax-buckets-view'));
-// Real assets are current balance-sheet values. The Household module keeps
-// recurring payment streams out of strict net-worth liability totals.
 
 /* ═══════════════════════════════════════════════════════════════════════════
    HOUSEHOLD — the editable plan-input console (Demographics / Net Worth / Cash
@@ -1117,64 +1055,21 @@ taxBuckets.bind($('#tax-buckets-view'));
    ownership %, beam) recompute read-only on every sync, never faked.
    ═══════════════════════════════════════════════════════════════════════════ */
 // Ownership is a UI label; data keys stay 'spouse' etc. Visible label is Co-Client.
-const HH_OWNERS  = [['client','Client'],['spouse','Co-Client'],['joint','Joint'],['trust','Trust']];
-/* Account Type Bank — every addable account type and the engine tax sleeve it
-   maps into. The engine consumes ONLY the three buckets (taxable / traditional /
-   roth); the type is advisor-facing detail. */
-const HH_WIZARD_ACCOUNT_TYPES = getWizardAccountTypes();
-const HH_STATES = [
-  ['AL','Alabama'],['AK','Alaska'],['AZ','Arizona'],['AR','Arkansas'],['CA','California'],['CO','Colorado'],['CT','Connecticut'],['DE','Delaware'],['FL','Florida'],['GA','Georgia'],
-  ['HI','Hawaii'],['ID','Idaho'],['IL','Illinois'],['IN','Indiana'],['IA','Iowa'],['KS','Kansas'],['KY','Kentucky'],['LA','Louisiana'],['ME','Maine'],['MD','Maryland'],
-  ['MA','Massachusetts'],['MI','Michigan'],['MN','Minnesota'],['MS','Mississippi'],['MO','Missouri'],['MT','Montana'],['NE','Nebraska'],['NV','Nevada'],['NH','New Hampshire'],['NJ','New Jersey'],
-  ['NM','New Mexico'],['NY','New York'],['NC','North Carolina'],['ND','North Dakota'],['OH','Ohio'],['OK','Oklahoma'],['OR','Oregon'],['PA','Pennsylvania'],['RI','Rhode Island'],['SC','South Carolina'],
-  ['SD','South Dakota'],['TN','Tennessee'],['TX','Texas'],['UT','Utah'],['VT','Vermont'],['VA','Virginia'],['WA','Washington'],['WV','West Virginia'],['WI','Wisconsin'],['WY','Wyoming'],
-  ['DC','District of Columbia'],
-];
+const householdWizardController = createHouseholdWizardController({
+  getPlan: () => plan,
+  renderField: (path, type, extra) => renderField(Object.assign({ path, type }, extra || {})),
+  getHouseholdsDb: () => householdsDb,
+  getActiveHouseholdId: () => activeHouseholdId,
+  isStorageBlocked: isHouseholdStorageBlocked,
+  renderBlockedRecoverySurfaces,
+  syncRecoveryControls,
+  onSwitchHousehold: switchHousehold,
+  onNewHousehold: newHousehold,
+  onLoadDemoHousehold: loadDemoHousehold,
+});
+const hhUiState = householdWizardController.uiState;
 /* Wizard step state: 1 People & Timeline · 2 Balance Sheet · 3 Cash Flow ·
    4 Blueprint. A filled household lands on Blueprint; a blank one starts at 1. */
-let hhStep = 1;
-function hhDefaultStep(){
-  const hasAccounts = (plan.portfolio.extraAccounts || []).length > 0;
-  const hasIncome = !!((plan.income.socialSecurity.primary && plan.income.socialSecurity.primary.pia) ||
-                       (plan.income.socialSecurity.spouse && plan.income.socialSecurity.spouse.pia));
-  return (hasAccounts || hasIncome) ? 4 : 1;
-}
-let hhAcctFormOwner = null;
-let hhAddingKey = null;
-let hhDraftLabel = '';
-let hhDraftAmount = '';
-let hhTaxDetailsOpen = false;
-const hhUiState = {
-  get hhAcctFormOwner(){ return hhAcctFormOwner; },
-  get hhAddingKey(){ return hhAddingKey; },
-  get hhDraftLabel(){ return hhDraftLabel; },
-  get hhDraftAmount(){ return hhDraftAmount; },
-  get hhTaxDetailsOpen(){ return hhTaxDetailsOpen; },
-};
-let householdWizard;
-function ensureHouseholdWizard(){
-  if(householdWizard) return householdWizard;
-  householdWizard = createHouseholdWizard({
-    get plan(){ return plan; },
-    uiState: hhUiState,
-    field: (path, type, extra) => hhField(path, type, extra),
-    select: (path, value, opts, kind) => hhSelect(path, value, opts, kind),
-    initial: hhInitial,
-    ageFromYear: hhAgeFromYear,
-    allAccounts: () => hhAllAccounts(plan),
-    taxFactContract: () => buildHouseholdTaxFactContract(plan),
-    accountTypes: HH_WIZARD_ACCOUNT_TYPES,
-    states: HH_STATES,
-  });
-  return householdWizard;
-}
-
-/* Editable controls bound by data-path (handled by the #hh-view delegate). */
-function hhField(path, type, extra){ return renderField(Object.assign({ path, type }, extra||{})); }
-
-/* ── Wizard chrome (4-step blueprint wizard via ui/householdWizard.js) ─ */
-const HH_STEPS = () => ensureHouseholdWizard().steps;
-function wizFooter(){ return ensureHouseholdWizard().footer(hhStep); }
 
 
 /* ── Household lifecycle helpers ───────────────────────────────────────────
@@ -1189,12 +1084,7 @@ function hhLoadRecord(status){
   const readOnly = isHouseholdStorageReadOnly();
   planSaveDirty = false; saveFailed = false; syncSaveBtn();
   if(!readOnly) reseedScenarios({ markDirty: false });
-  hhStep = hhDefaultStep();
-  hhAcctFormOwner = null;
-  hhAddingKey = null;
-  hhDraftLabel = '';
-  hhDraftAmount = '';
-  hhTaxDetailsOpen = false;
+  householdWizardController.resetForPlan();
   uiState.plansDirty = true; uiState.sharedPaths = null;
   syncHousehold();
   updateHouseholdControls();
@@ -1251,17 +1141,7 @@ function switchHousehold(id){
 }
 // Populate the saved-household switcher.
 function updateHouseholdControls(){
-  const sel = $('#hh-switch');
-  if(sel){
-    const ids = Object.keys(householdsDb);
-    sel.innerHTML = ids.map(id => {
-      const h = householdsDb[id] || {};
-      const m = h.meta || {};
-      const nm = m.name || m.primaryName || 'Household';
-      return `<option value="${escHtml(id)}" ${id===activeHouseholdId?'selected':''}>${escHtml(nm)}</option>`;
-    }).join('');
-    sel.value = activeHouseholdId;
-  }
+  householdWizardController.updateHouseholdControls();
 }
 
 /* One authoritative Household sync: fill wizard identity, render the active
@@ -1269,72 +1149,11 @@ function updateHouseholdControls(){
    the stepper. Called at boot, on tab show, and after every edit (the #hh-view
    delegate re-renders through here). */
 function syncHousehold(){
-  const view = $('#hh-view'); if(!view) return;
-  if(isHouseholdStorageBlocked()){
-    renderBlockedRecoverySurfaces();
-    return;
-  }
-  const nm = $('#hh-rail-name');
-  if(nm){
-    const pn = plan.meta.primaryName||'Client';
-    const sn = plan.meta.spouseName||'Co-Client';
-    nm.textContent = plan.household.spouse ? (pn + ' & ' + sn) : pn;
-  }
-  if($('#hh-avatar-c')) $('#hh-avatar-c').textContent = hhInitial(plan.meta.primaryName,'C');
-  if($('#hh-avatar-s')) $('#hh-avatar-s').textContent =
-    (!plan.meta.spouseName || plan.meta.spouseName === 'Co-Client') ? 'CC' : hhInitial(plan.meta.spouseName,'CC');
-  const steps = HH_STEPS();
-  const renderStep = steps[hhStep] || steps[1];
-  view.innerHTML = `<div class="hh-wstep${hhStep === 4 ? ' hh-wstep--bp' : ''}">${renderStep()}</div>`;
-  const foot = $('#hh-wiz-footer');
-  if(foot) foot.innerHTML = wizFooter();
-  const wiz = document.querySelector('.hh-wizard');
-  if(wiz) wiz.dataset.wizardRev = '7';
-  for(let i = 1; i <= 4; i++){
-    const el = $('#hh-step-'+i); if(!el) continue;
-    const num = el.querySelector('.hh-step__num');
-    el.classList.toggle('is-current', i === hhStep);
-    el.classList.toggle('is-done',    i <  hhStep);
-    if(num) num.textContent = i < hhStep ? '✓' : String(i);
-    el.setAttribute('aria-selected', i === hhStep ? 'true' : 'false');
-  }
-  document.querySelectorAll('.hh-stepper .hh-step__conn').forEach((c,i) =>
-    c.classList.toggle('is-done', i < hhStep - 1));
-  syncRecoveryControls();
+  householdWizardController.sync();
 }
 /* Stepper + household-menu chrome = the view switch. Bound once at boot. */
 function bindHouseholdRailOnce(){
-  document.querySelectorAll('.hh-stepper .hh-step').forEach(btn =>
-    btn.addEventListener('click', () => {
-      hhStep = +btn.dataset.step || 1;
-      hhAddingKey = null;
-      hhAcctFormOwner = null;
-      syncHousehold();
-    }));
-  // Tucked household menu (⋯): Open / New / Load demo.
-  const menuBtn = $('#hh-menu-btn'), pop = $('#hh-menu-pop');
-  if(menuBtn && pop){
-    menuBtn.addEventListener('click', e => {
-      e.stopPropagation();
-      const open = pop.hidden;
-      pop.hidden = !open;
-      menuBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
-    });
-    document.addEventListener('click', e => {
-      if(!pop.hidden && !pop.contains(e.target) && e.target !== menuBtn){
-        pop.hidden = true; menuBtn.setAttribute('aria-expanded','false');
-      }
-    });
-  }
-  // Household selector + New Household + persistent blank demo slot.
-  const switchSel = $('#hh-switch');
-  const newBtn    = $('#hh-new');
-  const loadDemoBtn = $('#hh-load-demo');
-  if(switchSel) switchSel.addEventListener('change', e => switchHousehold(e.target.value));
-  if(newBtn)    newBtn.addEventListener('click', () => newHousehold());
-  if(loadDemoBtn) loadDemoBtn.addEventListener('click', () => loadDemoHousehold());
-  hhStep = hhDefaultStep();   // land on Blueprint when the household has data
-  updateHouseholdControls();
+  householdWizardController.bindRail();
 }
 
 // Column subtotals — sums every group in HYBRID[page].left / .right (a column may
@@ -1500,31 +1319,6 @@ function incomeRow(arr, i){
       <input class="er-num" type="number" step="1" data-path="${base}.taxablePct" data-type="pct" value="${t}"><span class="er-xs">% taxable</span>
     </div>`;
   return `<div class="erow-wrap">${main}${extra}</div>`;
-}
-// A property card: name · value · purchase price · optional mortgage. The
-// payment + payoff shown is the ENGINE's amortization (truth), not UI math.
-function propRow(i){
-  const base = `properties.${i}`, m = `${base}.mortgage`;
-  const M = getPath(plan, m) || {};
-  const pay = annualMortgagePayment(M.balance, M.rate, M.termYears);
-  const start = plan.household.primary.currentAge;
-  const meta = pay > 0
-    ? `Engine: ${fmtMoney(Math.round(pay))}/yr · paid off at age ${start + (M.termYears||0)}`
-    : `No mortgage — value & purchase price are captured for a future sale`;
-  return `<div class="prop">
-    <div class="prop-top">${name(plan,base,'name','Property')}${rmX(base)}</div>
-    <div class="prop-grid">
-      <label class="prop-f"><span class="er-k">Value</span>${money(plan,base,'value')}</label>
-      <label class="prop-f"><span class="er-k">Purchase price</span>${money(plan,base,'purchasePrice')}</label>
-    </div>
-    <div class="prop-mort">
-      <span class="er-k">Mortgage</span>
-      <label class="prop-f"><span class="er-sub">Balance</span>${money(plan,m,'balance')}</label>
-      <label class="prop-f narrow"><span class="er-sub">Rate</span>${num(plan,m,'rate',0.1)}<span class="er-suf">%</span></label>
-      <label class="prop-f narrow"><span class="er-sub">Term</span>${num(plan,m,'termYears')}<span class="er-suf">yr</span></label>
-    </div>
-    <div class="prop-meta">${meta}</div>
-  </div>`;
 }
 // Render every row of a flow kind backed by `arr`, with the trailing "+ add".
 function flowSection(arr, nameKey, ph, kind, addLabel){
@@ -1896,247 +1690,23 @@ $('#np-content').addEventListener('change', e => {
   }
 });
 
-/* ── Household input bindings — delegated on the stable #hh-view ───────────────
-   The Household page is an EDITABLE input console. These mirror the #np-content
-   handlers above (same setPath write-back + reseed/dirty/plansDirty sequence), but
-   re-render the Folio chapters via syncHousehold(). Kept as a separate, isolated
-   binding so the Goals/#np-content flow is untouched. `owner`/`bucket` are string
-   selects (account labels); everything else matches the shared field types. */
-function hhCommit(){
-  if(!guardPlanMutation()) return;
-  reseedScenarios(); uiState.sharedPaths=null; uiState.plansDirty=true;
-  syncHousehold();
-  syncHeaderStatus('Plan edited · open Scenarios');
-}
-$('#hh-view').addEventListener('input', e => {
-  if(typeof e.target.setCustomValidity === 'function') e.target.setCustomValidity('');
-  if(e.target.dataset.type === 'money' || e.target.dataset.type === 'monthlyMoney') liveCommas(e.target);
-});
-$('#hh-view').addEventListener('toggle', e => {
-  if(e.target?.matches?.('[data-hh-tax-details-root]')) hhTaxDetailsOpen = e.target.open;
-}, true);
-$('#hh-view').addEventListener('change', e => {
-  const taxControl = e.target.closest?.('[data-hh-tax-edit]');
-  if(taxControl){
-    if(!guardPlanMutation()){ syncHousehold(); return; }
-    try{
-      const result = applyHouseholdTaxFactEdit(
-        plan,
-        taxFactEditFromControl(taxControl),
-        { now: new Date().toISOString() }
-      );
-      taxControl.setCustomValidity('');
-      if(result.changed) hhCommit();
-    }catch(error){
-      taxControl.setCustomValidity(error?.message || 'This tax detail could not be saved');
-      taxControl.reportValidity();
-    }
-    return;
-  }
-  // Add-account form controls carry no data-path (transient until Save).
-  if(!e.target.dataset.path && e.target.classList && e.target.classList.contains('hh-form-type')){
-    return;
-  }
-  const path = e.target.dataset.path, type = e.target.dataset.type;
-  if(!path) return;
-  if(!guardPlanMutation()){ syncHousehold(); return; }
-  const raw = e.target.value;
-  if(type==='text' || type==='strategy' || type==='owner' || type==='bucket'){   // string writes
-    setPath(plan, path, raw);
-    hhCommit();
-    return;
-  }
-  if(type==='acctType'){
-    return;
-  }
-  let v;
-  if(type==='money' || type==='monthlyMoney') v = parseFloat(String(raw).replace(/[^0-9.]/g,''));
-  else if(type==='risk') v = +raw;
-  else                   v = parseFloat(raw);
-  if(!isFinite(v)) return;                                   // blank/garbage → no-op
-  if(type==='pct')  v = Math.max(0, Math.min(100, v))/100;
-  // signedPct: fraction that may be NEGATIVE (e.g. other-income realGrowth —
-  // a part-time wind-down phases DOWN in real terms).
-  if(type==='signedPct') v = Math.max(-100, Math.min(100, v))/100;
-  if(type==='money'){ v = Math.max(0, Math.round(v)); e.target.value = v.toLocaleString('en-US'); }
-  if(type==='monthlyMoney'){ const m = Math.max(0, Math.round(v)); v = m*12; e.target.value = m.toLocaleString('en-US'); }
-  if(type==='num')  v = Math.max(1, Math.round(v));
-  if(type==='age'){
-    v = Math.round(v);
-    const min = parseFloat(e.target.dataset.min);
-    const max = parseFloat(e.target.dataset.max);
-    if(isFinite(min)) v = Math.max(min, v);
-    if(isFinite(max)) v = Math.min(max, v);
-    e.target.value = String(v);
-  }
-  // BORN (birth year): writes the year AND derives the person's current age —
-  // the engine's actual input. 4-digit sanity clamp; age recomputed whole-year.
-  if(type==='birthYear'){
-    v = Math.round(v);
-    if(v < 1900 || v > new Date().getFullYear()) return;
-    const age = hhAgeFromYear(v);
-    setPath(plan, path, v);
-    if(age != null) setPath(plan, path.replace(/\.birthYear$/, '.currentAge'), age);
-    hhCommit();
-    return;
-  }
-  // Tangible-asset / mortgage rows write into plan.properties[0|1]; create the
-  // slots on first edit so a cleared plan doesn't need preloaded property rows.
-  if(/^properties\.[01]\./.test(path)){
-    if(!Array.isArray(plan.properties)) plan.properties = [];
-    const idx = +path.split('.')[1];
-    while(plan.properties.length <= idx){
-      plan.properties.push({ name: plan.properties.length === 0 ? 'Primary home' : 'Other property',
-        value: 0, purchasePrice: 0, mortgage: { balance: 0, rate: 0, termYears: 0 } });
-    }
-  }
-  setPath(plan, path, v);
-  hhCommit();
-});
-document.querySelector('.page[data-page="household"] .hh-wizard')?.addEventListener('click', e => {
-  // Remove an account / asset / liability / income row.
-  const rx = e.target.closest('.row-x');
-  if(rx){
-    if(!guardPlanMutation()) return;
-    const rmpath = rx.dataset.rmpath;
-    // Special case: pension benefitByAge key deletion (e.g. "income.pension.benefitByAge.65")
-    if(/^income\.pension\.benefitByAge\./.test(rmpath)){
-      const age = rmpath.split('.').pop();
-      if(plan.income.pension && plan.income.pension.benefitByAge) delete plan.income.pension.benefitByAge[age];
-      hhCommit();
-      return;
-    }
-    const ks = rmpath.split('.'); const last = ks.pop();
-    let t = plan; for(const k of ks){ if(t==null) return; t=t[k]; }
-    if(Array.isArray(t)) t.splice(+last, 1); else if(t!=null) delete t[last];
-    hhCommit();
-    return;
-  }
-  // "+ Account / Real asset / Liability / Income source" — push a default row.
-  const adder = e.target.closest('[data-add]');
-  if(adder){
-    if(!guardPlanMutation()) return;
-    const k = ROW_KINDS[adder.dataset.add];
-    if(k){
-      const arr = getPath(plan, k.arr);
-      if(Array.isArray(arr)) arr.push(k.mk()); else setPath(plan, k.arr, [k.mk()]);
-      hhCommit();
-    }
-    return;
-  }
-  // Household-level actions (co-client toggle, pension ages, account-bank form)
-  const act = e.target.closest('[data-hh-action]');
-  if(act){
-    const action = act.dataset.hhAction;
-    const lockedAction = ['add-spouse','remove-spouse','open-account-form','save-account','open-add','commit-add','add-home','add-mortgage','add-pension-age'].includes(action);
-    if(lockedAction && !guardPlanMutation()) return;
-    if(action === 'add-spouse'){
-      plan.household.spouse = { currentAge: 55, retirementAge: 62, birthYear: new Date().getFullYear() - 55 };
-      plan.meta.spouseName  = plan.meta.spouseName || '';
-      if(!plan.income.socialSecurity.spouse) plan.income.socialSecurity.spouse = { pia: 0, claimAge: 67 };
-      plan.meta.filingStatus = 'marriedFilingJointly';
-      hhCommit();
-    } else if(action === 'remove-spouse'){
-      if(hasSpouseOwnedAccounts(plan)){
-        alert('Reassign or remove Co-Client accounts before removing the Co-Client.');
-        return;
-      }
-      const spouseFacts = plan.taxProfiles?.spouse;
-      const discardFacts = spouseFacts && taxProfileHasConfirmedFacts(spouseFacts);
-      const prompt = discardFacts
-        ? 'Remove co-client from this household? Confirmed co-client tax facts will be discarded.'
-        : 'Remove co-client from this household?';
-      if(!confirm(prompt)) return;
-      plan.household.spouse = null;
-      plan.income.socialSecurity.spouse = null;
-      plan.meta.filingStatus = 'single';
-      if(plan.taxProfiles) plan.taxProfiles.spouse = createBlankTaxProfiles().spouse;
-      hhCommit();
-    } else if(action === 'open-account-form'){
-      hhAddingKey = null;
-      hhAcctFormOwner = act.dataset.owner || 'client';
-      syncHousehold();
-      const val = document.querySelector('#hh-acct-form .hh-form-val');
-      if(val) val.focus();
-    } else if(action === 'cancel-account'){
-      hhAcctFormOwner = null;
-      syncHousehold();
-    } else if(action === 'save-account'){
-      const form = document.querySelector('#hh-acct-form');
-      if(!form) return;
-      const t = HH_WIZARD_ACCOUNT_TYPES[+form.querySelector('.hh-form-type').value] || HH_WIZARD_ACCOUNT_TYPES[0];
-      const valEl = form.querySelector('.hh-form-val');
-      const bal = parseFloat(String(valEl ? valEl.value : '').replace(/[^0-9.]/g, ''));
-      if(!isFinite(bal) || bal <= 0){
-        if(valEl){ valEl.focus(); valEl.style.outline = '2px solid var(--down)'; setTimeout(() => valEl.style.outline = '', 1500); }
-        return;
-      }
-      const owner = hhAcctFormOwner || 'client';
-      if(!plan.portfolio.extraAccounts) plan.portfolio.extraAccounts = [];
-      plan.portfolio.extraAccounts.push(createAccount(t.typeId, { owner, balance: Math.round(bal) }));
-      hhAcctFormOwner = null;
-      hhCommit();
-    } else if(action === 'open-add'){
-      hhAddingKey = act.dataset.addKey || null;
-      hhDraftLabel = '';
-      hhDraftAmount = '';
-      hhAcctFormOwner = null;
-      syncHousehold();
-    } else if(action === 'cancel-add'){
-      hhAddingKey = null;
-      hhDraftLabel = '';
-      hhDraftAmount = '';
-      syncHousehold();
-    } else if(action === 'commit-add'){
-      const label = (document.querySelector('[data-hh-draft="label"]')?.value || hhDraftLabel || '').trim();
-      const amtRaw = document.querySelector('[data-hh-draft="amount"]')?.value ?? hhDraftAmount ?? '';
-      const amt = parseFloat(String(amtRaw).replace(/[^0-9.]/g, '')) || 0;
-      if(hhAddingKey === 'income'){
-        if(!plan.income.other) plan.income.other = [];
-        plan.income.other.push({ label: label || 'Income', amount: Math.round(amt), startAge: plan.household.primary.currentAge, endAge: plan.household.primary.retirementAge, realGrowth: 0, taxablePct: 1 });
-      } else if(hhAddingKey === 'child'){
-        const year = parseInt(String(document.querySelector('[data-hh-draft="year"]')?.value ?? hhDraftAmount ?? ''), 10);
-        if(!plan.household.children) plan.household.children = [];
-        plan.household.children.push({ name: label || 'Child', birthYear: isFinite(year) ? year : new Date().getFullYear() - 10 });
-      } else if(hhAddingKey === 'spending'){
-        if(!plan.expenses.extra) plan.expenses.extra = [];
-        const row = ROW_KINDS.expense.mk();
-        row.label = label || 'Category';
-        row.amount = Math.round(amt);
-        plan.expenses.extra.push(row);
-      }
-      hhAddingKey = null;
-      hhDraftLabel = '';
-      hhDraftAmount = '';
-      hhCommit();
-    } else if(action === 'add-home'){
-      // Primary home slot: created WITHOUT a mortgage — the mortgage is its own
-      // nested add so wizHome() can key its render off structural presence.
-      if(!Array.isArray(plan.properties)) plan.properties = [];
-      if(!plan.properties[0]) plan.properties[0] = { name:'Primary home', value:0, purchasePrice:0 };
-      hhCommit();
-    } else if(action === 'add-mortgage'){
-      const pr = plan.properties && plan.properties[0];
-      if(pr && !pr.mortgage){ pr.mortgage = { balance:0, rate:0, termYears:0 }; hhCommit(); }
-    } else if(action === 'step-back'){
-      hhStep = Math.max(1, hhStep - 1);
-      hhAddingKey = null;
-      hhAcctFormOwner = null;
-      syncHousehold();
-    } else if(action === 'step-next'){
-      hhStep = Math.min(4, hhStep + 1);
-      hhAddingKey = null;
-      hhAcctFormOwner = null;
-      syncHousehold();
-    } else if(action === 'add-pension-age'){
-      if(!plan.income.pension) plan.income.pension = { benefitByAge:{}, startAge:65, colaPct:0 };
-      if(!plan.income.pension.benefitByAge) plan.income.pension.benefitByAge = {};
-      const existing = Object.keys(plan.income.pension.benefitByAge).map(Number).sort((a,b)=>a-b);
-      const newAge = existing.length ? (existing[existing.length-1]+1) : 65;
-      if(!plan.income.pension.benefitByAge[newAge]) plan.income.pension.benefitByAge[newAge] = 0;
-      hhCommit();
-    }
-  }
+/* Household field commits and wizard actions are bound in src/household/commit.js. */
+bindHouseholdEditor({
+  root: $('#hh-view'),
+  wizardRoot: document.querySelector('.page[data-page="household"] .hh-wizard'),
+  getPlan: () => plan,
+  transientState: hhUiState,
+  accountTypes: HOUSEHOLD_WIZARD_ACCOUNT_TYPES,
+  rowKinds: ROW_KINDS,
+  guardPlanMutation,
+  reseedScenarios,
+  appState: uiState,
+  syncHousehold,
+  syncHeaderStatus,
+  liveCommas,
+  getPath,
+  setPath,
+  ageFromYear: hhAgeFromYear,
 });
 
 // Pension slider range is PER-HOUSEHOLD: it spans only the ages the advisor has
@@ -2539,37 +2109,6 @@ function renderStory(){
     pathReplay.mode = b.dataset.storyMode;
     savePathReplay(); syncPathControls(); if(window.ScenariosUI) window.ScenariosUI.sync(); renderStory();
   });
-}
-
-/* ── Plan Assessment ──────────────────────────────────────────────────────
-   assessPlan() ids + figures mapped to fixed, factual sentences in a
-   two-column ledger. The engine decides what applies; the UI only words it. */
-function renderAssess(){
-  const el = $('#assess-panel'); if(!el) return;
-  const res = baselineResult();
-  if(!res || !res.paths){ el.innerHTML=''; return; }
-  const a = assessPlan(res);
-  const pct1 = v => (v*100).toFixed(1)+'%';
-  const SENT = {
-    'low-fixed-spending':       v => ['Low fixed spending — core spend vs starting assets', pct1(v)],
-    'tax-diversified':          v => ['Tax-diversified mix — account types carrying weight', `${v} of 3`],
-    'high-success':             v => ['High success rate — paths lasting the full horizon', Math.round(v)+'%'],
-    'withdrawal-load':          v => [`Withdrawal load — average ${v.avg.toFixed(1)}%, peak at age ${v.age}`, v.peak.toFixed(1)+'%'],
-    'portfolio-funded-spending':v => ['Portfolio-funded spending — guaranteed income covers', pct1(v)],
-    'return-timing':            v => [`Return timing — stressed path depletes${v.stressedDepletionAge?` at age ${v.stressedDepletionAge}`:''}, median survives`, 'path-dependent']
-  };
-  const row = it => {
-    const [label, val] = (SENT[it.id] || (x=>[it.id, '']))(it.value);
-    return `<div class="led-row"><span>${label}</span><span class="dots"></span><b>${val}</b></div>`;
-  };
-  const left  = a.strengths.map(row).join('') || `<div class="led-none">Nothing clears the bar on this run.</div>`;
-  const right = [...a.pressures, ...a.tossups].map(row).join('') || `<div class="led-none">No pressure points on this run.</div>`;
-  el.innerHTML = `
-    <div class="story-sec"><span>Plan Assessment · what the engine sees</span></div>
-    <div class="ledger">
-      <div><h5>Working for the plan</h5>${left}</div>
-      <div><h5>Working against it</h5>${right}</div>
-    </div>`;
 }
 
 // REMOVED the original multi-scenario renderCashflow grid (superseded below by

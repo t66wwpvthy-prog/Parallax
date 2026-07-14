@@ -107,7 +107,7 @@ function verifyHousehold(){
   ok(!/id="hh-plan-rail"/.test(html), 'retired "Plan so far" rail (#hh-plan-rail) must be gone');
   ok(/createHouseholdWizard/.test(source), 'blueprint wizard module (createHouseholdWizard) missing');
   ok(/id="hh-wiz-footer"/.test(html), 'wizard footer mount (#hh-wiz-footer) missing');
-  ok(/function hhDefaultStep\b/.test(source), 'hhDefaultStep() landing heuristic missing');
+  ok(/function defaultStep\b/.test(source), 'Household wizard landing heuristic missing');
   ok(/data-hh-action="step-back"/.test(source) && /data-hh-action="step-next"/.test(source), 'wizard Back/Continue footer actions missing');
   // Tucked household controls menu (Switch / New / Demo / Clear).
   ok(/id="hh-menu-btn"/.test(html) && /id="hh-menu-pop"/.test(html), 'household controls menu (#hh-menu-btn / #hh-menu-pop) missing');
@@ -121,16 +121,16 @@ function verifyHousehold(){
   ok(!/function renderHhFulcrum\b/.test(source) && !/function renderHhPillar\b/.test(source), 'retired equilibrium renderers still present (fulcrum/pillar)');
   ok(/id=["']hh-view["']/.test(html), 'Household document mount (#hh-view) is missing');
   ok(/data-page=["']household["']/.test(html), 'Household container must carry data-page="household"');
-  ok(/HH_WIZARD_ACCOUNT_TYPES/.test(source), 'Wizard account types (HH_WIZARD_ACCOUNT_TYPES) missing');
+  ok(/HOUSEHOLD_WIZARD_ACCOUNT_TYPES/.test(source), 'Wizard account type registry binding missing');
   ['Traditional IRA','Roth IRA','Brokerage (taxable)','401(k)','HSA'].forEach(t => {
     ok(source.includes(`'${t}'`), `Wizard account types missing: ${t}`);
   });
   ok(!/meta\.inflationPct/.test(source), 'engine-inert Inflation field must not ship in the wizard');
-  ok(/\['trust','Trust'\]/.test(source), 'Trust ownership option missing from HH_OWNERS');
+  ok(/VALID_OWNERS\s*=\s*new Set\(\[[\s\S]{0,100}['"]trust['"]/.test(source), 'Trust ownership must remain valid in the account registry');
 
   // Blueprint wizard module + step wiring (renderers live in ui/householdWizard.js).
   ok(/ui\/householdWizard\.js/.test(source), 'ui/householdWizard.js import missing');
-  ok(/ensureHouseholdWizard/.test(source), 'ensureHouseholdWizard() wiring missing');
+  ok(/function ensureWizard\b/.test(source), 'Household wizard lazy wiring missing');
   ok(!/data-hh-action="run-blueprint"/.test(source), 'RUN BLUEPRINT action must be removed');
   ok(!/data-hh-action="goto-planning"/.test(source), 'goto-planning action must be removed');
   ok(/styles\/header\.css/.test(html), 'styles/header.css must be linked');
@@ -150,8 +150,9 @@ function verifyHousehold(){
   // EDITABLE console: inline data-path inputs + a #hh-view delegate that writes
   // back to `plan` and reseeds/dirties scenarios (parity with the rest of the
   // input layer). This is the non-negotiable — Household must not be static.
-  ok(/function hhField\b/.test(source), 'Household inputs helper missing (hhField → renderField data-path controls)');
-  ok(/\$\(\s*['"]#hh-view['"]\s*\)\.addEventListener\(\s*['"]change['"]/.test(source), 'Household edit delegate missing (#hh-view change handler)');
+  ok(/createHouseholdWizardController\(\{[\s\S]{0,180}renderField:\s*\(path,\s*type,\s*extra\)\s*=>\s*renderField\(/.test(source), 'Household wizard must receive renderField data-path controls');
+  ok(/bindHouseholdEditor\(\{[\s\S]{0,160}root:\s*\$\(\s*['"]#hh-view['"]\s*\)/.test(source), 'Household editor must bind to #hh-view');
+  ok(/root\.addEventListener\(\s*['"]change['"]/.test(source), 'Household edit delegate missing (module-owned change handler)');
   ok(/function hhCommit\b/.test(source), 'Household commit (hhCommit) missing');
   ok(/function\s+hhCommit\b[\s\S]{0,160}reseedScenarios\(\)[\s\S]{0,80}plansDirty\s*=\s*true/.test(source), 'Household edits must reseed + dirty scenarios exactly like the input layer (hhCommit)');
   ok(/function syncHousehold\b/.test(source), 'syncHousehold() renderer missing');
@@ -324,7 +325,9 @@ mkdirSync(OUT, { recursive: true });
 
 console.log('full test suite (npm test)');
 const npmCmd = process.platform === 'win32' ? 'npm.cmd' : 'npm';
-const test = spawnSync(npmCmd, ['test'], { cwd: ROOT, stdio: 'inherit', shell: true });
+const test = process.platform === 'win32'
+  ? spawnSync('cmd.exe', ['/d', '/s', '/c', npmCmd, 'test'], { cwd: ROOT, stdio: 'inherit' })
+  : spawnSync(npmCmd, ['test'], { cwd: ROOT, stdio: 'inherit' });
 if(test.status !== 0){ console.error('npm test failed'); process.exit(1); }
 
 console.log('household contract (static)');
@@ -361,8 +364,8 @@ try {
   }
 
   const browser = await puppeteer.launch({ ...launchOpts, headless: true });
-  const page = await browser.newPage();
-  await page.setViewport({ width: 1920, height: 1080, deviceScaleFactor: 3 });
+  const rawPage = await browser.newPage();
+  await rawPage.setViewport({ width: 1920, height: 1080, deviceScaleFactor: 3 });
   // Puppeteer can briefly retain a detached main-frame handle while a prior
   // reload settles. Retry only that transport-level condition; all assertion,
   // selector, and application errors still fail immediately.
@@ -376,7 +379,7 @@ try {
         if(!/(?:detached.*frame|frame.*detached)/i.test(error?.message || '') || attempt === 2) throw error;
         await new Promise(resolve => setTimeout(resolve, 250 * (attempt + 1)));
         try{
-          await page.waitForFunction(() => document.readyState === 'complete', { timeout: 5000 });
+          await rawPage.waitForFunction(() => document.readyState === 'complete', { timeout: 5000 });
         }catch(waitError){
           if(!/(?:detached.*frame|frame.*detached|Execution context was destroyed)/i.test(waitError?.message || '')) throw waitError;
         }
@@ -384,10 +387,27 @@ try {
     }
     throw new Error(`${label}: ${lastError?.message || lastError}`);
   };
-  const stableClick = selector => retryDetachedFrame(`click ${selector}`, () => page.click(selector));
-  const stableEvaluate = (label, fn, ...args) => retryDetachedFrame(label, () => page.evaluate(fn, ...args));
-  const stableGoto = (url, options) => retryDetachedFrame(`navigate ${url}`, () => page.goto(url, options));
-  const stableReload = options => retryDetachedFrame('reload page', () => page.reload(options));
+  // Most verifier operations intentionally use Puppeteer's concise page API.
+  // Protect those operations at the page boundary so a transient detached frame
+  // cannot fail an otherwise-correct assertion hundreds of lines away. Methods
+  // that return element handles are retried only while locating the handle; a
+  // genuinely stale handle or application error still fails normally.
+  const retryablePageMethods = new Set([
+    'click', 'evaluate', '$', '$$', '$eval', '$$eval', 'screenshot', 'setViewport',
+  ]);
+  const page = new Proxy(rawPage, {
+    get(target, property){
+      const value = Reflect.get(target, property, target);
+      if(typeof value !== 'function') return value;
+      const bound = value.bind(target);
+      if(!retryablePageMethods.has(property)) return bound;
+      return (...args) => retryDetachedFrame(`${String(property)} operation`, () => bound(...args));
+    },
+  });
+  const stableClick = selector => retryDetachedFrame(`click ${selector}`, () => rawPage.click(selector));
+  const stableEvaluate = (label, fn, ...args) => retryDetachedFrame(label, () => rawPage.evaluate(fn, ...args));
+  const stableGoto = (url, options) => retryDetachedFrame(`navigate ${url}`, () => rawPage.goto(url, options));
+  const stableReload = options => retryDetachedFrame('reload page', () => rawPage.reload(options));
   const errs = [];
   page.on('pageerror', e => errs.push('PAGE: ' + e.message));
   page.on('console', m => {
