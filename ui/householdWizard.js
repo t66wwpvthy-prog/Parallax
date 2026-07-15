@@ -114,7 +114,18 @@ function acctRow(a, deps){
 
 function acctAddForm(owner, deps, state){
   if(state.hhAcctFormOwner !== owner) return '';
-  const typeOpts = deps.accountTypes.map((t, i) => `<option value="${i}">${escHtml(t.label)}</option>`).join('');
+  const eligible = deps.accountTypes
+    .map((type, index) => ({ ...type, index }))
+    .filter(type => !type.owners || type.owners.includes(owner));
+  const grouped = new Map();
+  eligible.forEach(type => {
+    const group = type.group || 'Other';
+    if(!grouped.has(group)) grouped.set(group, []);
+    grouped.get(group).push(type);
+  });
+  const typeOpts = [...grouped.entries()].map(([group, rows]) =>
+    `<optgroup label="${escHtml(group)}">${rows.map(type => `<option value="${type.index}">${escHtml(type.label)}</option>`).join('')}</optgroup>`
+  ).join('');
   return `<div class="hh-inline-form" id="hh-acct-form">
     <div class="hh-inline-form__field"><span class="hh-inline-form__k">Account type</span>
       <select class="hh-sel hh-form-type" aria-label="Account type">${typeOpts}</select></div>
@@ -129,26 +140,28 @@ function acctAddForm(owner, deps, state){
 
 function acctOwnerColumn(owner, plan, deps, state){
   const isC = owner === 'client';
+  const isJoint = owner === 'joint';
   const accts = deps.allAccounts().filter(x => {
-    if(isC) return x.owner === 'client' || x.owner === 'joint' || x.owner === 'trust';
+    if(isJoint) return x.owner === 'joint' || x.owner === 'trust';
+    if(isC) return x.owner === 'client';
     return x.owner === 'spouse';
   });
   const inv = accts.reduce((s, x) => s + (x.balance || 0), 0);
-  if(!isC && !plan.household?.spouse){
+  if(owner === 'spouse' && !plan.household?.spouse){
     return `<div class="hh-col hh-col--placeholder">
       <button class="hh-dash-btn" type="button" data-hh-action="add-spouse">+ Add co-client</button>
     </div>`;
   }
-  const init = isC ? deps.initial(plan.meta?.primaryName, 'C')
+  const init = isJoint ? 'H' : isC ? deps.initial(plan.meta?.primaryName, 'C')
     : deps.initial(plan.meta?.spouseName, 'CC');
-  const title = isC ? 'CLIENT' : 'CO-CLIENT';
+  const title = isJoint ? 'HOUSEHOLD & JOINT' : isC ? 'CLIENT' : 'CO-CLIENT';
   const rows = accts.map(a => acctRow(a, deps)).join('');
-  return `<div class="hh-col">
+  return `<div class="hh-col${isJoint ? ' hh-col--joint' : ''}">
     <div class="hh-col__head hh-col__head--total">
-      <span class="hh-col__id"><span class="hh-av hh-av--${isC ? 'c' : 's'}">${init}</span><span class="hh-col__role">${title}</span></span>
+      <span class="hh-col__id"><span class="hh-av hh-av--${isJoint ? 'joint' : isC ? 'c' : 's'}">${init}</span><span class="hh-col__role">${title}</span></span>
       <span class="hh-col__sum">${hhMoney(inv)}</span>
     </div>
-    ${rows}
+    ${rows || `<p class="hh-account-empty">No ${isJoint ? 'joint or household' : 'personal'} accounts entered.</p>`}
     ${acctAddForm(owner, deps, state)}
     ${state.hhAcctFormOwner !== owner ? `<button class="hh-dash-btn" type="button" data-hh-action="open-account-form" data-owner="${owner}">+ Add account</button>` : ''}
   </div>`;
@@ -260,6 +273,9 @@ export function createHouseholdWizard(deps){
         ${acctOwnerColumn('client', plan, deps, state)}
         <div class="hh-cols__div" aria-hidden="true"></div>
         ${acctOwnerColumn('spouse', plan, deps, state)}
+      </div>
+      <div class="hh-joint-block">
+        ${acctOwnerColumn('joint', plan, deps, state)}
       </div>
       <div class="hh-grand-total">
         <div><div class="hh-grand-total__k">Total investable</div><div class="hh-grand-total__sub">${count} account${count === 1 ? '' : 's'}</div></div>

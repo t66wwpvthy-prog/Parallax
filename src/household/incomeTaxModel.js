@@ -10,8 +10,8 @@ export const INCOME_SOURCE_TYPES = freezeRows([
   { id: 'rental', label: 'Rental net income', timing: 'ongoing', taxablePct: 1 },
   { id: 'interest', label: 'Interest', timing: 'ongoing', taxablePct: 1 },
   { id: 'dividends', label: 'Dividends', timing: 'ongoing', taxablePct: 1 },
-  { id: 'short_term_capital_gains', label: 'Short-term capital gains', timing: 'ongoing', taxablePct: 1 },
-  { id: 'long_term_capital_gains', label: 'Long-term capital gains', timing: 'ongoing', taxablePct: 1 },
+  { id: 'short_term_capital_gains', label: 'Legacy external short-term gain', timing: 'ongoing', taxablePct: 1, projectionEnabled: false },
+  { id: 'long_term_capital_gains', label: 'Legacy external long-term gain', timing: 'ongoing', taxablePct: 1, projectionEnabled: false },
   { id: 'deferred_comp', label: 'Deferred compensation', timing: 'retirement', taxablePct: 1 },
   { id: 'other', label: 'Other income', timing: 'ongoing', taxablePct: 1 },
 ]);
@@ -47,6 +47,7 @@ export function createIncomeTaxInputs(){
     adjustments: [],
     deductions: [],
     deductionMode: 'auto',
+    realizedGains: { shortTerm: 0, longTerm: 0 },
   };
 }
 
@@ -141,6 +142,20 @@ export function createIncomeSource(plan, typeId = 'wages', owner = 'client'){
     taxablePct: type.taxablePct,
     qualifiedPct: type.id === 'dividends' ? 0 : undefined,
     netTaxable: type.id === 'rental' ? 0 : undefined,
+  };
+}
+
+export function retagIncomeSource(plan, source, typeId){
+  const previous = incomeType(source?.typeId);
+  const next = createIncomeSource(plan, typeId, source?.owner || 'client');
+  const keepCustomLabel = source?.label && source.label !== previous.label;
+  return {
+    ...source,
+    typeId: next.typeId,
+    label: keepCustomLabel ? source.label : next.label,
+    taxablePct: next.taxablePct,
+    qualifiedPct: next.qualifiedPct,
+    netTaxable: next.netTaxable,
   };
 }
 

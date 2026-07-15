@@ -126,6 +126,10 @@ function verifyHousehold(){
   ['Traditional IRA','Roth IRA','Brokerage (taxable)','401(k)','HSA'].forEach(t => {
     ok(source.includes(`'${t}'`), `Wizard account types missing: ${t}`);
   });
+  ['Checking','Savings','Money Market','Joint brokerage','Rollover IRA','403(b)','457','TSP','Roth 401(k)'].forEach(t => {
+    ok(source.includes(`'${t}'`), `Expanded wizard account types missing: ${t}`);
+  });
+  ok(/acctOwnerColumn\(['"]joint['"]/.test(source), 'Household / joint account section missing');
   ok(!/meta\.inflationPct/.test(source), 'engine-inert Inflation field must not ship in the wizard');
   ok(/VALID_OWNERS\s*=\s*new Set\(\[[\s\S]{0,100}['"]trust['"]/.test(source), 'Trust ownership must remain valid in the account registry');
 
@@ -662,10 +666,11 @@ try {
     const s2 = await page.evaluate(() => ({
       acctInputs: document.querySelectorAll('#hh-view input[data-path^="portfolio.extraAccounts."][data-path$=".balance"]').length,
       addAccountBtns: document.querySelectorAll('#hh-view [data-hh-action="open-account-form"]').length,
+      jointSection: !!document.querySelector('#hh-view .hh-col--joint'),
       grandTotal: document.querySelector('#hh-view .hh-grand-total__v')?.textContent.trim() || '',
     }));
     if(s2.acctInputs < 3) throw new Error(`typed account balances must be editable, got ${s2.acctInputs}`);
-    if(s2.addAccountBtns < 2) throw new Error(`"+ Add account" buttons missing, got ${s2.addAccountBtns}`);
+    if(s2.addAccountBtns < 3 || !s2.jointSection) throw new Error(`personal/joint account controls missing: ${JSON.stringify(s2)}`);
     if(!/\$[\d,]/.test(s2.grandTotal)) throw new Error(`grand total not formatted: "${s2.grandTotal}"`);
     if(!/\$2,800,000/.test(s2.grandTotal)) throw new Error(`demo grand total must be $2,800,000, got "${s2.grandTotal}"`);
 
@@ -689,6 +694,9 @@ try {
       claimAges: [...document.querySelectorAll('#hh-view input[data-path^="income.socialSecurity."][data-path$=".claimAge"]')]
         .map(el => ({ path: el.dataset.path, value: el.value, min: el.min, max: el.max })),
       savings: document.querySelector('#hh-view input[data-path="savings.annual"]')?.value ?? null,
+      addSavings: !!document.querySelector('#hh-view [data-hh-action="open-add"][data-add-key="savings"]'),
+      realizedGains: document.querySelectorAll('#hh-view input[data-path^="incomeTax.realizedGains."]').length,
+      incomeTypeSelectors: document.querySelectorAll('#hh-view select[data-type="incomeType"]').length,
       addIncome: !!document.querySelector('#hh-view [data-hh-action="open-add"][data-add-key="income"]'),
       addAdjustment: !!document.querySelector('#hh-view [data-hh-action="open-add"][data-add-key="adjustment"]'),
       addDeduction: !!document.querySelector('#hh-view [data-hh-action="open-add"][data-add-key="deduction"]'),
@@ -704,7 +712,9 @@ try {
     if(s3.pia < 1) throw new Error(`SS benefit inputs missing, got ${s3.pia}`);
     if(s3.claimAges.length !== 2 || s3.claimAges.some(field => field.value !== '67' || field.min !== '62' || field.max !== '70'))
       throw new Error(`SS claim-age inputs missing/defaulted incorrectly: ${JSON.stringify(s3.claimAges)}`);
-    if(s3.savings !== '0') throw new Error(`annual savings must render with the saved blank default, got "${s3.savings}"`);
+    if(s3.savings !== null || !s3.addSavings) throw new Error(`annual savings must remain inactive until added: ${JSON.stringify(s3)}`);
+    if(s3.realizedGains !== 2) throw new Error(`current-year realized-gain inputs missing: ${JSON.stringify(s3)}`);
+    if(s3.incomeTypeSelectors !== 2) throw new Error(`income type dropdowns missing: ${JSON.stringify(s3)}`);
     if(!s3.addIncome) throw new Error('"+ Add income" missing');
     if(!s3.addAdjustment || !s3.addDeduction) throw new Error('Income & Tax add controls missing');
     if(JSON.stringify(s3.incomeStartAges) !== JSON.stringify(['64','63']) || JSON.stringify(s3.incomeEndAges) !== JSON.stringify(['65','64']))
@@ -731,10 +741,12 @@ try {
     });
     await new Promise(r => setTimeout(r, 250));
 
+    await page.click('#hh-view [data-hh-action="open-add"][data-add-key="savings"]');
+    await new Promise(r => setTimeout(r, 150));
     await page.evaluate(() => {
-      const el = document.querySelector('#hh-view input[data-path="savings.annual"]');
-      el.value = '12,000';
-      el.dispatchEvent(new Event('change', { bubbles:true }));
+      const form = document.querySelector('#hh-view [data-hh-add-form="savings"]');
+      form.querySelector('[data-hh-draft="amount"]').value = '12,000';
+      form.querySelector('[data-hh-action="commit-add"]').click();
     });
     await new Promise(r => setTimeout(r, 300));
     const editedAnnual = await page.evaluate(() => document.querySelector('#hh-view input[data-path="savings.annual"]')?.value || '');
@@ -769,7 +781,7 @@ try {
     });
     await page.click('#hh-view [data-hh-action="commit-add"]'); await new Promise(r => setTimeout(r, 350));
     const addedIncome = await page.evaluate(() => {
-      const rows = [...document.querySelectorAll('#hh-view .hh-it-row input[data-path^="income.other."][data-path$=".label"]')];
+      const rows = [...document.querySelectorAll('#hh-view .hh-it-row select[data-path^="income.other."][data-path$=".typeId"]')];
       const row = rows.at(-1)?.closest('.hh-it-row');
       return {
         count: rows.length,
@@ -780,12 +792,12 @@ try {
     if(addedIncome.count !== 3 || addedIncome.start !== '64' || addedIncome.end !== '65')
       throw new Error(`quick-added wages must default to the client's working window: ${JSON.stringify(addedIncome)}`);
     await page.evaluate(() => {
-      const rows = [...document.querySelectorAll('#hh-view .hh-it-row input[data-path^="income.other."][data-path$=".label"]')];
+      const rows = [...document.querySelectorAll('#hh-view .hh-it-row select[data-path^="income.other."][data-path$=".typeId"]')];
       rows.at(-1)?.closest('.hh-it-row')?.querySelector('[data-rmpath]')?.click();
     });
     await new Promise(r => setTimeout(r, 300));
     const restoredIncomeCount = await page.evaluate(() =>
-      document.querySelectorAll('#hh-view .hh-it-row input[data-path^="income.other."][data-path$=".label"]').length);
+      document.querySelectorAll('#hh-view .hh-it-row select[data-path^="income.other."][data-path$=".typeId"]').length);
     if(restoredIncomeCount !== 2) throw new Error(`quick-added income cleanup failed: ${restoredIncomeCount}`);
 
     await page.click('#hh-step-4'); await new Promise(r => setTimeout(r, 350));

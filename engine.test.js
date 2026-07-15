@@ -228,6 +228,15 @@ test('other income streams report during accumulation years', () => {
   assert.strictEqual(at65.otherIncome, 0, 'wages ended the year before retirement');
 });
 
+test('current-year realized-gain tax facts do not create engine cash flow', () => {
+  const p = structuredClone(defaultPlan);
+  const base = runHistoricalPath(p, 1995, 'taxable-first');
+  p.incomeTax.realizedGains = { shortTerm:25000, longTerm:75000 };
+  const withTaxFacts = runHistoricalPath(p, 1995, 'taxable-first');
+  assert.deepStrictEqual(withTaxFacts.rows, base.rows,
+    'tax-only realized gains must not reduce withdrawals or alter portfolio balances');
+});
+
 test('accumulation rows report shortcut tax without funding from the portfolio', () => {
   const p = JSON.parse(JSON.stringify(defaultPlan));
   p.household.primary = { currentAge: 40, retirementAge: 65, planEndAge: 95 };

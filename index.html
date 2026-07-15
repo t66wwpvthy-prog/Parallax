@@ -55,43 +55,45 @@
        ===================================================================== -->
   <section class="page on" data-page="household">
     <div class="hh-stage">
-      <!-- Household controls sit above the card shell (spec: card = stepper + workspace + footer). -->
-      <div class="hh-wiz-top">
-        <div class="hh-wiz-id">
-          <div class="hh-avatars">
-            <div class="hh-avatar hh-avatar--c" id="hh-avatar-c" aria-hidden="true">C</div>
-            <div class="hh-avatar hh-avatar--s" id="hh-avatar-s" aria-hidden="true">S</div>
-          </div>
-          <div class="hh-wiz-id__text">
-            <div class="hh-wiz-id__name" id="hh-rail-name" data-hh-name></div>
-          </div>
-        </div>
-        <div class="hh-menu">
-          <button class="hh-menu__btn" id="hh-menu-btn" type="button"
-                  aria-haspopup="true" aria-expanded="false" title="Household options">⋯</button>
-          <div class="hh-menu__pop" id="hh-menu-pop" hidden>
-            <select class="hh-rail__switch-sel" id="hh-switch" title="Open household" aria-label="Open household"></select>
-            <button class="hh-rail-act hh-rail-act--new" id="hh-new" type="button" title="Create a new blank household">New Household</button>
-            <button class="hh-rail-act" id="hh-load-demo" type="button" title="Open the blank demo household">Load Demo</button>
-          </div>
-        </div>
-      </div>
-
       <div class="hh-wizard">
+        <header class="hh-wiz-header">
+          <div class="hh-wiz-top">
+            <div class="hh-wiz-id">
+              <div class="hh-avatars">
+                <div class="hh-avatar hh-avatar--c" id="hh-avatar-c" aria-hidden="true">C</div>
+                <div class="hh-avatar hh-avatar--s" id="hh-avatar-s" aria-hidden="true">S</div>
+              </div>
+              <div class="hh-wiz-id__text">
+                <span class="hh-wiz-id__label">Household</span>
+                <div class="hh-wiz-id__name" id="hh-rail-name" data-hh-name></div>
+                <div class="hh-wiz-id__meta" id="hh-rail-meta"></div>
+              </div>
+            </div>
+            <div class="hh-menu">
+              <button class="hh-menu__btn" id="hh-menu-btn" type="button"
+                      aria-haspopup="true" aria-expanded="false" title="Household options">⋯</button>
+              <div class="hh-menu__pop" id="hh-menu-pop" hidden>
+                <select class="hh-rail__switch-sel" id="hh-switch" title="Open household" aria-label="Open household"></select>
+                <button class="hh-rail-act hh-rail-act--new" id="hh-new" type="button" title="Create a new blank household">New Household</button>
+                <button class="hh-rail-act" id="hh-load-demo" type="button" title="Open the blank demo household">Load Demo</button>
+              </div>
+            </div>
+          </div>
 
-        <!-- Gold progress stepper = the view switch. The view layer toggles
-             .is-current / .is-done and renders the matching step into #hh-view. -->
-        <nav class="hh-stepper" role="tablist" aria-label="Household setup steps">
-          <button class="hh-step" id="hh-step-1" data-step="1" type="button" role="tab" aria-controls="hh-view"><span class="hh-step__num">1</span><span class="hh-step__label">People &amp; Timeline</span></button>
-          <span class="hh-step__conn" aria-hidden="true"></span>
-          <button class="hh-step" id="hh-step-2" data-step="2" type="button" role="tab" aria-controls="hh-view"><span class="hh-step__num">2</span><span class="hh-step__label">Balance Sheet</span></button>
-          <span class="hh-step__conn" aria-hidden="true"></span>
-          <button class="hh-step" id="hh-step-3" data-step="3" type="button" role="tab" aria-controls="hh-view"><span class="hh-step__num">3</span><span class="hh-step__label">Income &amp; Tax</span></button>
-          <span class="hh-step__conn" aria-hidden="true"></span>
-          <button class="hh-step" id="hh-step-4" data-step="4" type="button" role="tab" aria-controls="hh-view"><span class="hh-step__num">4</span><span class="hh-step__label">Spending &amp; Goals</span></button>
-          <span class="hh-step__conn" aria-hidden="true"></span>
-          <button class="hh-step" id="hh-step-5" data-step="5" type="button" role="tab" aria-controls="hh-view"><span class="hh-step__num">5</span><span class="hh-step__label">Blueprint</span></button>
-        </nav>
+          <!-- Gold progress stepper = the view switch. The view layer toggles
+               .is-current / .is-done and renders the matching step into #hh-view. -->
+          <nav class="hh-stepper" role="tablist" aria-label="Household setup steps">
+            <button class="hh-step" id="hh-step-1" data-step="1" type="button" role="tab" aria-controls="hh-view"><span class="hh-step__num">1</span><span class="hh-step__label">People &amp; Timeline</span></button>
+            <span class="hh-step__conn" aria-hidden="true"></span>
+            <button class="hh-step" id="hh-step-2" data-step="2" type="button" role="tab" aria-controls="hh-view"><span class="hh-step__num">2</span><span class="hh-step__label">Balance Sheet</span></button>
+            <span class="hh-step__conn" aria-hidden="true"></span>
+            <button class="hh-step" id="hh-step-3" data-step="3" type="button" role="tab" aria-controls="hh-view"><span class="hh-step__num">3</span><span class="hh-step__label">Income &amp; Tax</span></button>
+            <span class="hh-step__conn" aria-hidden="true"></span>
+            <button class="hh-step" id="hh-step-4" data-step="4" type="button" role="tab" aria-controls="hh-view"><span class="hh-step__num">4</span><span class="hh-step__label">Spending &amp; Goals</span></button>
+            <span class="hh-step__conn" aria-hidden="true"></span>
+            <button class="hh-step" id="hh-step-5" data-step="5" type="button" role="tab" aria-controls="hh-view"><span class="hh-step__num">5</span><span class="hh-step__label">Blueprint</span></button>
+          </nav>
+        </header>
 
         <div class="hh-wiz-workspace">
           <div class="hh-content" id="hh-view" aria-live="polite"></div>

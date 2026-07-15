@@ -44,7 +44,11 @@ test('approved account taxonomy maps to the three current Tax Buckets groups', (
   assert.equal(getAccountTypeById('inherited_traditional_ira')?.strategyRulesPending, true);
   assert.equal(getAccountTypeById('inherited_roth_ira')?.strategyRulesPending, true);
   assert.deepEqual(getWizardAccountTypes().map(type => type.typeId), [
-    'traditional_ira', 'roth_ira', 'brokerage_taxable', '401k', 'hsa',
+    'checking', 'savings', 'money_market', 'certificate_of_deposit',
+    'brokerage_taxable', 'joint_brokerage', 'tod_brokerage',
+    'traditional_ira', 'rollover_ira', 'sep_ira', 'simple_ira',
+    '401k', '403b', '457', '401a', 'tsp', 'solo_401k',
+    'roth_ira', 'roth_401k', 'roth_403b', 'roth_457', 'roth_tsp', 'hsa',
   ]);
 });
 

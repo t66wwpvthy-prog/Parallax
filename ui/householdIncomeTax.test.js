@@ -12,7 +12,7 @@ function plan(){
   value.household.primary = { currentAge:64, retirementAge:67, planEndAge:95 };
   value.household.spouse = { currentAge:63, retirementAge:66, planEndAge:95 };
   value.income.other = [];
-  value.incomeTax = { adjustments:[], deductions:[], deductionMode:'auto' };
+  value.incomeTax = { adjustments:[], deductions:[], deductionMode:'auto', realizedGains:{ shortTerm:0, longTerm:0 } };
   return value;
 }
 
@@ -34,9 +34,37 @@ test('income add flow exposes the complete timing and conditional-tax contract',
   ]) assert.match(html, new RegExp(`data-hh-draft="${key}"`), key);
   for(const type of [
     'wages','bonus','self_employment','social_security','pension','annuity','rental',
-    'interest','dividends','short_term_capital_gains','long_term_capital_gains',
-    'deferred_comp','other',
+    'interest','dividends','deferred_comp','other',
   ]) assert.match(html, new RegExp(`option value="${type}"`), type);
+  assert.doesNotMatch(html, /option value="(?:short|long)_term_capital_gains"/);
+  assert.match(html, /incomeTax\.realizedGains\.shortTerm/);
+  assert.match(html, /incomeTax\.realizedGains\.longTerm/);
+});
+
+test('entered income uses a tax-linked type dropdown with secondary details collapsed', () => {
+  const value = plan();
+  value.income.other = [{
+    typeId:'dividends', owner:'joint', label:'Dividends', amount:12000,
+    startAge:64, endAge:999, realGrowth:0, taxablePct:1, qualifiedPct:.8,
+  }];
+  const html = renderHouseholdIncomeTax(value, deps, { hhAddingKey:null });
+  assert.match(html, /data-path="income\.other\.0\.typeId" data-type="incomeType"/);
+  assert.match(html, /<details class="hh-it-row__details">/);
+  assert.match(html, /80% qualified/);
+  assert.doesNotMatch(html, /data-path="income\.other\.0\.label"/);
+});
+
+test('annual savings is inactive by default and becomes an editable row only when funded', () => {
+  const value = plan();
+  value.savings.annual = 0;
+  let html = renderHouseholdIncomeTax(value, deps, { hhAddingKey:null });
+  assert.match(html, /data-add-key="savings"/);
+  assert.doesNotMatch(html, /data-path="savings\.annual"/);
+
+  value.savings.annual = 12000;
+  html = renderHouseholdIncomeTax(value, deps, { hhAddingKey:null });
+  assert.match(html, /data-path="savings\.annual"/);
+  assert.match(html, /data-hh-action="remove-annual-savings"/);
 });
 
 test('adjustment and deduction add flows expose their full approved vocabularies', () => {

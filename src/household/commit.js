@@ -2,7 +2,7 @@ import { createAccount, hasSpouseOwnedAccounts } from './createAccount.js';
 import { createBlankTaxProfiles, taxProfileHasConfirmedFacts } from './factEnvelope.js';
 import { applyHouseholdTaxFactEdit } from './taxFactEdits.js';
 import { taxFactEditFromControl } from './taxFactEditorController.js';
-import { createAdjustment, createDeduction, createIncomeSource } from './incomeTaxModel.js';
+import { createAdjustment, createDeduction, createIncomeSource, retagIncomeSource } from './incomeTaxModel.js';
 
 export function bindHouseholdEditor({
   root,
@@ -96,6 +96,14 @@ export function bindHouseholdEditor({
     if(!path) return;
     if(!guardPlanMutation()){ syncHousehold(); return; }
     const raw = e.target.value;
+    if(type === 'incomeType'){
+      const match = /^income\.other\.(\d+)\.typeId$/.exec(path);
+      const index = match ? Number(match[1]) : -1;
+      if(index < 0 || !plan.income?.other?.[index]) return;
+      plan.income.other[index] = retagIncomeSource(plan, plan.income.other[index], raw);
+      hhCommit();
+      return;
+    }
     if(type==='text' || type==='strategy' || type==='owner' || type==='bucket'){
       setPath(plan, path, raw);
       hhCommit();
@@ -180,7 +188,7 @@ export function bindHouseholdEditor({
     const act = e.target.closest('[data-hh-action]');
     if(!act) return;
     const action = act.dataset.hhAction;
-    const lockedAction = ['add-spouse','remove-spouse','open-account-form','save-account','open-add','commit-add','add-home','add-mortgage','add-pension-age'].includes(action);
+    const lockedAction = ['add-spouse','remove-spouse','open-account-form','save-account','open-add','commit-add','remove-annual-savings','add-home','add-mortgage','add-pension-age'].includes(action);
     if(lockedAction && !guardPlanMutation()) return;
     if(action === 'add-spouse'){
       plan.household.spouse = {
@@ -229,6 +237,7 @@ export function bindHouseholdEditor({
         return;
       }
       const owner = transientState.hhAcctFormOwner || 'client';
+      if(t.owners && !t.owners.includes(owner)) return;
       if(!plan.portfolio.extraAccounts) plan.portfolio.extraAccounts = [];
       plan.portfolio.extraAccounts.push(createAccount(t.typeId, { owner, balance: Math.round(bal) }));
       transientState.hhAcctFormOwner = null;
@@ -254,7 +263,16 @@ export function bindHouseholdEditor({
       const amt = parseFloat(String(amtRaw).replace(/[^0-9.]/g, '')) || 0;
       const typeId = control('type')?.value || 'other';
       const owner = control('owner')?.value || 'client';
-      if(transientState.hhAddingKey === 'income'){
+      if(transientState.hhAddingKey === 'savings'){
+        const amountControl = control('amount');
+        if(!(amt > 0)){
+          amountControl?.setCustomValidity('Enter annual savings greater than zero');
+          amountControl?.reportValidity();
+          return;
+        }
+        if(!plan.savings) plan.savings = { annual:0, split:{ traditional:1, roth:0, taxable:0 } };
+        plan.savings.annual = Math.round(amt);
+      } else if(transientState.hhAddingKey === 'income'){
         const amountControl = control('amount');
         if(!(amt > 0)){
           amountControl?.setCustomValidity('Enter an annual amount greater than zero');
@@ -338,6 +356,11 @@ export function bindHouseholdEditor({
       transientState.hhAddingKey = null;
       transientState.hhDraftLabel = '';
       transientState.hhDraftAmount = '';
+      hhCommit();
+    } else if(action === 'remove-annual-savings'){
+      if(!plan.savings) plan.savings = { annual:0, split:{ traditional:1, roth:0, taxable:0 } };
+      plan.savings.annual = 0;
+      transientState.hhAddingKey = null;
       hhCommit();
     } else if(action === 'add-home'){
       if(!Array.isArray(plan.properties)) plan.properties = [];

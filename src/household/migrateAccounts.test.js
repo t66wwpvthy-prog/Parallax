@@ -94,10 +94,16 @@ test('registry exports are immutable', () => {
   assert.throws(() => { registry[0].label = 'changed'; });
 });
 
-test('getWizardAccountTypes preserves approved five choices and order', () => {
+test('getWizardAccountTypes exposes the approved grouped account choices in order', () => {
   assert.deepEqual(getWizardAccountTypes().map(w => w.label), [
-    'Traditional IRA', 'Roth IRA', 'Brokerage (taxable)', '401(k)', 'HSA',
+    'Checking', 'Savings', 'Money Market', 'CD',
+    'Brokerage (taxable)', 'Joint brokerage', 'TOD brokerage',
+    'Traditional IRA', 'Rollover IRA', 'SEP IRA', 'SIMPLE IRA',
+    '401(k)', '403(b)', '457', '401(a)', 'TSP', 'Solo 401(k)',
+    'Roth IRA', 'Roth 401(k)', 'Roth 403(b)', 'Roth 457', 'Roth TSP', 'HSA',
   ]);
+  const joint = getWizardAccountTypes().filter(type => type.owners.includes('joint')).map(type => type.typeId);
+  assert.deepEqual(joint, ['checking', 'savings', 'money_market', 'certificate_of_deposit', 'joint_brokerage']);
 });
 
 test('createFact preserves explicit status and confirmed empty arrays count', () => {
