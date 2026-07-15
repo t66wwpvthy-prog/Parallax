@@ -1,5 +1,6 @@
 import { ACCOUNT_SCHEMA_VERSION } from '../src/household/accountTypes.js';
 import { createBlankTaxProfiles } from '../src/household/factEnvelope.js';
+import { createIncomeTaxInputs } from '../src/household/incomeTaxModel.js';
 
 const clonePristinePlan = pristinePlan => JSON.parse(JSON.stringify(pristinePlan));
 
@@ -44,6 +45,7 @@ export function createBlankHousehold(pristinePlan, householdId, currentYear){
   p.income.socialSecurity.spouse  = null;
   p.income.pension = { benefitByAge: {}, base: 0, startAge: 65, colaPct: 0 };
   p.income.other   = [];
+  p.incomeTax = createIncomeTaxInputs();
   p.goals = [];
   p.simulation.iterations = 1000;
   return p;

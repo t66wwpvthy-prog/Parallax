@@ -406,6 +406,7 @@ const plan = {
     // only as a legacy single-amount fallback.
     pension:        { benefitByAge: {}, base: 0, startAge: 65, colaPct: 0 }
   },
+  incomeTax: { adjustments: [], deductions: [], deductionMode: 'auto' },
   // expenses: the fixed essential scalars PLUS `extra` — an array of discretionary,
   // time-bounded spending lines ({ label, amount, startAge, endAge }). Discretionary
   // extras flex with the spending lever (spendMult), flat-real otherwise. Empty default.
@@ -572,8 +573,15 @@ function runSimulation(plan, overrides = {}, returnPaths = null, options = {}){
 
 function resolveInputs(plan, ov){
   const profile = RISK_PROFILES[plan.portfolio.riskProfile];
-  const horizon = (plan.household.primary.planEndAge + (ov.longevityYears || 0))
-                  - plan.household.primary.currentAge;
+  const pCurAge = plan.household.primary.currentAge;
+  const spousePlan = plan.household.spouse || null;
+  const spouseCurAge = spousePlan?.currentAge ?? pCurAge;
+  const primaryEndAge = plan.household.primary.planEndAge;
+  const spouseEndAge = spousePlan
+    ? pCurAge + ((spousePlan.planEndAge ?? primaryEndAge) - spouseCurAge)
+    : null;
+  const householdEndAge = Math.max(primaryEndAge, spouseEndAge ?? primaryEndAge);
+  const horizon = (householdEndAge + (ov.longevityYears || 0)) - pCurAge;
   const equityShockShare = profile.eq;
 
   // Social Security — per person. Each benefit is the pia (benefit at FRA, today's
@@ -585,9 +593,6 @@ function resolveInputs(plan, ov){
   const ssCfg = plan.income.socialSecurity || {};
   const ssCutMult = 1 - (ov.ssCut || 0);
   const ssDelta = ov.ssDelayYears || 0;
-  const pCurAge = plan.household.primary.currentAge;
-  const spouseCurAge = (plan.household.spouse && plan.household.spouse.currentAge != null)
-                       ? plan.household.spouse.currentAge : pCurAge;
   const ssBenefits = [];
   function addSS(person, isPrimary){
     if(!person || !(person.pia > 0)) return;
@@ -596,7 +601,8 @@ function resolveInputs(plan, ov){
     const personCurAge = isPrimary ? pCurAge : spouseCurAge;
     ssBenefits.push({
       amount:   ssAdjust(person.pia, claim) * ssCutMult,
-      startAge: pCurAge + (claim - personCurAge)   // claim age expressed in the primary's age frame
+      startAge: pCurAge + (claim - personCurAge),
+      endAge: isPrimary ? primaryEndAge : spouseEndAge,
     });
   }
   addSS(ssCfg.primary, true);
@@ -648,11 +654,10 @@ function resolveInputs(plan, ov){
   const retireDelay   = ov.retireDelay || 0;
   const primaryRetirementAge = Math.max(curAge, (plan.household.primary.retirementAge != null
                           ? plan.household.primary.retirementAge : curAge) + retireDelay);
-  const spouse = plan.household.spouse || null;
+  const spouse = spousePlan;
   let spouseRetirementAgeOnPrimaryTimeline = null;
   if(spouse && spouse.retirementAge != null){
-    const spouseAge = (spouse.currentAge != null) ? spouse.currentAge : curAge;
-    spouseRetirementAgeOnPrimaryTimeline = curAge + Math.max(0, (spouse.retirementAge + retireDelay) - spouseAge);
+    spouseRetirementAgeOnPrimaryTimeline = curAge + Math.max(0, (spouse.retirementAge + retireDelay) - spouseCurAge);
   }
   const retirementAge = Math.max(curAge, primaryRetirementAge, spouseRetirementAgeOnPrimaryTimeline ?? curAge);
   const savingsAnnual = Math.max(0, ((plan.savings && plan.savings.annual) || 0) * (1 + (ov.savingsBump || 0)));
@@ -756,13 +761,20 @@ function resolveInputs(plan, ov){
     // fully-taxed behavior). Accepts a legacy single object too.
     otherIncome: (Array.isArray(plan.income.other) ? plan.income.other
                   : (plan.income.other ? [plan.income.other] : []))
-      .map(o => ({
-        amount:     Math.max(0, o.amount || 0),
-        startAge:   (o.startAge != null ? o.startAge : 0),
-        endAge:     (o.endAge   != null ? o.endAge   : 999),
-        realGrowth: (o.realGrowth || 0),
-        taxablePct: (o.taxablePct == null ? 1 : Math.max(0, Math.min(1, o.taxablePct)))
-      })),
+      .map(o => {
+        const spouseOwned = o.owner === 'spouse' && spousePlan;
+        const mapAge = age => spouseOwned && age !== 999
+          ? pCurAge + (age - spouseCurAge)
+          : age;
+        const ownerEndAge = spouseOwned ? spouseEndAge : primaryEndAge;
+        return {
+          amount: Math.max(0, o.amount || 0),
+          startAge: mapAge(o.startAge != null ? o.startAge : 0),
+          endAge: Math.min(mapAge(o.endAge != null ? o.endAge : 999), ownerEndAge ?? 999),
+          realGrowth: o.realGrowth || 0,
+          taxablePct: o.taxablePct == null ? 1 : Math.max(0, Math.min(1, o.taxablePct)),
+        };
+      }),
     pension:        { amount: pensionAmount, startAge: penStartAge, colaReal: penColaReal },
     ltc:            { amount: Math.max(0, (ltc.amount || 0) * (1 + (ov.ltcAdj || 0))), onsetAge: (ltc.onsetAge != null ? ltc.onsetAge : 999) },
     expenses: {
@@ -827,7 +839,8 @@ function resolveInputs(plan, ov){
         name:     g.name || '',
         amount:   Math.max(0, g.amount || 0),
         startAge: (g.startAge != null ? g.startAge : 0),
-        endAge:   (g.endAge   != null ? g.endAge   : 999)
+        endAge:   (g.endAge   != null ? g.endAge   : 999),
+        fundFromPortfolioBeforeRetirement: g.fundFromPortfolioBeforeRetirement === true,
       })),
     // Tax rates split: ordinary income (for traditional withdrawals and SS),
     // and long-term capital gains (for taxable account gains).
@@ -841,7 +854,12 @@ function resolveInputs(plan, ov){
     // One-time cash shock injected at a specific year (fragility probe).
     lumpSum:     Math.max(0, ov.lumpSum || 0),
     lumpSumYear: (ov.lumpSumYear != null ? ov.lumpSumYear : -1),
-    iterations: plan.simulation.iterations
+    iterations: plan.simulation.iterations,
+    survival: {
+      initialFilingStatus: plan.meta?.filingStatus ?? null,
+      primaryEndAge,
+      spouseEndAge,
+    }
   };
 }
 
@@ -870,7 +888,7 @@ function rmdDivisor(age){
 
 function externalIncomeAtAge(p, age){
   let ssInc = 0;
-  for(const b of p.ss){ if(age >= b.startAge) ssInc += b.amount; }
+  for(const b of p.ss){ if(age >= b.startAge && (b.endAge == null || age < b.endAge)) ssInc += b.amount; }
   let oiInc = 0, oiTaxable = 0;
   for(const o of p.otherIncome){
     if(age >= o.startAge && age <= o.endAge){
@@ -882,6 +900,19 @@ function externalIncomeAtAge(p, age){
   const penInc = (p.pension && age >= p.pension.startAge)
     ? p.pension.amount * Math.pow(1 + (p.pension.colaReal || 0), age - p.pension.startAge) : 0;
   return { ssInc, oiInc, oiTaxable, penInc };
+}
+
+function householdTaxStatusAtAge(p, age){
+  const survival = p.survival || {};
+  const primaryAlive = survival.primaryEndAge == null || age < survival.primaryEndAge;
+  const spouseAlive = survival.spouseEndAge == null || age < survival.spouseEndAge;
+  const hasSpouseTimeline = survival.spouseEndAge != null;
+  return {
+    filingStatus: hasSpouseTimeline && (!primaryAlive || !spouseAlive)
+      ? 'single'
+      : survival.initialFilingStatus,
+    survivor: hasSpouseTimeline && primaryAlive !== spouseAlive,
+  };
 }
 
 function shortcutTaxOnExternalIncome(p, { ssInc, oiTaxable, penInc }){
@@ -1045,6 +1076,7 @@ function buildFederalFundingCandidate({
   const policyRow = {
     year: y + 1,
     age,
+    ...householdTaxStatusAtAge(p, age),
     source: rp.y,
     returnRate: r,
     returnDollars: startBalance * r,
@@ -1264,13 +1296,15 @@ function runSinglePath(p, returnPath, options = {}){
       // traditional, then Roth. (Simplification: principal only, no cap-gains tax
       // on the sale — small vs the outlay and consistent with the accum model.)
       const lumpA = (p.lumpSum > 0 && y === p.lumpSumYear) ? p.lumpSum : 0;
-      // Goals in working years (e.g. college funding) are real outlays too — a
-      // pre-retirement goal used to be silently dropped (charged only after
-      // retirement). Same window logic as the retirement phase; funded by the
-      // same liquidation order as a lump outlay (salary covers recurring costs,
-      // a goal draws down the portfolio).
+      // Parallax does not run a working-year household budget. A goal remains
+      // off-book before both clients retire unless the advisor explicitly marks
+      // it as portfolio-funded.
       let goalsA = 0;
-      for(const g of p.goals){ if(age >= g.startAge && age <= g.endAge) goalsA += g.amount; }
+      for(const g of p.goals){
+        if(g.fundFromPortfolioBeforeRetirement && age >= g.startAge && age <= g.endAge){
+          goalsA += g.amount;
+        }
+      }
       const outlayA = lumpA + goalsA;
       if(outlayA > 0){
         let rem = outlayA;
@@ -1290,6 +1324,7 @@ function runSinglePath(p, returnPath, options = {}){
       const { taxOnSS, taxOnOI, taxOnPen, shortcutTax } = shortcutTaxOnExternalIncome(p, { ssInc, oiTaxable, penInc });
       const row = {
         year: y+1, age, source: rp.y, returnRate: r, phase: 'accum',
+        ...householdTaxStatusAtAge(p, age),
         returnDollars: startBalanceA * r,
         socialSecurity: ssInc, otherIncome: oiInc, pension: penInc, withdrawal: 0, assetSale: saleProceeds,
         ...(oiInc > 0 ? { otherIncomeTaxable: oiTaxable } : {}),
@@ -1555,6 +1590,7 @@ function runSinglePath(p, returnPath, options = {}){
 
     const row = {
       year: y+1, age, source: rp.y, returnRate: r,
+      ...householdTaxStatusAtAge(p, age),
       returnDollars: startBalance * r,
       nominalReturn: (rp && rp.proxyNominalReturn != null) ? rp.proxyNominalReturn : null,
       inflationRate: (rp && rp.proxyInflationRate != null) ? rp.proxyInflationRate : null,

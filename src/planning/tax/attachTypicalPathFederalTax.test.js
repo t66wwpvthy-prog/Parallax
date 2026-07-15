@@ -341,6 +341,31 @@ test('RMD and taxable-withdrawal planner facts match sidecar intake and attached
   assert.strictEqual(attachedYear.federalTaxLiability, direct.result.form1040.line24.value);
 });
 
-test('survivor filing-status transition integration', {
-  skip: 'engine has spouse benefits but no death/survivor state or filing-status transition row fact',
-}, () => {});
+test('survivor filing-status transition integration', () => {
+  const plan = cloneDefaultPlan();
+  plan.meta.filingStatus = 'marriedFilingJointly';
+  plan.household.primary = { currentAge: 65, retirementAge: 65, planEndAge: 92 };
+  plan.household.spouse = { currentAge: 64, retirementAge: 64, planEndAge: 68 };
+  plan.income.socialSecurity = {
+    primary: { pia: 30000, claimAge: 65 },
+    spouse: { pia: 20000, claimAge: 64 },
+  };
+  plan.expenses = { living: 20000, housing: 0, debt: 0, healthcare: 0, extra: [], healthcareRealGrowth: 0 };
+  plan.goals = [];
+  plan.liabilities = [];
+  const { analysis, path } = historicalAnalysis(plan);
+  const before = path.rows.find(row => row.age === 68);
+  const after = path.rows.find(row => row.age === 69);
+  assert.strictEqual(before.filingStatus, 'marriedFilingJointly');
+  assert.strictEqual(before.survivor, false);
+  assert.strictEqual(after.filingStatus, 'single');
+  assert.strictEqual(after.survivor, true);
+  assert.ok(after.socialSecurity < before.socialSecurity, 'deceased spouse benefit stops');
+
+  const summary = attachTypicalPathFederalTax(analysis, {
+    filingStatus: 'marriedFilingJointly',
+    baseTaxYear: 2026,
+  });
+  assert.strictEqual(summary.years.find(year => year.age === 68).filingStatus, 'marriedFilingJointly');
+  assert.strictEqual(summary.years.find(year => year.age === 69).filingStatus, 'single');
+});
