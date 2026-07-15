@@ -146,6 +146,14 @@ function verifyHousehold(){
   ok(!/class="hh-tl/.test(source) && !/\.hh-tl/.test(css), 'retired person timeline bars must be removed');
   ok(/field\(['"]savings\.annual['"],\s*['"]money['"]\)/.test(source), 'annual savings field missing from wizard cash flow step');
   ok(!/hhField\('income\.workingIncome'/.test(source), 'working income must not render as a wizard input (engine-inert today)');
+  ['type','owner','amount','startAge','endAge','growthPct','interestTreatment','qualifiedPct','taxablePct','netTaxable']
+    .forEach(field => ok(source.includes(`data-hh-draft="${field}"`), `Income & Tax add field missing: ${field}`));
+  ['wages','bonus','self_employment','social_security','pension','annuity','rental','interest','dividends','deferred_comp','other']
+    .forEach(type => ok(source.includes(`id: '${type}'`), `Income source type missing: ${type}`));
+  ['401k','hsa','ira_deduction'].forEach(type =>
+    ok(source.includes(`id: '${type}'`), `Adjustment type missing: ${type}`));
+  ['medical','charitable','mortgage_interest','salt'].forEach(type =>
+    ok(source.includes(`id: '${type}'`), `Deduction type missing: ${type}`));
 
   // EDITABLE console: inline data-path inputs + a #hh-view delegate that writes
   // back to `plan` and reseeds/dirties scenarios (parity with the rest of the
@@ -366,6 +374,17 @@ try {
   const browser = await puppeteer.launch({ ...launchOpts, headless: true });
   const rawPage = await browser.newPage();
   await rawPage.setViewport({ width: 1920, height: 1080, deviceScaleFactor: 3 });
+  // Visual verification must not depend on a third-party font host. Production
+  // still loads Google Fonts normally; the verifier substitutes an empty CSS
+  // response so navigation reaches network-idle in restricted/offline runners.
+  await rawPage.setRequestInterception(true);
+  rawPage.on('request', request => {
+    if(/^https:\/\/fonts\.googleapis\.com\//.test(request.url())){
+      request.respond({ status:204, contentType:'text/css', body:'' });
+      return;
+    }
+    request.continue();
+  });
   // Puppeteer can briefly retain a detached main-frame handle while a prior
   // reload settles. Retry only that transport-level condition; all assertion,
   // selector, and application errors still fail immediately.
@@ -723,10 +742,31 @@ try {
 
     // Wizard quick-add creates an engine-ready income source.
     await page.click('#hh-view [data-hh-action="open-add"][data-add-key="income"]'); await new Promise(r => setTimeout(r, 200));
-    const incomeTypeOptions = await page.evaluate(() =>
-      [...document.querySelectorAll('#hh-view [data-hh-draft="type"] option')].map(option => option.value));
-    if(incomeTypeOptions.includes('social_security'))
-      throw new Error('Social Security must use the dedicated per-client rows, not duplicate generic income');
+    const incomeDraft = await page.evaluate(() => ({
+      options:[...document.querySelectorAll('#hh-view [data-hh-draft="type"] option')].map(option => option.value),
+      fields:[...document.querySelectorAll('#hh-view [data-hh-draft]')].map(field => field.dataset.hhDraft),
+    }));
+    const requiredIncomeTypes = ['wages','bonus','self_employment','social_security','pension','annuity','rental','interest','dividends','deferred_comp','other'];
+    const requiredIncomeFields = ['type','owner','amount','startAge','endAge','growthPct','interestTreatment','qualifiedPct','taxablePct','netTaxable'];
+    if(requiredIncomeTypes.some(type => !incomeDraft.options.includes(type)) || requiredIncomeFields.some(field => !incomeDraft.fields.includes(field)))
+      throw new Error(`income add flow is incomplete: ${JSON.stringify(incomeDraft)}`);
+    await page.evaluate(() => {
+      const form = document.querySelector('#hh-view [data-hh-add-form="income"]');
+      const type = form.querySelector('[data-hh-draft="type"]');
+      type.value = 'dividends';
+      type.dispatchEvent(new Event('change', { bubbles:true }));
+    });
+    await new Promise(r => setTimeout(r, 150));
+    const conditionalVisible = await page.evaluate(() =>
+      !document.querySelector('#hh-view [data-visible-for~="dividends"]')?.hidden);
+    if(!conditionalVisible) throw new Error('dividend qualified-percentage field did not appear');
+    await page.evaluate(() => {
+      const form = document.querySelector('#hh-view [data-hh-add-form="income"]');
+      const type = form.querySelector('[data-hh-draft="type"]');
+      type.value = 'wages';
+      type.dispatchEvent(new Event('change', { bubbles:true }));
+      form.querySelector('[data-hh-draft="amount"]').value = '1,000';
+    });
     await page.click('#hh-view [data-hh-action="commit-add"]'); await new Promise(r => setTimeout(r, 350));
     const addedIncome = await page.evaluate(() => {
       const rows = [...document.querySelectorAll('#hh-view .hh-it-row input[data-path^="income.other."][data-path$=".label"]')];
