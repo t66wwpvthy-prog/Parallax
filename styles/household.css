@@ -651,6 +651,7 @@
   min-height: 43px; padding: 5px 2px; display: flex; align-items: center; justify-content: space-between;
   gap: 14px; border-bottom: 1px solid var(--line-06);
 }
+.page[data-page="household"] .hh-it-row:hover { background: rgba(255,255,255,.02); }
 .page[data-page="household"] .hh-it-row__copy { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 3px; }
 .page[data-page="household"] .hh-it-row__title,
 .page[data-page="household"] .hh-it-row__title input {
@@ -667,6 +668,12 @@
 .page[data-page="household"] .hh-it-row__meta input[data-path] {
   width: 5.5ch; padding: 0; color: var(--text-3); font-size: 11px; text-align: center;
 }
+.page[data-page="household"] .hh-it-inline-check,
+.page[data-page="household"] .hh-it-check {
+  display: inline-flex; align-items: center; gap: 6px; color: var(--text-4); cursor: pointer;
+}
+.page[data-page="household"] .hh-it-inline-check input,
+.page[data-page="household"] .hh-it-check input { accent-color: var(--gold); }
 .page[data-page="household"] .hh-it-row__end { flex: none; display: inline-flex; align-items: center; gap: 8px; }
 .page[data-page="household"] .hh-it-row__amount,
 .page[data-page="household"] .hh-it-row__amount input[data-type="money"] {
@@ -689,6 +696,45 @@
   background: transparent; color: var(--gold); font: 400 12px/1 var(--font-sans); cursor: pointer; white-space: nowrap;
 }
 .page[data-page="household"] .hh-it-add:hover { border-color: var(--gold); color: var(--gold-bright); }
+.page[data-page="household"] .hh-it-add-card {
+  width: 100%; margin-top: 12px; padding: 17px 18px 15px;
+  border: 1px solid var(--line-10); border-radius: 12px; background: rgba(231,222,201,.012);
+}
+.page[data-page="household"] .hh-it-add-grid {
+  display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 14px 16px;
+}
+.page[data-page="household"] .hh-it-add-card--compact .hh-it-add-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+.page[data-page="household"] .hh-it-draft-field { min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.page[data-page="household"] .hh-it-draft-field[hidden] { display: none; }
+.page[data-page="household"] .hh-it-draft-field > span:first-child {
+  color: var(--text-4); font-size: 9.5px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase;
+}
+.page[data-page="household"] .hh-it-draft-field select,
+.page[data-page="household"] .hh-it-draft-field > input,
+.page[data-page="household"] .hh-it-add-form__money,
+.page[data-page="household"] .hh-it-add-form__pct {
+  width: 100%; min-height: 38px; border: 1px solid var(--line-12); border-radius: 8px;
+  background: rgba(231,222,201,.018); color: var(--text-1); font-size: 13px;
+}
+.page[data-page="household"] .hh-it-draft-field select,
+.page[data-page="household"] .hh-it-draft-field > input { padding: 8px 10px; outline: none; }
+.page[data-page="household"] .hh-it-add-form__money,
+.page[data-page="household"] .hh-it-add-form__pct { display: flex; align-items: center; padding: 0 10px; color: var(--text-4); }
+.page[data-page="household"] .hh-it-add-form__money input,
+.page[data-page="household"] .hh-it-add-form__pct input {
+  width: 100%; min-width: 0; border: 0; background: transparent; color: var(--text-1); font-size: 13px; padding: 8px 5px; outline: none;
+}
+.page[data-page="household"] .hh-it-add-form__money input { text-align: right; }
+.page[data-page="household"] .hh-it-draft-field select:focus,
+.page[data-page="household"] .hh-it-draft-field > input:focus,
+.page[data-page="household"] .hh-it-add-form__money:focus-within,
+.page[data-page="household"] .hh-it-add-form__pct:focus-within {
+  border-color: var(--gold-dim); box-shadow: 0 0 0 2px rgba(195,165,106,.08);
+}
+.page[data-page="household"] .hh-it-auto-copy { min-height: 38px; display: flex; align-items: center; color: var(--sage); font-size: 12px; }
+.page[data-page="household"] .hh-it-check { min-height: 38px; font-size: 12px; }
+.page[data-page="household"] .hh-it-add-actions { margin-top: 15px; display: flex; justify-content: flex-end; gap: 9px; }
+.page[data-page="household"] .hh-it-add-actions .hh-btn { padding: 8px 13px; font-size: 11px; }
 .page[data-page="household"] .hh-it-add-form {
   width: 100%; min-height: 42px; margin-top: 10px; padding: 7px 9px; display: flex; align-items: center; gap: 8px;
   border: 1px solid var(--line-10); border-radius: 8px; background: rgba(231,222,201,.012);
@@ -712,6 +758,8 @@
   color: var(--sage); font-size: 8px; letter-spacing: .12em;
 }
 .page[data-page="household"] .hh-it-auto-row strong { color: var(--text-3); font: 400 18px/1 var(--font-serif); }
+.page[data-page="household"] .hh-it-deduction-note { margin: 10px 0 0; color: var(--text-4); font-size: 10.5px; text-align: right; }
+.page[data-page="household"] .hh-it-deduction-note em { color: var(--sage); font-style: normal; }
 .page[data-page="household"] .hh-it-foundation {
   margin-top: 20px; padding: 12px 0; display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 24px;
   border-top: 1px solid var(--line-10); border-bottom: 1px solid var(--line-10);
@@ -721,6 +769,7 @@
 .page[data-page="household"] .hh-it-stat > strong {
   overflow: hidden; color: var(--gold); font: 400 20px/1 var(--font-serif); text-overflow: ellipsis; white-space: nowrap;
 }
+.page[data-page="household"] .hh-it-stat--final > strong { color: var(--gold); }
 .page[data-page="household"] .hh-it-stat > small { color: var(--text-4); font-size: 9.5px; }
 .page[data-page="household"] .hh-it-tax-head { margin-top: 15px; display: flex; justify-content: space-between; gap: 20px; }
 .page[data-page="household"] .hh-it-tax-head small { color: var(--text-4); font-size: 10px; }
@@ -1001,6 +1050,8 @@
   .page[data-page="household"] .hh-it-add-form { flex-wrap: wrap; }
   .page[data-page="household"] .hh-it-add-form select,
   .page[data-page="household"] .hh-it-add-form > input { flex-basis: calc(50% - 8px); }
+  .page[data-page="household"] .hh-it-add-grid,
+  .page[data-page="household"] .hh-it-add-card--compact .hh-it-add-grid { grid-template-columns: 1fr; }
   .page[data-page="household"] .hh-sg-foundation { grid-template-columns: 1fr; }
   .page[data-page="household"] .hh-sg-foundation > span { grid-row: auto; }
   .page[data-page="household"] .hh-tax-details > summary,

@@ -5,6 +5,7 @@ import {
   isSourceActiveNow,
   normalizedIncomeSource,
 } from '../../household/incomeTaxModel.js';
+import { CAPITAL_GAINS_THRESHOLDS, ORDINARY_BRACKETS } from '../../tax/core/constants.js';
 
 const add = (target, key, amount) => { target[key] = (target[key] || 0) + amount; };
 
@@ -23,9 +24,17 @@ function currentIncome(plan){
     else if(source.typeId === 'dividends'){
       add(income, 'ordinaryDividends', amount);
       add(income, 'qualifiedDividends', amount * Math.max(0, Math.min(1, source.qualifiedPct || 0)));
+    }else if(source.typeId === 'long_term_capital_gains'){
+      add(income, 'capitalGain', amount);
+    }else if(source.typeId === 'short_term_capital_gains'){
+      add(income, 'otherIncome', amount);
     }else if(source.typeId === 'pension' || source.typeId === 'annuity'){
       add(income, 'pensionAmount', amount);
       add(income, 'taxablePensions', amount * Math.max(0, Math.min(1, source.taxablePct ?? 1)));
+    }else if(source.typeId === 'rental'){
+      add(income, 'otherIncome', source.netTaxable == null
+        ? amount * Math.max(0, Math.min(1, source.taxablePct ?? 1))
+        : source.netTaxable);
     }else add(income, 'otherIncome', amount * Math.max(0, Math.min(1, source.taxablePct ?? 1)));
   }
 
@@ -69,7 +78,7 @@ function unsupportedCurrentInputs(plan, filingStatus, income){
     .find(row => row.typeId === 'ira_deduction' && Number(row.amount) > 0);
   if(unsupportedAdjustment) return 'Deductible IRA treatment needs workplace-plan facts';
   const unsupportedDeduction = (plan.incomeTax?.deductions || [])
-    .find(row => ['medical', 'salt'].includes(row.typeId) && Number(row.amount) > 0);
+    .find(row => ['medical', 'salt', 'state_local_income_tax', 'real_estate_tax', 'personal_property_tax'].includes(row.typeId) && Number(row.amount) > 0);
   if(unsupportedDeduction){
     return unsupportedDeduction.typeId === 'medical'
       ? 'Medical deduction needs the federal AGI-floor rule'
@@ -129,6 +138,26 @@ export function buildCurrentIncomeTaxSummary(plan){
     const selected = itemizedDeduction > standardDeduction ? itemized : standard;
     const annual = selected.annual1040Result;
     const capAudit = selected.audits?.find(entry => entry.ruleId === 'FED_CAPITAL_GAINS_STACKING');
+    const ordinaryAudit = selected.audits?.find(entry => entry.ruleId === 'FED_ORDINARY_INCOME_TAX');
+    const ordinaryTaxableIncome = ordinaryAudit?.inputsUsed?.taxableOrdinaryIncome;
+    const bracket = ORDINARY_BRACKETS['2026_FINAL']?.[filingStatus]
+      ?.find(row => ordinaryTaxableIncome <= row.upTo);
+    const ordinaryBracketRoom = bracket && Number.isFinite(bracket.upTo)
+      ? Math.max(0, bracket.upTo - ordinaryTaxableIncome)
+      : null;
+    const capitalRate = capAudit?.calculationSteps?.at(-1)?.rate ?? null;
+    const capitalThresholds = CAPITAL_GAINS_THRESHOLDS['2026_FINAL']?.[filingStatus];
+    let capitalGainsCaption = '';
+    if(capitalRate != null && capitalThresholds){
+      capitalGainsCaption = capitalRate === 0
+        ? `$${Math.max(0, capitalThresholds.zeroRateMax - annual.federalSummary.taxableIncome).toLocaleString('en-US')} of room in the 0% band`
+        : capitalRate === 0.15
+          ? `0% band exceeded by $${Math.max(0, annual.federalSummary.taxableIncome - capitalThresholds.zeroRateMax).toLocaleString('en-US')}`
+          : 'Income is in the 20% preferential band';
+    }
+    const primaryAge = plan.household?.primary?.currentAge ?? 0;
+    const spouseAge = plan.household?.spouse?.currentAge ?? null;
+    const hasSenior = primaryAge >= 65 || (spouseAge != null && spouseAge >= 65);
     return {
       status: 'ready',
       totalIncome: enteredTotal,
@@ -138,9 +167,16 @@ export function buildCurrentIncomeTaxSummary(plan){
       adjustedGrossIncome: annual.federalSummary.adjustedGrossIncome,
       taxableIncome: annual.federalSummary.taxableIncome,
       federalTaxLiability: annual.federalSummary.federalTaxLiability,
-      marginalRate: annual.federalSummary.marginalRate,
+      marginalRate: annual.federalSummary.marginalRate ?? bracket?.rate ?? null,
       effectiveRate: annual.federalSummary.effectiveRate,
-      capitalGainsRate: capAudit?.result?.marginalPreferentialRate ?? null,
+      capitalGainsRate: capitalRate,
+      ordinaryBracketRoom,
+      capitalGainsCaption,
+      seniorDeductionStatus: hasSenior ? 'Not calculated' : 'Not applicable',
+      seniorDeductionCaption: hasSenior
+        ? 'current engine does not yet apply the age-65+ deduction'
+        : 'no household member is currently 65+',
+      rmdFirstYear: 2026 + Math.max(0, 73 - primaryAge),
       warnings: annual.warnings || [],
     };
   }catch(error){

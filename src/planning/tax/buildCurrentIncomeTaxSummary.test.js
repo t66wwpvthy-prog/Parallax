@@ -55,3 +55,20 @@ test('unsupported deduction and self-employment facts fail closed instead of fab
   assert.match(selfEmployment.message, /Schedule SE/);
   assert.equal(selfEmployment.federalTaxLiability, undefined);
 });
+
+test('current summary maps rental net income and long-term gains to the supported tax spine', () => {
+  const summary = buildCurrentIncomeTaxSummary(plan({
+    income: {
+      other: [
+        { typeId:'rental', owner:'client', label:'Rental', amount:40000, netTaxable:15000, startAge:50, endAge:999 },
+        { typeId:'long_term_capital_gains', owner:'joint', label:'LTCG', amount:10000, startAge:50, endAge:999 },
+      ],
+      socialSecurity: { primary: { pia:0, claimAge:67 } },
+    },
+  }));
+  assert.equal(summary.status, 'ready');
+  assert.equal(summary.totalIncome, 25000);
+  assert.equal(summary.capitalGainsRate, 0);
+  assert.ok(summary.capitalGainsCaption.includes('0%'));
+  assert.ok(summary.ordinaryBracketRoom > 0);
+});
