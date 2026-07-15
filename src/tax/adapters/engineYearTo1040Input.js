@@ -236,7 +236,7 @@ export function mapSimulationRowToYearFacts(row, planMeta){
   }
 
   const facts = {
-    filingStatus: planMeta.filingStatus,
+    filingStatus: row.filingStatus ?? planMeta.filingStatus,
     taxYear: planMeta.taxYear,
     id: planMeta.id,
     label: planMeta.label,

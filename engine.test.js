@@ -348,25 +348,28 @@ test('a one-time goal (startAge===endAge) charges exactly one year', () => {
   assert.strictEqual(m.rows.find(r => r.age === 69).goals, 0, 'nothing after');
 });
 
-test('a pre-retirement goal (college) charges in working years and lowers wealth', () => {
-  // A goal whose window sits ENTIRELY in the accumulation phase used to be
-  // silently dropped — the accum rows hardcoded goals:0 and never funded it.
+test('pre-retirement goals stay off-book unless portfolio funding is explicit', () => {
   const base = JSON.parse(JSON.stringify(defaultPlan));
   base.household.primary = { currentAge: 55, retirementAge: 65, planEndAge: 90 };
   base.goals = [];
-  const withGoal = JSON.parse(JSON.stringify(base));
-  withGoal.goals = [{ name:'College', amount:50000, startAge:58, endAge:61 }];
-  const m0 = runHistoricalPath(base,     1995, 'taxable-first');
-  const m1 = runHistoricalPath(withGoal, 1995, 'taxable-first');
-  // The goal lands in each of its four working years…
-  assert.strictEqual(m1.rows.find(r => r.age === 57).goals, 0,     'nothing before the window');
-  assert.strictEqual(m1.rows.find(r => r.age === 58).goals, 50000, 'full hit in the first college year');
-  assert.strictEqual(m1.rows.find(r => r.age === 61).goals, 50000, 'full hit in the last college year');
-  assert.strictEqual(m1.rows.find(r => r.age === 62).goals, 0,     'nothing after the window');
-  // …and it actually draws the portfolio down (same returns, less ending wealth).
+  const offBook = JSON.parse(JSON.stringify(base));
+  offBook.goals = [{ name:'College', amount:50000, startAge:58, endAge:61 }];
+  const funded = JSON.parse(JSON.stringify(offBook));
+  funded.goals[0].fundFromPortfolioBeforeRetirement = true;
+  const m0 = runHistoricalPath(base, 1995, 'taxable-first');
+  const m1 = runHistoricalPath(offBook, 1995, 'taxable-first');
+  const m2 = runHistoricalPath(funded, 1995, 'taxable-first');
+  assert.strictEqual(m1.rows.find(r => r.age === 58).goals, 0,
+    'working-year goal is not treated as a portfolio draw by default');
+  assert.strictEqual(m2.rows.find(r => r.age === 58).goals, 50000,
+    'explicitly portfolio-funded goal hits in its first selected year');
+  assert.strictEqual(m2.rows.find(r => r.age === 61).goals, 50000,
+    'explicitly portfolio-funded goal hits through its selected end year');
   const end0 = m0.rows[m0.rows.length - 1].balance;
   const end1 = m1.rows[m1.rows.length - 1].balance;
-  assert.ok(end1 < end0, 'the funded college goal leaves less ending wealth');
+  const end2 = m2.rows[m2.rows.length - 1].balance;
+  assert.strictEqual(end1, end0, 'off-book working-year goal does not alter portfolio wealth');
+  assert.ok(end2 < end0, 'explicitly funded working-year goal lowers ending wealth');
 });
 
 test('a legacy { vacation, property, gifts } goals object still resolves', () => {
@@ -1220,6 +1223,21 @@ test('spouse retirement age extends accumulation on the same calendar timeline',
   p.household.spouse.retirementAge = 64;
   assert.strictEqual(resolveInputs(p, {}).retirementAge, 65,
     'same-calendar spouse retirement preserves the client retirement year');
+});
+
+test('spouse-owned working income uses the spouse timeline and stops at retirement', () => {
+  const p = JSON.parse(JSON.stringify(defaultPlan));
+  p.household.primary = { currentAge: 60, retirementAge: 67, planEndAge: 90 };
+  p.household.spouse = { currentAge: 58, retirementAge: 63, planEndAge: 90 };
+  p.income.other = [{
+    typeId: 'wages', owner: 'spouse', label: 'Co-client wages', amount: 60000,
+    startAge: 58, endAge: 62, realGrowth: 0, taxablePct: 1,
+  }];
+  const m = runHistoricalPath(p, 1995, 'taxable-first');
+  assert.strictEqual(m.rows.find(row => row.age === 64).otherIncome, 60000,
+    'spouse age 62 maps to primary age 64');
+  assert.strictEqual(m.rows.find(row => row.age === 65).otherIncome, 0,
+    'spouse wages stop after the spouse working window');
 });
 
 /* ── pathDigest / assessPlan / returnDollars (story-mode aggregates) ────── */

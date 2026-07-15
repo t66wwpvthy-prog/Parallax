@@ -89,9 +89,10 @@ function appSource(html){
 }
 
 /* ── Household contract (static source assertions) ──────────────────────────
-   Household is the 4-STEP BLUEPRINT WIZARD (People & Timeline → Balance Sheet
-   → Cash Flow → Blueprint), an EDITABLE plan-input console. Renderers live in
-   ui/householdWizard.js; src/main.js owns wiring, plan factories, and handlers.
+   Household is the 5-STEP BLUEPRINT WIZARD. It separates Income & Tax from
+   Spending & Goals while remaining an EDITABLE plan-input console. Renderers live in
+   ui/householdWizard.js, ui/householdIncomeTax.js, and ui/householdSpendingGoals.js;
+   src/main.js owns wiring, plan factories, and handlers.
    (edits reach the engine) is proved by the browser steps below. */
 function verifyHousehold(){
   const read = p => (existsSync(p) ? readFileSync(p, 'utf8') : '');
@@ -101,9 +102,9 @@ function verifyHousehold(){
   const source = appSource(html);
   const css  = read(join(ROOT, 'styles', 'household.css'));
   const mainCss = read(join(ROOT, 'styles', 'main.css'));
-// Wizard chrome: 4-step stepper + workspace (no side rail).
+// Wizard chrome: 5-step stepper + workspace (no side rail).
   ok(/class="hh-stepper"/.test(html), 'wizard stepper (.hh-stepper) missing');
-  [1,2,3,4].forEach(n => ok(new RegExp(`id="hh-step-${n}"`).test(html), `stepper button #hh-step-${n} missing`));
+  [1,2,3,4,5].forEach(n => ok(new RegExp(`id="hh-step-${n}"`).test(html), `stepper button #hh-step-${n} missing`));
   ok(!/id="hh-plan-rail"/.test(html), 'retired "Plan so far" rail (#hh-plan-rail) must be gone');
   ok(/createHouseholdWizard/.test(source), 'blueprint wizard module (createHouseholdWizard) missing');
   ok(/id="hh-wiz-footer"/.test(html), 'wizard footer mount (#hh-wiz-footer) missing');
@@ -139,10 +140,9 @@ function verifyHousehold(){
   // savings; working income must NOT render as a separate wizard input.
   // Home/mortgage/pension UI remains deferred in the blueprint wizard.
   ok(/household\.children/.test(source), 'household.children[] (addable children) missing');
-  ok(/data-add-key="income"/.test(source), 'income add flow missing');
-  ok(/data-add-key="spending"/.test(source), 'spending category add flow missing');
-  ok(!/data-add-key="goal"/.test(source), 'wizard must not offer goal adds');
-  ok(!/function goalRows\b/.test(source), 'goals must render in the Goals ledger, not the wizard');
+  ok(/addControl\(state,\s*['"]income['"]/.test(source), 'income add flow missing');
+  ok(/addControl\(state,\s*['"]spending['"]/.test(source), 'spending category add flow missing');
+  ok(/addControl\(state,\s*['"]goal['"]/.test(source), 'Spending & Goals must offer goal adds');
   ok(!/class="hh-tl/.test(source) && !/\.hh-tl/.test(css), 'retired person timeline bars must be removed');
   ok(/field\(['"]savings\.annual['"],\s*['"]money['"]\)/.test(source), 'annual savings field missing from wizard cash flow step');
   ok(!/hhField\('income\.workingIncome'/.test(source), 'working income must not render as a wizard input (engine-inert today)');
@@ -186,7 +186,7 @@ function verifyHousehold(){
   ok(/data-hh-action=.add-spouse/.test(source),    'add-spouse action button missing');
   ok(/data-hh-action=.remove-spouse/.test(source), 'remove-spouse action button missing');
   ok(/add-pension-age/.test(source), 'add-pension-age handler missing (pension UI deferred but wiring retained)');
-  ok(/deps\.field\(base \+ '\.claimAge', 'age'/.test(source), 'editable Social Security claim-age field missing');
+  ok(/deps\.field\(`\$\{base\}\.claimAge`,\s*['"]age['"]/.test(source), 'editable Social Security claim-age field missing');
   ok(/min:\s*62,\s*max:\s*70/.test(source), 'Social Security claim-age field must be limited to 62-70');
 
   // ── Multi-household state management: pure factories + records-by-id store ──
@@ -257,7 +257,7 @@ function verifyHousehold(){
     fails.forEach(f => console.error('  - ' + f));
     process.exit(1);
   }
-  console.log('  OK household contract (4-step blueprint wizard: stepper + module renderers, account-type bank, data-path write-back, reseed-on-edit, scoped CSS)');
+  console.log('  OK household contract (5-step blueprint wizard: stepper + module renderers, account-type bank, data-path write-back, reseed-on-edit, scoped CSS)');
 }
 
 function verifyTaxBuckets(){
@@ -463,8 +463,8 @@ try {
       demo.income.socialSecurity.primary = { pia:34000, claimAge:67 };
       demo.income.socialSecurity.spouse = { pia:28000, claimAge:67 };
       demo.income.other = [
-        { label:'Client wages', amount:120000, startAge:64, endAge:66, realGrowth:0, taxablePct:1 },
-        { label:'Co-client wages', amount:60000, startAge:63, endAge:65, realGrowth:0, taxablePct:1 },
+        { typeId:'wages', owner:'client', label:'Client wages', amount:120000, startAge:64, endAge:65, realGrowth:0, taxablePct:1 },
+        { typeId:'wages', owner:'spouse', label:'Co-client wages', amount:60000, startAge:63, endAge:64, realGrowth:0, taxablePct:1 },
       ];
       demo.goals = [{ name:'Travel & leisure', amount:30000, startAge:66, endAge:81 }];
       // Filled demo uses legacy-shaped accounts; strip v1 stamp so one-time migration runs.
@@ -549,7 +549,7 @@ try {
     await new Promise(r => setTimeout(r, 350));
   };
 
-  await step('household wizard: stepper + landing + all four steps render from plan', async () => {
+  await step('household wizard: stepper + landing + all five steps render from plan', async () => {
     await page.click('.htab[data-page="household"]');
     await new Promise(r => setTimeout(r, 400));
     const m = await page.evaluate(() => ({
@@ -568,8 +568,8 @@ try {
     if(JSON.stringify(m.nav) !== JSON.stringify(expectedNav)) throw new Error(`main nav mismatch: ${JSON.stringify(m.nav)}`);
     if(m.hasSubnav) throw new Error('old net-worth subnav is still rendered');
     if(!m.wizard) throw new Error('household wizard frame (.hh-wizard) missing');
-    if(JSON.stringify(m.steps) !== JSON.stringify(['People & Timeline','Balance Sheet','Cash Flow','Blueprint'])) throw new Error(`stepper mismatch: ${JSON.stringify(m.steps)}`);
-    if(m.current !== '4') throw new Error(`filled demo household must land on Blueprint (step 4), got "${m.current}"`);
+    if(JSON.stringify(m.steps) !== JSON.stringify(['People & Timeline','Balance Sheet','Income & Tax','Spending & Goals','Blueprint'])) throw new Error(`stepper mismatch: ${JSON.stringify(m.steps)}`);
+    if(m.current !== '5') throw new Error(`filled demo household must land on Blueprint (step 5), got "${m.current}"`);
     if(m.chapButtons) throw new Error('retired chapter rail buttons still rendered');
     if(!m.railName) throw new Error('household name not filled from plan');
     if(!m.gauge) throw new Error('Blueprint arc gauge missing on landing step');
@@ -669,46 +669,48 @@ try {
       pia: document.querySelectorAll('#hh-view input[data-path^="income.socialSecurity."][data-path$=".pia"]').length,
       claimAges: [...document.querySelectorAll('#hh-view input[data-path^="income.socialSecurity."][data-path$=".claimAge"]')]
         .map(el => ({ path: el.dataset.path, value: el.value, min: el.min, max: el.max })),
-      living: !!document.querySelector('#hh-view input[data-path="expenses.living"]'),
-      health: !!document.querySelector('#hh-view input[data-path="expenses.healthcare"]'),
       savings: document.querySelector('#hh-view input[data-path="savings.annual"]')?.value ?? null,
       addIncome: !!document.querySelector('#hh-view [data-hh-action="open-add"][data-add-key="income"]'),
+      addAdjustment: !!document.querySelector('#hh-view [data-hh-action="open-add"][data-add-key="adjustment"]'),
+      addDeduction: !!document.querySelector('#hh-view [data-hh-action="open-add"][data-add-key="deduction"]'),
       incomeStartAges: [...document.querySelectorAll('#hh-view input[data-path^="income.other."][data-path$=".startAge"]')].map(el => el.value),
       incomeEndAges: [...document.querySelectorAll('#hh-view input[data-path^="income.other."][data-path$=".endAge"]')].map(el => el.value),
-      incomeNotes: [...document.querySelectorAll('#hh-view .hh-ledger-row--income .hh-ledger-row__note')].map(el => el.textContent.trim()),
-      spendingLabels: [...document.querySelectorAll('#hh-view .hh-col:nth-child(2) .hh-ledger-row__name')].map(el => el.textContent.trim()),
-      spendingHdr: document.querySelectorAll('#hh-view .hh-col__sum')[1]?.textContent.trim() || '',
-      addCategory: !!document.querySelector('#hh-view [data-add-key="spending"]'),
-      addGoal: !!document.querySelector('#hh-view [data-add-key="goal"]'),
-      goalRows: document.querySelectorAll('#hh-view [data-rmpath^="goals."]').length,
-      goalsHeading: [...document.querySelectorAll('#hh-view .hh-subhead')].some(el => /^Goals$/i.test(el.textContent.trim())),
-      goalsPreserved: JSON.parse(localStorage.getItem('parallax.households.v1') || '{}').demo?.goals?.length || 0,
-      extraExpensesPreserved: JSON.parse(localStorage.getItem('parallax.households.v1') || '{}').demo?.expenses?.extra?.length || 0,
+      incomeGrowth: [...document.querySelectorAll('#hh-view input[data-path^="income.other."][data-path$=".realGrowth"]')]
+        .map(el => ({ value:el.value, type:el.dataset.type })),
       working: !!document.querySelector('#hh-view input[data-path="income.workingIncome"]'),
-      incomeHdr: document.querySelector('#hh-view .hh-col .hh-col__sum')?.textContent.trim() || '',
+      incomeHdr: document.querySelector('#hh-view .hh-it-section-head strong')?.textContent.trim() || '',
+      foundation: document.querySelectorAll('#hh-view .hh-it-foundation .hh-it-stat').length,
+      taxPosition: document.querySelectorAll('#hh-view .hh-it-tax-grid .hh-it-stat').length,
     }));
     if(s3.pia < 1) throw new Error(`SS benefit inputs missing, got ${s3.pia}`);
     if(s3.claimAges.length !== 2 || s3.claimAges.some(field => field.value !== '67' || field.min !== '62' || field.max !== '70'))
       throw new Error(`SS claim-age inputs missing/defaulted incorrectly: ${JSON.stringify(s3.claimAges)}`);
-    if(!s3.living || !s3.health) throw new Error('core spending inputs missing from cash flow step');
     if(s3.savings !== '0') throw new Error(`annual savings must render with the saved blank default, got "${s3.savings}"`);
     if(!s3.addIncome) throw new Error('"+ Add income" missing');
-    if(JSON.stringify(s3.incomeStartAges) !== JSON.stringify(['64','63']) || JSON.stringify(s3.incomeEndAges) !== JSON.stringify(['66','65']))
+    if(!s3.addAdjustment || !s3.addDeduction) throw new Error('Income & Tax add controls missing');
+    if(JSON.stringify(s3.incomeStartAges) !== JSON.stringify(['64','63']) || JSON.stringify(s3.incomeEndAges) !== JSON.stringify(['65','64']))
       throw new Error(`income start/end fields missing or wrong: ${JSON.stringify(s3)}`);
-    if(JSON.stringify(s3.incomeNotes) !== JSON.stringify(['· 64–66','· 63–65']))
-      throw new Error(`income active-window notes wrong: ${JSON.stringify(s3.incomeNotes)}`);
-    if(!s3.spendingLabels.includes('Living') || !s3.spendingLabels.includes('Healthcare') || !s3.spendingLabels.includes('Housing'))
-      throw new Error(`essential spending rows missing: ${JSON.stringify(s3.spendingLabels)}`);
-    if(!/\$90,000/.test(s3.spendingHdr)) throw new Error(`spending total must be $90,000, got "${s3.spendingHdr}"`);
-    if(!s3.addCategory) throw new Error('"+ Add category" missing from spending column');
-    if(s3.addGoal || s3.goalRows || s3.goalsHeading) throw new Error(`goals must not render in wizard: ${JSON.stringify(s3)}`);
-    if(s3.goalsPreserved !== 1) throw new Error('removing goals from wizard must not alter plan.goals');
-    if(s3.extraExpensesPreserved !== 2) throw new Error('wizard must preserve plan.expenses.extra');
-    const extraRows = await page.evaluate(() =>
-      document.querySelectorAll('#hh-view input[data-path^="expenses.extra."][data-path$=".label"]').length);
-    if(extraRows < 1) throw new Error(`discretionary spending rows must render in wizard, got ${extraRows}`);
+    if(s3.incomeGrowth.length !== 2 || s3.incomeGrowth.some(field => field.value !== '0' || field.type !== 'signedPct'))
+      throw new Error(`income growth fields must display editable percentage points: ${JSON.stringify(s3.incomeGrowth)}`);
     if(s3.working) throw new Error('working income input must not render in the wizard');
-    if(!/\$180,000/.test(s3.incomeHdr)) throw new Error(`cash flow income total must be working income only ($180,000), got "${s3.incomeHdr}"`);
+    if(!/\$180,000/.test(s3.incomeHdr)) throw new Error(`Income & Tax total must be $180,000, got "${s3.incomeHdr}"`);
+    if(s3.foundation !== 4 || s3.taxPosition !== 6) throw new Error(`tax summary structure missing: ${JSON.stringify(s3)}`);
+
+    await page.evaluate(() => {
+      const el = document.querySelector('#hh-view input[data-path="income.other.0.realGrowth"]');
+      el.value = '3';
+      el.dispatchEvent(new Event('change', { bubbles:true }));
+    });
+    await new Promise(r => setTimeout(r, 300));
+    const editedGrowth = await page.evaluate(() =>
+      document.querySelector('#hh-view input[data-path="income.other.0.realGrowth"]')?.value || '');
+    if(editedGrowth !== '3') throw new Error(`income growth edit did not preserve percentage-point display: "${editedGrowth}"`);
+    await page.evaluate(() => {
+      const el = document.querySelector('#hh-view input[data-path="income.other.0.realGrowth"]');
+      el.value = '0';
+      el.dispatchEvent(new Event('change', { bubbles:true }));
+    });
+    await new Promise(r => setTimeout(r, 250));
 
     await page.evaluate(() => {
       const el = document.querySelector('#hh-view input[data-path="savings.annual"]');
@@ -719,37 +721,52 @@ try {
     const editedAnnual = await page.evaluate(() => document.querySelector('#hh-view input[data-path="savings.annual"]')?.value || '');
     if(editedAnnual !== '12,000') throw new Error(`annual savings edit did not reach the live plan: "${editedAnnual}"`);
 
-    // Wizard quick-add uses the wages-like window: current age through retirement.
+    // Wizard quick-add creates an engine-ready income source.
     await page.click('#hh-view [data-hh-action="open-add"][data-add-key="income"]'); await new Promise(r => setTimeout(r, 200));
+    const incomeTypeOptions = await page.evaluate(() =>
+      [...document.querySelectorAll('#hh-view [data-hh-draft="type"] option')].map(option => option.value));
+    if(incomeTypeOptions.includes('social_security'))
+      throw new Error('Social Security must use the dedicated per-client rows, not duplicate generic income');
     await page.click('#hh-view [data-hh-action="commit-add"]'); await new Promise(r => setTimeout(r, 350));
     const addedIncome = await page.evaluate(() => {
-      const rows = [...document.querySelectorAll('#hh-view .hh-ledger-row--income')];
-      const row = rows.at(-1);
+      const rows = [...document.querySelectorAll('#hh-view .hh-it-row input[data-path^="income.other."][data-path$=".label"]')];
+      const row = rows.at(-1)?.closest('.hh-it-row');
       return {
         count: rows.length,
         start: row?.querySelector('input[data-path$=".startAge"]')?.value,
         end: row?.querySelector('input[data-path$=".endAge"]')?.value,
-        note: row?.querySelector('.hh-ledger-row__note')?.textContent.trim(),
       };
     });
-    if(addedIncome.count !== 3 || addedIncome.start !== '64' || addedIncome.end !== '66' || addedIncome.note !== '· 64–66')
-      throw new Error(`quick-added income window must default 64–66: ${JSON.stringify(addedIncome)}`);
-
+    if(addedIncome.count !== 3 || addedIncome.start !== '64' || addedIncome.end !== '65')
+      throw new Error(`quick-added wages must default to the client's working window: ${JSON.stringify(addedIncome)}`);
     await page.evaluate(() => {
-      const inputs = [...document.querySelectorAll('#hh-view input[data-path$=".startAge"]')];
-      const el = inputs.at(-1); el.value = '58'; el.dispatchEvent(new Event('change', { bubbles:true }));
+      const rows = [...document.querySelectorAll('#hh-view .hh-it-row input[data-path^="income.other."][data-path$=".label"]')];
+      rows.at(-1)?.closest('.hh-it-row')?.querySelector('[data-rmpath]')?.click();
     });
     await new Promise(r => setTimeout(r, 300));
-    await page.evaluate(() => {
-      const inputs = [...document.querySelectorAll('#hh-view input[data-path$=".endAge"]')];
-      const el = inputs.at(-1); el.value = '65'; el.dispatchEvent(new Event('change', { bubbles:true }));
-    });
-    await new Promise(r => setTimeout(r, 300));
-    const editedWindow = await page.evaluate(() => [...document.querySelectorAll('#hh-view .hh-ledger-row--income')].at(-1)?.querySelector('.hh-ledger-row__note')?.textContent.trim() || '');
-    if(editedWindow !== '· 58–65') throw new Error(`edited income window note did not update: "${editedWindow}"`);
+    const restoredIncomeCount = await page.evaluate(() =>
+      document.querySelectorAll('#hh-view .hh-it-row input[data-path^="income.other."][data-path$=".label"]').length);
+    if(restoredIncomeCount !== 2) throw new Error(`quick-added income cleanup failed: ${restoredIncomeCount}`);
 
     await page.click('#hh-step-4'); await new Promise(r => setTimeout(r, 350));
-    const s4 = await page.evaluate(() => ({
+    const spendingGoals = await page.evaluate(() => ({
+      living: !!document.querySelector('#hh-view input[data-path="expenses.living"]'),
+      health: !!document.querySelector('#hh-view input[data-path="expenses.healthcare"]'),
+      extras: document.querySelectorAll('#hh-view input[data-path^="expenses.extra."][data-path$=".label"]').length,
+      goals: document.querySelectorAll('#hh-view input[data-path^="goals."][data-path$=".name"]').length,
+      fundingChoices: document.querySelectorAll('#hh-view input[data-path$=".fundFromPortfolioBeforeRetirement"]').length,
+      addCategory: !!document.querySelector('#hh-view [data-add-key="spending"]'),
+      addGoal: !!document.querySelector('#hh-view [data-add-key="goal"]'),
+      doctrine: /withdrawals begin when both clients are retired/i.test(document.querySelector('#hh-view')?.textContent || ''),
+    }));
+    if(!spendingGoals.living || !spendingGoals.health) throw new Error('core spending inputs missing from Spending & Goals');
+    if(spendingGoals.extras < 1 || spendingGoals.goals !== 1) throw new Error(`spending or goal rows missing: ${JSON.stringify(spendingGoals)}`);
+    if(spendingGoals.fundingChoices !== 1) throw new Error('goal portfolio-funding choice missing');
+    if(!spendingGoals.addCategory || !spendingGoals.addGoal || !spendingGoals.doctrine)
+      throw new Error(`Spending & Goals controls or boundary missing: ${JSON.stringify(spendingGoals)}`);
+
+    await page.click('#hh-step-5'); await new Promise(r => setTimeout(r, 350));
+    const s5 = await page.evaluate(() => ({
       gauge: !!document.querySelector('#hh-view .hh-bp-gauge'),
       cta: !!document.querySelector('#hh-view .hh-bp-cta, #hh-view [data-hh-action="run-blueprint"], #hh-view [data-hh-action="goto-planning"]'),
       footNote: document.querySelector('#hh-wiz-footer .hh-wiz-foot-note')?.textContent.trim() || '',
@@ -768,16 +785,16 @@ try {
       allocLegend: document.querySelectorAll('#hh-view .hh-bp-alloc').length,
       gaugeLabel: document.querySelector('#hh-view .hh-bp-gauge__k')?.textContent.trim() || '',
     }));
-    if(!s4.gauge) throw new Error('Blueprint gauge missing on step 4');
-    if(s4.cta) throw new Error('Run Blueprint CTA must not render on step 4');
-    if(s4.footNote !== 'Step 4 of 4') throw new Error(`footer note mismatch: "${s4.footNote}"`);
-    if(!/\$180,000/.test(s4.incomeVal)) throw new Error(`Blueprint income must show working income, got "${s4.incomeVal}"`);
-    if(!s4.ssRow) throw new Error('Blueprint must show a separate Social Security row');
-    if(!/\$62,000/.test(s4.ssVal)) throw new Error(`Blueprint Social Security must total $62,000, got "${s4.ssVal}"`);
-    if(!/\$90,000/.test(s4.spendingVal)) throw new Error(`Blueprint spending must be fixed baseline only ($90,000), got "${s4.spendingVal}"`);
-    if(!/\$12,000/.test(s4.savingsVal)) throw new Error(`Blueprint must summarize entered annual savings, got "${s4.savingsVal}"`);
-    if(s4.allocLegend < 3) throw new Error(`Blueprint account legend must list demo accounts, got ${s4.allocLegend}`);
-    if(s4.gaugeLabel !== 'NET WORTH') throw new Error(`gauge label must read NET WORTH, got "${s4.gaugeLabel}"`);
+    if(!s5.gauge) throw new Error('Blueprint gauge missing on step 5');
+    if(s5.cta) throw new Error('Run Blueprint CTA must not render on step 5');
+    if(s5.footNote !== 'Step 5 of 5') throw new Error(`footer note mismatch: "${s5.footNote}"`);
+    if(!/\$180,000/.test(s5.incomeVal)) throw new Error(`Blueprint income must show working income, got "${s5.incomeVal}"`);
+    if(!s5.ssRow) throw new Error('Blueprint must show a separate Social Security row');
+    if(!/\$62,000/.test(s5.ssVal)) throw new Error(`Blueprint Social Security must total $62,000, got "${s5.ssVal}"`);
+    if(!/\$90,000/.test(s5.spendingVal)) throw new Error(`Blueprint spending must be fixed baseline only ($90,000), got "${s5.spendingVal}"`);
+    if(!/\$12,000/.test(s5.savingsVal)) throw new Error(`Blueprint must summarize entered annual savings, got "${s5.savingsVal}"`);
+    if(s5.allocLegend < 3) throw new Error(`Blueprint account legend must list demo accounts, got ${s5.allocLegend}`);
+    if(s5.gaugeLabel !== 'NET WORTH') throw new Error(`gauge label must read NET WORTH, got "${s5.gaugeLabel}"`);
 
     // Restore the shared demo fixture for downstream engine and persistence checks.
     await page.click('#hh-step-3'); await new Promise(r => setTimeout(r, 250));
@@ -787,7 +804,7 @@ try {
       el.dispatchEvent(new Event('change', { bubbles:true }));
     });
     await new Promise(r => setTimeout(r, 300));
-    await page.click('#hh-step-4'); await new Promise(r => setTimeout(r, 250));
+    await page.click('#hh-step-5'); await new Promise(r => setTimeout(r, 250));
   });
 
   await step('household tax details: accessible basis edits persist and reach engine truth', async () => {
@@ -948,13 +965,15 @@ try {
     }
   });
 
-  await step('type floor: wizard values >= 16px; tracked labels may use micro type', async () => {
-    // Inside .hh-wizard: running values, inputs, and buttons stay >= 16px.
+  await step('type floor: wizard values stay readable; approved dense ledgers use compact type', async () => {
+    // General wizard values stay >= 16px. The approved Income & Tax / Spending
+    // ledgers intentionally use compact desktop rows; interactive type stays at
+    // least 10.5px while non-interactive hierarchy may use micro type.
     // Tracked uppercase micro-labels (9–13px) are allowed — decorative hierarchy only.
     const sleep = ms => new Promise(r => setTimeout(r, ms));
     await page.click('.htab[data-page="household"]'); await sleep(400);
     const offenders = [];
-    for(const n of [1,2,3,4]){
+    for(const n of [1,2,3,4,5]){
       await page.click('#hh-step-'+n); await sleep(350);
       if(n === 2){
         await page.click('#hh-view [data-hh-action="open-account-form"][data-owner="client"]');
@@ -985,6 +1004,13 @@ try {
             || el.matches('.hh-tax-money > span')
           )) return true;
           if(el.closest('.hh-wiz-footer') && classes.includes('hh-btn')) return true;
+          const denseLedger = el.closest('.hh-it, .hh-sg');
+          if(denseLedger){
+            const fs = parseFloat(getComputedStyle(el).fontSize);
+            const interactive = el.matches('input, select, button');
+            if(interactive) return fs >= 10.4;
+            return fs >= 8;
+          }
           return !!el.closest('.hh-inline-form');
         };
         const bad = [];
@@ -1007,7 +1033,7 @@ try {
         await sleep(200);
       }
     }
-    if(offenders.length) throw new Error('text below the 16px floor (outside micro-label allowlist):\n  ' + [...new Set(offenders)].slice(0, 15).join('\n  '));
+    if(offenders.length) throw new Error('text below its approved readability floor:\n  ' + [...new Set(offenders)].slice(0, 15).join('\n  '));
   });
 
   await step('household inline edits write back to plan + live totals update', async () => {
@@ -1027,12 +1053,12 @@ try {
     const after = await page.evaluate(() => ({ total: document.querySelector('#hh-view .hh-grand-total__v')?.textContent.trim(), status: document.querySelector('#status')?.textContent }));
     if(after.total === totalBefore) throw new Error(`editing an account balance did not update the balance-sheet total (${totalBefore})`);
     if(!/Plan edited/.test(after.status||'')) throw new Error('account edit did not mark the plan dirty (status)');
-    // Cash flow: editing living expenses updates the spending column total.
-    await goStep(3);
-    const spendBefore = await page.evaluate(() => document.querySelectorAll('#hh-view .hh-cols--gap .hh-col')[1]?.querySelector('.hh-col__sum')?.textContent.trim());
+    // Spending & Goals: editing living expenses updates the section total.
+    await goStep(4);
+    const spendBefore = await page.evaluate(() => document.querySelector('#hh-view .hh-it-section-head strong')?.textContent.trim());
     await page.evaluate(() => { const el = document.querySelector('#hh-view input[data-path="expenses.living"]'); el.value = '99,999'; el.dispatchEvent(new Event('change', { bubbles:true })); });
     await sleep(300);
-    const spendAfter = await page.evaluate(() => document.querySelectorAll('#hh-view .hh-cols--gap .hh-col')[1]?.querySelector('.hh-col__sum')?.textContent.trim());
+    const spendAfter = await page.evaluate(() => document.querySelector('#hh-view .hh-it-section-head strong')?.textContent.trim());
     if(spendBefore === spendAfter) throw new Error(`editing living expenses did not update the spending total (${spendBefore})`);
     // Restore the two fields explicitly; Load Demo is a switch, not a reset.
     await goStep(2);
@@ -1040,7 +1066,7 @@ try {
       const el = document.querySelector(`#hh-view input[data-path="${path}"]`);
       el.value = String(value); el.dispatchEvent(new Event('change', { bubbles:true }));
     }, { path: edit.path, value: edit.original });
-    await goStep(3);
+    await goStep(4);
     await page.evaluate(() => {
       const el = document.querySelector('#hh-view input[data-path="expenses.living"]');
       el.value = '38,000'; el.dispatchEvent(new Event('change', { bubbles:true }));
@@ -1291,7 +1317,7 @@ try {
     }));
     if(afterDemo.active !== 'demo' || !/Test Client/.test(afterDemo.name))
       throw new Error(`Load Demo did not reopen the saved demo record: ${JSON.stringify(afterDemo)}`);
-    if(afterDemo.step !== '4') throw new Error(`filled saved demo must land on Blueprint, got "${afterDemo.step}"`);
+    if(afterDemo.step !== '5') throw new Error(`filled saved demo must land on Blueprint, got "${afterDemo.step}"`);
   });
 
   await step('typed accounts feed the engine: blank plan + $1M brokerage drives scenario results', async () => {
@@ -1383,7 +1409,14 @@ try {
     await openCashFlow(); const withSpouse = await incomeAtAge(72);
     await goStep(3); await setHh('income.socialSecurity.spouse.pia', '0');
     await openCashFlow(); const withoutSpouse = await incomeAtAge(72);
-    if(!withSpouse || !withoutSpouse) throw new Error(`cash-flow income cell missing at age 72 (${withSpouse} vs ${withoutSpouse})`);
+    if(!withSpouse || !withoutSpouse){
+      const cashFlowState = await page.evaluate(() => ({
+        rows: document.querySelectorAll('#scn-view .cf-row').length,
+        ages: [...document.querySelectorAll('#scn-view .cf-row .cf-cell--age')].map(el => el.textContent.trim()).slice(0, 40),
+        text: document.querySelector('#scn-view .cf-ledger')?.textContent.trim().slice(0, 240) || '',
+      }));
+      throw new Error(`cash-flow income cell missing at age 72 (${withSpouse} vs ${withoutSpouse}); state=${JSON.stringify(cashFlowState)}`);
+    }
     if(withSpouse === withoutSpouse) throw new Error(`co-client SS edit via Household did not change engine income at 72 (${withSpouse} vs ${withoutSpouse})`);
 
     // (2) Delaying the co-client's retirement pushes the first retirement-phase
@@ -1419,8 +1452,8 @@ try {
     if(baseSuccess == null) throw new Error('Could not read baseline success rate for living-expense test');
 
     // Quadruple living expenses: from demo $38k to $152k — plan should suffer.
-    // Essential expenses live on wizard step 3 (Cash Flow).
-    await goStep(3);
+    // Essential expenses live on wizard step 4 (Spending & Goals).
+    await goStep(4);
     await page.evaluate(() => {
       const el = document.querySelector('#hh-view input[data-path="expenses.living"]');
       if(!el) throw new Error('expenses.living input missing');
@@ -1441,7 +1474,7 @@ try {
       `High living expenses did not lower success rate: base=${baseSuccess}%, high-exp=${highExpSuccess}%`);
 
     // Restore expenses to demo value ($38k)
-    await goStep(3);
+    await goStep(4);
     await page.evaluate(() => {
       const el = document.querySelector('#hh-view input[data-path="expenses.living"]');
       el.value = '38,000'; el.dispatchEvent(new Event('change', { bubbles:true }));
@@ -2578,7 +2611,7 @@ try {
 
     // Household scalar field: force an event despite disabled UI, then re-render
     // from plan truth. Both the visible value and storage must remain unchanged.
-    await goStep(3);
+    await goStep(4);
     const householdControlState = await page.evaluate(() => {
       const controls = [...document.querySelectorAll('#hh-view input[data-path], #hh-view select[data-path]')];
       return {
@@ -2596,7 +2629,7 @@ try {
       el.value = '12,345';
       el.dispatchEvent(new Event('change', { bubbles:true }));
     });
-    await goStep(2); await goStep(3);
+    await goStep(2); await goStep(4);
     const livingAfter = await page.$eval('#hh-view input[data-path="expenses.living"]', el => el.value);
     if(livingAfter !== householdControlState.living){
       throw new Error(`read-only Household edit changed in-memory/UI state (${householdControlState.living} -> ${livingAfter})`);
@@ -2606,7 +2639,7 @@ try {
 
     // Generic ledger row add/remove is independent of account management.
     // Both entry points must be visibly disabled and inert under a forced event.
-    await goStep(3);
+    await goStep(4);
     const rowBefore = await page.evaluate(() => ({
       count:document.querySelectorAll('#hh-view .row-x[data-rmpath^="expenses.extra."]').length,
       removeDisabled:[...document.querySelectorAll('#hh-view .row-x[data-rmpath^="expenses.extra."]')].every(el => el.disabled),
@@ -2622,10 +2655,10 @@ try {
       document.querySelector('#hh-view [data-hh-action="open-add"][data-add-key="spending"]')
         ?.dispatchEvent(new MouseEvent('click', { bubbles:true }));
     });
-    await goStep(1); await goStep(3);
+    await goStep(1); await goStep(4);
     const rowAfter = await page.evaluate(() => ({
       count:document.querySelectorAll('#hh-view .row-x[data-rmpath^="expenses.extra."]').length,
-      form:!!document.querySelector('#hh-view .hh-inline-form'),
+      form:!!document.querySelector('#hh-view .hh-it-add-form'),
     }));
     if(rowAfter.count !== rowBefore.count || rowAfter.form){
       throw new Error(`read-only ledger row add/remove changed immediate state: ${JSON.stringify({ rowBefore, rowAfter })}`);

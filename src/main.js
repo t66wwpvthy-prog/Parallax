@@ -571,7 +571,7 @@ async function runSolve(goalType, params){
 
   if(!sharedPaths){
     resetSeed();
-    const horizon = plan.household.primary.planEndAge - plan.household.primary.currentAge;
+    const horizon = resolveInputs(plan, {}).horizonYears;
   uiState.sharedPaths = [];
   for(let i=0; i<plan.simulation.iterations; i++) uiState.appendSharedPath(generateReturnPath(horizon));
   }
@@ -646,7 +646,7 @@ async function runComboSolve(){
   // sharedPaths is already built by the solo solve, but guard anyway.
   if(!sharedPaths){
     resetSeed();
-    const horizon = plan.household.primary.planEndAge - plan.household.primary.currentAge;
+    const horizon = resolveInputs(plan, {}).horizonYears;
   uiState.sharedPaths = [];
   for(let i=0;i<plan.simulation.iterations;i++) uiState.appendSharedPath(generateReturnPath(horizon));
   }
@@ -1253,6 +1253,14 @@ function renderField(f, klass){
     const dv = Math.round((v||0)*100);
     return `<input type="number" data-path="${f.path}" data-type="pct" value="${dv}" step="1"><span class="pre">%</span>`;
   }
+  if(f.type==='gpct'){
+    const dv = Math.round((Number(v)||0)*1000)/10;
+    return `<input type="number" data-path="${f.path}" data-type="gpct" value="${dv}" step="0.1" min="-20" max="20"><span class="pre">%</span>`;
+  }
+  if(f.type==='signedPct'){
+    const dv = Math.round((Number(v)||0)*1000)/10;
+    return `<input type="number" data-path="${f.path}" data-type="signedPct" value="${dv}" step="0.1" min="-100" max="100"><span class="pre">%</span>`;
+  }
   /* pctPoints: user enters whole percentage points (0–100), plan stores as-is.
      Use for fields where the engine itself divides by 100 (e.g. colaPct → engine does colaPct/100).
      Contrast with 'pct': user enters 55, plan stores 0.55, engine reads 0.55 directly. */
@@ -1788,7 +1796,7 @@ let running=false;
 // fixed seed keeps an unchanged plan at an identical % between Runs.
 function ensureSharedPaths(){
   if(!canRunEngine()) return null;
-  const horizon = plan.household.primary.planEndAge - plan.household.primary.currentAge;
+  const horizon = resolveInputs(plan, {}).horizonYears;
   if(!(horizon > 0)) return null;
   const iters = plan.simulation.iterations;
   if(!sharedPaths || sharedPaths.length !== iters || sharedPaths[0].length !== horizon){
@@ -1891,7 +1899,7 @@ function runAll(){
       // across Runs. Within a Run, every column sees the SAME markets (any
       // difference between columns is the DECISION). Across Runs, the bundle
       // is cached so identical inputs give an identical % — no noise drift.
-      const horizon = plan.household.primary.planEndAge - plan.household.primary.currentAge;
+      const horizon = resolveInputs(plan, {}).horizonYears;
       const iters = plan.simulation.iterations;
       // Degenerate plan guard: a non-positive horizon (plan-end age at/below
       // current age) can't be simulated. Surface a clear reason and bail

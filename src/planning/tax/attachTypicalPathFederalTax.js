@@ -106,6 +106,7 @@ export function attachPathFederalTax(analysis, pathKey, options = {}){
     years.push({
       year: entry.year,
       age: sourceRow?.age ?? null,
+      filingStatus: entry.facts.filingStatus,
       agi: annual.lines.line11.value,
       taxableIncome: annual.lines.line15.value,
       federalTaxLiability,

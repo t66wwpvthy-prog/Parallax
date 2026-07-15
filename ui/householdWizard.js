@@ -1,6 +1,8 @@
 import { escHtml } from './dom.js';
 import { accountDisplayTreatment } from '../src/household/accountTypes.js';
 import { renderHouseholdTaxFacts } from './householdTaxFacts.js';
+import { renderHouseholdIncomeTax } from './householdIncomeTax.js';
+import { renderHouseholdSpendingGoals } from './householdSpendingGoals.js';
 
 const FS_LABELS = {
   marriedFilingJointly: 'Married filing jointly',
@@ -83,7 +85,7 @@ function personColumn(role, plan, deps){
     ['Born', `<input type="number" data-path="${base}.birthYear" data-type="birthYear" value="${born}" step="1" class="hh-born-in">`],
     ['Age', derivedIn(p.currentAge)],
     ['Retires at', deps.field(base + '.retirementAge', 'age')],
-    ['Plan to age', isC ? deps.field('household.primary.planEndAge', 'age') : derivedIn(plan.household.primary?.planEndAge)],
+    ['Plan to age', deps.field(base + '.planEndAge', 'age')],
   ];
   const rowHtml = rows.map(([k, v], i) =>
     `<div class="hh-kv${i < rows.length - 1 ? ' hh-kv--rule' : ''}"><span class="hh-kv__k">${k}</span><span class="hh-kv__v">${v}</span></div>`
@@ -154,14 +156,6 @@ function acctOwnerColumn(owner, plan, deps, state){
 
 function workingIncomeSum(plan){
   return (plan.income?.other || []).reduce((s, x) => s + (x.amount || 0), 0);
-}
-
-function housingExpense(plan){
-  const extra = plan.expenses?.extra || [];
-  const extraIdx = extra.findIndex(x => (x.label || '').trim().toLowerCase() === 'housing');
-  if(extraIdx >= 0) return { path: `expenses.extra.${extraIdx}.amount`, amount: extra[extraIdx].amount || 0 };
-  const amount = plan.expenses?.housing || 0;
-  return amount ? { path: 'expenses.housing', amount } : null;
 }
 
 function fixedSpendingTotal(plan){
@@ -275,120 +269,6 @@ export function createHouseholdWizard(deps){
     </div>`;
   }
 
-  function incomeRows(plan, deps){
-    const items = (plan.income?.other || []);
-    return items.map((it, i) => {
-      const base = `income.other.${i}`;
-      const startAge = it.startAge ?? plan.household?.primary?.currentAge ?? '—';
-      const endAge = it.endAge ?? plan.household?.primary?.retirementAge ?? '—';
-      return `<div class="hh-ledger-row hh-ledger-row--cf hh-ledger-row--income">
-        <span class="hh-ledger-row__source">
-          <input type="text" class="hh-ledger-row__name hh-ledger-row__name--in" data-path="${base}.label" data-type="text" placeholder="Source" value="${escHtml(it.label || '')}">
-          <span class="hh-ledger-row__note">&middot; ${startAge}&ndash;${endAge}</span>
-        </span>
-        <span class="hh-ledger-row__end">
-          <span class="hh-ledger-row__ages">
-            <label><span class="hh-ledger-row__age-label">Start</span>${deps.field(base + '.startAge', 'age')}</label>
-            <label><span class="hh-ledger-row__age-label">End</span>${deps.field(base + '.endAge', 'age')}</label>
-          </span>
-          <span class="hh-ledger-row__amt hh-ledger-row__amt--cf">${deps.field(base + '.amount', 'money')}</span>
-          <button class="row-x" data-rmpath="${base}" title="Remove">×</button>
-        </span>
-      </div>`;
-    }).join('');
-  }
-
-  function futureIncomeRows(plan){
-    const rows = [];
-    const ss = plan.income?.socialSecurity || {};
-    const addSs = role => {
-      const key = role === 'client' ? 'primary' : 'spouse';
-      const block = ss[key];
-      if(!block) return;
-      if(role === 'spouse' && !plan.household?.spouse) return;
-      const nm = role === 'client' ? (plan.meta?.primaryName || 'Client 1') : (plan.meta?.spouseName || 'Client 2');
-      const base = `income.socialSecurity.${key}`;
-      rows.push(`<div class="hh-future-row">
-        <span class="hh-future-row__name">Social Security · ${escHtml(nm)}</span>
-        <span class="hh-future-row__end">
-          <label class="hh-future-row__claim">Claim age ${deps.field(base + '.claimAge', 'age', { min: 62, max: 70 })}</label>
-          <span class="hh-future-row__amt">${deps.field(base + '.pia', 'money')}</span>
-        </span>
-      </div>`);
-    };
-    addSs('client');
-    addSs('spouse');
-    return rows.join('');
-  }
-
-  function spendingRows(plan, deps){
-    const fixedRow = (label, path) =>
-      `<div class="hh-ledger-row hh-ledger-row--cf">
-        <span class="hh-ledger-row__name">${label}</span>
-        <span class="hh-ledger-row__end"><span class="hh-ledger-row__amt hh-ledger-row__amt--cf">${deps.field(path, 'money')}</span></span>
-      </div>`;
-    const extra = plan.expenses?.extra || [];
-    const housingIdx = extra.findIndex(x => (x.label || '').trim().toLowerCase() === 'housing');
-    const extraRow = i => {
-      const base = `expenses.extra.${i}`;
-      return `<div class="hh-ledger-row hh-ledger-row--cf">
-        <input type="text" class="hh-ledger-row__name hh-ledger-row__name--in" data-path="${base}.label" data-type="text" placeholder="Category" value="${escHtml(extra[i].label || '')}">
-        <span class="hh-ledger-row__end">
-          <span class="hh-ledger-row__amt hh-ledger-row__amt--cf">${deps.field(base + '.amount', 'money')}</span>
-          <button class="row-x" data-rmpath="${base}" title="Remove">×</button>
-        </span>
-      </div>`;
-    };
-    let html = fixedRow('Living', 'expenses.living');
-    html += fixedRow('Healthcare', 'expenses.healthcare');
-    const housing = housingExpense(plan);
-    if(housing) html += fixedRow('Housing', housing.path);
-    extra.forEach((_, i) => { if(i !== housingIdx) html += extraRow(i); });
-    return html;
-  }
-
-  function inlineAdd(key, placeholders){
-    if(state.hhAddingKey !== key) return '';
-    return `<div class="hh-inline-form hh-inline-form--slim">
-      <input class="hh-inline-input" data-hh-draft="label" placeholder="${placeholders.label}" value="${escHtml(state.hhDraftLabel || '')}">
-      ${placeholders.amount ? `<span class="hh-inline-form__money"><span class="pre">$</span><input class="hh-inline-input" data-hh-draft="amount" inputmode="numeric" placeholder="0" value="${escHtml(state.hhDraftAmount || '')}"></span>` : ''}
-      <button class="hh-btn hh-btn--primary" type="button" data-hh-action="commit-add">Add</button>
-      <button class="hh-btn hh-btn--ghost" type="button" data-hh-action="cancel-add">Cancel</button>
-    </div>`;
-  }
-
-  function stepCashFlow(){
-    const plan = deps.plan;
-    const spendTotal = fixedSpendingTotal(plan);
-    return `<div class="hh-step-pane">
-      <h2 class="hh-step-title">Cash flow</h2>
-      <div class="hh-cols hh-cols--gap">
-        <div class="hh-col">
-          <div class="hh-col__head hh-col__head--total hh-col__head--cf">
-            <span class="hh-col__role">INCOME</span>
-            <span class="hh-col__sum hh-col__sum--cf">${hhMoney(workingIncomeSum(plan))}</span>
-          </div>
-          ${incomeRows(plan, deps)}
-          ${inlineAdd('income', { label: 'Source', amount: true })}
-          ${state.hhAddingKey !== 'income' ? `<button class="hh-text-add" type="button" data-hh-action="open-add" data-add-key="income">+ Add income</button>` : ''}
-          <div class="hh-subhead">Saving</div>
-          <div class="hh-ledger-row hh-ledger-row--cf hh-ledger-row--savings">
-            <span class="hh-ledger-row__name">Annual savings</span>
-            <span class="hh-ledger-row__end"><span class="hh-ledger-row__amt hh-ledger-row__amt--cf">${deps.field('savings.annual', 'money')}</span></span>
-          </div>
-          <div class="hh-subhead">Begins at retirement</div>
-          ${futureIncomeRows(plan)}
-        </div>
-        <div class="hh-col">
-          <div class="hh-col__head hh-col__head--total hh-col__head--cf"><span class="hh-col__role">SPENDING</span><span class="hh-col__sum hh-col__sum--cf">${hhMoney(spendTotal)}</span></div>
-          ${spendingRows(plan, deps)}
-          ${inlineAdd('spending', { label: 'Category', amount: true })}
-          ${state.hhAddingKey !== 'spending' ? `<button class="hh-text-add" type="button" data-hh-action="open-add" data-add-key="spending">+ Add category</button>` : ''}
-        </div>
-      </div>
-    </div>`;
-  }
-
   function stepBlueprint(){
     const plan = deps.plan;
     const all = deps.allAccounts();
@@ -450,15 +330,21 @@ export function createHouseholdWizard(deps){
     const back = step > 1
       ? `<button class="hh-btn hh-btn--outline" type="button" data-hh-action="step-back">← Back</button>`
       : `<span></span>`;
-    const right = step < 4
-      ? `<button class="hh-btn hh-btn--primary" type="button" data-hh-action="step-next">${step === 3 ? 'Review →' : 'Continue →'}</button>`
-      : `<span class="hh-wiz-foot-note">Step 4 of 4</span>`;
+    const right = step < 5
+      ? `<button class="hh-btn hh-btn--primary" type="button" data-hh-action="step-next">${step === 4 ? 'Review →' : 'Continue →'}</button>`
+      : `<span class="hh-wiz-foot-note">Step 5 of 5</span>`;
     return `<div class="hh-wiz-footer">${back}${right}</div>`;
   }
 
   return {
-    steps: { 1: stepPeople, 2: stepBalance, 3: stepCashFlow, 4: stepBlueprint },
+    steps: {
+      1: stepPeople,
+      2: stepBalance,
+      3: () => renderHouseholdIncomeTax(deps.plan, deps, state),
+      4: () => renderHouseholdSpendingGoals(deps.plan, deps, state),
+      5: stepBlueprint,
+    },
     footer,
-    stepLabels: ['People & Timeline', 'Balance Sheet', 'Cash Flow', 'Blueprint'],
+    stepLabels: ['People & Timeline', 'Balance Sheet', 'Income & Tax', 'Spending & Goals', 'Blueprint'],
   };
 }

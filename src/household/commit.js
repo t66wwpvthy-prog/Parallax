@@ -2,6 +2,7 @@ import { createAccount, hasSpouseOwnedAccounts } from './createAccount.js';
 import { createBlankTaxProfiles, taxProfileHasConfirmedFacts } from './factEnvelope.js';
 import { applyHouseholdTaxFactEdit } from './taxFactEdits.js';
 import { taxFactEditFromControl } from './taxFactEditorController.js';
+import { createAdjustment, createDeduction, createIncomeSource } from './incomeTaxModel.js';
 
 export function bindHouseholdEditor({
   root,
@@ -67,6 +68,11 @@ export function bindHouseholdEditor({
     const raw = e.target.value;
     if(type==='text' || type==='strategy' || type==='owner' || type==='bucket'){
       setPath(plan, path, raw);
+      hhCommit();
+      return;
+    }
+    if(type==='bool'){
+      setPath(plan, path, e.target.checked === true);
       hhCommit();
       return;
     }
@@ -147,7 +153,12 @@ export function bindHouseholdEditor({
     const lockedAction = ['add-spouse','remove-spouse','open-account-form','save-account','open-add','commit-add','add-home','add-mortgage','add-pension-age'].includes(action);
     if(lockedAction && !guardPlanMutation()) return;
     if(action === 'add-spouse'){
-      plan.household.spouse = { currentAge: 55, retirementAge: 62, birthYear: new Date().getFullYear() - 55 };
+      plan.household.spouse = {
+        currentAge: 55,
+        retirementAge: 62,
+        planEndAge: plan.household.primary?.planEndAge ?? 90,
+        birthYear: new Date().getFullYear() - 55,
+      };
       plan.meta.spouseName  = plan.meta.spouseName || '';
       if(!plan.income.socialSecurity.spouse) plan.income.socialSecurity.spouse = { pia: 0, claimAge: 67 };
       plan.meta.filingStatus = 'marriedFilingJointly';
@@ -207,9 +218,28 @@ export function bindHouseholdEditor({
       const label = (document.querySelector('[data-hh-draft="label"]')?.value || transientState.hhDraftLabel || '').trim();
       const amtRaw = document.querySelector('[data-hh-draft="amount"]')?.value ?? transientState.hhDraftAmount ?? '';
       const amt = parseFloat(String(amtRaw).replace(/[^0-9.]/g, '')) || 0;
+      const typeId = document.querySelector('[data-hh-draft="type"]')?.value || 'other';
+      const owner = document.querySelector('[data-hh-draft="owner"]')?.value || 'client';
       if(transientState.hhAddingKey === 'income'){
         if(!plan.income.other) plan.income.other = [];
-        plan.income.other.push({ label: label || 'Income', amount: Math.round(amt), startAge: plan.household.primary.currentAge, endAge: plan.household.primary.retirementAge, realGrowth: 0, taxablePct: 1 });
+        const row = createIncomeSource(plan, typeId, owner);
+        row.amount = Math.round(amt);
+        if(label) row.label = label;
+        plan.income.other.push(row);
+      } else if(transientState.hhAddingKey === 'adjustment'){
+        if(!plan.incomeTax) plan.incomeTax = { adjustments: [], deductions: [], deductionMode: 'auto' };
+        if(!Array.isArray(plan.incomeTax.adjustments)) plan.incomeTax.adjustments = [];
+        const row = createAdjustment(typeId, owner);
+        row.amount = Math.round(amt);
+        if(label) row.label = label;
+        plan.incomeTax.adjustments.push(row);
+      } else if(transientState.hhAddingKey === 'deduction'){
+        if(!plan.incomeTax) plan.incomeTax = { adjustments: [], deductions: [], deductionMode: 'auto' };
+        if(!Array.isArray(plan.incomeTax.deductions)) plan.incomeTax.deductions = [];
+        const row = createDeduction(typeId);
+        row.amount = Math.round(amt);
+        if(label) row.label = label;
+        plan.incomeTax.deductions.push(row);
       } else if(transientState.hhAddingKey === 'child'){
         const year = parseInt(String(document.querySelector('[data-hh-draft="year"]')?.value ?? transientState.hhDraftAmount ?? ''), 10);
         if(!plan.household.children) plan.household.children = [];
@@ -220,6 +250,19 @@ export function bindHouseholdEditor({
         row.label = label || 'Category';
         row.amount = Math.round(amt);
         plan.expenses.extra.push(row);
+      } else if(transientState.hhAddingKey === 'goal'){
+        if(!Array.isArray(plan.goals)) plan.goals = [];
+        const retirementAge = Math.max(
+          plan.household?.primary?.retirementAge || plan.household?.primary?.currentAge || 0,
+          plan.household?.spouse?.retirementAge || 0
+        );
+        plan.goals.push({
+          name: label || 'Goal',
+          amount: Math.round(amt),
+          startAge: retirementAge,
+          endAge: retirementAge,
+          fundFromPortfolioBeforeRetirement: false,
+        });
       }
       transientState.hhAddingKey = null;
       transientState.hhDraftLabel = '';
@@ -238,7 +281,7 @@ export function bindHouseholdEditor({
       transientState.hhAcctFormOwner = null;
       syncHousehold();
     } else if(action === 'step-next'){
-      transientState.hhStep = Math.min(4, transientState.hhStep + 1);
+      transientState.hhStep = Math.min(5, transientState.hhStep + 1);
       transientState.hhAddingKey = null;
       transientState.hhAcctFormOwner = null;
       syncHousehold();
