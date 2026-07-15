@@ -16,7 +16,7 @@ import {
 
 const money = value => '$' + Math.round(Number(value) || 0).toLocaleString('en-US');
 const rate = value => value == null ? '—' : `${Math.round(value * 1000) / 10}%`;
-const ADDABLE_INCOME_SOURCE_TYPES = INCOME_SOURCE_TYPES;
+const ADDABLE_INCOME_SOURCE_TYPES = INCOME_SOURCE_TYPES.filter(row => row.projectionEnabled !== false);
 
 function options(rows, selected = null){
   return rows.map(row => `<option value="${row.id}" ${row.id === selected ? 'selected' : ''}>${escHtml(row.label)}</option>`).join('');
@@ -34,33 +34,62 @@ function tinySelect(path, value, html, label){
   return `<select class="hh-it-inline-select" data-path="${path}" data-type="text" aria-label="${escHtml(label)}">${html}</select>`;
 }
 
+function detailField(label, control){
+  return `<label class="hh-it-detail-field"><span>${label}</span>${control}</label>`;
+}
+
+function typeOptions(selected){
+  const selectedType = incomeType(selected);
+  const rows = ADDABLE_INCOME_SOURCE_TYPES.some(row => row.id === selectedType.id)
+    ? ADDABLE_INCOME_SOURCE_TYPES
+    : [...ADDABLE_INCOME_SOURCE_TYPES, selectedType];
+  return options(rows, selectedType.id);
+}
+
+function taxCaption(source){
+  if(source.typeId === 'dividends') return `${Math.round((source.qualifiedPct || 0) * 100)}% qualified`;
+  if(source.typeId === 'rental') return `${money(source.netTaxable || 0)} net taxable`;
+  if(source.typeId === 'long_term_capital_gains') return 'legacy external gain · preferential rate';
+  if(source.typeId === 'short_term_capital_gains') return 'legacy external gain · ordinary rate';
+  if(source.typeId === 'interest') return source.taxablePct > 0 ? 'taxable interest' : 'tax-exempt interest';
+  if(['pension', 'annuity', 'deferred_comp', 'other'].includes(source.typeId)){
+    return `${Math.round((source.taxablePct ?? 1) * 100)}% taxable`;
+  }
+  if(source.typeId === 'self_employment') return 'net taxable · Schedule SE facts needed';
+  return 'taxable';
+}
+
+function sourceTaxDetail(deps, source, base){
+  if(source.typeId === 'dividends') return detailField('Qualified dividends', deps.field(`${base}.qualifiedPct`, 'pct'));
+  if(source.typeId === 'rental') return detailField('Net taxable income', deps.field(`${base}.netTaxable`, 'money'));
+  if(['interest', 'pension', 'annuity', 'deferred_comp', 'other'].includes(source.typeId)){
+    return detailField('Taxable portion', deps.field(`${base}.taxablePct`, 'pct'));
+  }
+  return '';
+}
+
 function sourceRow(plan, deps, source, index){
   const base = `income.other.${index}`;
   const type = incomeType(source.typeId);
-  const taxNote = source.typeId === 'dividends'
-    ? `qualified ${deps.field(`${base}.qualifiedPct`, 'pct')}`
-    : source.typeId === 'rental'
-      ? `net taxable ${deps.field(`${base}.netTaxable`, 'money')}`
-    : source.typeId === 'long_term_capital_gains'
-      ? '<em>preferential rate</em>'
-    : source.typeId === 'short_term_capital_gains'
-      ? 'ordinary rate'
-    : ['interest', 'pension', 'annuity', 'deferred_comp', 'other'].includes(source.typeId)
-      ? `${deps.field(`${base}.taxablePct`, 'pct')} taxable`
-      : source.typeId === 'self_employment'
-        ? 'net taxable · SE tax needs facts'
-        : source.typeId === 'rental' ? 'net taxable' : 'taxable';
+  const endAge = source.endAge >= 999 ? 'ongoing' : source.endAge;
+  const growth = `${Math.round((source.realGrowth || 0) * 1000) / 10}% /yr`;
+  const customName = source.label && source.label !== type.label ? `<span class="hh-it-row__custom">${escHtml(source.label)}</span>` : '';
   return `<div class="hh-it-row">
-    <span class="hh-it-row__copy">
-      <span class="hh-it-row__title"><input data-path="${base}.label" data-type="text" value="${escHtml(source.label || type.label)}" aria-label="Income source name"></span>
-      <span class="hh-it-row__meta">
-        ${tinySelect(`${base}.owner`, source.owner, ownerOptions(plan, source.owner), 'Income owner')}
-        <span>·</span><span>${deps.field(`${base}.startAge`, 'age')} → ${deps.field(`${base}.endAge`, 'age')}</span>
-        <span>·</span><span>${deps.field(`${base}.realGrowth`, 'signedPct')} /yr</span>
-        <span>·</span><span>${taxNote}</span>
-      </span>
-    </span>
-    <span class="hh-it-row__end"><span class="hh-it-row__amount">${deps.field(`${base}.amount`, 'money')}</span><button class="row-x" data-rmpath="${base}" title="Remove income source">×</button></span>
+    <div class="hh-it-row__copy">
+      <div class="hh-it-row__title"><select class="hh-it-type-select" data-path="${base}.typeId" data-type="incomeType" aria-label="Income type">${typeOptions(source.typeId)}</select>${customName}</div>
+      <div class="hh-it-row__meta"><span>Age ${source.startAge} → ${endAge}</span><span>·</span><span>${growth}</span><span>·</span><span>${escHtml(taxCaption(source))}</span></div>
+      <details class="hh-it-row__details">
+        <summary>Details</summary>
+        <div class="hh-it-detail-grid">
+          ${detailField('Assigned to', tinySelect(`${base}.owner`, source.owner, ownerOptions(plan, source.owner), 'Income owner'))}
+          ${detailField('Start age', deps.field(`${base}.startAge`, 'age'))}
+          ${detailField('End age', deps.field(`${base}.endAge`, 'age'))}
+          ${detailField('Growth / COLA', deps.field(`${base}.realGrowth`, 'signedPct'))}
+          ${sourceTaxDetail(deps, source, base)}
+        </div>
+      </details>
+    </div>
+    <div class="hh-it-row__end"><span class="hh-it-row__amount">${deps.field(`${base}.amount`, 'money')}</span><button class="row-x" data-rmpath="${base}" title="Remove income source">×</button></div>
   </div>`;
 }
 
@@ -103,9 +132,14 @@ function draftField(label, control, visibleFor = ''){
 }
 
 function addForm(key, plan){
+  if(key === 'savings'){
+    return `<div class="hh-it-add-card hh-it-add-card--compact" data-hh-add-form="savings"><div class="hh-it-add-grid">
+      ${draftField('Annual portfolio savings', '<span class="hh-it-add-form__money"><span>$</span><input data-hh-draft="amount" inputmode="numeric" placeholder="0" aria-label="Annual portfolio savings"></span>')}
+    </div><div class="hh-it-add-actions"><button class="hh-btn hh-btn--primary" type="button" data-hh-action="commit-add">Add savings</button><button class="hh-btn hh-btn--ghost" type="button" data-hh-action="cancel-add">Cancel</button></div></div>`;
+  }
   if(key === 'income'){
     const seed = normalizedIncomeSource(plan, { typeId:'wages', owner:'client' });
-    const incomeTypes = INCOME_SOURCE_TYPES;
+    const incomeTypes = ADDABLE_INCOME_SOURCE_TYPES;
     return `<div class="hh-it-add-card" data-hh-add-form="income">
       <div class="hh-it-add-grid">
         ${draftField('Source', `<select data-hh-draft="type" aria-label="Income type">${options(incomeTypes, 'wages')}</select>`)}
@@ -142,10 +176,33 @@ function summaryStat(label, value, note = '', className = ''){
   return `<div class="hh-it-stat${className ? ` ${className}` : ''}"><span>${label}</span><strong>${value}</strong>${note ? `<small>${note}</small>` : ''}</div>`;
 }
 
+function annualSavings(plan, deps, state){
+  const amount = Math.max(0, Number(plan.savings?.annual) || 0);
+  if(amount > 0){
+    return `<div class="hh-it-row"><span class="hh-it-row__copy"><span class="hh-it-row__title">Annual portfolio savings</span><span class="hh-it-row__meta">engine accumulation input · while either client is working</span></span><span class="hh-it-row__end"><span class="hh-it-row__amount">${deps.field('savings.annual', 'money')}</span><button class="row-x" type="button" data-hh-action="remove-annual-savings" title="Remove annual savings">×</button></span></div>`;
+  }
+  return addControl(state, 'savings', 'annual savings', plan);
+}
+
+function realizedGains(plan, deps){
+  const legacy = (plan.income?.other || []).some(row =>
+    ['short_term_capital_gains', 'long_term_capital_gains'].includes(row.typeId) && Number(row.amount) > 0);
+  return `<section class="hh-it-gains" aria-labelledby="hh-realized-gains-title">
+    <div class="hh-it-gains__copy"><span id="hh-realized-gains-title">CURRENT-YEAR REALIZED GAINS</span><small>Tax-only inputs. They do not create projected cash flow or reduce portfolio balances.</small></div>
+    <div class="hh-it-gains__fields">
+      <label><span>Short-term</span><span class="hh-it-gains__money">${deps.field('incomeTax.realizedGains.shortTerm', 'money')}</span></label>
+      <label><span>Long-term</span><span class="hh-it-gains__money">${deps.field('incomeTax.realizedGains.longTerm', 'money')}</span></label>
+    </div>
+    <p>Gains created by modeled taxable-account withdrawals remain calculated from account basis.${legacy ? ' Legacy projected-gain rows are still present above and should be reviewed.' : ''}</p>
+  </section>`;
+}
+
 export function renderHouseholdIncomeTax(plan, deps, state){
   const summary = deps.incomeTaxSummary();
   const incomeTotal = enteredIncomeTotal(plan);
-  const currentIncomeTotal = summary.totalIncome ?? incomeTotal;
+  const taxOnlyGains = Math.max(0, Number(plan.incomeTax?.realizedGains?.shortTerm) || 0)
+    + Math.max(0, Number(plan.incomeTax?.realizedGains?.longTerm) || 0);
+  const currentIncomeTotal = Math.max(0, (summary.totalIncome ?? incomeTotal) - taxOnlyGains);
   const adjustments = enteredAdjustmentTotal(plan);
   const deductions = enteredDeductionTotal(plan);
   const indexed = (plan.income?.other || []).map((source, index) => ({ ...normalizedIncomeSource(plan, source), index }));
@@ -155,18 +212,19 @@ export function renderHouseholdIncomeTax(plan, deps, state){
   const summaryMessage = summaryReady ? 'Computed by the federal tax engine' : (summary.message || 'Add required tax facts');
   return `<div class="hh-step-pane hh-it">
     <h2 class="hh-step-title hh-it__title">Income &amp; Tax</h2>
-    <p class="hh-it__intro">All known income, pre-tax contributions and deductions — the base year the tax engine works from.</p>
+    <p class="hh-it__intro">Projected income streams and current-year tax facts — each kept in the calculation path where it belongs.</p>
 
-    <div class="hh-it-section-head"><span>INCOME SOURCES</span><strong>${money(currentIncomeTotal)} <small>this year</small></strong></div>
+    <div class="hh-it-section-head"><span>PROJECTED INCOME SOURCES</span><strong>${money(currentIncomeTotal)} <small>this year</small></strong></div>
     <div class="hh-it-grid">
       <section><div class="hh-it-subhead"><span>WORKING YEARS</span><small>${money(working.reduce((sum, row) => sum + (Number(row.amount) || 0), 0))} /yr</small></div>${working.length ? working.map(row => sourceRow(plan, deps, row, row.index)).join('') : '<p class="hh-it-empty">No working-year income entered.</p>'}</section>
       <section><div class="hh-it-subhead"><span>RETIREMENT YEARS</span><small>${money((plan.income?.socialSecurity?.primary?.pia || 0) + (plan.household?.spouse ? (plan.income?.socialSecurity?.spouse?.pia || 0) : 0) + retirement.reduce((sum, row) => sum + (Number(row.amount) || 0), 0))} /yr</small></div>${socialSecurityRow(plan, deps, 'client')}${socialSecurityRow(plan, deps, 'spouse')}${retirement.map(row => sourceRow(plan, deps, row, row.index)).join('')}</section>
     </div>
     <div class="hh-it-add-line">${addControl(state, 'income', 'income source', plan)}${state.hhAddingKey !== 'income' ? `<span>${ADDABLE_INCOME_SOURCE_TYPES.map(row => row.label).join(' · ')}</span>` : ''}</div>
+    ${realizedGains(plan, deps)}
 
     <div class="hh-it-grid hh-it-grid--lower">
       <section><div class="hh-it-section-head"><span>PRE-TAX &amp; ADJUSTMENTS</span><strong>−${money(adjustments)}</strong></div>
-        <div class="hh-it-row"><span class="hh-it-row__copy"><span class="hh-it-row__title">Annual portfolio savings</span><span class="hh-it-row__meta">engine accumulation input · while either client is working</span></span><span class="hh-it-row__end"><span class="hh-it-row__amount">${deps.field('savings.annual', 'money')}</span></span></div>
+        ${annualSavings(plan, deps, state)}
         ${(plan.incomeTax?.adjustments || []).map((row, index) => adjustmentRow(plan, deps, row, index)).join('') || '<p class="hh-it-empty">No tax adjustments entered.</p>'}${addControl(state, 'adjustment', 'adjustment', plan)}</section>
       <section><div class="hh-it-section-head"><span>DEDUCTIONS</span><strong>−${money(deductions)}</strong></div>${(plan.incomeTax?.deductions || []).map((row, index) => deductionRow(deps, row, index)).join('') || '<p class="hh-it-empty">No itemized deductions entered.</p>'}<div class="hh-it-auto-row"><span>${summaryReady ? `${summary.deductionMethod} deduction` : 'Deduction choice'} <b>AUTO</b></span><strong>${summaryReady ? money(summary.deductionUsed) : '—'}</strong></div>${addControl(state, 'deduction', 'deduction', plan)}${summaryReady ? `<p class="hh-it-deduction-note">${summary.deductionMethod === 'Itemized' ? `Itemized ${money(deductions)} exceeds standard — <em>itemized applied</em>` : `Standard ${money(summary.deductionUsed)} exceeds entered itemized deductions — <em>standard applied</em>`}</p>` : ''}</section>
     </div>

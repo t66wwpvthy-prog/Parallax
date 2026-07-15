@@ -38,6 +38,10 @@ function currentIncome(plan){
     }else add(income, 'otherIncome', amount * Math.max(0, Math.min(1, source.taxablePct ?? 1)));
   }
 
+  const realizedGains = plan.incomeTax?.realizedGains || {};
+  add(income, 'otherIncome', Math.max(0, Number(realizedGains.shortTerm) || 0));
+  add(income, 'capitalGain', Math.max(0, Number(realizedGains.longTerm) || 0));
+
   const primaryAge = plan.household?.primary?.currentAge ?? 0;
   const spouseAge = plan.household?.spouse?.currentAge ?? primaryAge;
   const ss = plan.income?.socialSecurity || {};

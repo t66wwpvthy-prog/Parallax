@@ -72,3 +72,18 @@ test('current summary maps rental net income and long-term gains to the supporte
   assert.ok(summary.capitalGainsCaption.includes('0%'));
   assert.ok(summary.ordinaryBracketRoom > 0);
 });
+
+test('current-year realized gains affect tax without becoming projected income rows', () => {
+  const value = plan({
+    incomeTax: {
+      adjustments: [], deductions: [],
+      realizedGains: { shortTerm:5000, longTerm:20000 },
+    },
+  });
+  const beforeRows = structuredClone(value.income.other);
+  const summary = buildCurrentIncomeTaxSummary(value);
+  assert.equal(summary.status, 'ready');
+  assert.equal(summary.totalIncome, 125000);
+  assert.notEqual(summary.capitalGainsRate, null);
+  assert.deepEqual(value.income.other, beforeRows, 'tax-only gains must not create projection rows');
+});
