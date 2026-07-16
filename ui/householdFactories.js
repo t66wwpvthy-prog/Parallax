@@ -1,6 +1,6 @@
 import { ACCOUNT_SCHEMA_VERSION } from '../src/household/accountTypes.js';
 import { createBlankTaxProfiles } from '../src/household/factEnvelope.js';
-import { createIncomeTaxInputs, ensureRequiredIncomeTaxInputs } from '../src/household/incomeTaxModel.js';
+import { createIncomeTaxInputs } from '../src/household/incomeTaxModel.js';
 
 const clonePristinePlan = pristinePlan => JSON.parse(JSON.stringify(pristinePlan));
 
@@ -48,5 +48,5 @@ export function createBlankHousehold(pristinePlan, householdId, currentYear){
   p.incomeTax = createIncomeTaxInputs();
   p.goals = [];
   p.simulation.iterations = 1000;
-  return ensureRequiredIncomeTaxInputs(p);
+  return p;
 }

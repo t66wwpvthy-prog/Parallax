@@ -11,10 +11,10 @@ export const INCOME_SOURCE_TYPES = freezeRows([
   { id: 'interest', label: 'Interest', timing: 'ongoing', taxablePct: 1 },
   { id: 'tax_exempt_interest', label: 'Tax-exempt interest', timing: 'current', taxablePct: 0 },
   { id: 'dividends', label: 'Dividends', timing: 'ongoing', taxablePct: 1 },
-  { id: 'ira_distribution', label: 'IRA distributions', timing: 'current', taxablePct: 1 },
-  { id: 'roth_conversion', label: 'Roth conversions', timing: 'current', taxablePct: 1 },
-  { id: 'short_term_capital_gain', label: 'Short-term capital gains', timing: 'current', taxablePct: 1 },
-  { id: 'long_term_capital_gain', label: 'Long-term capital gains', timing: 'current', taxablePct: 0 },
+  { id: 'ira_distribution', label: 'IRA distribution', timing: 'current', taxablePct: 1 },
+  { id: 'roth_conversion', label: 'Roth conversion', timing: 'current', taxablePct: 1 },
+  { id: 'short_term_capital_gain', label: 'Short-term capital gain', timing: 'current', taxablePct: 1 },
+  { id: 'long_term_capital_gain', label: 'Long-term capital gain', timing: 'current', taxablePct: 0 },
   { id: 'deferred_comp', label: 'Deferred compensation', timing: 'retirement', taxablePct: 1 },
   { id: 'other', label: 'Other income', timing: 'ongoing', taxablePct: 1 },
 ]);
@@ -22,7 +22,7 @@ export const INCOME_SOURCE_TYPES = freezeRows([
 export const ADJUSTMENT_TYPES = freezeRows([
   { id: '401k', label: '401(k) contribution', note: 'pre-tax · while working' },
   { id: 'hsa', label: 'HSA contribution', note: 'reduces AGI' },
-  { id: 'ira_deduction', label: 'Deductible IRA contributions', note: 'deductibility requires tax facts' },
+  { id: 'ira_deduction', label: 'Deductible IRA contribution', note: 'deductibility requires tax facts' },
   { id: 'other', label: 'Other adjustment', note: 'reduces AGI' },
 ]);
 
@@ -39,17 +39,6 @@ export const DEDUCTION_TYPES = freezeRows([
 export const CREDIT_TYPES = freezeRows([
   { id: 'premium_tax_credit', label: 'Premium Tax Credit', note: 'applied as entered on Form 1040 line 20' },
 ]);
-
-export const REQUIRED_INCOME_SOURCE_TYPE_IDS = Object.freeze([
-  'tax_exempt_interest',
-  'ira_distribution',
-  'roth_conversion',
-  'short_term_capital_gain',
-  'long_term_capital_gain',
-]);
-export const REQUIRED_ADJUSTMENT_TYPE_IDS = Object.freeze(['ira_deduction']);
-export const REQUIRED_DEDUCTION_TYPE_IDS = Object.freeze(['real_estate_tax', 'personal_property_tax']);
-export const REQUIRED_CREDIT_TYPE_IDS = Object.freeze(['premium_tax_credit']);
 
 const byId = (rows, id, fallback = 'other') =>
   rows.find(row => row.id === id) || rows.find(row => row.id === fallback) || rows[0];
@@ -212,35 +201,4 @@ export function createDeduction(typeId = 'charitable'){
 export function createCredit(typeId = 'premium_tax_credit'){
   const type = creditType(typeId);
   return { typeId: type.id, label: type.label, amount: 0 };
-}
-
-export function ensureRequiredIncomeTaxInputs(plan){
-  if(!plan.income) plan.income = {};
-  if(!Array.isArray(plan.income.other)) plan.income.other = [];
-  if(!plan.incomeTax) plan.incomeTax = createIncomeTaxInputs();
-  if(!Array.isArray(plan.incomeTax.adjustments)) plan.incomeTax.adjustments = [];
-  if(!Array.isArray(plan.incomeTax.deductions)) plan.incomeTax.deductions = [];
-  if(!Array.isArray(plan.incomeTax.credits)) plan.incomeTax.credits = [];
-
-  for(const typeId of REQUIRED_INCOME_SOURCE_TYPE_IDS){
-    if(!plan.income.other.some(row => row.typeId === typeId)){
-      plan.income.other.push(createIncomeSource(plan, typeId, 'client'));
-    }
-  }
-  for(const typeId of REQUIRED_ADJUSTMENT_TYPE_IDS){
-    if(!plan.incomeTax.adjustments.some(row => row.typeId === typeId)){
-      plan.incomeTax.adjustments.push(createAdjustment(typeId, 'client'));
-    }
-  }
-  for(const typeId of REQUIRED_DEDUCTION_TYPE_IDS){
-    if(!plan.incomeTax.deductions.some(row => row.typeId === typeId)){
-      plan.incomeTax.deductions.push(createDeduction(typeId));
-    }
-  }
-  for(const typeId of REQUIRED_CREDIT_TYPE_IDS){
-    if(!plan.incomeTax.credits.some(row => row.typeId === typeId)){
-      plan.incomeTax.credits.push(createCredit(typeId));
-    }
-  }
-  return plan;
 }

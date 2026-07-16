@@ -77,6 +77,43 @@ export function bindHouseholdEditor({
       });
       return;
     }
+    const fixedKind = e.target.dataset.hhFixedKind;
+    if(fixedKind){
+      if(!guardPlanMutation()){ syncHousehold(); return; }
+      const typeId = e.target.dataset.hhFixedType;
+      const owner = e.target.dataset.hhFixedOwner || 'client';
+      const rowIndex = Number.parseInt(e.target.dataset.hhFixedIndex, 10);
+      const amount = Math.max(0, Math.round(parseFloat(String(e.target.value).replace(/[^0-9.]/g, '')) || 0));
+      let rows;
+      let createRow;
+      if(fixedKind === 'income'){
+        if(!plan.income) plan.income = {};
+        if(!Array.isArray(plan.income.other)) plan.income.other = [];
+        rows = plan.income.other;
+        createRow = () => createIncomeSource(plan, typeId, owner);
+      }else if(fixedKind === 'adjustment'){
+        if(!plan.incomeTax) plan.incomeTax = { adjustments: [], deductions: [], credits: [], deductionMode: 'auto' };
+        if(!Array.isArray(plan.incomeTax.adjustments)) plan.incomeTax.adjustments = [];
+        rows = plan.incomeTax.adjustments;
+        createRow = () => createAdjustment(typeId, owner);
+      }else if(fixedKind === 'deduction'){
+        if(!plan.incomeTax) plan.incomeTax = { adjustments: [], deductions: [], credits: [], deductionMode: 'auto' };
+        if(!Array.isArray(plan.incomeTax.deductions)) plan.incomeTax.deductions = [];
+        rows = plan.incomeTax.deductions;
+        createRow = () => createDeduction(typeId);
+      }
+      if(!rows || !createRow) return;
+      if(Number.isInteger(rowIndex) && rowIndex >= 0 && rowIndex < rows.length){
+        if(amount === 0) rows.splice(rowIndex, 1);
+        else rows[rowIndex].amount = amount;
+      }else if(amount > 0){
+        const row = createRow();
+        row.amount = amount;
+        rows.push(row);
+      }
+      hhCommit();
+      return;
+    }
     const path = e.target.dataset.path, type = e.target.dataset.type;
     if(!path) return;
     if(!guardPlanMutation()){ syncHousehold(); return; }
@@ -138,6 +175,13 @@ export function bindHouseholdEditor({
 
   wizardRoot.addEventListener('click', e => {
     const plan = getPlan();
+    const clear = e.target.closest('[data-hh-clear-path]');
+    if(clear){
+      if(!guardPlanMutation()) return;
+      setPath(plan, clear.dataset.hhClearPath, 0);
+      hhCommit();
+      return;
+    }
     const rx = e.target.closest('.row-x');
     if(rx){
       if(!guardPlanMutation()) return;
@@ -247,6 +291,13 @@ export function bindHouseholdEditor({
       const amt = parseFloat(String(amtRaw).replace(/[^0-9.]/g, '')) || 0;
       const typeId = document.querySelector('[data-hh-draft="type"]')?.value || 'other';
       const owner = document.querySelector('[data-hh-draft="owner"]')?.value || 'client';
+      if(['income', 'adjustment', 'deduction', 'credit'].includes(transientState.hhAddingKey) && amt <= 0){
+        transientState.hhAddingKey = null;
+        transientState.hhDraftLabel = '';
+        transientState.hhDraftAmount = '';
+        syncHousehold();
+        return;
+      }
       if(transientState.hhAddingKey === 'income'){
         if(!plan.income.other) plan.income.other = [];
         const row = createIncomeSource(plan, typeId, owner);
@@ -277,11 +328,19 @@ export function bindHouseholdEditor({
         plan.incomeTax.adjustments.push(row);
       } else if(transientState.hhAddingKey === 'deduction'){
         if(!plan.incomeTax) plan.incomeTax = { adjustments: [], deductions: [], credits: [], deductionMode: 'auto' };
-        if(!Array.isArray(plan.incomeTax.deductions)) plan.incomeTax.deductions = [];
-        const row = createDeduction(typeId);
-        row.amount = Math.round(amt);
-        if(label) row.label = label;
-        plan.incomeTax.deductions.push(row);
+        if(typeId.startsWith('credit:')){
+          if(!Array.isArray(plan.incomeTax.credits)) plan.incomeTax.credits = [];
+          const row = createCredit(typeId.slice('credit:'.length));
+          row.amount = Math.round(amt);
+          if(label) row.label = label;
+          plan.incomeTax.credits.push(row);
+        }else{
+          if(!Array.isArray(plan.incomeTax.deductions)) plan.incomeTax.deductions = [];
+          const row = createDeduction(typeId);
+          row.amount = Math.round(amt);
+          if(label) row.label = label;
+          plan.incomeTax.deductions.push(row);
+        }
       } else if(transientState.hhAddingKey === 'credit'){
         if(!plan.incomeTax) plan.incomeTax = { adjustments: [], deductions: [], credits: [], deductionMode: 'auto' };
         if(!Array.isArray(plan.incomeTax.credits)) plan.incomeTax.credits = [];
