@@ -288,9 +288,13 @@ export function bindHouseholdEditor({
       };
       const label = (document.querySelector('[data-hh-draft="label"]')?.value || transientState.hhDraftLabel || '').trim();
       const amtRaw = document.querySelector('[data-hh-draft="amount"]')?.value ?? transientState.hhDraftAmount ?? '';
-      const amt = parseFloat(String(amtRaw).replace(/[^0-9.]/g, '')) || 0;
+      let amt = parseFloat(String(amtRaw).replace(/[^0-9.]/g, '')) || 0;
       const typeId = document.querySelector('[data-hh-draft="type"]')?.value || 'other';
       const owner = document.querySelector('[data-hh-draft="owner"]')?.value || 'client';
+      if(transientState.hhAddingKey === 'income' && typeId === 'rental'){
+        const netTaxable = draftNumber('netTaxable');
+        if(netTaxable != null) amt = netTaxable;
+      }
       if(['income', 'adjustment', 'deduction', 'credit'].includes(transientState.hhAddingKey) && amt <= 0){
         transientState.hhAddingKey = null;
         transientState.hhDraftLabel = '';
@@ -307,10 +311,13 @@ export function bindHouseholdEditor({
         const growthPct = draftNumber('growthPct');
         const taxablePct = draftNumber('taxablePct');
         const qualifiedPct = draftNumber('qualifiedPct');
+        const interestTreatment = draft('interestTreatment')?.value;
         if(startAge != null) row.startAge = Math.max(0, Math.min(120, Math.round(startAge)));
         if(endAge != null) row.endAge = Math.max(row.startAge, Math.min(120, Math.round(endAge)));
         if(growthPct != null) row.realGrowth = Math.max(-100, Math.min(100, growthPct)) / 100;
-        if(taxablePct != null && ['interest','pension','annuity','deferred_comp','other','ira_distribution','roth_conversion'].includes(typeId)){
+        if(typeId === 'interest' && interestTreatment === 'tax_exempt') row.taxablePct = 0;
+        else if(typeId === 'interest' && interestTreatment === 'taxable') row.taxablePct = 1;
+        else if(taxablePct != null && ['pension','annuity','deferred_comp','other','ira_distribution','roth_conversion'].includes(typeId)){
           row.taxablePct = Math.max(0, Math.min(100, taxablePct)) / 100;
         }
         if(qualifiedPct != null && typeId === 'dividends'){
@@ -328,19 +335,11 @@ export function bindHouseholdEditor({
         plan.incomeTax.adjustments.push(row);
       } else if(transientState.hhAddingKey === 'deduction'){
         if(!plan.incomeTax) plan.incomeTax = { adjustments: [], deductions: [], credits: [], deductionMode: 'auto' };
-        if(typeId.startsWith('credit:')){
-          if(!Array.isArray(plan.incomeTax.credits)) plan.incomeTax.credits = [];
-          const row = createCredit(typeId.slice('credit:'.length));
-          row.amount = Math.round(amt);
-          if(label) row.label = label;
-          plan.incomeTax.credits.push(row);
-        }else{
-          if(!Array.isArray(plan.incomeTax.deductions)) plan.incomeTax.deductions = [];
-          const row = createDeduction(typeId);
-          row.amount = Math.round(amt);
-          if(label) row.label = label;
-          plan.incomeTax.deductions.push(row);
-        }
+        if(!Array.isArray(plan.incomeTax.deductions)) plan.incomeTax.deductions = [];
+        const row = createDeduction(typeId);
+        row.amount = Math.round(amt);
+        if(label) row.label = label;
+        plan.incomeTax.deductions.push(row);
       } else if(transientState.hhAddingKey === 'credit'){
         if(!plan.incomeTax) plan.incomeTax = { adjustments: [], deductions: [], credits: [], deductionMode: 'auto' };
         if(!Array.isArray(plan.incomeTax.credits)) plan.incomeTax.credits = [];

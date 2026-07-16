@@ -13,8 +13,8 @@ export const INCOME_SOURCE_TYPES = freezeRows([
   { id: 'dividends', label: 'Dividends', timing: 'ongoing', taxablePct: 1 },
   { id: 'ira_distribution', label: 'IRA distribution', timing: 'current', taxablePct: 1 },
   { id: 'roth_conversion', label: 'Roth conversion', timing: 'current', taxablePct: 1 },
-  { id: 'short_term_capital_gain', label: 'Short-term capital gain', timing: 'current', taxablePct: 1 },
-  { id: 'long_term_capital_gain', label: 'Long-term capital gain', timing: 'current', taxablePct: 0 },
+  { id: 'short_term_capital_gain', label: 'Short-term capital gains', timing: 'current', taxablePct: 1 },
+  { id: 'long_term_capital_gain', label: 'Long-term capital gains', timing: 'current', taxablePct: 0 },
   { id: 'deferred_comp', label: 'Deferred compensation', timing: 'retirement', taxablePct: 1 },
   { id: 'other', label: 'Other income', timing: 'ongoing', taxablePct: 1 },
 ]);
@@ -22,17 +22,17 @@ export const INCOME_SOURCE_TYPES = freezeRows([
 export const ADJUSTMENT_TYPES = freezeRows([
   { id: '401k', label: '401(k) contribution', note: 'pre-tax · while working' },
   { id: 'hsa', label: 'HSA contribution', note: 'reduces AGI' },
-  { id: 'ira_deduction', label: 'Deductible IRA contribution', note: 'deductibility requires tax facts' },
+  { id: 'ira_deduction', label: 'Deductible IRA contribution', note: 'reduces AGI' },
   { id: 'other', label: 'Other adjustment', note: 'reduces AGI' },
 ]);
 
 export const DEDUCTION_TYPES = freezeRows([
-  { id: 'medical', label: 'Medical expenses', note: 'AGI floor not yet calculated' },
+  { id: 'medical', label: 'Medical expenses', note: 'AGI floor auto' },
   { id: 'charitable', label: 'Charitable contributions', note: '' },
   { id: 'mortgage_interest', label: 'Mortgage interest', note: '' },
-  { id: 'real_estate_tax', label: 'Real-estate taxes', note: 'SALT cap rule not yet calculated' },
-  { id: 'personal_property_tax', label: 'Personal-property taxes', note: 'SALT cap rule not yet calculated' },
-  { id: 'salt', label: 'State & local taxes', note: 'cap not yet calculated' },
+  { id: 'real_estate_tax', label: 'Real-estate taxes', note: 'cap auto' },
+  { id: 'personal_property_tax', label: 'Personal-property taxes', note: 'cap auto' },
+  { id: 'salt', label: 'State & local taxes', note: 'cap auto' },
   { id: 'other', label: 'Other itemized deduction', note: '' },
 ]);
 
