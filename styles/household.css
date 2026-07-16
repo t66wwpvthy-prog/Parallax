@@ -669,14 +669,14 @@
 .page[data-page="household"] .hh-it-section-head > strong { color: var(--gold); font: 400 19px/1 var(--font-serif); }
 .page[data-page="household"] .hh-it-section-head > strong small { color: var(--text-4); font: 400 11px/1 var(--font-sans); letter-spacing: .03em; }
 .page[data-page="household"] .hh-it-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 56px; align-items: start; }
-.page[data-page="household"] .hh-it-grid--lower { margin-top: 20px; }
+.page[data-page="household"] .hh-it-grid--lower { margin-top: 18px; }
 .page[data-page="household"] .hh-it-subhead {
-  min-height: 25px; margin-top: 8px; display: flex; align-items: baseline; justify-content: space-between;
+  min-height: 22px; margin-top: 6px; display: flex; align-items: baseline; justify-content: space-between;
   gap: 12px; color: var(--text-4); font-size: 10px; letter-spacing: .15em;
 }
 .page[data-page="household"] .hh-it-subhead small { color: var(--text-4); font-size: 11px; letter-spacing: 0; }
 .page[data-page="household"] .hh-it-row {
-  min-height: 43px; padding: 5px 2px; display: flex; align-items: center; justify-content: space-between;
+  min-height: 38px; padding: 4px 2px; display: flex; align-items: center; justify-content: space-between;
   gap: 14px; border-bottom: 1px solid var(--line-06);
 }
 .page[data-page="household"] .hh-it-row:hover { background: rgba(255,255,255,.02); }
@@ -706,7 +706,9 @@
 }
 .page[data-page="household"] .hh-it-row__amount .pre { flex: none; margin-right: 2px; font-size: 14px; }
 .page[data-page="household"] .hh-it-row__amount input[data-type="money"] {
-  width: 8ch; min-width: 0; color: var(--text-hi); font: 400 18px/1 var(--font-serif); text-align: right;
+  width: 8ch; min-width: 0; padding: 0 0 2px; border: 0; border-bottom: 1px solid var(--line-16); border-radius: 0;
+  background: transparent; box-shadow: none; outline: none; appearance: none;
+  color: var(--text-hi); font: 400 18px/1 var(--font-serif); text-align: right;
 }
 .page[data-page="household"] .hh-it-inline-select {
   width: auto; max-width: 13ch; padding: 0; border: 0; background: transparent;
@@ -716,12 +718,12 @@
   min-height: 43px; margin: 0; padding: 13px 2px; border-bottom: 1px solid var(--line-06);
   color: var(--text-4); font-size: 12px;
 }
-.page[data-page="household"] .hh-it-add-line { margin-top: 9px; display: flex; align-items: center; gap: 15px; }
+.page[data-page="household"] .hh-it-add-line { margin-top: 8px; display: flex; align-items: center; gap: 15px; }
 .page[data-page="household"] .hh-it-add-line > span {
   color: var(--text-5); font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .page[data-page="household"] .hh-it-add {
-  margin-top: 9px; padding: 6px 12px; border: 1px dashed var(--gold-dim); border-radius: 7px;
+  margin-top: 8px; padding: 6px 12px; border: 1px dashed var(--gold-dim); border-radius: 7px;
   background: transparent; color: var(--gold); font: 400 12px/1 var(--font-sans); cursor: pointer; white-space: nowrap;
 }
 .page[data-page="household"] .hh-it-add:hover { border-color: var(--gold); color: var(--gold-bright); }
@@ -752,7 +754,7 @@
 .page[data-page="household"] .hh-it-add-form__actions { flex: none; display: inline-flex; align-items: center; gap: 4px; }
 .page[data-page="household"] .hh-it-add-form .hh-btn { padding: 7px 11px; font-size: 11px; }
 .page[data-page="household"] .hh-it-auto-row {
-  min-height: 43px; padding: 7px 2px; display: flex; align-items: center; justify-content: space-between;
+  min-height: 38px; padding: 4px 2px; display: flex; align-items: center; justify-content: space-between;
   gap: 12px; border-bottom: 1px solid var(--line-06); color: var(--text-3); font-size: 13px;
 }
 .page[data-page="household"] .hh-it-auto-row b {
@@ -774,7 +776,7 @@
   color: var(--gold); font: 400 15px/1 var(--font-serif); letter-spacing: 0;
 }
 .page[data-page="household"] .hh-it-foundation {
-  margin-top: 20px; padding: 12px 0; display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 24px;
+  margin-top: 18px; padding: 12px 0; display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 24px;
   border-top: 1px solid var(--line-10); border-bottom: 1px solid var(--line-10);
 }
 .page[data-page="household"] .hh-it-stat { min-width: 0; display: flex; flex-direction: column; gap: 5px; }

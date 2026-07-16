@@ -19,7 +19,26 @@ import {
 
 const money = value => '$' + Math.round(Number(value) || 0).toLocaleString('en-US');
 const rate = value => value == null ? '—' : `${Math.round(value * 1000) / 10}%`;
+const positive = row => Number(row?.amount) > 0;
 const ADDABLE_INCOME_SOURCE_TYPES = INCOME_SOURCE_TYPES.filter(row => row.id !== 'social_security');
+
+const DEFAULT_INCOME_SLOTS = Object.freeze([
+  { typeId:'wages', owner:'client' },
+  { typeId:'wages', owner:'spouse' },
+  { typeId:'interest', owner:'joint' },
+  { typeId:'dividends', owner:'joint' },
+]);
+const DEFAULT_ADJUSTMENT_SLOTS = Object.freeze([
+  { typeId:'401k', owner:'client' },
+  { typeId:'401k', owner:'spouse' },
+  { typeId:'hsa', owner:'joint' },
+]);
+const DEFAULT_DEDUCTION_SLOTS = Object.freeze([
+  { typeId:'medical' },
+  { typeId:'charitable' },
+  { typeId:'mortgage_interest' },
+  { typeId:'salt' },
+]);
 
 function options(rows){
   return rows.map(row => `<option value="${row.id}">${escHtml(row.label)}</option>`).join('');
@@ -35,6 +54,25 @@ function ownerOptions(plan, selected){
 
 function tinySelect(path, value, html, label){
   return `<select class="hh-it-inline-select" data-path="${path}" data-type="text" aria-label="${escHtml(label)}">${html}</select>`;
+}
+
+function allocateSlots(rows, definitions, matches){
+  const used = new Set();
+  const slots = definitions.map(definition => {
+    const index = rows.findIndex((row, rowIndex) =>
+      !used.has(rowIndex) && positive(row) && matches(row, definition));
+    if(index >= 0) used.add(index);
+    return { ...definition, row:index >= 0 ? rows[index] : null, index };
+  });
+  return { slots, used };
+}
+
+function fixedMoneyInput({ kind, typeId, owner = '', amount = 0, rowIndex = -1, label, disabled = false }){
+  return `<span class="pre">$</span><input type="text" inputmode="numeric" data-type="money" data-hh-fixed-kind="${kind}" data-hh-fixed-type="${typeId}" data-hh-fixed-owner="${owner}" data-hh-fixed-index="${rowIndex}" value="${Math.round(Number(amount) || 0).toLocaleString('en-US')}" aria-label="${escHtml(label)} amount"${disabled ? ' disabled' : ''}>`;
+}
+
+function removeButton(path, label){
+  return path ? `<button class="row-x" data-rmpath="${path}" title="Remove ${escHtml(label)}">×</button>` : '';
 }
 
 function sourceRow(plan, deps, source, index){
@@ -53,11 +91,11 @@ function sourceRow(plan, deps, source, index){
             ? 'current year · ordinary-rate gain'
             : source.typeId === 'long_term_capital_gain'
               ? 'current year · preferential-rate gain'
-    : ['interest', 'pension', 'annuity', 'deferred_comp', 'other'].includes(source.typeId)
-      ? `${deps.field(`${base}.taxablePct`, 'pct')} taxable`
-      : source.typeId === 'self_employment'
-        ? 'net taxable · SE tax needs facts'
-        : source.typeId === 'rental' ? 'net taxable' : 'taxable';
+              : ['interest', 'pension', 'annuity', 'deferred_comp', 'other'].includes(source.typeId)
+                ? `${deps.field(`${base}.taxablePct`, 'pct')} taxable`
+                : source.typeId === 'self_employment'
+                  ? 'net taxable · SE tax needs facts'
+                  : source.typeId === 'rental' ? 'net taxable' : 'taxable';
   return `<div class="hh-it-row">
     <span class="hh-it-row__copy">
       <span class="hh-it-row__title"><input data-path="${base}.label" data-type="text" value="${escHtml(source.label || type.label)}" aria-label="Income source name"></span>
@@ -68,19 +106,48 @@ function sourceRow(plan, deps, source, index){
           : `<span>·</span><span>${deps.field(`${base}.startAge`, 'age')} → ${deps.field(`${base}.endAge`, 'ageOrLife')}</span><span>·</span><span>${deps.field(`${base}.realGrowth`, 'signedPct')} /yr</span><span>·</span><span>${taxNote}</span>`}
       </span>
     </span>
-    <span class="hh-it-row__end"><span class="hh-it-row__amount">${deps.field(`${base}.amount`, 'money')}</span><button class="row-x" data-rmpath="${base}" title="Remove income source">×</button></span>
+    <span class="hh-it-row__end"><span class="hh-it-row__amount">${deps.field(`${base}.amount`, 'money')}</span>${removeButton(base, 'income source')}</span>
+  </div>`;
+}
+
+function fixedIncomeRow(plan, deps, slot){
+  const { typeId, owner, row, index } = slot;
+  const type = incomeType(typeId);
+  const base = index >= 0 ? `income.other.${index}` : '';
+  const spouseUnavailable = owner === 'spouse' && !plan.household?.spouse;
+  let meta;
+  if(typeId === 'wages'){
+    const person = owner === 'spouse' ? plan.household?.spouse : plan.household?.primary;
+    meta = row
+      ? `${escHtml(ownerLabel(plan, owner))} · ${deps.field(`${base}.startAge`, 'age')} → ${deps.field(`${base}.endAge`, 'ageOrLife')} · ${deps.field(`${base}.realGrowth`, 'signedPct')}/yr`
+      : `${escHtml(ownerLabel(plan, owner))} · ${person?.currentAge ?? '—'} → ${person ? Math.max(person.currentAge || 0, (person.retirementAge || 1) - 1) : '—'} · 0%/yr`;
+  }else if(typeId === 'dividends'){
+    meta = `${escHtml(ownerLabel(plan, owner))} · ongoing · qualified ${row ? deps.field(`${base}.qualifiedPct`, 'pct') : '0%'}`;
+  }else{
+    meta = `${escHtml(ownerLabel(plan, owner))} · ongoing · taxable`;
+  }
+  return `<div class="hh-it-row" data-income-tax-slot="${typeId}:${owner}">
+    <span class="hh-it-row__copy"><span class="hh-it-row__title">${escHtml(type.label)}</span><span class="hh-it-row__meta">${meta}</span></span>
+    <span class="hh-it-row__end"><span class="hh-it-row__amount">${fixedMoneyInput({ kind:'income', typeId, owner, amount:row?.amount, rowIndex:index, label:type.label, disabled:spouseUnavailable })}</span>${removeButton(base, type.label)}</span>
   </div>`;
 }
 
 function socialSecurityRow(plan, deps, role){
   const key = role === 'spouse' ? 'spouse' : 'primary';
-  const block = plan.income?.socialSecurity?.[key];
-  if(!block || (role === 'spouse' && !plan.household?.spouse)) return '';
-  const base = `income.socialSecurity.${key}`;
   const owner = role === 'spouse' ? 'spouse' : 'client';
-  return `<div class="hh-it-row">
-    <span class="hh-it-row__copy"><span class="hh-it-row__title">Social Security</span><span class="hh-it-row__meta">${escHtml(ownerLabel(plan, owner))} · from ${deps.field(`${base}.claimAge`, 'age', { min:62, max:70 })} · COLA · <em>taxable auto</em></span></span>
-    <span class="hh-it-row__end"><span class="hh-it-row__amount">${deps.field(`${base}.pia`, 'money')}</span></span>
+  const block = plan.income?.socialSecurity?.[key];
+  const available = role !== 'spouse' || Boolean(plan.household?.spouse);
+  const base = `income.socialSecurity.${key}`;
+  const amount = block && available
+    ? deps.field(`${base}.pia`, 'money')
+    : `<span class="pre">$</span><input type="text" inputmode="numeric" data-type="money" value="0" aria-label="${escHtml(ownerLabel(plan, owner))} Social Security amount" disabled>`;
+  const claimAge = block && available ? deps.field(`${base}.claimAge`, 'age', { min:62, max:70 }) : '—';
+  const clear = block && Number(block.pia) > 0
+    ? `<button class="row-x" data-hh-clear-path="${base}.pia" title="Clear Social Security">×</button>`
+    : '';
+  return `<div class="hh-it-row" data-income-tax-slot="social_security:${owner}">
+    <span class="hh-it-row__copy"><span class="hh-it-row__title">Social Security</span><span class="hh-it-row__meta">${escHtml(ownerLabel(plan, owner))} · from ${claimAge} · COLA · <em>taxable auto</em></span></span>
+    <span class="hh-it-row__end"><span class="hh-it-row__amount">${amount}</span>${clear}</span>
   </div>`;
 }
 
@@ -90,7 +157,19 @@ function adjustmentRow(plan, deps, row, index){
   const active = isAdjustmentActiveNow(plan, row);
   return `<div class="hh-it-row${active ? '' : ' hh-it-row--inactive'}">
     <span class="hh-it-row__copy"><span class="hh-it-row__title"><input data-path="${base}.label" data-type="text" value="${escHtml(row.label || type.label)}" aria-label="Adjustment name"></span><span class="hh-it-row__meta">${tinySelect(`${base}.owner`, row.owner || 'client', ownerOptions(plan, row.owner || 'client'), 'Adjustment owner')} · ${escHtml(type.note)}${active ? '' : ' · not in this year\'s AGI'}</span></span>
-    <span class="hh-it-row__end"><span class="hh-it-row__amount">${deps.field(`${base}.amount`, 'money')}</span><button class="row-x" data-rmpath="${base}" title="Remove adjustment">×</button></span>
+    <span class="hh-it-row__end"><span class="hh-it-row__amount">${deps.field(`${base}.amount`, 'money')}</span>${removeButton(base, 'adjustment')}</span>
+  </div>`;
+}
+
+function fixedAdjustmentRow(plan, slot){
+  const { typeId, owner, row, index } = slot;
+  const type = adjustmentType(typeId);
+  const base = index >= 0 ? `incomeTax.adjustments.${index}` : '';
+  const spouseUnavailable = owner === 'spouse' && !plan.household?.spouse;
+  const active = !row || isAdjustmentActiveNow(plan, row);
+  return `<div class="hh-it-row${active ? '' : ' hh-it-row--inactive'}" data-income-tax-slot="${typeId}:${owner}">
+    <span class="hh-it-row__copy"><span class="hh-it-row__title">${escHtml(type.label)}</span><span class="hh-it-row__meta">${escHtml(ownerLabel(plan, owner))} · ${escHtml(type.note)}${active ? '' : ' · not in this year\'s AGI'}</span></span>
+    <span class="hh-it-row__end"><span class="hh-it-row__amount">${fixedMoneyInput({ kind:'adjustment', typeId, owner, amount:row?.amount, rowIndex:index, label:type.label, disabled:spouseUnavailable })}</span>${removeButton(base, type.label)}</span>
   </div>`;
 }
 
@@ -99,7 +178,17 @@ function deductionRow(deps, row, index){
   const type = deductionType(row.typeId);
   return `<div class="hh-it-row">
     <span class="hh-it-row__copy"><span class="hh-it-row__title"><input data-path="${base}.label" data-type="text" value="${escHtml(row.label || type.label)}" aria-label="Deduction name"></span>${type.note ? `<span class="hh-it-row__meta">${escHtml(type.note)}</span>` : ''}</span>
-    <span class="hh-it-row__end"><span class="hh-it-row__amount">${deps.field(`${base}.amount`, 'money')}</span><button class="row-x" data-rmpath="${base}" title="Remove deduction">×</button></span>
+    <span class="hh-it-row__end"><span class="hh-it-row__amount">${deps.field(`${base}.amount`, 'money')}</span>${removeButton(base, 'deduction')}</span>
+  </div>`;
+}
+
+function fixedDeductionRow(slot){
+  const { typeId, row, index } = slot;
+  const type = deductionType(typeId);
+  const base = index >= 0 ? `incomeTax.deductions.${index}` : '';
+  return `<div class="hh-it-row" data-income-tax-slot="${typeId}">
+    <span class="hh-it-row__copy"><span class="hh-it-row__title">${escHtml(type.label)}</span>${type.note ? `<span class="hh-it-row__meta">${escHtml(type.note)}</span>` : ''}</span>
+    <span class="hh-it-row__end"><span class="hh-it-row__amount">${fixedMoneyInput({ kind:'deduction', typeId, amount:row?.amount, rowIndex:index, label:type.label })}</span>${removeButton(base, type.label)}</span>
   </div>`;
 }
 
@@ -108,7 +197,7 @@ function creditRow(deps, row, index){
   const type = creditType(row.typeId);
   return `<div class="hh-it-row">
     <span class="hh-it-row__copy"><span class="hh-it-row__title"><input data-path="${base}.label" data-type="text" value="${escHtml(row.label || type.label)}" aria-label="Credit name"></span><span class="hh-it-row__meta">${escHtml(type.note)}</span></span>
-    <span class="hh-it-row__end"><span class="hh-it-row__amount">${deps.field(`${base}.amount`, 'money')}</span><button class="row-x" data-rmpath="${base}" title="Remove credit">×</button></span>
+    <span class="hh-it-row__end"><span class="hh-it-row__amount">${deps.field(`${base}.amount`, 'money')}</span>${removeButton(base, 'credit')}</span>
   </div>`;
 }
 
@@ -124,9 +213,12 @@ function addForm(key, plan){
     <label data-income-types="dividends" hidden><span>Qualified</span><span class="hh-it-add-form__pct"><input type="number" data-hh-draft="qualifiedPct" min="0" max="100" step="1" value="0" aria-label="Qualified dividend percentage"><span>%</span></span></label>
     <div class="hh-it-add-form__actions"><button class="hh-btn hh-btn--primary" type="button" data-hh-action="commit-add">Add</button><button class="hh-btn hh-btn--ghost" type="button" data-hh-action="cancel-add">Cancel</button></div>
   </div>`;
-  const rows = key === 'adjustment' ? ADJUSTMENT_TYPES : key === 'credit' ? CREDIT_TYPES : DEDUCTION_TYPES;
+  const rows = key === 'adjustment' ? ADJUSTMENT_TYPES : DEDUCTION_TYPES;
+  const creditOptions = key === 'deduction'
+    ? `<optgroup label="Federal credits">${CREDIT_TYPES.map(row => `<option value="credit:${row.id}">${escHtml(row.label)}</option>`).join('')}</optgroup>`
+    : '';
   return `<div class="hh-it-add-form" data-add-kind="${key}">
-    <label><span>${key === 'adjustment' ? 'Adjustment' : key === 'credit' ? 'Credit' : 'Deduction'}</span><select data-hh-draft="type" aria-label="${key} type">${options(rows)}</select></label>
+    <label><span>${key === 'adjustment' ? 'Adjustment' : 'Deduction'}</span><select data-hh-draft="type" aria-label="${key} type">${options(rows)}${creditOptions}</select></label>
     ${key === 'adjustment' ? `<label><span>Owner</span><select data-hh-draft="owner" aria-label="Adjustment owner">${ownerOptions(plan, 'client')}</select></label>` : ''}
     <label><span>Annual amount</span><span class="hh-it-add-form__money"><span>$</span><input data-hh-draft="amount" inputmode="numeric" placeholder="0" aria-label="Annual amount"></span></label>
     ${key === 'adjustment' ? `<label class="hh-it-add-form__check" data-adjustment-types="401k"><input type="checkbox" data-hh-draft="whileWorkingOnly" checked><span>While working only</span></label>` : ''}
@@ -150,11 +242,42 @@ export function renderHouseholdIncomeTax(plan, deps, state){
   const adjustments = enteredAdjustmentTotal(plan);
   const deductions = enteredDeductionTotal(plan);
   const credits = enteredCreditTotal(plan);
-  const indexed = (plan.income?.other || []).map((source, index) => ({ ...source, index }));
-  const working = indexed.filter(source => incomePhase(plan, source) === 'working');
-  const retirement = indexed.filter(source => incomePhase(plan, source) === 'retirement');
+
+  const incomeRows = plan.income?.other || [];
+  const incomeSlots = allocateSlots(incomeRows, DEFAULT_INCOME_SLOTS,
+    (row, slot) => row.typeId === slot.typeId && (row.owner || 'client') === slot.owner);
+  const incomeIndexed = incomeRows.map((source, index) => ({ ...source, index }));
+  const extraIncome = incomeIndexed.filter(row => positive(row) && !incomeSlots.used.has(row.index));
+  const workingExtras = extraIncome.filter(source => incomePhase(plan, source) === 'working');
+  const retirementExtras = extraIncome.filter(source => incomePhase(plan, source) === 'retirement');
+  const workingTotal = incomeIndexed.filter(source => positive(source) && incomePhase(plan, source) === 'working')
+    .reduce((sum, row) => sum + (Number(row.amount) || 0), 0);
+  const retirementTotal = (plan.income?.socialSecurity?.primary?.pia || 0)
+    + (plan.household?.spouse ? (plan.income?.socialSecurity?.spouse?.pia || 0) : 0)
+    + incomeIndexed.filter(source => positive(source) && incomePhase(plan, source) === 'retirement')
+      .reduce((sum, row) => sum + (Number(row.amount) || 0), 0);
+
+  const adjustmentRows = plan.incomeTax?.adjustments || [];
+  const adjustmentSlots = allocateSlots(adjustmentRows, DEFAULT_ADJUSTMENT_SLOTS,
+    (row, slot) => row.typeId === slot.typeId && (row.owner || 'client') === slot.owner);
+  const extraAdjustments = adjustmentRows
+    .map((row, index) => ({ ...row, index }))
+    .filter(row => positive(row) && !adjustmentSlots.used.has(row.index));
+
+  const deductionRows = plan.incomeTax?.deductions || [];
+  const deductionSlots = allocateSlots(deductionRows, DEFAULT_DEDUCTION_SLOTS,
+    (row, slot) => row.typeId === slot.typeId);
+  const extraDeductions = deductionRows
+    .map((row, index) => ({ ...row, index }))
+    .filter(row => positive(row) && !deductionSlots.used.has(row.index));
+  const visibleCredits = (plan.incomeTax?.credits || [])
+    .map((row, index) => ({ ...row, index }))
+    .filter(positive);
+
   const summaryReady = summary.status === 'ready';
-  const summaryMessage = summaryReady ? 'Computed by the federal tax engine' : (summary.message || 'Add required tax facts');
+  const summaryMessage = summaryReady
+    ? 'Computed by the federal tax engine — updates as inputs change'
+    : (summary.message || 'Add required tax facts');
   const bracketNote = summaryReady
     ? (summary.ordinaryBracketRoom == null ? 'Top federal bracket' : `${money(summary.ordinaryBracketRoom)} of room to top of bracket`)
     : '';
@@ -164,22 +287,21 @@ export function renderHouseholdIncomeTax(plan, deps, state){
       ? `Itemized ${money(summary.itemizedDeduction)} > standard ${money(summary.standardDeduction)} — itemized applied`
       : `Standard ${money(summary.standardDeduction)} ≥ itemized ${money(summary.itemizedDeduction)} — standard applied`)
     : '';
+
   return `<div class="hh-step-pane hh-it">
     <h2 class="hh-step-title hh-it__title">Income &amp; Tax</h2>
     <p class="hh-it__intro">All known income, pre-tax contributions and deductions — the base year the tax engine works from.</p>
 
     <div class="hh-it-section-head"><span>INCOME SOURCES</span><strong>${money(incomeTotal)} <small>this year</small></strong></div>
     <div class="hh-it-grid">
-      <section><div class="hh-it-subhead"><span>WORKING YEARS</span><small>${money(working.reduce((sum, row) => sum + (Number(row.amount) || 0), 0))} /yr</small></div>${working.length ? working.map(row => sourceRow(plan, deps, row, row.index)).join('') : '<p class="hh-it-empty">No working-year income entered.</p>'}</section>
-      <section><div class="hh-it-subhead"><span>RETIREMENT YEARS</span><small>${money((plan.income?.socialSecurity?.primary?.pia || 0) + (plan.household?.spouse ? (plan.income?.socialSecurity?.spouse?.pia || 0) : 0) + retirement.reduce((sum, row) => sum + (Number(row.amount) || 0), 0))} /yr</small></div>${socialSecurityRow(plan, deps, 'client')}${socialSecurityRow(plan, deps, 'spouse')}${retirement.map(row => sourceRow(plan, deps, row, row.index)).join('')}</section>
+      <section><div class="hh-it-subhead"><span>WORKING YEARS</span><small>${money(workingTotal)} /yr</small></div>${incomeSlots.slots.map(slot => fixedIncomeRow(plan, deps, slot)).join('')}${workingExtras.map(row => sourceRow(plan, deps, row, row.index)).join('')}</section>
+      <section><div class="hh-it-subhead"><span>RETIREMENT YEARS</span><small>${money(retirementTotal)} /yr</small></div>${socialSecurityRow(plan, deps, 'client')}${socialSecurityRow(plan, deps, 'spouse')}${retirementExtras.map(row => sourceRow(plan, deps, row, row.index)).join('')}</section>
     </div>
-    <div class="hh-it-add-line">${addControl(state, 'income', 'income source', plan)}${state.hhAddingKey !== 'income' ? '<span>Income and current-year tax items · treatment opens by type</span>' : ''}</div>
+    <div class="hh-it-add-line">${addControl(state, 'income', 'income source', plan)}${state.hhAddingKey !== 'income' ? '<span>Wages · Bonus · Self-employment · Social Security · Pension · Annuity · Rental · Interest · Dividends · Deferred comp · Other</span>' : ''}</div>
 
     <div class="hh-it-grid hh-it-grid--lower">
-      <section><div class="hh-it-section-head"><span>PRE-TAX &amp; ADJUSTMENTS</span><strong>−${money(adjustments)}</strong></div>
-        <div class="hh-it-row hh-it-row--planning"><span class="hh-it-row__copy"><span class="hh-it-row__title">Annual portfolio savings</span><span class="hh-it-row__meta">planning input · separate from tax adjustments</span></span><span class="hh-it-row__end"><span class="hh-it-row__amount">${deps.field('savings.annual', 'money')}</span></span></div>
-        ${(plan.incomeTax?.adjustments || []).map((row, index) => adjustmentRow(plan, deps, row, index)).join('') || '<p class="hh-it-empty">No tax adjustments entered.</p>'}${addControl(state, 'adjustment', 'adjustment', plan)}</section>
-      <section><div class="hh-it-section-head"><span>DEDUCTIONS</span><strong>−${money(deductions)}</strong></div>${(plan.incomeTax?.deductions || []).map((row, index) => deductionRow(deps, row, index)).join('') || '<p class="hh-it-empty">No itemized deductions entered.</p>'}<div class="hh-it-auto-row"><span>${summaryReady ? `${summary.deductionMethod} deduction` : 'Deduction choice'} <b>AUTO</b></span><strong>${summaryReady ? money(summary.deductionUsed) : '—'}</strong></div><div class="hh-it-deduction-footer">${addControl(state, 'deduction', 'deduction', plan)}${deductionComparison ? `<span>${deductionComparison}</span>` : ''}</div><div class="hh-it-mini-head"><span>CREDITS</span><strong>+${money(credits)}</strong></div>${(plan.incomeTax?.credits || []).map((row, index) => creditRow(deps, row, index)).join('') || '<p class="hh-it-empty">No federal credits entered.</p>'}${addControl(state, 'credit', 'credit', plan)}</section>
+      <section><div class="hh-it-section-head"><span>PRE-TAX &amp; ADJUSTMENTS</span><strong>−${money(adjustments)}</strong></div>${adjustmentSlots.slots.map(slot => fixedAdjustmentRow(plan, slot)).join('')}${extraAdjustments.map(row => adjustmentRow(plan, deps, row, row.index)).join('')}${addControl(state, 'adjustment', 'adjustment', plan)}</section>
+      <section><div class="hh-it-section-head"><span>DEDUCTIONS</span><strong>−${money(deductions)}</strong></div>${deductionSlots.slots.map(fixedDeductionRow).join('')}${extraDeductions.map(row => deductionRow(deps, row, row.index)).join('')}<div class="hh-it-auto-row"><span>Standard deduction <b>AUTO</b></span><strong>${summaryReady ? money(summary.standardDeduction) : '—'}</strong></div><div class="hh-it-deduction-footer">${addControl(state, 'deduction', 'deduction', plan)}${deductionComparison ? `<span>${deductionComparison}</span>` : ''}</div>${visibleCredits.length ? `<div class="hh-it-mini-head"><span>CREDITS</span><strong>+${money(credits)}</strong></div>${visibleCredits.map(row => creditRow(deps, row, row.index)).join('')}` : ''}</section>
     </div>
 
     <div class="hh-it-foundation">
