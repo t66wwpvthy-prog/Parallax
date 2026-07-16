@@ -1,5 +1,5 @@
 /* =============================================================================
-   household.css — 5-step Blueprint wizard (People → Balance Sheet → Income & Tax → Spending & Goals → Blueprint)
+   household.css — 4-step wizard (Profile → Balance Sheet → Income & Tax → Summary)
    Scoped to .page[data-page="household"] only. Spectral + Hanken Grotesk.
    ============================================================================= */
 
@@ -157,7 +157,7 @@
 /* ---- Stepper -------------------------------------------------------------- */
 .page[data-page="household"] .hh-stepper {
   display: grid;
-  grid-template-columns: auto 1fr auto 1fr auto 1fr auto 1fr auto;
+  grid-template-columns: auto 1fr auto 1fr auto 1fr auto;
   align-items: center;
   max-width: 1280px;
   margin: 0 auto;
@@ -674,7 +674,12 @@
 }
 .page[data-page="household"] .row-x:hover { color: var(--down); }
 
-/* ---- Income & Tax (design 2a) / Spending & Goals ------------------------ */
+/* ---- Income & Tax (design 2a) / Profile spending ------------------------ */
+.page[data-page="household"] .hh-sg--profile {
+  margin-top: 28px;
+  padding-top: 22px;
+  border-top: 1px solid var(--line-08);
+}
 .page[data-page="household"] .hh-it__title {
   margin: 0 0 2px; color: #ece7db; font: 400 24px/1 var(--font-serif);
 }

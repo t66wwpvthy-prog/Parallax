@@ -60,7 +60,7 @@ export function createHouseholdWizardController({
     const hasAccounts = (plan.portfolio.extraAccounts || []).length > 0;
     const hasIncome = !!((plan.income.socialSecurity.primary && plan.income.socialSecurity.primary.pia) ||
                          (plan.income.socialSecurity.spouse && plan.income.socialSecurity.spouse.pia));
-    return (hasAccounts || hasIncome) ? 5 : 1;
+    return (hasAccounts || hasIncome) ? 4 : 1;
   }
 
   function ensureWizard(){
@@ -123,15 +123,15 @@ export function createHouseholdWizardController({
       (!plan.meta.spouseName || plan.meta.spouseName === 'Co-Client') ? 'CC' : hhInitial(plan.meta.spouseName, 'CC');
     const householdWizard = ensureWizard();
     const renderStep = householdWizard.steps[step] || householdWizard.steps[1];
-    view.innerHTML = `<div class="hh-wstep${step === 5 ? ' hh-wstep--bp' : ''}">${renderStep()}</div>`;
+    view.innerHTML = `<div class="hh-wstep${step === 4 ? ' hh-wstep--bp' : ''}">${renderStep()}</div>`;
     const footer = $('#hh-wiz-footer');
     if(footer) footer.innerHTML = householdWizard.footer(step);
     const wizardRoot = document.querySelector('.hh-wizard');
     if(wizardRoot){
-      wizardRoot.dataset.wizardRev = '7';
+      wizardRoot.dataset.wizardRev = '8';
       wizardRoot.dataset.wizardStep = String(step);
     }
-    for(let i = 1; i <= 5; i++){
+    for(let i = 1; i <= 4; i++){
       const element = $('#hh-step-' + i);
       if(!element) continue;
       const number = element.querySelector('.hh-step__num');

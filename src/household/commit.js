@@ -357,19 +357,6 @@ export function bindHouseholdEditor({
         row.label = label || 'Category';
         row.amount = Math.round(amt);
         plan.expenses.extra.push(row);
-      } else if(transientState.hhAddingKey === 'goal'){
-        if(!Array.isArray(plan.goals)) plan.goals = [];
-        const retirementAge = Math.max(
-          plan.household?.primary?.retirementAge || plan.household?.primary?.currentAge || 0,
-          plan.household?.spouse?.retirementAge || 0
-        );
-        plan.goals.push({
-          name: label || 'Goal',
-          amount: Math.round(amt),
-          startAge: retirementAge,
-          endAge: retirementAge,
-          fundFromPortfolioBeforeRetirement: false,
-        });
       }
       transientState.hhAddingKey = null;
       transientState.hhDraftLabel = '';
@@ -388,7 +375,7 @@ export function bindHouseholdEditor({
       transientState.hhAcctFormOwner = null;
       syncHousehold();
     } else if(action === 'step-next'){
-      transientState.hhStep = Math.min(5, transientState.hhStep + 1);
+      transientState.hhStep = Math.min(4, transientState.hhStep + 1);
       transientState.hhAddingKey = null;
       transientState.hhAcctFormOwner = null;
       syncHousehold();

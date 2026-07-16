@@ -1070,8 +1070,8 @@ const householdWizardController = createHouseholdWizardController({
   onRenameHousehold: renameHousehold,
 });
 const hhUiState = householdWizardController.uiState;
-/* Wizard step state: 1 People & Timeline · 2 Balance Sheet · 3 Cash Flow ·
-   4 Blueprint. A filled household lands on Blueprint; a blank one starts at 1. */
+/* Wizard step state: 1 Profile · 2 Balance Sheet · 3 Income & Tax ·
+   4 Summary. A filled household lands on Summary; a blank one starts at 1. */
 
 
 /* ── Household lifecycle helpers ───────────────────────────────────────────

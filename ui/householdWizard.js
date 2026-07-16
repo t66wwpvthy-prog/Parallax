@@ -2,7 +2,7 @@ import { escHtml } from './dom.js';
 import { accountDisplayTreatment } from '../src/household/accountTypes.js';
 import { renderHouseholdTaxFacts } from './householdTaxFacts.js';
 import { renderHouseholdIncomeTax } from './householdIncomeTax.js';
-import { renderHouseholdSpendingGoals } from './householdSpendingGoals.js';
+import { renderHouseholdSpending } from './householdSpendingGoals.js';
 
 const FS_LABELS = {
   marriedFilingJointly: 'Married filing jointly',
@@ -243,8 +243,8 @@ export function createHouseholdWizard(deps){
           <button class="row-x" data-rmpath="${base}" title="Remove child">×</button></span>
       </div>`;
     }).join('');
-    return `<div class="hh-step-pane">
-      <h2 class="hh-step-title">Household</h2>
+    return `<div class="hh-step-pane hh-profile">
+      <h2 class="hh-step-title">Profile</h2>
       <div class="hh-cols hh-cols--split">
         ${personColumn('client', plan, deps)}
         <div class="hh-cols__div" aria-hidden="true"></div>
@@ -258,6 +258,7 @@ export function createHouseholdWizard(deps){
         <div class="hh-meta"><span class="hh-meta__k">Children</span>
           <div class="hh-meta__v">${childRows}${childAdd}</div></div>
       </div>
+      ${renderHouseholdSpending(plan, deps, state)}
     </div>`;
   }
 
@@ -285,7 +286,7 @@ export function createHouseholdWizard(deps){
     </div>`;
   }
 
-  function stepBlueprint(){
+  function stepSummary(){
     const plan = deps.plan;
     const all = deps.allAccounts();
     const visible = plan.household?.spouse ? all : all.filter(a => a.owner === 'client' || a.owner === 'joint' || a.owner === 'trust');
@@ -315,7 +316,7 @@ export function createHouseholdWizard(deps){
         <span class="hh-bp-corner hh-bp-corner--bl" aria-hidden="true"></span>
         <span class="hh-bp-corner hh-bp-corner--br" aria-hidden="true"></span>
         <div class="hh-bp-read">
-          <div class="hh-bp-eyebrow">BLUEPRINT</div>
+          <div class="hh-bp-eyebrow">SUMMARY</div>
           <div class="hh-bp-house">
             <span class="hh-bp-avs"><span class="hh-av hh-av--c hh-av--lg">${cInit}</span>${plan.household?.spouse ? `<span class="hh-av hh-av--s hh-av--lg hh-av--overlap">${sInit}</span>` : ''}</span>
             <span class="hh-bp-house__name">${escHtml(householdName)}</span>
@@ -346,9 +347,9 @@ export function createHouseholdWizard(deps){
     const back = step > 1
       ? `<button class="hh-btn hh-btn--outline" type="button" data-hh-action="step-back">← Back</button>`
       : `<span></span>`;
-    const right = step < 5
-      ? `<button class="hh-btn hh-btn--primary" type="button" data-hh-action="step-next">${step === 4 ? 'Review →' : 'Continue →'}</button>`
-      : `<span class="hh-wiz-foot-note">Step 5 of 5</span>`;
+    const right = step < 4
+      ? `<button class="hh-btn hh-btn--primary" type="button" data-hh-action="step-next">${step === 3 ? 'Review →' : 'Continue →'}</button>`
+      : `<span class="hh-wiz-foot-note">Step 4 of 4</span>`;
     return `<div class="hh-wiz-footer">${back}${right}</div>`;
   }
 
@@ -357,10 +358,9 @@ export function createHouseholdWizard(deps){
       1: stepPeople,
       2: stepBalance,
       3: () => renderHouseholdIncomeTax(deps.plan, deps, state),
-      4: () => renderHouseholdSpendingGoals(deps.plan, deps, state),
-      5: stepBlueprint,
+      4: stepSummary,
     },
     footer,
-    stepLabels: ['People & Timeline', 'Balance Sheet', 'Income & Tax', 'Spending & Goals', 'Blueprint'],
+    stepLabels: ['Profile', 'Balance Sheet', 'Income & Tax', 'Summary'],
   };
 }
