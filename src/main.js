@@ -10,6 +10,7 @@ import { createDemoHousehold, createBlankHousehold } from '../ui/householdFactor
 import { resolveTypeFromLabel } from './household/accountTypes.js';
 import { createAccount } from './household/createAccount.js';
 import { bindHouseholdEditor } from './household/commit.js';
+import { ensureRequiredIncomeTaxInputs } from './household/incomeTaxModel.js';
 import { createHouseholdWizardController, HOUSEHOLD_WIZARD_ACCOUNT_TYPES } from './household/wizard.js';
 import {
   ACTIVE_KEY,
@@ -62,6 +63,7 @@ function hydratePlan(src){
   const clone = JSON.parse(JSON.stringify(src));
   Object.keys(plan).forEach(k => { delete plan[k]; });
   Object.assign(plan, clone);
+  ensureRequiredIncomeTaxInputs(plan);
 }
 
 /* ── Household persistence: records-by-id + an active pointer ────────────────
