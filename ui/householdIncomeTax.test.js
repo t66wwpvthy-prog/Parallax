@@ -9,83 +9,118 @@ function plan(){
   value.meta.filingStatus = 'marriedFilingJointly';
   value.meta.primaryName = 'Client 1';
   value.meta.spouseName = 'Client 2';
-  value.household.primary = { currentAge:64, retirementAge:67, planEndAge:95 };
-  value.household.spouse = { currentAge:63, retirementAge:66, planEndAge:95 };
+  value.household.primary = { currentAge: 64, retirementAge: 67, planEndAge: 95 };
+  value.household.spouse = { currentAge: 63, retirementAge: 66, planEndAge: 95 };
   value.income.other = [];
-  value.incomeTax = { adjustments:[], deductions:[], deductionMode:'auto', realizedGains:{ shortTerm:0, longTerm:0 } };
+  value.income.socialSecurity = {
+    primary: { pia: 0, claimAge: 67 },
+    spouse: { pia: 0, claimAge: 67 },
+  };
+  value.incomeTax = { adjustments: [], deductions: [], credits: [], deductionMode: 'auto' };
   return value;
 }
 
 const deps = {
   field: (path, type) => `<input data-path="${path}" data-type="${type}">`,
   incomeTaxSummary: () => ({
-    status:'ready', totalIncome:0, adjustedGrossIncome:0, deductionUsed:31500,
-    deductionMethod:'Standard', taxableIncome:0, marginalRate:0.1,
-    capitalGainsRate:null, federalTaxLiability:0, effectiveRate:0,
-    seniorDeductionStatus:'Not applicable', rmdFirstYear:2035,
+    status: 'ready',
+    totalIncome: 192800,
+    adjustments: 37300,
+    adjustedGrossIncome: 155500,
+    deductionUsed: 38300,
+    deductionMethod: 'Itemized',
+    standardDeduction: 31500,
+    itemizedDeduction: 38300,
+    taxableIncome: 117200,
+    marginalRate: 0.22,
+    ordinaryBracketRoom: 89500,
+    capitalGainsRate: 0.15,
+    capitalGainsNote: '0% bracket exceeded by $18,500',
+    federalTaxLiability: 15600,
+    effectiveRate: 0.133,
+    rmdAge: 73,
+    firstRmdYear: 2035,
   }),
 };
 
-test('income add flow exposes the complete timing and conditional-tax contract', () => {
-  const html = renderHouseholdIncomeTax(plan(), deps, { hhAddingKey:'income' });
-  for(const key of [
-    'type','owner','amount','startAge','endAge','growthPct','interestTreatment',
-    'qualifiedPct','taxablePct','netTaxable',
-  ]) assert.match(html, new RegExp(`data-hh-draft="${key}"`), key);
-  for(const type of [
-    'wages','bonus','self_employment','social_security','pension','annuity','rental',
-    'interest','dividends','deferred_comp','other',
-  ]) assert.match(html, new RegExp(`option value="${type}"`), type);
-  assert.doesNotMatch(html, /option value="(?:short|long)_term_capital_gains"/);
-  assert.match(html, /incomeTax\.realizedGains\.shortTerm/);
-  assert.match(html, /incomeTax\.realizedGains\.longTerm/);
+test('default slots match design 2a without persisting empty rows', () => {
+  const html = renderHouseholdIncomeTax(plan(), deps, { hhAddingKey: null });
+  for(const slot of [
+    'wages:client', 'wages:spouse', 'interest:joint', 'dividends:joint',
+    'social_security:client', 'social_security:spouse',
+    '401k:client', '401k:spouse', 'hsa:joint',
+    'medical', 'charitable', 'mortgage_interest', 'salt',
+  ]) assert.match(html, new RegExp(`data-income-tax-slot="${slot}"`), slot);
+
+  assert.match(html, /Working years/);
+  assert.match(html, /Retirement years/);
+  assert.match(html, /PRE-TAX &amp; ADJUSTMENTS/);
+  assert.match(html, /Standard · MFJ \+ senior 65\+/);
+  assert.match(html, /hh-it-position/);
+  assert.match(html, /AGI → MAGI/);
+  assert.match(html, /Initial taxable income/);
+  assert.doesNotMatch(html, /CREDITS/);
+  assert.doesNotMatch(html, /data-income-tax-slot="(?:short|long)_term_capital_gain/);
 });
 
-test('entered income uses a tax-linked type dropdown with secondary details collapsed', () => {
+test('income add flow uses handoff catalog plus LT/ST gains', () => {
+  const html = renderHouseholdIncomeTax(plan(), deps, { hhAddingKey: 'income' });
+  for(const key of [
+    'type', 'owner', 'amount', 'startAge', 'endAge', 'growthPct',
+    'interestTreatment', 'qualifiedPct', 'taxablePct', 'netTaxable',
+  ]) assert.match(html, new RegExp(`data-hh-draft="${key}"`), key);
+
+  for(const type of [
+    'wages', 'bonus', 'self_employment', 'pension', 'annuity', 'rental',
+    'interest', 'dividends', 'long_term_capital_gain', 'short_term_capital_gain',
+    'deferred_comp', 'other',
+  ]) assert.match(html, new RegExp(`option value="${type}"`), type);
+
+  assert.doesNotMatch(html, /option value="social_security"/);
+  assert.doesNotMatch(html, /option value="(?:ira_distribution|roth_conversion|tax_exempt_interest)"/);
+
+  const closed = renderHouseholdIncomeTax(plan(), deps, { hhAddingKey: null });
+  assert.match(closed, /LT cap gains/);
+});
+
+test('nonzero optional income and adjustment rows render without becoming defaults', () => {
   const value = plan();
   value.income.other = [{
-    typeId:'dividends', owner:'joint', label:'Dividends', amount:12000,
-    startAge:64, endAge:999, realGrowth:0, taxablePct:1, qualifiedPct:.8,
+    typeId: 'long_term_capital_gain', owner: 'joint', label: 'Long-term capital gains',
+    amount: 12000, startAge: 64, endAge: 64, realGrowth: 0, taxablePct: 0,
   }];
-  const html = renderHouseholdIncomeTax(value, deps, { hhAddingKey:null });
-  assert.match(html, /data-path="income\.other\.0\.typeId" data-type="incomeType"/);
-  assert.match(html, /<details class="hh-it-row__details">/);
-  assert.match(html, /80% qualified/);
-  assert.doesNotMatch(html, /data-path="income\.other\.0\.label"/);
+  value.incomeTax.adjustments = [{
+    typeId: 'ira_deduction', owner: 'client', label: 'Deductible IRA contribution', amount: 7000,
+  }];
+  const html = renderHouseholdIncomeTax(value, deps, { hhAddingKey: null });
+  assert.match(html, /Long-term capital gains/);
+  assert.match(html, /preferential rate/);
+  assert.match(html, /Deductible IRA contribution/);
+  assert.match(html, /data-path="income\.other\.0\.amount"/);
 });
 
-test('annual savings is inactive by default and becomes an editable row only when funded', () => {
-  const value = plan();
-  value.savings.annual = 0;
-  let html = renderHouseholdIncomeTax(value, deps, { hhAddingKey:null });
-  assert.match(html, /data-add-key="savings"/);
-  assert.doesNotMatch(html, /data-path="savings\.annual"/);
-
-  value.savings.annual = 12000;
-  html = renderHouseholdIncomeTax(value, deps, { hhAddingKey:null });
-  assert.match(html, /data-path="savings\.annual"/);
-  assert.match(html, /data-hh-action="remove-annual-savings"/);
-});
-
-test('adjustment and deduction add flows expose their full approved vocabularies', () => {
-  const adjustment = renderHouseholdIncomeTax(plan(), deps, { hhAddingKey:'adjustment' });
+test('adjustment and deduction add flows expose approved vocabularies', () => {
+  const adjustment = renderHouseholdIncomeTax(plan(), deps, { hhAddingKey: 'adjustment' });
   assert.match(adjustment, /data-hh-draft="whileWorkingOnly"/);
-  for(const type of ['401k','hsa','ira_deduction','other']){
+  for(const type of ['401k', 'hsa', 'ira_deduction', 'other']){
     assert.match(adjustment, new RegExp(`option value="${type}"`));
   }
 
-  const deduction = renderHouseholdIncomeTax(plan(), deps, { hhAddingKey:'deduction' });
-  for(const type of [
-    'medical','charitable','mortgage_interest','investment_interest',
-    'state_local_income_tax','real_estate_tax','personal_property_tax','other',
-  ]) assert.match(deduction, new RegExp(`option value="${type}"`), type);
+  const deduction = renderHouseholdIncomeTax(plan(), deps, { hhAddingKey: 'deduction' });
+  for(const type of ['medical', 'charitable', 'mortgage_interest', 'salt', 'other']){
+    assert.match(deduction, new RegExp(`option value="${type}"`), type);
+  }
+  assert.doesNotMatch(deduction, /credit:/);
+  assert.doesNotMatch(deduction, /option value="real_estate_tax"/);
 });
 
-test('tax position retains all six required reference outputs without inventing unsupported rules', () => {
-  const html = renderHouseholdIncomeTax(plan(), deps, { hhAddingKey:null });
+test('tax position retains all six required reference outputs', () => {
+  const html = renderHouseholdIncomeTax(plan(), deps, { hhAddingKey: null });
   for(const label of [
-    'FEDERAL MARGINAL BRACKET','CAPITAL GAINS RATE','NEXT IRMAA TIER',
-    'SENIOR DEDUCTION (65+)','EFFECTIVE TAX RATE','RMDS BEGIN',
+    'Federal marginal bracket', 'Capital gains rate', 'Next IRMAA tier',
+    'Senior deduction (65+)', 'Effective tax rate', 'RMDs begin',
   ]) assert.ok(html.includes(label), label);
-  assert.match(html, /requires Medicare threshold rule support/);
+  assert.match(html, /Requires Medicare threshold rule support/);
+  assert.match(html, /\$117,200/);
+  assert.match(html, /22%/);
 });
