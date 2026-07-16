@@ -89,8 +89,8 @@ function appSource(html){
 }
 
 /* ── Household contract (static source assertions) ──────────────────────────
-   Household is the 5-STEP BLUEPRINT WIZARD. It separates Income & Tax from
-   Spending & Goals while remaining an EDITABLE plan-input console. Renderers live in
+   Household is the 4-STEP WIZARD: Profile (people + spending) → Balance Sheet →
+   Income & Tax → Summary. Goals stay on the Goals page. Renderers live in
    ui/householdWizard.js, ui/householdIncomeTax.js, and ui/householdSpendingGoals.js;
    src/main.js owns wiring, plan factories, and handlers.
    (edits reach the engine) is proved by the browser steps below. */
@@ -102,11 +102,15 @@ function verifyHousehold(){
   const source = appSource(html);
   const css  = read(join(ROOT, 'styles', 'household.css'));
   const mainCss = read(join(ROOT, 'styles', 'main.css'));
-// Wizard chrome: 5-step stepper + workspace (no side rail).
+// Wizard chrome: 4-step stepper + workspace (no side rail).
   ok(/class="hh-stepper"/.test(html), 'wizard stepper (.hh-stepper) missing');
-  [1,2,3,4,5].forEach(n => ok(new RegExp(`id="hh-step-${n}"`).test(html), `stepper button #hh-step-${n} missing`));
+  [1,2,3,4].forEach(n => ok(new RegExp(`id="hh-step-${n}"`).test(html), `stepper button #hh-step-${n} missing`));
+  ok(!/id="hh-step-5"/.test(html), 'retired 5th wizard step (#hh-step-5) must be gone');
+  ok(/hh-step__label">Profile</.test(html), 'Profile step label missing');
+  ok(/hh-step__label">Summary</.test(html), 'Summary step label missing');
+  ok(!/People &amp; Timeline|Spending &amp; Goals|Blueprint/.test(html), 'retired wizard step labels must be gone');
   ok(!/id="hh-plan-rail"/.test(html), 'retired "Plan so far" rail (#hh-plan-rail) must be gone');
-  ok(/createHouseholdWizard/.test(source), 'blueprint wizard module (createHouseholdWizard) missing');
+  ok(/createHouseholdWizard/.test(source), 'household wizard module (createHouseholdWizard) missing');
   ok(/id="hh-wiz-footer"/.test(html), 'wizard footer mount (#hh-wiz-footer) missing');
   ok(/function defaultStep\b/.test(source), 'Household wizard landing heuristic missing');
   ok(/data-hh-action="step-back"/.test(source) && /data-hh-action="step-next"/.test(source), 'wizard Back/Continue footer actions missing');
@@ -129,7 +133,7 @@ function verifyHousehold(){
   ok(!/meta\.inflationPct/.test(source), 'engine-inert Inflation field must not ship in the wizard');
   ok(/VALID_OWNERS\s*=\s*new Set\(\[[\s\S]{0,100}['"]trust['"]/.test(source), 'Trust ownership must remain valid in the account registry');
 
-  // Blueprint wizard module + step wiring (renderers live in ui/householdWizard.js).
+  // Wizard module + step wiring (renderers live in ui/householdWizard.js).
   ok(/ui\/householdWizard\.js/.test(source), 'ui/householdWizard.js import missing');
   ok(/function ensureWizard\b/.test(source), 'Household wizard lazy wiring missing');
   ok(!/data-hh-action="run-blueprint"/.test(source), 'RUN BLUEPRINT action must be removed');
@@ -138,13 +142,14 @@ function verifyHousehold(){
 
   // Wizard data additions: addable children (engine-inert context) and annual
   // savings; working income must NOT render as a separate wizard input.
-  // Home/mortgage/pension UI remains deferred in the blueprint wizard.
+  // Goals CRUD stays on the Goals page — not in the wizard.
   ok(/household\.children/.test(source), 'household.children[] (addable children) missing');
   ok(/addControl\(state,\s*['"]income['"]/.test(source), 'income add flow missing');
-  ok(/addControl\(state,\s*['"]spending['"]/.test(source), 'spending category add flow missing');
-  ok(/addControl\(state,\s*['"]goal['"]/.test(source), 'Spending & Goals must offer goal adds');
+  ok(/data-add-key="spending"/.test(source), 'spending category add flow missing');
+  ok(!/data-add-key="goal"/.test(source), 'wizard must not offer goal adds (Goals page owns goals)');
+  ok(/renderHouseholdSpending\b/.test(source), 'Profile spending renderer missing');
   ok(!/class="hh-tl/.test(source) && !/\.hh-tl/.test(css), 'retired person timeline bars must be removed');
-  ok(/field\(['"]savings\.annual['"],\s*['"]money['"]\)/.test(source), 'annual savings field missing from wizard cash flow step');
+  ok(/Annual savings/.test(source), 'annual savings must still appear on the Summary flow');
   ok(!/hhField\('income\.workingIncome'/.test(source), 'working income must not render as a wizard input (engine-inert today)');
 
   // EDITABLE console: inline data-path inputs + a #hh-view delegate that writes
@@ -551,7 +556,7 @@ try {
     await new Promise(r => setTimeout(r, 350));
   };
 
-  await step('household wizard: stepper + landing + all five steps render from plan', async () => {
+  await step('household wizard: stepper + landing + all four steps render from plan', async () => {
     await page.click('.htab[data-page="household"]');
     await new Promise(r => setTimeout(r, 400));
     const m = await page.evaluate(() => ({
@@ -570,11 +575,11 @@ try {
     if(JSON.stringify(m.nav) !== JSON.stringify(expectedNav)) throw new Error(`main nav mismatch: ${JSON.stringify(m.nav)}`);
     if(m.hasSubnav) throw new Error('old net-worth subnav is still rendered');
     if(!m.wizard) throw new Error('household wizard frame (.hh-wizard) missing');
-    if(JSON.stringify(m.steps) !== JSON.stringify(['People & Timeline','Balance Sheet','Income & Tax','Spending & Goals','Blueprint'])) throw new Error(`stepper mismatch: ${JSON.stringify(m.steps)}`);
-    if(m.current !== '5') throw new Error(`filled demo household must land on Blueprint (step 5), got "${m.current}"`);
+    if(JSON.stringify(m.steps) !== JSON.stringify(['Profile','Balance Sheet','Income & Tax','Summary'])) throw new Error(`stepper mismatch: ${JSON.stringify(m.steps)}`);
+    if(m.current !== '4') throw new Error(`filled demo household must land on Summary (step 4), got "${m.current}"`);
     if(m.chapButtons) throw new Error('retired chapter rail buttons still rendered');
     if(!m.railName) throw new Error('household name not filled from plan');
-    if(!m.gauge) throw new Error('Blueprint arc gauge missing on landing step');
+    if(!m.gauge) throw new Error('Summary arc gauge missing on landing step');
     if(!m.menuBtn) throw new Error('household controls menu button missing');
     if(!m.coClientText) throw new Error('visible Household UI must show co-client (label or joint name)');
 
@@ -604,8 +609,8 @@ try {
       gaugeVal: document.querySelector('#hh-view .hh-bp-gauge__v')?.textContent.trim() || '',
       cta: !!document.querySelector('#hh-view .hh-bp-cta, #hh-view [data-hh-action="run-blueprint"], #hh-view [data-hh-action="goto-planning"]'),
     }));
-    if(bp.controls !== 0) throw new Error(`Blueprint must be read-only, found ${bp.controls} controls`);
-    if(!/\$[\d.,MK]/.test(bp.gaugeVal)) throw new Error(`Blueprint gauge net worth not formatted: "${bp.gaugeVal}"`);
+    if(bp.controls !== 0) throw new Error(`Summary must be read-only, found ${bp.controls} controls`);
+    if(!/\$[\d.,MK]/.test(bp.gaugeVal)) throw new Error(`Summary gauge net worth not formatted: "${bp.gaugeVal}"`);
     if(bp.cta) throw new Error('Run Blueprint CTA must not render');
     await page.screenshot({ path: join(OUT, '01-household.png'), fullPage: true });
 
@@ -895,8 +900,8 @@ try {
     });
     await new Promise(r => setTimeout(r, 300));
 
-    await page.click('#hh-step-4'); await new Promise(r => setTimeout(r, 350));
-    const spendingGoals = await page.evaluate(() => ({
+    await page.click('#hh-step-1'); await new Promise(r => setTimeout(r, 350));
+    const profileSpend = await page.evaluate(() => ({
       living: !!document.querySelector('#hh-view input[data-path="expenses.living"]'),
       health: !!document.querySelector('#hh-view input[data-path="expenses.healthcare"]'),
       extras: document.querySelectorAll('#hh-view input[data-path^="expenses.extra."][data-path$=".label"]').length,
@@ -905,14 +910,16 @@ try {
       addCategory: !!document.querySelector('#hh-view [data-add-key="spending"]'),
       addGoal: !!document.querySelector('#hh-view [data-add-key="goal"]'),
       doctrine: /withdrawals begin when both clients are retired/i.test(document.querySelector('#hh-view')?.textContent || ''),
+      board: !!document.querySelector('#hh-view .hh-profile__board'),
     }));
-    if(!spendingGoals.living || !spendingGoals.health) throw new Error('core spending inputs missing from Spending & Goals');
-    if(spendingGoals.extras < 1 || spendingGoals.goals !== 1) throw new Error(`spending or goal rows missing: ${JSON.stringify(spendingGoals)}`);
-    if(spendingGoals.fundingChoices !== 1) throw new Error('goal portfolio-funding choice missing');
-    if(!spendingGoals.addCategory || !spendingGoals.addGoal || !spendingGoals.doctrine)
-      throw new Error(`Spending & Goals controls or boundary missing: ${JSON.stringify(spendingGoals)}`);
+    if(!profileSpend.living || !profileSpend.health) throw new Error('core spending inputs missing from Profile');
+    if(profileSpend.extras < 1) throw new Error(`spending category rows missing: ${JSON.stringify(profileSpend)}`);
+    if(profileSpend.goals !== 0 || profileSpend.fundingChoices !== 0 || profileSpend.addGoal)
+      throw new Error(`wizard Profile must not edit goals: ${JSON.stringify(profileSpend)}`);
+    if(!profileSpend.addCategory || !profileSpend.doctrine || !profileSpend.board)
+      throw new Error(`Profile spending controls or boundary missing: ${JSON.stringify(profileSpend)}`);
 
-    // Annual savings lives outside Income & Tax; set it on the plan for Blueprint summary checks.
+    // Annual savings lives outside Income & Tax; set it on the plan for Summary checks.
     await page.evaluate(() => {
       const active = localStorage.getItem('parallax.activeHouseholdId');
       const store = JSON.parse(localStorage.getItem('parallax.households.v1') || '{}');
@@ -924,8 +931,8 @@ try {
     await page.reload({ waitUntil: 'networkidle0' });
     await new Promise(r => setTimeout(r, 700));
     await page.click('#tab-household'); await new Promise(r => setTimeout(r, 400));
-    await page.click('#hh-step-5'); await new Promise(r => setTimeout(r, 350));
-    const s5 = await page.evaluate(() => ({
+    await page.click('#hh-step-4'); await new Promise(r => setTimeout(r, 350));
+    const s4 = await page.evaluate(() => ({
       gauge: !!document.querySelector('#hh-view .hh-bp-gauge'),
       cta: !!document.querySelector('#hh-view .hh-bp-cta, #hh-view [data-hh-action="run-blueprint"], #hh-view [data-hh-action="goto-planning"]'),
       footNote: document.querySelector('#hh-wiz-footer .hh-wiz-foot-note')?.textContent.trim() || '',
@@ -943,17 +950,19 @@ try {
         ?.querySelector('.hh-bp-flow__val')?.textContent.trim() || '',
       allocLegend: document.querySelectorAll('#hh-view .hh-bp-alloc').length,
       gaugeLabel: document.querySelector('#hh-view .hh-bp-gauge__k')?.textContent.trim() || '',
+      eyebrow: document.querySelector('#hh-view .hh-bp-eyebrow')?.textContent.trim() || '',
     }));
-    if(!s5.gauge) throw new Error('Blueprint gauge missing on step 5');
-    if(s5.cta) throw new Error('Run Blueprint CTA must not render on step 5');
-    if(s5.footNote !== 'Step 5 of 5') throw new Error(`footer note mismatch: "${s5.footNote}"`);
-    if(!/\$180,000/.test(s5.incomeVal)) throw new Error(`Blueprint income must show working income, got "${s5.incomeVal}"`);
-    if(!s5.ssRow) throw new Error('Blueprint must show a separate Social Security row');
-    if(!/\$62,000/.test(s5.ssVal)) throw new Error(`Blueprint Social Security must total $62,000, got "${s5.ssVal}"`);
-    if(!/\$90,000/.test(s5.spendingVal)) throw new Error(`Blueprint spending must be fixed baseline only ($90,000), got "${s5.spendingVal}"`);
-    if(!/\$12,000/.test(s5.savingsVal)) throw new Error(`Blueprint must summarize entered annual savings, got "${s5.savingsVal}"`);
-    if(s5.allocLegend < 3) throw new Error(`Blueprint account legend must list demo accounts, got ${s5.allocLegend}`);
-    if(s5.gaugeLabel !== 'NET WORTH') throw new Error(`gauge label must read NET WORTH, got "${s5.gaugeLabel}"`);
+    if(!s4.gauge) throw new Error('Summary gauge missing on step 4');
+    if(s4.cta) throw new Error('Run Blueprint CTA must not render on step 4');
+    if(s4.footNote !== 'Step 4 of 4') throw new Error(`footer note mismatch: "${s4.footNote}"`);
+    if(s4.eyebrow !== 'SUMMARY') throw new Error(`Summary eyebrow mismatch: "${s4.eyebrow}"`);
+    if(!/\$180,000/.test(s4.incomeVal)) throw new Error(`Summary income must show working income, got "${s4.incomeVal}"`);
+    if(!s4.ssRow) throw new Error('Summary must show a separate Social Security row');
+    if(!/\$62,000/.test(s4.ssVal)) throw new Error(`Summary Social Security must total $62,000, got "${s4.ssVal}"`);
+    if(!/\$90,000/.test(s4.spendingVal)) throw new Error(`Summary spending must be fixed baseline only ($90,000), got "${s4.spendingVal}"`);
+    if(!/\$12,000/.test(s4.savingsVal)) throw new Error(`Summary must summarize entered annual savings, got "${s4.savingsVal}"`);
+    if(s4.allocLegend < 3) throw new Error(`Summary account legend must list demo accounts, got ${s4.allocLegend}`);
+    if(s4.gaugeLabel !== 'NET WORTH') throw new Error(`gauge label must read NET WORTH, got "${s4.gaugeLabel}"`);
 
     // Restore the shared demo fixture for downstream engine and persistence checks.
     await page.evaluate(() => {
@@ -966,7 +975,7 @@ try {
     await page.reload({ waitUntil: 'networkidle0' });
     await new Promise(r => setTimeout(r, 700));
     await page.click('#tab-household'); await new Promise(r => setTimeout(r, 400));
-    await page.click('#hh-step-5'); await new Promise(r => setTimeout(r, 250));
+    await page.click('#hh-step-4'); await new Promise(r => setTimeout(r, 250));
   });
 
   await step('household tax details: accessible basis edits persist and reach engine truth', async () => {
@@ -1135,7 +1144,7 @@ try {
     const sleep = ms => new Promise(r => setTimeout(r, ms));
     await page.click('.htab[data-page="household"]'); await sleep(400);
     const offenders = [];
-    for(const n of [1,2,3,4,5]){
+    for(const n of [1,2,3,4]){
       await page.click('#hh-step-'+n); await sleep(350);
       if(n === 2){
         await page.click('#hh-view [data-hh-action="open-account-form"][data-owner="client"]');
@@ -1215,12 +1224,12 @@ try {
     const after = await page.evaluate(() => ({ total: document.querySelector('#hh-view .hh-grand-total__v')?.textContent.trim(), status: document.querySelector('#status')?.textContent }));
     if(after.total === totalBefore) throw new Error(`editing an account balance did not update the balance-sheet total (${totalBefore})`);
     if(!/Plan edited/.test(after.status||'')) throw new Error('account edit did not mark the plan dirty (status)');
-    // Spending & Goals: editing living expenses updates the section total.
-    await goStep(4);
-    const spendBefore = await page.evaluate(() => document.querySelector('#hh-view .hh-it-section-head strong')?.textContent.trim());
+    // Profile spending: editing living expenses updates the section total.
+    await goStep(1);
+    const spendBefore = await page.evaluate(() => document.querySelector('#hh-view .hh-sg--profile .hh-it-section-head strong')?.textContent.trim());
     await page.evaluate(() => { const el = document.querySelector('#hh-view input[data-path="expenses.living"]'); el.value = '99,999'; el.dispatchEvent(new Event('change', { bubbles:true })); });
     await sleep(300);
-    const spendAfter = await page.evaluate(() => document.querySelector('#hh-view .hh-it-section-head strong')?.textContent.trim());
+    const spendAfter = await page.evaluate(() => document.querySelector('#hh-view .hh-sg--profile .hh-it-section-head strong')?.textContent.trim());
     if(spendBefore === spendAfter) throw new Error(`editing living expenses did not update the spending total (${spendBefore})`);
     // Restore the two fields explicitly; Load Demo is a switch, not a reset.
     await goStep(2);
@@ -1228,7 +1237,7 @@ try {
       const el = document.querySelector(`#hh-view input[data-path="${path}"]`);
       el.value = String(value); el.dispatchEvent(new Event('change', { bubbles:true }));
     }, { path: edit.path, value: edit.original });
-    await goStep(4);
+    await goStep(1);
     await page.evaluate(() => {
       const el = document.querySelector('#hh-view input[data-path="expenses.living"]');
       el.value = '38,000'; el.dispatchEvent(new Event('change', { bubbles:true }));
@@ -1479,7 +1488,7 @@ try {
     }));
     if(afterDemo.active !== 'demo' || !/Test Client/.test(afterDemo.name))
       throw new Error(`Load Demo did not reopen the saved demo record: ${JSON.stringify(afterDemo)}`);
-    if(afterDemo.step !== '5') throw new Error(`filled saved demo must land on Blueprint, got "${afterDemo.step}"`);
+    if(afterDemo.step !== '4') throw new Error(`filled saved demo must land on Summary, got "${afterDemo.step}"`);
   });
 
   await step('household menu: Save As creates a named copy loadable from the switcher', async () => {
@@ -1647,8 +1656,8 @@ try {
     if(baseSuccess == null) throw new Error('Could not read baseline success rate for living-expense test');
 
     // Quadruple living expenses: from demo $38k to $152k — plan should suffer.
-    // Essential expenses live on wizard step 4 (Spending & Goals).
-    await goStep(4);
+    // Essential expenses live on wizard step 1 (Profile).
+    await goStep(1);
     await page.evaluate(() => {
       const el = document.querySelector('#hh-view input[data-path="expenses.living"]');
       if(!el) throw new Error('expenses.living input missing');
@@ -1669,7 +1678,7 @@ try {
       `High living expenses did not lower success rate: base=${baseSuccess}%, high-exp=${highExpSuccess}%`);
 
     // Restore expenses to demo value ($38k)
-    await goStep(4);
+    await goStep(1);
     await page.evaluate(() => {
       const el = document.querySelector('#hh-view input[data-path="expenses.living"]');
       el.value = '38,000'; el.dispatchEvent(new Event('change', { bubbles:true }));
@@ -2810,7 +2819,7 @@ try {
 
     // Household scalar field: force an event despite disabled UI, then re-render
     // from plan truth. Both the visible value and storage must remain unchanged.
-    await goStep(4);
+    await goStep(1);
     const householdControlState = await page.evaluate(() => {
       const controls = [...document.querySelectorAll('#hh-view input[data-path], #hh-view select[data-path]')];
       return {
@@ -2828,7 +2837,7 @@ try {
       el.value = '12,345';
       el.dispatchEvent(new Event('change', { bubbles:true }));
     });
-    await goStep(2); await goStep(4);
+    await goStep(2); await goStep(1);
     const livingAfter = await page.$eval('#hh-view input[data-path="expenses.living"]', el => el.value);
     if(livingAfter !== householdControlState.living){
       throw new Error(`read-only Household edit changed in-memory/UI state (${householdControlState.living} -> ${livingAfter})`);
@@ -2838,12 +2847,12 @@ try {
 
     // Generic ledger row add/remove is independent of account management.
     // Both entry points must be visibly disabled and inert under a forced event.
-    await goStep(4);
+    await goStep(1);
     const rowBefore = await page.evaluate(() => ({
       count:document.querySelectorAll('#hh-view .row-x[data-rmpath^="expenses.extra."]').length,
       removeDisabled:[...document.querySelectorAll('#hh-view .row-x[data-rmpath^="expenses.extra."]')].every(el => el.disabled),
-      addCount:document.querySelectorAll('#hh-view [data-hh-action="open-add"]').length,
-      addDisabled:[...document.querySelectorAll('#hh-view [data-hh-action="open-add"]')].every(el => el.disabled),
+      addCount:document.querySelectorAll('#hh-view [data-hh-action="open-add"][data-add-key="spending"]').length,
+      addDisabled:[...document.querySelectorAll('#hh-view [data-hh-action="open-add"][data-add-key="spending"]')].every(el => el.disabled),
     }));
     if(!rowBefore.count || !rowBefore.removeDisabled || !rowBefore.addCount || !rowBefore.addDisabled){
       throw new Error(`read-only ledger row controls are not disabled: ${JSON.stringify(rowBefore)}`);
@@ -2854,7 +2863,7 @@ try {
       document.querySelector('#hh-view [data-hh-action="open-add"][data-add-key="spending"]')
         ?.dispatchEvent(new MouseEvent('click', { bubbles:true }));
     });
-    await goStep(1); await goStep(4);
+    await goStep(2); await goStep(1);
     const rowAfter = await page.evaluate(() => ({
       count:document.querySelectorAll('#hh-view .row-x[data-rmpath^="expenses.extra."]').length,
       form:!!document.querySelector('#hh-view .hh-it-add-form'),

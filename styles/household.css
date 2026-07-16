@@ -1,5 +1,5 @@
 /* =============================================================================
-   household.css — 5-step Blueprint wizard (People → Balance Sheet → Income & Tax → Spending & Goals → Blueprint)
+   household.css — 4-step wizard (Profile → Balance Sheet → Income & Tax → Summary)
    Scoped to .page[data-page="household"] only. Spectral + Hanken Grotesk.
    ============================================================================= */
 
@@ -157,7 +157,7 @@
 /* ---- Stepper -------------------------------------------------------------- */
 .page[data-page="household"] .hh-stepper {
   display: grid;
-  grid-template-columns: auto 1fr auto 1fr auto 1fr auto 1fr auto;
+  grid-template-columns: auto 1fr auto 1fr auto 1fr auto;
   align-items: center;
   max-width: 1280px;
   margin: 0 auto;
@@ -674,7 +674,107 @@
 }
 .page[data-page="household"] .row-x:hover { color: var(--down); }
 
-/* ---- Income & Tax (design 2a) / Spending & Goals ------------------------ */
+/* ---- Profile (people + spending, one screen) ----------------------------- */
+.page[data-page="household"] .hh-profile {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 0;
+}
+.page[data-page="household"] .hh-profile__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 18px;
+  flex: none;
+}
+.page[data-page="household"] .hh-profile__title {
+  margin: 0;
+  color: var(--text-hi);
+  font: 300 26px/1 var(--font-serif);
+}
+.page[data-page="household"] .hh-profile__note {
+  margin: 0;
+  color: var(--text-4);
+  font-size: 11.5px;
+  text-align: right;
+  max-width: 42ch;
+}
+.page[data-page="household"] .hh-profile__board {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+  gap: 0 36px;
+  align-items: start;
+}
+.page[data-page="household"] .hh-profile__people {
+  min-width: 0;
+  padding-right: 28px;
+  border-right: 1px solid var(--line-08);
+}
+.page[data-page="household"] .hh-profile__spend {
+  min-width: 0;
+}
+.page[data-page="household"] .hh-profile__eyebrow {
+  margin: 0 0 10px;
+  color: var(--gold);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+.page[data-page="household"] .hh-profile__people-cols.hh-cols--split .hh-col:first-child { padding-right: 22px; }
+.page[data-page="household"] .hh-profile__people-cols.hh-cols--split .hh-col:last-child { padding-left: 22px; }
+.page[data-page="household"] .hh-profile .hh-col__head { margin-bottom: 8px; }
+.page[data-page="household"] .hh-profile .hh-col--placeholder { min-height: 140px; }
+.page[data-page="household"] .hh-profile .hh-kv {
+  padding: 7px 2px;
+  gap: 10px;
+}
+.page[data-page="household"] .hh-profile .hh-kv__v,
+.page[data-page="household"] .hh-profile .hh-kv__v .hh-derived-in {
+  font-size: 15px;
+}
+.page[data-page="household"] .hh-profile__meta {
+  margin-top: 14px;
+  padding-top: 12px;
+  gap: 18px;
+  border-top: 1px solid var(--line-06);
+}
+.page[data-page="household"] .hh-profile__meta .hh-meta { min-width: 0; flex: 1 1 0; }
+.page[data-page="household"] .hh-profile__meta .hh-meta__k { margin-bottom: 5px; font-size: 9.5px; }
+.page[data-page="household"] .hh-profile__meta .hh-meta__v { padding-bottom: 4px; }
+.page[data-page="household"] .hh-sg--profile {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.page[data-page="household"] .hh-sg--profile .hh-it-section-head { padding-bottom: 7px; margin-bottom: 2px; }
+.page[data-page="household"] .hh-sg--profile .hh-sg-row {
+  min-height: 0;
+  padding: 6px 2px;
+  font-size: 13.5px;
+}
+.page[data-page="household"] .hh-sg--profile .hh-sg-row__end input[data-type="money"],
+.page[data-page="household"] .hh-sg--profile .hh-sg-name {
+  font-size: 15px;
+}
+.page[data-page="household"] .hh-sg--profile .hh-it-add {
+  margin-top: 8px;
+  padding: 5px 11px;
+  font-size: 11.5px;
+}
+.page[data-page="household"] .hh-sg--profile .hh-it-add-form--compact {
+  margin-top: 8px;
+  padding: 10px 12px;
+  gap: 10px;
+}
+.page[data-page="household"] .hh-sg-foot {
+  margin: 12px 0 0;
+  color: var(--text-4);
+  font-size: 10.5px;
+  line-height: 1.35;
+}
 .page[data-page="household"] .hh-it__title {
   margin: 0 0 2px; color: #ece7db; font: 400 24px/1 var(--font-serif);
 }
@@ -1119,6 +1219,17 @@
 }
 
 @media (max-width: 1080px) {
+  .page[data-page="household"] .hh-profile__board {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+  .page[data-page="household"] .hh-profile__people {
+    padding-right: 0;
+    border-right: 0;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--line-08);
+  }
+  .page[data-page="household"] .hh-profile__note { display: none; }
   .page[data-page="household"] .hh-cols--split { flex-direction: column; }
   .page[data-page="household"] .hh-cols__div { width: 100%; height: 1px; margin: 24px 0; }
   .page[data-page="household"] .hh-cols--split .hh-col:first-child,
