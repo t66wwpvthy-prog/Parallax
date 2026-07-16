@@ -7,7 +7,7 @@ function expenseRow(deps, label, path, removable = false){
 }
 
 function addForm(){
-  return `<div class="hh-it-add-form"><input data-hh-draft="label" placeholder="Category"><span class="hh-it-add-form__money"><span>$</span><input data-hh-draft="amount" inputmode="numeric" placeholder="0"></span><button class="hh-btn hh-btn--primary" type="button" data-hh-action="commit-add">Add</button><button class="hh-btn hh-btn--ghost" type="button" data-hh-action="cancel-add">Cancel</button></div>`;
+  return `<div class="hh-it-add-form hh-it-add-form--compact"><input data-hh-draft="label" placeholder="Category"><span class="hh-it-add-form__money"><span>$</span><input data-hh-draft="amount" inputmode="numeric" placeholder="0"></span><button class="hh-btn hh-btn--primary" type="button" data-hh-action="commit-add">Add</button><button class="hh-btn hh-btn--ghost" type="button" data-hh-action="cancel-add">Cancel</button></div>`;
 }
 
 function addControl(state){
@@ -16,7 +16,7 @@ function addControl(state){
     : `<button class="hh-it-add" type="button" data-hh-action="open-add" data-add-key="spending">+ Add category</button>`;
 }
 
-/** Retirement spending block embedded in Profile (goals stay on the Goals page). */
+/** Retirement spending pane for Profile (goals stay on the Goals page). */
 export function renderHouseholdSpending(plan, deps, state){
   const extras = plan.expenses?.extra || [];
   const spendingTotal = (plan.expenses?.living || 0) + (plan.expenses?.healthcare || 0)
@@ -30,6 +30,6 @@ export function renderHouseholdSpending(plan, deps, state){
     ${plan.expenses?.debt != null ? expenseRow(deps, 'Debt payments', 'expenses.debt') : ''}
     ${extras.map((row, index) => `<div class="hh-sg-row"><input class="hh-sg-name" data-path="expenses.extra.${index}.label" data-type="text" value="${escHtml(row.label || 'Category')}"><span class="hh-sg-row__end">${deps.field(`expenses.extra.${index}.amount`, 'money')}<button class="row-x" data-rmpath="expenses.extra.${index}" title="Remove category">×</button></span></div>`).join('')}
     ${addControl(state)}
-    <div class="hh-sg-foundation"><span>ANALYSIS BOUNDARY</span><strong>Portfolio withdrawals begin when both clients are retired.</strong><small>Parallax does not test whether working-year income covers lifestyle spending. Goals are edited on the Goals page.</small></div>
+    <p class="hh-sg-foot">Portfolio withdrawals begin when both clients are retired.</p>
   </div>`;
 }

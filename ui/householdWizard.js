@@ -244,21 +244,31 @@ export function createHouseholdWizard(deps){
       </div>`;
     }).join('');
     return `<div class="hh-step-pane hh-profile">
-      <h2 class="hh-step-title">Profile</h2>
-      <div class="hh-cols hh-cols--split">
-        ${personColumn('client', plan, deps)}
-        <div class="hh-cols__div" aria-hidden="true"></div>
-        ${personColumn('spouse', plan, deps)}
+      <header class="hh-profile__head">
+        <h2 class="hh-profile__title">Profile</h2>
+        <p class="hh-profile__note">Household identity and retirement lifestyle — goals stay on Goals.</p>
+      </header>
+      <div class="hh-profile__board">
+        <section class="hh-profile__people" aria-label="Household">
+          <div class="hh-profile__eyebrow">Household</div>
+          <div class="hh-cols hh-cols--split hh-profile__people-cols">
+            ${personColumn('client', plan, deps)}
+            <div class="hh-cols__div" aria-hidden="true"></div>
+            ${personColumn('spouse', plan, deps)}
+          </div>
+          <div class="hh-meta-row hh-profile__meta">
+            <div class="hh-meta"><span class="hh-meta__k">Filing</span>
+              <div class="hh-meta__v">${deps.select('meta.filingStatus', fsVal, FS_OPTS, 'text')}</div></div>
+            <div class="hh-meta"><span class="hh-meta__k">State</span>
+              <div class="hh-meta__v">${deps.select('meta.state', plan.meta?.state || 'VA', deps.states, 'text')}</div></div>
+            <div class="hh-meta"><span class="hh-meta__k">Children</span>
+              <div class="hh-meta__v">${childRows}${childAdd}</div></div>
+          </div>
+        </section>
+        <aside class="hh-profile__spend" aria-label="Retirement spending">
+          ${renderHouseholdSpending(plan, deps, state)}
+        </aside>
       </div>
-      <div class="hh-meta-row">
-        <div class="hh-meta"><span class="hh-meta__k">Filing</span>
-          <div class="hh-meta__v">${deps.select('meta.filingStatus', fsVal, FS_OPTS, 'text')}</div></div>
-        <div class="hh-meta"><span class="hh-meta__k">State</span>
-          <div class="hh-meta__v">${deps.select('meta.state', plan.meta?.state || 'VA', deps.states, 'text')}</div></div>
-        <div class="hh-meta"><span class="hh-meta__k">Children</span>
-          <div class="hh-meta__v">${childRows}${childAdd}</div></div>
-      </div>
-      ${renderHouseholdSpending(plan, deps, state)}
     </div>`;
   }
 

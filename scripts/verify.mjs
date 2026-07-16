@@ -910,12 +910,13 @@ try {
       addCategory: !!document.querySelector('#hh-view [data-add-key="spending"]'),
       addGoal: !!document.querySelector('#hh-view [data-add-key="goal"]'),
       doctrine: /withdrawals begin when both clients are retired/i.test(document.querySelector('#hh-view')?.textContent || ''),
+      board: !!document.querySelector('#hh-view .hh-profile__board'),
     }));
     if(!profileSpend.living || !profileSpend.health) throw new Error('core spending inputs missing from Profile');
     if(profileSpend.extras < 1) throw new Error(`spending category rows missing: ${JSON.stringify(profileSpend)}`);
     if(profileSpend.goals !== 0 || profileSpend.fundingChoices !== 0 || profileSpend.addGoal)
       throw new Error(`wizard Profile must not edit goals: ${JSON.stringify(profileSpend)}`);
-    if(!profileSpend.addCategory || !profileSpend.doctrine)
+    if(!profileSpend.addCategory || !profileSpend.doctrine || !profileSpend.board)
       throw new Error(`Profile spending controls or boundary missing: ${JSON.stringify(profileSpend)}`);
 
     // Annual savings lives outside Income & Tax; set it on the plan for Summary checks.
