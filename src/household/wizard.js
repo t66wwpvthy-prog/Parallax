@@ -29,6 +29,8 @@ export function createHouseholdWizardController({
   onSwitchHousehold,
   onNewHousehold,
   onLoadDemoHousehold,
+  onSaveHouseholdAs,
+  onRenameHousehold,
 }){
   let step = 1;
   let accountFormOwner = null;
@@ -168,9 +170,34 @@ export function createHouseholdWizardController({
       });
     }
     const switcher = $('#hh-switch');
+    const saveAsButton = $('#hh-save-as');
+    const renameButton = $('#hh-rename');
     const newButton = $('#hh-new');
     const loadDemoButton = $('#hh-load-demo');
+    const closeMenu = () => {
+      if(menu){
+        menu.hidden = true;
+        menuButton?.setAttribute('aria-expanded', 'false');
+      }
+    };
     if(switcher) switcher.addEventListener('change', event => onSwitchHousehold(event.target.value));
+    if(saveAsButton) saveAsButton.addEventListener('click', () => {
+      closeMenu();
+      const plan = getPlan();
+      const current = (plan?.meta?.name || '').trim();
+      const suggestion = (!current || current === 'New Household' || current === 'Demo Household')
+        ? 'Test household'
+        : `${current} copy`;
+      const name = window.prompt('Save household as:', suggestion);
+      if(name != null) onSaveHouseholdAs?.(name);
+    });
+    if(renameButton) renameButton.addEventListener('click', () => {
+      closeMenu();
+      const plan = getPlan();
+      const current = (plan?.meta?.name || 'Household').trim() || 'Household';
+      const name = window.prompt('Rename household:', current);
+      if(name != null) onRenameHousehold?.(name);
+    });
     if(newButton) newButton.addEventListener('click', () => onNewHousehold());
     if(loadDemoButton) loadDemoButton.addEventListener('click', () => onLoadDemoHousehold());
     step = defaultStep();

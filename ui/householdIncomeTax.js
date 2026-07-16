@@ -355,10 +355,11 @@ export function renderHouseholdIncomeTax(plan, deps, state){
     </div>
 
     <div class="hh-it-position">
-      <div class="hh-it-equation">
+      <div class="hh-it-equation" role="group" aria-label="Taxable income equation">
         <div class="hh-it-equation__cell">
           <span>Total income</span>
           <strong>${money(totalIncome)}</strong>
+          <small aria-hidden="true">&nbsp;</small>
         </div>
         <div class="hh-it-equation__op" aria-hidden="true">−</div>
         <div class="hh-it-equation__cell">
@@ -367,14 +368,16 @@ export function renderHouseholdIncomeTax(plan, deps, state){
           <small>adjustments ${money(summary.adjustments ?? adjustments)}</small>
         </div>
         <div class="hh-it-equation__op" aria-hidden="true">−</div>
-        <div class="hh-it-equation__cell hh-it-equation__cell--deduction">
+        <div class="hh-it-equation__cell">
           <span>Deduction</span>
           <strong>${deductionUsed == null ? '—' : money(deductionUsed)}</strong>
+          <small aria-hidden="true">&nbsp;</small>
         </div>
         <div class="hh-it-equation__op hh-it-equation__op--eq" aria-hidden="true">=</div>
         <div class="hh-it-equation__cell hh-it-equation__cell--result">
           <span>Initial taxable income</span>
           <strong>${taxable == null ? '—' : money(taxable)}</strong>
+          <small aria-hidden="true">&nbsp;</small>
         </div>
       </div>
       <p class="hh-it-position__note">${escHtml(summaryMessage)}</p>

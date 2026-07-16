@@ -1066,6 +1066,8 @@ const householdWizardController = createHouseholdWizardController({
   onSwitchHousehold: switchHousehold,
   onNewHousehold: newHousehold,
   onLoadDemoHousehold: loadDemoHousehold,
+  onSaveHouseholdAs: saveHouseholdAs,
+  onRenameHousehold: renameHousehold,
 });
 const hhUiState = householdWizardController.uiState;
 /* Wizard step state: 1 People & Timeline · 2 Balance Sheet · 3 Cash Flow ·
@@ -1138,6 +1140,60 @@ function switchHousehold(id){
   uiState.baseSnapshot = defaultLevers();
   if(!readOnly) saveScenarios();
   hhLoadRecord('Loaded ' + ((plan.meta && plan.meta.name) || 'household'));
+}
+// Snapshot the live plan (and its scenarios) under a new named household id,
+// then activate that copy so the switcher can load multiple test households.
+function saveHouseholdAs(requestedName){
+  if(!guardPlanMutation()) return;
+  const name = String(requestedName || '').trim();
+  if(!name){
+    syncHeaderStatus('Save As needs a name');
+    return;
+  }
+  saveActiveHousehold();
+  saveScenarios();
+  const fromId = activeHouseholdId;
+  const id = newHouseholdId();
+  const copy = JSON.parse(JSON.stringify(plan));
+  copy.meta = copy.meta || {};
+  copy.meta.householdId = id;
+  copy.meta.name = name;
+  copy.meta.isDemo = false;
+  householdsDb[id] = copy;
+  try{
+    const raw = localStorage.getItem(scenKey(fromId));
+    if(raw) localStorage.setItem(scenKey(id), raw);
+  }catch(e){}
+  activeHouseholdId = id;
+  persistHouseholdsDb();
+  persistActiveId();
+  hydratePlan(copy);
+  uiState.scenarios = loadScenarios(id) || demoScenarios();
+  uiState.baseSnapshot = defaultLevers();
+  saveScenarios();
+  hhLoadRecord('Saved as ' + name);
+}
+// Rename the active household label in the switcher (does not create a copy).
+function renameHousehold(requestedName){
+  if(!guardPlanMutation()) return;
+  const name = String(requestedName || '').trim();
+  if(!name){
+    syncHeaderStatus('Rename needs a name');
+    return;
+  }
+  if(activeHouseholdId === 'demo'){
+    syncHeaderStatus('Demo is fixed · use Save As for a named copy');
+    return;
+  }
+  if(!plan?.meta) return;
+  plan.meta.name = name;
+  plan.meta.isDemo = false;
+  if(!saveActiveHousehold()){
+    syncHeaderStatus('Rename failed · storage blocked or full');
+    return;
+  }
+  updateHouseholdControls();
+  syncHeaderStatus('Renamed to ' + name);
 }
 // Populate the saved-household switcher.
 function updateHouseholdControls(){
