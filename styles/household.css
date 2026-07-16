@@ -325,6 +325,10 @@
   display: flex; align-items: center; justify-content: space-between; gap: 16px;
   padding: 14px 2px; border-bottom: 1px solid var(--line-06);
 }
+.page[data-page="household"] .hh-account-empty {
+  min-height: 46px; margin: 0; padding: 15px 2px; border-bottom: 1px solid var(--line-06);
+  color: var(--text-4); font-size: 16px;
+}
 .page[data-page="household"] .hh-ledger-row__name {
   flex: 1; min-width: 0; font-size: 15px; color: var(--text-1); white-space: nowrap;
   overflow: hidden; text-overflow: ellipsis;
