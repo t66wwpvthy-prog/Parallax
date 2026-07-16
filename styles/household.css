@@ -4,6 +4,11 @@
    ============================================================================= */
 
 .page[data-page="household"] {
+  /* Wider than the global .page side gutters so Step 3 can use more of the viewport. */
+  padding-left: 10px;
+  padding-right: 10px;
+  padding-bottom: 10px;
+
   --gold: var(--accent);
   --gold-bright: var(--accent-bright);
   --gold-ink: var(--btn-ink);
@@ -32,7 +37,7 @@
     radial-gradient(110% 85% at 0% 0%, rgba(231,222,201,0.018), transparent 48%),
     rgba(14,16,19,0.94);
   --sheet-bg: transparent;
-  --max-w: 1320px;
+  --max-w: 1680px;
 
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
@@ -48,10 +53,11 @@
 .page[data-page="household"] *::after { box-sizing: border-box; }
 
 .page[data-page="household"] .hh-stage {
+  position: relative;
   width: 100%;
   max-width: var(--max-w);
   margin: 0 auto;
-  padding: 28px 0 52px;
+  padding: 2px 6px 12px;
   display: flex;
   flex-direction: column;
   min-height: calc(100vh - 52px);
@@ -71,16 +77,27 @@
   min-height: 0;
 }
 
-/* ---- Header + menu (above card) ----------------------------------------- */
+/* ---- Header + menu (overlay; name row removed to reclaim vertical space) - */
 .page[data-page="household"] .hh-wiz-top {
+  position: absolute;
+  top: 10px;
+  right: 18px;
+  z-index: 20;
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 0 4px 24px;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0;
+  padding: 0;
+  margin: 0;
   flex: none;
+  min-height: 0;
+  height: 0;
+  overflow: visible;
+  pointer-events: none;
 }
+.page[data-page="household"] .hh-wiz-top .hh-menu { pointer-events: auto; }
 .page[data-page="household"] .hh-wiz-id { display: flex; align-items: center; gap: 13px; min-width: 0; }
+.page[data-page="household"] .hh-wiz-id[hidden] { display: none !important; }
 .page[data-page="household"] .hh-avatars { display: flex; align-items: center; }
 .page[data-page="household"] .hh-avatar {
   width: 30px; height: 30px; border-radius: 50%;
@@ -111,9 +128,9 @@
 
 .page[data-page="household"] .hh-menu { position: relative; flex: none; }
 .page[data-page="household"] .hh-menu__btn {
-  width: 36px; height: 36px; border-radius: 8px;
-  border: 1px solid var(--line-10); background: rgba(231,222,201,0.02);
-  color: var(--text-2); font-size: 20px; cursor: pointer;
+  width: 30px; height: 30px; border-radius: 7px;
+  border: 1px solid var(--line-10); background: rgba(14,16,19,0.72);
+  color: var(--text-2); font-size: 18px; cursor: pointer;
 }
 .page[data-page="household"] .hh-menu__pop {
   position: absolute; top: 44px; right: 0; z-index: 30;
@@ -142,12 +159,12 @@
   display: grid;
   grid-template-columns: auto 1fr auto 1fr auto 1fr auto 1fr auto;
   align-items: center;
-  max-width: 980px;
+  max-width: 1280px;
   margin: 0 auto;
-  padding: 26px 52px 6px;
+  padding: 8px 48px 0 28px; /* right room for overlay ⋯ menu */
 }
 .page[data-page="household"] .hh-step {
-  display: inline-flex; align-items: center; gap: 9px;
+  display: inline-flex; align-items: center; gap: 7px;
   background: transparent; border: 0; padding: 0; cursor: pointer;
 }
 .page[data-page="household"] .hh-step:focus-visible {
@@ -156,13 +173,13 @@
   border-radius: 6px;
 }
 .page[data-page="household"] .hh-step__num {
-  width: 26px; height: 26px; border-radius: 50%;
+  width: 22px; height: 22px; border-radius: 50%;
   display: inline-flex; align-items: center; justify-content: center;
-  font-family: var(--font-serif); font-size: 16px;
+  font-family: var(--font-serif); font-size: 14px;
   border: 1px solid var(--line-16); color: var(--text-4);
 }
 .page[data-page="household"] .hh-step__label {
-  font-size: 11px; letter-spacing: 0.14em; color: var(--text-4); white-space: nowrap;
+  font-size: 10px; letter-spacing: 0.12em; color: var(--text-4); white-space: nowrap;
 }
 .page[data-page="household"] .hh-step.is-current .hh-step__num {
   background: var(--gold);
@@ -181,7 +198,7 @@
 
 /* ---- Workspace + footer --------------------------------------------------- */
 .page[data-page="household"] .hh-wiz-workspace {
-  padding: 10px 52px 24px;
+  padding: 2px 22px 8px;
   flex: 1;
   min-height: 0;
   overflow-y: auto;
@@ -203,13 +220,13 @@
 }
 .page[data-page="household"] .hh-wiz-footer {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 16px 52px; border-top: 1px solid var(--line-07);
+  padding: 10px 28px; border-top: 1px solid var(--line-07);
   flex: none;
 }
 .page[data-page="household"] .hh-wiz-footer .hh-btn {
-  font-size: 13px; letter-spacing: 0.14em; padding: 13px 32px;
+  font-size: 12px; letter-spacing: 0.14em; padding: 11px 26px;
 }
-.page[data-page="household"] .hh-wiz-footer .hh-btn--outline { padding: 12px 24px; }
+.page[data-page="household"] .hh-wiz-footer .hh-btn--outline { padding: 10px 20px; }
 .page[data-page="household"] .hh-wiz-foot-note { font-size: 12px; color: var(--text-4); letter-spacing: 0.06em; }
 
 .page[data-page="household"] .hh-step-title {
@@ -659,49 +676,52 @@
 
 /* ---- Income & Tax (design 2a) / Spending & Goals ------------------------ */
 .page[data-page="household"] .hh-it__title {
-  margin: 10px 0 8px; color: #ece7db; font: 400 31px/1 var(--font-serif);
+  margin: 0 0 2px; color: #ece7db; font: 400 24px/1 var(--font-serif);
 }
-.page[data-page="household"] .hh-it__intro { margin: 0 0 26px; color: #8a8880; font-size: 13px; }
+.page[data-page="household"] .hh-it__intro {
+  /* Drop the subtitle on Step 3 — reclaim a full row for inputs. */
+  display: none;
+}
 .page[data-page="household"] .hh-it-section-head {
   display: flex; align-items: baseline; justify-content: space-between; gap: 16px;
-  padding-bottom: 11px; border-bottom: 1px solid rgba(255,255,255,.1);
+  padding-bottom: 6px; border-bottom: 1px solid rgba(255,255,255,.1);
 }
 .page[data-page="household"] .hh-it-section-head > span {
-  color: #c3a56a; font-size: 11px; letter-spacing: 2px;
+  color: #c3a56a; font-size: 10.5px; letter-spacing: 2px;
 }
 .page[data-page="household"] .hh-it-section-head > strong {
-  color: #c3a56a; font: 400 19px/1 var(--font-serif);
+  color: #c3a56a; font: 400 17px/1 var(--font-serif);
 }
 .page[data-page="household"] .hh-it-section-head > strong small {
-  color: #6f6f72; font: 400 12px/1 var(--font-sans); letter-spacing: .4px;
+  color: #6f6f72; font: 400 11px/1 var(--font-sans); letter-spacing: .4px;
 }
 .page[data-page="household"] .hh-it-grid {
-  display: flex; gap: 56px; align-items: flex-start;
+  display: flex; gap: 36px; align-items: flex-start;
 }
 .page[data-page="household"] .hh-it-grid > section { flex: 1; min-width: 0; }
-.page[data-page="household"] .hh-it-grid--lower { margin-top: 34px; }
+.page[data-page="household"] .hh-it-grid--lower { margin-top: 12px; }
 .page[data-page="household"] .hh-it-subhead {
   display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
-  margin: 16px 0 2px; color: #6f6f72; font-size: 10px; letter-spacing: 1.6px; text-transform: uppercase;
+  margin: 8px 0 1px; color: #6f6f72; font-size: 10px; letter-spacing: 1.6px; text-transform: uppercase;
 }
 .page[data-page="household"] .hh-it-subhead small {
-  color: #6f6f72; font-size: 12px; letter-spacing: 0; text-transform: none;
+  color: #6f6f72; font-size: 11px; letter-spacing: 0; text-transform: none;
 }
 .page[data-page="household"] .hh-it-row {
-  display: flex; align-items: center; justify-content: space-between; gap: 14px;
-  padding: 10px 2px; border-bottom: 1px solid rgba(255,255,255,.06);
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 4px 2px; border-bottom: 1px solid rgba(255,255,255,.06);
 }
 .page[data-page="household"] .hh-it-row:hover { background: rgba(255,255,255,.02); }
 .page[data-page="household"] .hh-it-row--inactive { opacity: .58; }
-.page[data-page="household"] .hh-it-row__copy { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 3px; }
+.page[data-page="household"] .hh-it-row__copy { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 1px; }
 .page[data-page="household"] .hh-it-row__title {
-  min-width: 0; color: #cfcabf; font: 400 14.5px/1.2 var(--font-sans);
+  min-width: 0; color: #cfcabf; font: 400 13.5px/1.15 var(--font-sans);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.page[data-page="household"] .hh-it-row__hint { color: #6f6f72; font-size: 11.5px; }
+.page[data-page="household"] .hh-it-row__hint { color: #6f6f72; font-size: 11px; }
 .page[data-page="household"] .hh-it-row__meta {
   min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 4px;
-  color: #6f6f72; font-size: 11.5px; white-space: nowrap;
+  color: #6f6f72; font-size: 10.5px; white-space: nowrap;
 }
 .page[data-page="household"] .hh-it-row__meta em { color: #96a394; font-style: normal; }
 .page[data-page="household"] .hh-it-row__meta .pre { margin: 0; color: #6f6f72; font-size: 11.5px; }
@@ -712,27 +732,27 @@
 .page[data-page="household"] .hh-it-row__end { flex: none; display: inline-flex; align-items: center; gap: 12px; }
 .page[data-page="household"] .hh-it-row__amount {
   width: 10ch; display: inline-flex; align-items: baseline; justify-content: flex-end;
-  color: #ece7db; font: 400 18px/1 var(--font-serif); text-align: right; white-space: nowrap;
+  color: #ece7db; font: 400 16px/1 var(--font-serif); text-align: right; white-space: nowrap;
 }
-.page[data-page="household"] .hh-it-row__amount .pre { flex: none; margin-right: 2px; font-size: 14px; color: #6f6f72; }
+.page[data-page="household"] .hh-it-row__amount .pre { flex: none; margin-right: 2px; font-size: 12px; color: #6f6f72; }
 .page[data-page="household"] .hh-it-row__amount input[data-type="money"] {
-  width: 8ch; min-width: 0; padding: 0 0 2px; border: 0; border-bottom: 1px solid rgba(255,255,255,.16);
+  width: 8ch; min-width: 0; padding: 0 0 1px; border: 0; border-bottom: 1px solid rgba(255,255,255,.16);
   border-radius: 0; background: transparent; box-shadow: none; outline: none; appearance: none;
-  color: #ece7db; font: 400 18px/1 var(--font-serif); text-align: right;
+  color: #ece7db; font: 400 16px/1 var(--font-serif); text-align: right;
 }
 .page[data-page="household"] .hh-it-inline-select {
   width: auto; max-width: 13ch; padding: 0; border: 0; background: transparent;
   color: #6f6f72; font-size: 11.5px; appearance: auto;
 }
 .page[data-page="household"] .hh-it-add-line {
-  margin-top: 14px; display: flex; align-items: center; gap: 16px;
+  margin-top: 8px; display: flex; align-items: center; gap: 14px;
 }
 .page[data-page="household"] .hh-it-add-line > span {
-  color: #6f6f72; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  color: #6f6f72; font-size: 10.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .page[data-page="household"] .hh-it-add {
-  margin-top: 14px; padding: 8px 15px; border: 1px dashed rgba(195,165,106,.4); border-radius: 8px;
-  background: transparent; color: #c3a56a; font: 400 13px/1 var(--font-sans); cursor: pointer; white-space: nowrap;
+  margin-top: 8px; padding: 6px 12px; border: 1px dashed rgba(195,165,106,.4); border-radius: 7px;
+  background: transparent; color: #c3a56a; font: 400 12px/1 var(--font-sans); cursor: pointer; white-space: nowrap;
 }
 .page[data-page="household"] .hh-it-add-line .hh-it-add { margin-top: 0; }
 .page[data-page="household"] .hh-it-add:hover { border-color: #c3a56a; color: #dcc084; }
@@ -771,15 +791,15 @@
 .page[data-page="household"] .hh-it-add-form .hh-btn { padding: 10px 20px; font-size: 13px; }
 .page[data-page="household"] .hh-it-auto-row {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
-  padding: 11px 2px; border-bottom: 1px solid rgba(255,255,255,.06); color: #8a8880; font-size: 14.5px;
+  padding: 6px 2px; border-bottom: 1px solid rgba(255,255,255,.06); color: #8a8880; font-size: 13px;
 }
 .page[data-page="household"] .hh-it-auto-row b {
   margin-left: 9px; padding: 2px 6px; border: 1px solid rgba(150,163,148,.35); border-radius: 4px;
   color: #96a394; font-size: 9px; letter-spacing: 1.5px;
 }
-.page[data-page="household"] .hh-it-auto-row strong { color: #9a968d; font: 400 18px/1 var(--font-serif); }
+.page[data-page="household"] .hh-it-auto-row strong { color: #9a968d; font: 400 16px/1 var(--font-serif); }
 .page[data-page="household"] .hh-it-deduction-footer {
-  margin-top: 14px; display: flex; align-items: center; justify-content: space-between; gap: 14px;
+  margin-top: 8px; display: flex; align-items: center; justify-content: space-between; gap: 14px;
 }
 .page[data-page="household"] .hh-it-deduction-footer .hh-it-add { margin-top: 0; }
 .page[data-page="household"] .hh-it-deduction-footer > span {
@@ -787,47 +807,63 @@
 }
 .page[data-page="household"] .hh-it-deduction-footer em { color: #96a394; font-style: normal; }
 .page[data-page="household"] .hh-it-position {
-  margin-top: 32px; padding: 22px 24px 20px; border: 1px solid rgba(255,255,255,.07);
-  border-radius: 16px; background: rgba(255,255,255,.02);
+  margin-top: 10px; padding: 12px 16px 10px; border: 1px solid rgba(255,255,255,.07);
+  border-radius: 12px; background: rgba(255,255,255,.02);
 }
 .page[data-page="household"] .hh-it-equation {
-  display: flex; flex-wrap: wrap; align-items: flex-end; gap: 14px 18px;
+  display: grid;
+  grid-template-columns:
+    minmax(0, 1.1fr) auto minmax(0, 1.2fr) auto minmax(0, 1fr) auto minmax(0, 1.35fr);
+  grid-template-rows: auto auto auto;
+  column-gap: 16px;
+  row-gap: 6px;
+  align-items: center;
 }
 .page[data-page="household"] .hh-it-equation__cell {
-  min-width: 0; display: flex; flex-direction: column; gap: 8px;
+  min-width: 0;
+  display: grid;
+  grid-template-rows: subgrid;
+  grid-row: span 3;
+  row-gap: 6px;
 }
 .page[data-page="household"] .hh-it-equation__cell > span {
   color: #63625d; font-size: 9.5px; letter-spacing: 1.8px; text-transform: uppercase;
+  white-space: nowrap;
 }
 .page[data-page="household"] .hh-it-equation__cell > strong {
-  color: #cfcabf; font: 400 26px/1 var(--font-serif);
+  color: #cfcabf; font: 400 22px/1 var(--font-serif);
+  white-space: nowrap;
 }
 .page[data-page="household"] .hh-it-equation__cell > small {
-  color: #6f6f72; font-size: 11px;
+  color: #6f6f72; font-size: 11px; line-height: 1.2; min-height: 1.2em;
 }
 .page[data-page="household"] .hh-it-equation__cell--result > strong { color: #c3a56a; }
 .page[data-page="household"] .hh-it-equation__op {
-  color: #6f6f72; font-size: 18px; padding-bottom: 6px;
+  grid-row: 2;
+  color: #6f6f72; font-size: 18px; line-height: 1;
+  align-self: center;
+  justify-self: center;
 }
 .page[data-page="household"] .hh-it-equation__op--eq { color: #8a8880; }
 .page[data-page="household"] .hh-it-position__note {
-  margin: 14px 0 0; color: #6f6f72; font-size: 11px;
+  margin: 6px 0 0; color: #6f6f72; font-size: 10px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .page[data-page="household"] .hh-it-tax-grid {
-  margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,.1);
-  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px 44px;
+  margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,.1);
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px 28px;
 }
 .page[data-page="household"] .hh-it-stat { min-width: 0; display: flex; flex-direction: column; gap: 0; }
 .page[data-page="household"] .hh-it-stat > span {
-  margin-bottom: 8px; color: #63625d; font-size: 9.5px; letter-spacing: 1.8px; text-transform: uppercase;
+  margin-bottom: 5px; color: #63625d; font-size: 9px; letter-spacing: 1.6px; text-transform: uppercase;
 }
 .page[data-page="household"] .hh-it-stat > strong {
-  overflow: hidden; color: #ece7db; font: 400 24px/1 var(--font-serif);
+  overflow: hidden; color: #ece7db; font: 400 20px/1 var(--font-serif);
   text-overflow: ellipsis; white-space: nowrap;
 }
 .page[data-page="household"] .hh-it-stat--pending > strong { color: #c99a6a; }
 .page[data-page="household"] .hh-it-stat > small {
-  margin-top: 6px; color: #8a8880; font-size: 11px;
+  margin-top: 4px; color: #8a8880; font-size: 10.5px;
 }
 .page[data-page="household"] .hh-it .row-x { color: #6f6f72; font-size: 14px; }
 .page[data-page="household"] .hh-it .row-x:hover,
@@ -1099,11 +1135,20 @@
   .page[data-page="household"] .hh-it-tax-grid { gap: 18px 28px; }
 }
 
+@media (max-width: 900px) {
+  .page[data-page="household"] .hh-it-equation {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    row-gap: 14px;
+    column-gap: 18px;
+  }
+  .page[data-page="household"] .hh-it-equation__op { display: none; }
+}
+
 @media (max-width: 660px) {
   .page[data-page="household"] .hh-it-grid { flex-direction: column; gap: 22px; }
   .page[data-page="household"] .hh-it-grid--lower { margin-top: 26px; }
   .page[data-page="household"] .hh-it-tax-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .page[data-page="household"] .hh-it-equation { gap: 12px; }
+  .page[data-page="household"] .hh-it-equation { grid-template-columns: 1fr; }
   .page[data-page="household"] .hh-it-add-form { flex-wrap: wrap; }
   .page[data-page="household"] .hh-it-add-form > label { flex-basis: calc(50% - 8px); }
   .page[data-page="household"] .hh-sg-foundation { grid-template-columns: 1fr; }

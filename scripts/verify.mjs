@@ -216,6 +216,8 @@ function verifyHousehold(){
   ok(!/data-page=["']demo["']/.test(html), 'a separate demo page/subtab must NOT exist (state management, not navigation)');
   // Household selector + New Household controls.
   ok(/id=.hh-switch/.test(html), 'household switcher (#hh-switch) missing');
+  ok(/id=.hh-save-as/.test(html), 'Save As household button (#hh-save-as) missing');
+  ok(/id=.hh-rename/.test(html), 'Rename household button (#hh-rename) missing');
   ok(/id=.hh-new/.test(html),    'New Household button (#hh-new) missing');
   ok(/id=.hh-load-demo/.test(html), 'Load Demo button (#hh-load-demo) missing');
   ok(!/id=.hh-act-demo|id=.hh-act-clear|class=.hh-menu__row/.test(html), 'retired Demo reset / Clear menu controls must be gone');
@@ -581,6 +583,8 @@ try {
     const menu = await page.evaluate(() => ({
       open: !document.querySelector('#hh-menu-pop').hidden,
       switcher: !!document.querySelector('#hh-menu-pop #hh-switch'),
+      saveAsBtn: !!document.querySelector('#hh-menu-pop #hh-save-as'),
+      renameBtn: !!document.querySelector('#hh-menu-pop #hh-rename'),
       newBtn: !!document.querySelector('#hh-menu-pop #hh-new'),
       loadDemoBtn: !!document.querySelector('#hh-menu-pop #hh-load-demo'),
       retired: !!document.querySelector('#hh-menu-pop #hh-act-demo, #hh-menu-pop #hh-act-clear, #hh-menu-pop .hh-menu__row'),
@@ -588,8 +592,10 @@ try {
       functions: document.querySelectorAll('#hh-menu-pop select, #hh-menu-pop button').length,
     }));
     if(!menu.open) throw new Error('household menu did not open');
-    if(!menu.switcher || !menu.newBtn || !menu.loadDemoBtn) throw new Error('menu is missing Open / New / Load Demo controls');
-    if(menu.retired || menu.redundantLabel || menu.functions !== 3) throw new Error(`household menu is not minimal: ${JSON.stringify(menu)}`);
+    if(!menu.switcher || !menu.saveAsBtn || !menu.renameBtn || !menu.newBtn || !menu.loadDemoBtn){
+      throw new Error('menu is missing Open / Save As / Rename / New / Load Demo controls');
+    }
+    if(menu.retired || menu.redundantLabel || menu.functions !== 5) throw new Error(`household menu is not minimal: ${JSON.stringify(menu)}`);
     await page.click('#hh-menu-btn'); await new Promise(r => setTimeout(r, 200));
     if(await page.evaluate(() => !document.querySelector('#hh-menu-pop').hidden)) throw new Error('household menu did not close');
 
@@ -1474,6 +1480,39 @@ try {
     if(afterDemo.active !== 'demo' || !/Test Client/.test(afterDemo.name))
       throw new Error(`Load Demo did not reopen the saved demo record: ${JSON.stringify(afterDemo)}`);
     if(afterDemo.step !== '5') throw new Error(`filled saved demo must land on Blueprint, got "${afterDemo.step}"`);
+  });
+
+  await step('household menu: Save As creates a named copy loadable from the switcher', async () => {
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
+    await page.click('.htab[data-page="household"]'); await sleep(300);
+    const before = await page.evaluate(() => ({
+      active: localStorage.getItem('parallax.activeHouseholdId'),
+      keys: Object.keys(JSON.parse(localStorage.getItem('parallax.households.v1') || '{}')),
+    }));
+    page.once('dialog', async dialog => { await dialog.accept('Save As Fixture'); });
+    await page.evaluate(() => document.querySelector('#hh-save-as').click());
+    await sleep(700);
+    const after = await page.evaluate(() => {
+      const active = localStorage.getItem('parallax.activeHouseholdId');
+      const db = JSON.parse(localStorage.getItem('parallax.households.v1') || '{}');
+      const names = [...document.querySelectorAll('#hh-switch option')].map(o => o.textContent.trim());
+      return {
+        active,
+        name: db?.[active]?.meta?.name || '',
+        isDemo: db?.[active]?.meta?.isDemo,
+        keys: Object.keys(db),
+        names,
+        switchValue: document.querySelector('#hh-switch')?.value || '',
+      };
+    });
+    if(after.active === before.active || after.active === 'demo')
+      throw new Error(`Save As did not activate a new household id: ${JSON.stringify({ before, after })}`);
+    if(after.name !== 'Save As Fixture' || after.isDemo !== false)
+      throw new Error(`Save As did not persist the named copy: ${JSON.stringify(after)}`);
+    if(!after.names.includes('Save As Fixture') || after.switchValue !== after.active)
+      throw new Error(`Save As copy missing from switcher: ${JSON.stringify(after)}`);
+    if(after.keys.length <= before.keys.length)
+      throw new Error(`Save As did not add a household record: ${JSON.stringify({ before, after })}`);
   });
 
   await step('typed accounts feed the engine: blank plan + $1M brokerage drives scenario results', async () => {
@@ -2429,12 +2468,16 @@ try {
     const ctl = await page.evaluate(() => ({
       switcher: !!document.querySelector('#hh-menu-pop #hh-switch'),
       opts: document.querySelectorAll('#hh-switch option').length,
+      saveAsBtn: !!document.querySelector('#hh-menu-pop #hh-save-as'),
+      renameBtn: !!document.querySelector('#hh-menu-pop #hh-rename'),
       newBtn: !!document.querySelector('#hh-menu-pop #hh-new'),
       loadDemoBtn: !!document.querySelector('#hh-menu-pop #hh-load-demo'),
       retired: !!document.querySelector('#hh-act-demo, #hh-act-clear, .hh-menu__row'),
     }));
     if(!ctl.switcher) throw new Error('household switcher (#hh-switch) not rendered in the menu');
     if(ctl.opts < 1) throw new Error('household switcher has no options');
+    if(!ctl.saveAsBtn) throw new Error('Save As button (#hh-save-as) not rendered in the menu');
+    if(!ctl.renameBtn) throw new Error('Rename button (#hh-rename) not rendered in the menu');
     if(!ctl.newBtn) throw new Error('New Household button (#hh-new) not rendered in the menu');
     if(!ctl.loadDemoBtn || ctl.retired) throw new Error(`minimal Load Demo menu contract failed: ${JSON.stringify(ctl)}`);
   });
