@@ -2,7 +2,7 @@ import { createAccount, hasSpouseOwnedAccounts } from './createAccount.js';
 import { createBlankTaxProfiles, taxProfileHasConfirmedFacts } from './factEnvelope.js';
 import { applyHouseholdTaxFactEdit } from './taxFactEdits.js';
 import { taxFactEditFromControl } from './taxFactEditorController.js';
-import { createAdjustment, createDeduction, createIncomeSource, retagIncomeSource } from './incomeTaxModel.js';
+import { createAdjustment, createCredit, createDeduction, createIncomeSource } from './incomeTaxModel.js';
 
 export function bindHouseholdEditor({
   root,
@@ -30,28 +30,6 @@ export function bindHouseholdEditor({
     syncHeaderStatus('Plan edited · open Scenarios');
   }
 
-  function refreshIncomeDraft(form, resetDefaults = false){
-    if(!form || form.dataset.hhAddForm !== 'income') return;
-    const typeId = form.querySelector('[data-hh-draft="type"]')?.value || 'wages';
-    const ownerControl = form.querySelector('[data-hh-draft="owner"]');
-    if(ownerControl){
-      const joint = [...ownerControl.options].find(option => option.value === 'joint');
-      if(joint) joint.disabled = typeId === 'social_security';
-      if(typeId === 'social_security' && ownerControl.value === 'joint') ownerControl.value = 'client';
-    }
-    form.querySelectorAll('[data-visible-for]').forEach(field => {
-      field.hidden = !field.dataset.visibleFor.split(/\s+/).includes(typeId);
-    });
-    if(!resetDefaults) return;
-    const plan = getPlan();
-    const owner = ownerControl?.value || 'client';
-    const row = createIncomeSource(plan, typeId, owner);
-    const start = form.querySelector('[data-hh-draft="startAge"]');
-    const end = form.querySelector('[data-hh-draft="endAge"]');
-    if(start) start.value = String(row.startAge);
-    if(end) end.value = row.endAge === 999 ? '' : String(row.endAge);
-  }
-
   root.addEventListener('input', e => {
     if(typeof e.target.setCustomValidity === 'function') e.target.setCustomValidity('');
     if(e.target.dataset.type === 'money' || e.target.dataset.type === 'monthlyMoney') liveCommas(e.target);
@@ -63,14 +41,6 @@ export function bindHouseholdEditor({
 
   root.addEventListener('change', e => {
     const plan = getPlan();
-    const draftKey = e.target.dataset.hhDraft;
-    if(draftKey === 'type' || draftKey === 'owner'){
-      const draftForm = e.target.closest('[data-hh-add-form="income"]');
-      if(draftForm){
-        refreshIncomeDraft(draftForm, true);
-        return;
-      }
-    }
     const taxControl = e.target.closest?.('[data-hh-tax-edit]');
     if(taxControl){
       if(!guardPlanMutation()){ syncHousehold(); return; }
@@ -92,18 +62,25 @@ export function bindHouseholdEditor({
     if(!e.target.dataset.path && e.target.classList && e.target.classList.contains('hh-form-type')){
       return;
     }
+    if(e.target.matches?.('[data-hh-draft="type"]')){
+      const form = e.target.closest('.hh-it-add-form');
+      if(!form) return;
+      const selected = e.target.value;
+      form.querySelectorAll('[data-income-types]').forEach(control => {
+        control.hidden = !control.dataset.incomeTypes.split(' ').includes(selected);
+      });
+      form.querySelectorAll('[data-adjustment-types]').forEach(control => {
+        control.hidden = !control.dataset.adjustmentTypes.split(' ').includes(selected);
+      });
+      form.querySelectorAll('[data-hide-for-income-types]').forEach(control => {
+        control.hidden = control.dataset.hideForIncomeTypes.split(' ').includes(selected);
+      });
+      return;
+    }
     const path = e.target.dataset.path, type = e.target.dataset.type;
     if(!path) return;
     if(!guardPlanMutation()){ syncHousehold(); return; }
     const raw = e.target.value;
-    if(type === 'incomeType'){
-      const match = /^income\.other\.(\d+)\.typeId$/.exec(path);
-      const index = match ? Number(match[1]) : -1;
-      if(index < 0 || !plan.income?.other?.[index]) return;
-      plan.income.other[index] = retagIncomeSource(plan, plan.income.other[index], raw);
-      hhCommit();
-      return;
-    }
     if(type==='text' || type==='strategy' || type==='owner' || type==='bucket'){
       setPath(plan, path, raw);
       hhCommit();
@@ -115,6 +92,11 @@ export function bindHouseholdEditor({
       return;
     }
     if(type==='acctType') return;
+    if(type === 'ageOrLife' && String(raw).trim() === ''){
+      setPath(plan, path, 999);
+      hhCommit();
+      return;
+    }
     let v;
     if(type==='money' || type==='monthlyMoney') v = parseFloat(String(raw).replace(/[^0-9.]/g,''));
     else if(type==='risk') v = +raw;
@@ -125,7 +107,7 @@ export function bindHouseholdEditor({
     if(type==='money'){ v = Math.max(0, Math.round(v)); e.target.value = v.toLocaleString('en-US'); }
     if(type==='monthlyMoney'){ const m = Math.max(0, Math.round(v)); v = m*12; e.target.value = m.toLocaleString('en-US'); }
     if(type==='num')  v = Math.max(1, Math.round(v));
-    if(type==='age'){
+    if(type==='age' || type==='ageOrLife'){
       v = Math.round(v);
       const min = parseFloat(e.target.dataset.min);
       const max = parseFloat(e.target.dataset.max);
@@ -188,7 +170,7 @@ export function bindHouseholdEditor({
     const act = e.target.closest('[data-hh-action]');
     if(!act) return;
     const action = act.dataset.hhAction;
-    const lockedAction = ['add-spouse','remove-spouse','open-account-form','save-account','open-add','commit-add','remove-annual-savings','add-home','add-mortgage','add-pension-age'].includes(action);
+    const lockedAction = ['add-spouse','remove-spouse','open-account-form','save-account','open-add','commit-add','add-home','add-mortgage','add-pension-age'].includes(action);
     if(lockedAction && !guardPlanMutation()) return;
     if(action === 'add-spouse'){
       plan.household.spouse = {
@@ -237,7 +219,6 @@ export function bindHouseholdEditor({
         return;
       }
       const owner = transientState.hhAcctFormOwner || 'client';
-      if(t.owners && !t.owners.includes(owner)) return;
       if(!plan.portfolio.extraAccounts) plan.portfolio.extraAccounts = [];
       plan.portfolio.extraAccounts.push(createAccount(t.typeId, { owner, balance: Math.round(bal) }));
       transientState.hhAcctFormOwner = null;
@@ -248,87 +229,66 @@ export function bindHouseholdEditor({
       transientState.hhDraftAmount = '';
       transientState.hhAcctFormOwner = null;
       syncHousehold();
-      refreshIncomeDraft(document.querySelector('[data-hh-add-form="income"]'));
     } else if(action === 'cancel-add'){
       transientState.hhAddingKey = null;
       transientState.hhDraftLabel = '';
       transientState.hhDraftAmount = '';
       syncHousehold();
     } else if(action === 'commit-add'){
-      const form = act.closest('[data-hh-add-form]') || wizardRoot;
-      const control = key => form.querySelector(`[data-hh-draft="${key}"]`);
-      const number = key => parseFloat(String(control(key)?.value ?? '').replace(/[^0-9.-]/g, ''));
-      const label = (control('label')?.value || transientState.hhDraftLabel || '').trim();
-      const amtRaw = control('amount')?.value ?? transientState.hhDraftAmount ?? '';
+      const draft = name => document.querySelector(`[data-hh-draft="${name}"]`);
+      const draftNumber = name => {
+        const rawValue = draft(name)?.value;
+        if(rawValue == null || String(rawValue).trim() === '') return null;
+        const value = parseFloat(String(rawValue).replace(/[^0-9.-]/g, ''));
+        return Number.isFinite(value) ? value : null;
+      };
+      const label = (document.querySelector('[data-hh-draft="label"]')?.value || transientState.hhDraftLabel || '').trim();
+      const amtRaw = document.querySelector('[data-hh-draft="amount"]')?.value ?? transientState.hhDraftAmount ?? '';
       const amt = parseFloat(String(amtRaw).replace(/[^0-9.]/g, '')) || 0;
-      const typeId = control('type')?.value || 'other';
-      const owner = control('owner')?.value || 'client';
-      if(transientState.hhAddingKey === 'savings'){
-        const amountControl = control('amount');
-        if(!(amt > 0)){
-          amountControl?.setCustomValidity('Enter annual savings greater than zero');
-          amountControl?.reportValidity();
-          return;
+      const typeId = document.querySelector('[data-hh-draft="type"]')?.value || 'other';
+      const owner = document.querySelector('[data-hh-draft="owner"]')?.value || 'client';
+      if(transientState.hhAddingKey === 'income'){
+        if(!plan.income.other) plan.income.other = [];
+        const row = createIncomeSource(plan, typeId, owner);
+        row.amount = Math.round(amt);
+        const startAge = draftNumber('startAge');
+        const endAge = draftNumber('endAge');
+        const growthPct = draftNumber('growthPct');
+        const taxablePct = draftNumber('taxablePct');
+        const qualifiedPct = draftNumber('qualifiedPct');
+        if(startAge != null) row.startAge = Math.max(0, Math.min(120, Math.round(startAge)));
+        if(endAge != null) row.endAge = Math.max(row.startAge, Math.min(120, Math.round(endAge)));
+        if(growthPct != null) row.realGrowth = Math.max(-100, Math.min(100, growthPct)) / 100;
+        if(taxablePct != null && ['interest','pension','annuity','deferred_comp','other','ira_distribution','roth_conversion'].includes(typeId)){
+          row.taxablePct = Math.max(0, Math.min(100, taxablePct)) / 100;
         }
-        if(!plan.savings) plan.savings = { annual:0, split:{ traditional:1, roth:0, taxable:0 } };
-        plan.savings.annual = Math.round(amt);
-      } else if(transientState.hhAddingKey === 'income'){
-        const amountControl = control('amount');
-        if(!(amt > 0)){
-          amountControl?.setCustomValidity('Enter an annual amount greater than zero');
-          amountControl?.reportValidity();
-          return;
+        if(qualifiedPct != null && typeId === 'dividends'){
+          row.qualifiedPct = Math.max(0, Math.min(100, qualifiedPct)) / 100;
         }
-        const startAge = number('startAge');
-        const endAgeRaw = number('endAge');
-        const endAge = isFinite(endAgeRaw) ? Math.round(endAgeRaw) : 999;
-        if(isFinite(startAge) && endAge !== 999 && endAge < startAge){
-          control('endAge')?.setCustomValidity('End age must be the same as or later than start age');
-          control('endAge')?.reportValidity();
-          return;
-        }
-        if(typeId === 'social_security'){
-          const key = owner === 'spouse' ? 'spouse' : 'primary';
-          if(owner === 'spouse' && !plan.household?.spouse) return;
-          if(!plan.income.socialSecurity) plan.income.socialSecurity = {};
-          plan.income.socialSecurity[key] = {
-            pia: Math.round(amt),
-            claimAge: isFinite(startAge) ? Math.max(62, Math.min(70, Math.round(startAge))) : 67,
-          };
-        }else{
-          if(!plan.income.other) plan.income.other = [];
-          const row = createIncomeSource(plan, typeId, owner);
-          row.amount = Math.round(amt);
-          row.startAge = isFinite(startAge) ? Math.round(startAge) : row.startAge;
-          row.endAge = endAge;
-          row.realGrowth = Math.max(-1, Math.min(1, (number('growthPct') || 0) / 100));
-          if(typeId === 'interest') row.taxablePct = control('interestTreatment')?.value === 'tax_exempt' ? 0 : 1;
-          if(typeId === 'dividends') row.qualifiedPct = Math.max(0, Math.min(1, (number('qualifiedPct') || 0) / 100));
-          if(['pension','annuity','deferred_comp','other'].includes(typeId)){
-            row.taxablePct = Math.max(0, Math.min(1, (number('taxablePct') || 0) / 100));
-          }
-          if(typeId === 'rental'){
-            row.netTaxable = Math.max(0, Math.round(number('netTaxable') || 0));
-            row.taxablePct = row.amount > 0 ? Math.min(1, row.netTaxable / row.amount) : 0;
-          }
-          if(label) row.label = label;
-          plan.income.other.push(row);
-        }
+        if(label) row.label = label;
+        plan.income.other.push(row);
       } else if(transientState.hhAddingKey === 'adjustment'){
-        if(!plan.incomeTax) plan.incomeTax = { adjustments: [], deductions: [], deductionMode: 'auto' };
+        if(!plan.incomeTax) plan.incomeTax = { adjustments: [], deductions: [], credits: [], deductionMode: 'auto' };
         if(!Array.isArray(plan.incomeTax.adjustments)) plan.incomeTax.adjustments = [];
         const row = createAdjustment(typeId, owner);
         row.amount = Math.round(amt);
-        row.whileWorkingOnly = control('whileWorkingOnly')?.checked === true;
+        row.whileWorkingOnly = typeId === '401k' && draft('whileWorkingOnly')?.checked === true;
         if(label) row.label = label;
         plan.incomeTax.adjustments.push(row);
       } else if(transientState.hhAddingKey === 'deduction'){
-        if(!plan.incomeTax) plan.incomeTax = { adjustments: [], deductions: [], deductionMode: 'auto' };
+        if(!plan.incomeTax) plan.incomeTax = { adjustments: [], deductions: [], credits: [], deductionMode: 'auto' };
         if(!Array.isArray(plan.incomeTax.deductions)) plan.incomeTax.deductions = [];
         const row = createDeduction(typeId);
         row.amount = Math.round(amt);
         if(label) row.label = label;
         plan.incomeTax.deductions.push(row);
+      } else if(transientState.hhAddingKey === 'credit'){
+        if(!plan.incomeTax) plan.incomeTax = { adjustments: [], deductions: [], credits: [], deductionMode: 'auto' };
+        if(!Array.isArray(plan.incomeTax.credits)) plan.incomeTax.credits = [];
+        const row = createCredit(typeId);
+        row.amount = Math.round(amt);
+        if(label) row.label = label;
+        plan.incomeTax.credits.push(row);
       } else if(transientState.hhAddingKey === 'child'){
         const year = parseInt(String(document.querySelector('[data-hh-draft="year"]')?.value ?? transientState.hhDraftAmount ?? ''), 10);
         if(!plan.household.children) plan.household.children = [];
@@ -356,11 +316,6 @@ export function bindHouseholdEditor({
       transientState.hhAddingKey = null;
       transientState.hhDraftLabel = '';
       transientState.hhDraftAmount = '';
-      hhCommit();
-    } else if(action === 'remove-annual-savings'){
-      if(!plan.savings) plan.savings = { annual:0, split:{ traditional:1, roth:0, taxable:0 } };
-      plan.savings.annual = 0;
-      transientState.hhAddingKey = null;
       hhCommit();
     } else if(action === 'add-home'){
       if(!Array.isArray(plan.properties)) plan.properties = [];

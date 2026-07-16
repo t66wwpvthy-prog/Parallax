@@ -1,37 +1,91 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {
+  createAdjustment,
+  createCredit,
+  createIncomeSource,
+  createIncomeTaxInputs,
+  enteredAdjustmentTotal,
+  incomeSourceGroups,
+  isAdjustmentActiveNow,
+} from './incomeTaxModel.js';
 
-import { createIncomeTaxInputs, retagIncomeSource } from './incomeTaxModel.js';
+function plan(overrides = {}){
+  return {
+    meta: { primaryName: 'Alex', spouseName: 'Jordan' },
+    household: {
+      primary: { currentAge: 64, retirementAge: 65 },
+      spouse: { currentAge: 63, retirementAge: 66 },
+    },
+    income: { other: [] },
+    incomeTax: { adjustments: [], deductions: [] },
+    ...overrides,
+  };
+}
 
-const plan = {
-  meta: { primaryName:'Client', spouseName:'Co-client' },
-  household: {
-    primary: { currentAge:60, retirementAge:67 },
-    spouse: { currentAge:59, retirementAge:66 },
-  },
-};
-
-test('new income-tax inputs keep realized gains out of projected income', () => {
-  assert.deepEqual(createIncomeTaxInputs(), {
-    adjustments: [],
-    deductions: [],
-    deductionMode: 'auto',
-    realizedGains: { shortTerm:0, longTerm:0 },
+test('income columns follow entered start age instead of hard-coded source type', () => {
+  const subject = plan({
+    income: {
+      other: [
+        { typeId:'pension', owner:'client', label:'Early pension', amount:20000, startAge:60, endAge:999 },
+        { typeId:'interest', owner:'client', label:'Later interest', amount:5000, startAge:65, endAge:999 },
+        { typeId:'dividends', owner:'joint', label:'Joint dividends', amount:8000, startAge:66, endAge:999 },
+      ],
+    },
   });
+  const groups = incomeSourceGroups(subject);
+  assert.deepEqual(groups.working.map(row => row.label), ['Early pension']);
+  assert.deepEqual(groups.retirement.map(row => row.label), ['Later interest', 'Joint dividends']);
 });
 
-test('retagging an income source preserves cash-flow timing but resets tax defaults', () => {
-  const source = {
-    typeId:'interest', label:'Interest', owner:'joint', amount:10000,
-    startAge:60, endAge:70, realGrowth:.01, taxablePct:0,
-  };
-  const result = retagIncomeSource(plan, source, 'dividends');
-  assert.equal(result.typeId, 'dividends');
-  assert.equal(result.label, 'Dividends');
-  assert.equal(result.amount, 10000);
-  assert.equal(result.startAge, 60);
-  assert.equal(result.endAge, 70);
-  assert.equal(result.realGrowth, .01);
-  assert.equal(result.taxablePct, 1);
-  assert.equal(result.qualifiedPct, 0);
+test('working-only adjustments stop at retirement and joint rows remain active while either client works', () => {
+  const subject = plan({
+    household: {
+      primary: { currentAge: 65, retirementAge: 65 },
+      spouse: { currentAge: 64, retirementAge: 66 },
+    },
+    incomeTax: {
+      adjustments: [
+        { typeId:'401k', owner:'client', amount:23000, whileWorkingOnly:true },
+        { typeId:'401k', owner:'joint', amount:10000, whileWorkingOnly:true },
+        { typeId:'hsa', owner:'client', amount:4300, whileWorkingOnly:false },
+      ],
+      deductions: [],
+    },
+  });
+  assert.equal(isAdjustmentActiveNow(subject, subject.incomeTax.adjustments[0]), false);
+  assert.equal(isAdjustmentActiveNow(subject, subject.incomeTax.adjustments[1]), true);
+  assert.equal(enteredAdjustmentTotal(subject), 14300);
+});
+
+test('new 401(k) adjustments persist their working-only default', () => {
+  assert.equal(createAdjustment('401k', 'spouse').whileWorkingOnly, true);
+  assert.equal(createAdjustment('hsa', 'joint').whileWorkingOnly, false);
+});
+
+test('current-year federal source types default to one year with honest tax character', () => {
+  const subject = plan();
+  const exempt = createIncomeSource(subject, 'tax_exempt_interest', 'joint');
+  const ira = createIncomeSource(subject, 'ira_distribution', 'client');
+  const conversion = createIncomeSource(subject, 'roth_conversion', 'client');
+  const shortGain = createIncomeSource(subject, 'short_term_capital_gain', 'joint');
+  const longGain = createIncomeSource(subject, 'long_term_capital_gain', 'joint');
+  for(const row of [exempt, ira, conversion, shortGain, longGain]){
+    assert.equal(row.startAge, 64);
+    assert.equal(row.endAge, 64);
+  }
+  assert.equal(exempt.taxablePct, 0);
+  assert.equal(ira.taxablePct, 1);
+  assert.equal(conversion.taxablePct, 1);
+  assert.equal(shortGain.taxablePct, 1);
+  assert.equal(longGain.taxablePct, 0);
+});
+
+test('Premium Tax Credit is part of the persisted Income & Tax defaults', () => {
+  assert.deepEqual(createIncomeTaxInputs().credits, []);
+  assert.deepEqual(createCredit(), {
+    typeId: 'premium_tax_credit',
+    label: 'Premium Tax Credit',
+    amount: 0,
+  });
 });

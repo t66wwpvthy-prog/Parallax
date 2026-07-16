@@ -18,13 +18,6 @@ const STATES = [
   ['DC','District of Columbia'],
 ];
 
-const FILING_LABELS = {
-  marriedFilingJointly: 'Married filing jointly',
-  single: 'Single',
-  headOfHousehold: 'Head of household',
-  marriedFilingSeparately: 'Married filing separately',
-};
-
 export function createHouseholdWizardController({
   getPlan,
   renderField,
@@ -123,30 +116,19 @@ export function createHouseholdWizardController({
       const spouseName = plan.meta.spouseName || 'Co-Client';
       name.textContent = plan.household.spouse ? `${primaryName} & ${spouseName}` : primaryName;
     }
-    const householdMeta = $('#hh-rail-meta');
-    if(householdMeta){
-      const filing = FILING_LABELS[plan.meta?.filingStatus]
-        || (plan.household?.spouse ? FILING_LABELS.marriedFilingJointly : FILING_LABELS.single);
-      const primaryAge = plan.household?.primary?.currentAge;
-      const spouseAge = plan.household?.spouse?.currentAge;
-      const ages = [primaryAge, spouseAge].filter(age => age != null).join(' & ');
-      householdMeta.textContent = ages ? `${filing} · Ages ${ages}` : filing;
-    }
     if($('#hh-avatar-c')) $('#hh-avatar-c').textContent = hhInitial(plan.meta.primaryName, 'C');
-    const spouseAvatar = $('#hh-avatar-s');
-    if(spouseAvatar){
-      spouseAvatar.hidden = !plan.household?.spouse;
-      spouseAvatar.textContent = (!plan.meta.spouseName || plan.meta.spouseName === 'Co-Client')
-        ? 'CC'
-        : hhInitial(plan.meta.spouseName, 'CC');
-    }
+    if($('#hh-avatar-s')) $('#hh-avatar-s').textContent =
+      (!plan.meta.spouseName || plan.meta.spouseName === 'Co-Client') ? 'CC' : hhInitial(plan.meta.spouseName, 'CC');
     const householdWizard = ensureWizard();
     const renderStep = householdWizard.steps[step] || householdWizard.steps[1];
     view.innerHTML = `<div class="hh-wstep${step === 5 ? ' hh-wstep--bp' : ''}">${renderStep()}</div>`;
     const footer = $('#hh-wiz-footer');
     if(footer) footer.innerHTML = householdWizard.footer(step);
     const wizardRoot = document.querySelector('.hh-wizard');
-    if(wizardRoot) wizardRoot.dataset.wizardRev = '8';
+    if(wizardRoot){
+      wizardRoot.dataset.wizardRev = '7';
+      wizardRoot.dataset.wizardStep = String(step);
+    }
     for(let i = 1; i <= 5; i++){
       const element = $('#hh-step-' + i);
       if(!element) continue;

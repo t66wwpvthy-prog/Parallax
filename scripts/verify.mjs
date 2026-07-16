@@ -126,10 +126,6 @@ function verifyHousehold(){
   ['Traditional IRA','Roth IRA','Brokerage (taxable)','401(k)','HSA'].forEach(t => {
     ok(source.includes(`'${t}'`), `Wizard account types missing: ${t}`);
   });
-  ['Checking','Savings','Money Market','Joint brokerage','Rollover IRA','403(b)','457','TSP','Roth 401(k)'].forEach(t => {
-    ok(source.includes(`'${t}'`), `Expanded wizard account types missing: ${t}`);
-  });
-  ok(/acctOwnerColumn\(['"]joint['"]/.test(source), 'Household / joint account section missing');
   ok(!/meta\.inflationPct/.test(source), 'engine-inert Inflation field must not ship in the wizard');
   ok(/VALID_OWNERS\s*=\s*new Set\(\[[\s\S]{0,100}['"]trust['"]/.test(source), 'Trust ownership must remain valid in the account registry');
 
@@ -150,14 +146,6 @@ function verifyHousehold(){
   ok(!/class="hh-tl/.test(source) && !/\.hh-tl/.test(css), 'retired person timeline bars must be removed');
   ok(/field\(['"]savings\.annual['"],\s*['"]money['"]\)/.test(source), 'annual savings field missing from wizard cash flow step');
   ok(!/hhField\('income\.workingIncome'/.test(source), 'working income must not render as a wizard input (engine-inert today)');
-  ['type','owner','amount','startAge','endAge','growthPct','interestTreatment','qualifiedPct','taxablePct','netTaxable']
-    .forEach(field => ok(source.includes(`data-hh-draft="${field}"`), `Income & Tax add field missing: ${field}`));
-  ['wages','bonus','self_employment','social_security','pension','annuity','rental','interest','dividends','deferred_comp','other']
-    .forEach(type => ok(source.includes(`id: '${type}'`), `Income source type missing: ${type}`));
-  ['401k','hsa','ira_deduction'].forEach(type =>
-    ok(source.includes(`id: '${type}'`), `Adjustment type missing: ${type}`));
-  ['medical','charitable','mortgage_interest','salt'].forEach(type =>
-    ok(source.includes(`id: '${type}'`), `Deduction type missing: ${type}`));
 
   // EDITABLE console: inline data-path inputs + a #hh-view delegate that writes
   // back to `plan` and reseeds/dirties scenarios (parity with the rest of the
@@ -378,17 +366,6 @@ try {
   const browser = await puppeteer.launch({ ...launchOpts, headless: true });
   const rawPage = await browser.newPage();
   await rawPage.setViewport({ width: 1920, height: 1080, deviceScaleFactor: 3 });
-  // Visual verification must not depend on a third-party font host. Production
-  // still loads Google Fonts normally; the verifier substitutes an empty CSS
-  // response so navigation reaches network-idle in restricted/offline runners.
-  await rawPage.setRequestInterception(true);
-  rawPage.on('request', request => {
-    if(/^https:\/\/fonts\.googleapis\.com\//.test(request.url())){
-      request.respond({ status:204, contentType:'text/css', body:'' });
-      return;
-    }
-    request.continue();
-  });
   // Puppeteer can briefly retain a detached main-frame handle while a prior
   // reload settles. Retry only that transport-level condition; all assertion,
   // selector, and application errors still fail immediately.
@@ -666,11 +643,10 @@ try {
     const s2 = await page.evaluate(() => ({
       acctInputs: document.querySelectorAll('#hh-view input[data-path^="portfolio.extraAccounts."][data-path$=".balance"]').length,
       addAccountBtns: document.querySelectorAll('#hh-view [data-hh-action="open-account-form"]').length,
-      jointSection: !!document.querySelector('#hh-view .hh-col--joint'),
       grandTotal: document.querySelector('#hh-view .hh-grand-total__v')?.textContent.trim() || '',
     }));
     if(s2.acctInputs < 3) throw new Error(`typed account balances must be editable, got ${s2.acctInputs}`);
-    if(s2.addAccountBtns < 3 || !s2.jointSection) throw new Error(`personal/joint account controls missing: ${JSON.stringify(s2)}`);
+    if(s2.addAccountBtns < 2) throw new Error(`"+ Add account" buttons missing, got ${s2.addAccountBtns}`);
     if(!/\$[\d,]/.test(s2.grandTotal)) throw new Error(`grand total not formatted: "${s2.grandTotal}"`);
     if(!/\$2,800,000/.test(s2.grandTotal)) throw new Error(`demo grand total must be $2,800,000, got "${s2.grandTotal}"`);
 
@@ -694,12 +670,10 @@ try {
       claimAges: [...document.querySelectorAll('#hh-view input[data-path^="income.socialSecurity."][data-path$=".claimAge"]')]
         .map(el => ({ path: el.dataset.path, value: el.value, min: el.min, max: el.max })),
       savings: document.querySelector('#hh-view input[data-path="savings.annual"]')?.value ?? null,
-      addSavings: !!document.querySelector('#hh-view [data-hh-action="open-add"][data-add-key="savings"]'),
-      realizedGains: document.querySelectorAll('#hh-view input[data-path^="incomeTax.realizedGains."]').length,
-      incomeTypeSelectors: document.querySelectorAll('#hh-view select[data-type="incomeType"]').length,
       addIncome: !!document.querySelector('#hh-view [data-hh-action="open-add"][data-add-key="income"]'),
       addAdjustment: !!document.querySelector('#hh-view [data-hh-action="open-add"][data-add-key="adjustment"]'),
       addDeduction: !!document.querySelector('#hh-view [data-hh-action="open-add"][data-add-key="deduction"]'),
+      addCredit: !!document.querySelector('#hh-view [data-hh-action="open-add"][data-add-key="credit"]'),
       incomeStartAges: [...document.querySelectorAll('#hh-view input[data-path^="income.other."][data-path$=".startAge"]')].map(el => el.value),
       incomeEndAges: [...document.querySelectorAll('#hh-view input[data-path^="income.other."][data-path$=".endAge"]')].map(el => el.value),
       incomeGrowth: [...document.querySelectorAll('#hh-view input[data-path^="income.other."][data-path$=".realGrowth"]')]
@@ -708,15 +682,23 @@ try {
       incomeHdr: document.querySelector('#hh-view .hh-it-section-head strong')?.textContent.trim() || '',
       foundation: document.querySelectorAll('#hh-view .hh-it-foundation .hh-it-stat').length,
       taxPosition: document.querySelectorAll('#hh-view .hh-it-tax-grid .hh-it-stat').length,
+      taxLabels: [...document.querySelectorAll('#hh-view .hh-it-tax-grid .hh-it-stat > span')].map(el => el.textContent.trim()),
+      amountLayout: (() => {
+        const amount = document.querySelector('#hh-view .hh-it-row__amount');
+        const input = amount?.querySelector('input[data-type="money"]');
+        if(!amount || !input) return null;
+        const wrapperStyle = getComputedStyle(amount);
+        const inputStyle = getComputedStyle(input);
+        return { display:wrapperStyle.display, whiteSpace:wrapperStyle.whiteSpace, fontSize:parseFloat(inputStyle.fontSize) };
+      })(),
+      scrollbarColor: getComputedStyle(document.querySelector('.hh-wiz-workspace')).scrollbarColor,
     }));
     if(s3.pia < 1) throw new Error(`SS benefit inputs missing, got ${s3.pia}`);
     if(s3.claimAges.length !== 2 || s3.claimAges.some(field => field.value !== '67' || field.min !== '62' || field.max !== '70'))
       throw new Error(`SS claim-age inputs missing/defaulted incorrectly: ${JSON.stringify(s3.claimAges)}`);
-    if(s3.savings !== null || !s3.addSavings) throw new Error(`annual savings must remain inactive until added: ${JSON.stringify(s3)}`);
-    if(s3.realizedGains !== 2) throw new Error(`current-year realized-gain inputs missing: ${JSON.stringify(s3)}`);
-    if(s3.incomeTypeSelectors !== 2) throw new Error(`income type dropdowns missing: ${JSON.stringify(s3)}`);
+    if(s3.savings !== '0') throw new Error(`annual savings must render with the saved blank default, got "${s3.savings}"`);
     if(!s3.addIncome) throw new Error('"+ Add income" missing');
-    if(!s3.addAdjustment || !s3.addDeduction) throw new Error('Income & Tax add controls missing');
+    if(!s3.addAdjustment || !s3.addDeduction || !s3.addCredit) throw new Error('Income & Tax add controls missing');
     if(JSON.stringify(s3.incomeStartAges) !== JSON.stringify(['64','63']) || JSON.stringify(s3.incomeEndAges) !== JSON.stringify(['65','64']))
       throw new Error(`income start/end fields missing or wrong: ${JSON.stringify(s3)}`);
     if(s3.incomeGrowth.length !== 2 || s3.incomeGrowth.some(field => field.value !== '0' || field.type !== 'signedPct'))
@@ -724,6 +706,11 @@ try {
     if(s3.working) throw new Error('working income input must not render in the wizard');
     if(!/\$180,000/.test(s3.incomeHdr)) throw new Error(`Income & Tax total must be $180,000, got "${s3.incomeHdr}"`);
     if(s3.foundation !== 4 || s3.taxPosition !== 6) throw new Error(`tax summary structure missing: ${JSON.stringify(s3)}`);
+    if(JSON.stringify(s3.taxLabels) !== JSON.stringify(['FEDERAL MARGINAL BRACKET','CAPITAL GAINS RATE','NEXT IRMAA TIER','SENIOR DEDUCTION (65+)','EFFECTIVE TAX RATE','RMDS BEGIN']))
+      throw new Error(`Income & Tax position cells drifted from the six-slot design: ${JSON.stringify(s3.taxLabels)}`);
+    if(!s3.amountLayout || s3.amountLayout.display !== 'flex' || s3.amountLayout.whiteSpace !== 'nowrap' || s3.amountLayout.fontSize < 16)
+      throw new Error(`Income & Tax money inputs must stay readable and unwrapped: ${JSON.stringify(s3.amountLayout)}`);
+    if(!s3.scrollbarColor || s3.scrollbarColor === 'auto') throw new Error(`wizard scrollbar is not subtly styled: ${s3.scrollbarColor}`);
 
     await page.evaluate(() => {
       const el = document.querySelector('#hh-view input[data-path="income.other.0.realGrowth"]');
@@ -741,64 +728,174 @@ try {
     });
     await new Promise(r => setTimeout(r, 250));
 
-    await page.click('#hh-view [data-hh-action="open-add"][data-add-key="savings"]');
-    await new Promise(r => setTimeout(r, 150));
     await page.evaluate(() => {
-      const form = document.querySelector('#hh-view [data-hh-add-form="savings"]');
-      form.querySelector('[data-hh-draft="amount"]').value = '12,000';
-      form.querySelector('[data-hh-action="commit-add"]').click();
+      const el = document.querySelector('#hh-view input[data-path="savings.annual"]');
+      el.value = '12,000';
+      el.dispatchEvent(new Event('change', { bubbles:true }));
     });
     await new Promise(r => setTimeout(r, 300));
     const editedAnnual = await page.evaluate(() => document.querySelector('#hh-view input[data-path="savings.annual"]')?.value || '');
     if(editedAnnual !== '12,000') throw new Error(`annual savings edit did not reach the live plan: "${editedAnnual}"`);
 
-    // Wizard quick-add creates an engine-ready income source.
+    // The expanded add form persists every source-specific field and places the row by start age.
     await page.click('#hh-view [data-hh-action="open-add"][data-add-key="income"]'); await new Promise(r => setTimeout(r, 200));
     const incomeDraft = await page.evaluate(() => ({
-      options:[...document.querySelectorAll('#hh-view [data-hh-draft="type"] option')].map(option => option.value),
-      fields:[...document.querySelectorAll('#hh-view [data-hh-draft]')].map(field => field.dataset.hhDraft),
+      options: [...document.querySelectorAll('#hh-view [data-hh-draft="type"] option')].map(option => option.value),
+      fields: ['amount','startAge','endAge','growthPct'].every(name => !!document.querySelector(`#hh-view [data-hh-draft="${name}"]`)),
     }));
-    const requiredIncomeTypes = ['wages','bonus','self_employment','social_security','pension','annuity','rental','interest','dividends','deferred_comp','other'];
-    const requiredIncomeFields = ['type','owner','amount','startAge','endAge','growthPct','interestTreatment','qualifiedPct','taxablePct','netTaxable'];
-    if(requiredIncomeTypes.some(type => !incomeDraft.options.includes(type)) || requiredIncomeFields.some(field => !incomeDraft.fields.includes(field)))
-      throw new Error(`income add flow is incomplete: ${JSON.stringify(incomeDraft)}`);
+    if(incomeDraft.options.includes('social_security'))
+      throw new Error('Social Security must use the dedicated per-client rows, not duplicate generic income');
+    const requiredCurrentYearTypes = ['tax_exempt_interest','ira_distribution','roth_conversion','short_term_capital_gain','long_term_capital_gain'];
+    if(requiredCurrentYearTypes.some(typeId => !incomeDraft.options.includes(typeId)))
+      throw new Error(`current-year tax inputs missing from income add flow: ${JSON.stringify(incomeDraft.options)}`);
+    if(!incomeDraft.fields) throw new Error('expanded income draft is missing amount, timing, or growth fields');
     await page.evaluate(() => {
-      const form = document.querySelector('#hh-view [data-hh-add-form="income"]');
-      const type = form.querySelector('[data-hh-draft="type"]');
-      type.value = 'dividends';
-      type.dispatchEvent(new Event('change', { bubbles:true }));
+      const set = (name, value, eventName = 'input') => {
+        const el = document.querySelector(`#hh-view [data-hh-draft="${name}"]`);
+        el.value = value;
+        el.dispatchEvent(new Event(eventName, { bubbles:true }));
+      };
+      set('type', 'dividends', 'change');
+      set('owner', 'joint', 'change');
+      set('amount', '8600');
+      set('startAge', '66');
+      set('endAge', '');
+      set('growthPct', '2');
+      set('qualifiedPct', '85');
     });
-    await new Promise(r => setTimeout(r, 150));
-    const conditionalVisible = await page.evaluate(() =>
-      !document.querySelector('#hh-view [data-visible-for~="dividends"]')?.hidden);
-    if(!conditionalVisible) throw new Error('dividend qualified-percentage field did not appear');
-    await page.evaluate(() => {
-      const form = document.querySelector('#hh-view [data-hh-add-form="income"]');
-      const type = form.querySelector('[data-hh-draft="type"]');
-      type.value = 'wages';
-      type.dispatchEvent(new Event('change', { bubbles:true }));
-      form.querySelector('[data-hh-draft="amount"]').value = '1,000';
-    });
+    const conditionalDraft = await page.evaluate(() => ({
+      qualifiedVisible: !document.querySelector('[data-income-types="dividends"]')?.hidden,
+      taxableHidden: document.querySelector('[data-income-types~="interest"]')?.hidden,
+    }));
+    if(!conditionalDraft.qualifiedVisible || !conditionalDraft.taxableHidden)
+      throw new Error(`income-specific draft controls did not toggle correctly: ${JSON.stringify(conditionalDraft)}`);
     await page.click('#hh-view [data-hh-action="commit-add"]'); await new Promise(r => setTimeout(r, 350));
+    await page.click('#save-btn'); await new Promise(r => setTimeout(r, 300));
     const addedIncome = await page.evaluate(() => {
-      const rows = [...document.querySelectorAll('#hh-view .hh-it-row select[data-path^="income.other."][data-path$=".typeId"]')];
+      const rows = [...document.querySelectorAll('#hh-view .hh-it-row input[data-path^="income.other."][data-path$=".label"]')];
       const row = rows.at(-1)?.closest('.hh-it-row');
+      const active = localStorage.getItem('parallax.activeHouseholdId');
+      const saved = JSON.parse(localStorage.getItem('parallax.households.v1') || '{}')?.[active]?.income?.other?.at(-1);
       return {
         count: rows.length,
+        retirementColumn: /RETIREMENT YEARS/i.test(row?.closest('section')?.querySelector('.hh-it-subhead span')?.textContent || ''),
         start: row?.querySelector('input[data-path$=".startAge"]')?.value,
         end: row?.querySelector('input[data-path$=".endAge"]')?.value,
+        saved,
       };
     });
-    if(addedIncome.count !== 3 || addedIncome.start !== '64' || addedIncome.end !== '65')
-      throw new Error(`quick-added wages must default to the client's working window: ${JSON.stringify(addedIncome)}`);
+    if(addedIncome.count !== 3 || !addedIncome.retirementColumn || addedIncome.start !== '66' || addedIncome.end !== ''
+      || addedIncome.saved?.typeId !== 'dividends' || addedIncome.saved?.owner !== 'joint'
+      || addedIncome.saved?.amount !== 8600 || addedIncome.saved?.endAge !== 999
+      || addedIncome.saved?.realGrowth !== .02 || addedIncome.saved?.qualifiedPct !== .85)
+      throw new Error(`expanded income source did not render and persist correctly: ${JSON.stringify(addedIncome)}`);
     await page.evaluate(() => {
-      const rows = [...document.querySelectorAll('#hh-view .hh-it-row select[data-path^="income.other."][data-path$=".typeId"]')];
+      const rows = [...document.querySelectorAll('#hh-view .hh-it-row input[data-path^="income.other."][data-path$=".label"]')];
       rows.at(-1)?.closest('.hh-it-row')?.querySelector('[data-rmpath]')?.click();
     });
     await new Promise(r => setTimeout(r, 300));
     const restoredIncomeCount = await page.evaluate(() =>
-      document.querySelectorAll('#hh-view .hh-it-row select[data-path^="income.other."][data-path$=".typeId"]').length);
+      document.querySelectorAll('#hh-view .hh-it-row input[data-path^="income.other."][data-path$=".label"]').length);
     if(restoredIncomeCount !== 2) throw new Error(`quick-added income cleanup failed: ${restoredIncomeCount}`);
+
+    // Current-year tax items use the same compact add flow without implying a future-age schedule.
+    await page.click('#hh-view [data-hh-action="open-add"][data-add-key="income"]'); await new Promise(r => setTimeout(r, 150));
+    await page.evaluate(() => {
+      const set = (name, value, eventName = 'input') => {
+        const el = document.querySelector(`#hh-view [data-hh-draft="${name}"]`);
+        el.value = value;
+        el.dispatchEvent(new Event(eventName, { bubbles:true }));
+      };
+      set('type', 'roth_conversion', 'change');
+      set('owner', 'client', 'change');
+      set('amount', '20000');
+      set('taxablePct', '90');
+    });
+    const currentYearDraft = await page.evaluate(() => ({
+      timingHidden: [...document.querySelectorAll('#hh-view [data-hide-for-income-types]')].every(el => el.hidden),
+      taxableVisible: !document.querySelector('#hh-view [data-income-types~="roth_conversion"]')?.hidden,
+    }));
+    if(!currentYearDraft.timingHidden || !currentYearDraft.taxableVisible)
+      throw new Error(`current-year income controls did not stay compact: ${JSON.stringify(currentYearDraft)}`);
+    await page.click('#hh-view [data-hh-action="commit-add"]'); await new Promise(r => setTimeout(r, 250));
+    await page.click('#save-btn'); await new Promise(r => setTimeout(r, 250));
+    const addedCurrentYearItem = await page.evaluate(() => {
+      const rows = [...document.querySelectorAll('#hh-view .hh-it-row input[data-path^="income.other."][data-path$=".label"]')];
+      const row = rows.at(-1)?.closest('.hh-it-row');
+      const active = localStorage.getItem('parallax.activeHouseholdId');
+      const saved = JSON.parse(localStorage.getItem('parallax.households.v1') || '{}')?.[active]?.income?.other?.at(-1);
+      return {
+        rowText: row?.textContent || '',
+        hasTimingInput: !!row?.querySelector('input[data-path$=".startAge"], input[data-path$=".endAge"]'),
+        saved,
+      };
+    });
+    if(addedCurrentYearItem.hasTimingInput || !/strategy conversions downstream/i.test(addedCurrentYearItem.rowText)
+      || addedCurrentYearItem.saved?.typeId !== 'roth_conversion' || addedCurrentYearItem.saved?.amount !== 20000
+      || addedCurrentYearItem.saved?.taxablePct !== .9
+      || addedCurrentYearItem.saved?.startAge !== addedCurrentYearItem.saved?.endAge)
+      throw new Error(`current-year tax item did not render and persist correctly: ${JSON.stringify(addedCurrentYearItem)}`);
+    await page.evaluate(() => {
+      const rows = [...document.querySelectorAll('#hh-view .hh-it-row input[data-path^="income.other."][data-path$=".label"]')];
+      rows.at(-1)?.closest('.hh-it-row')?.querySelector('[data-rmpath]')?.click();
+    });
+    await new Promise(r => setTimeout(r, 250));
+
+    // Adjustment and deduction add flows persist their conditional facts without polluting planning savings.
+    await page.click('#hh-view [data-hh-action="open-add"][data-add-key="adjustment"]'); await new Promise(r => setTimeout(r, 150));
+    const adjustmentOptions = await page.evaluate(() => {
+      const type = document.querySelector('#hh-view [data-hh-draft="type"]');
+      const amount = document.querySelector('#hh-view [data-hh-draft="amount"]');
+      amount.value = '23000';
+      return [...type.options].map(option => option.value);
+    });
+    if(!adjustmentOptions.includes('ira_deduction')) throw new Error('deductible IRA contribution missing from adjustment add flow');
+    await page.click('#hh-view [data-hh-action="commit-add"]'); await new Promise(r => setTimeout(r, 250));
+    await page.click('#hh-view [data-hh-action="open-add"][data-add-key="deduction"]'); await new Promise(r => setTimeout(r, 150));
+    const deductionOptions = await page.evaluate(() => {
+      const type = document.querySelector('#hh-view [data-hh-draft="type"]');
+      const amount = document.querySelector('#hh-view [data-hh-draft="amount"]');
+      const options = [...type.options].map(option => option.value);
+      type.value = 'charitable';
+      type.dispatchEvent(new Event('change', { bubbles:true }));
+      amount.value = '12000';
+      return options;
+    });
+    if(!deductionOptions.includes('real_estate_tax') || !deductionOptions.includes('personal_property_tax'))
+      throw new Error(`separate property-tax deductions missing from add flow: ${JSON.stringify(deductionOptions)}`);
+    await page.click('#hh-view [data-hh-action="commit-add"]'); await new Promise(r => setTimeout(r, 250));
+    await page.click('#hh-view [data-hh-action="open-add"][data-add-key="credit"]'); await new Promise(r => setTimeout(r, 150));
+    await page.evaluate(() => {
+      const type = document.querySelector('#hh-view [data-hh-draft="type"]');
+      const amount = document.querySelector('#hh-view [data-hh-draft="amount"]');
+      if(type.value !== 'premium_tax_credit') throw new Error(`unexpected default credit: ${type.value}`);
+      amount.value = '2000';
+    });
+    await page.click('#hh-view [data-hh-action="commit-add"]'); await new Promise(r => setTimeout(r, 250));
+    await page.click('#save-btn'); await new Promise(r => setTimeout(r, 300));
+    const savedTaxInputs = await page.evaluate(() => {
+      const active = localStorage.getItem('parallax.activeHouseholdId');
+      const plan = JSON.parse(localStorage.getItem('parallax.households.v1') || '{}')?.[active];
+      return {
+        adjustment: plan?.incomeTax?.adjustments?.at(-1),
+        deduction: plan?.incomeTax?.deductions?.at(-1),
+        credit: plan?.incomeTax?.credits?.at(-1),
+        creditNote: document.querySelector('#hh-view input[data-path^="incomeTax.credits."][data-path$=".label"]')
+          ?.closest('.hh-it-row')?.textContent || '',
+        savings: plan?.savings?.annual,
+      };
+    });
+    if(savedTaxInputs.adjustment?.typeId !== '401k' || savedTaxInputs.adjustment?.amount !== 23000 || savedTaxInputs.adjustment?.whileWorkingOnly !== true
+      || savedTaxInputs.deduction?.typeId !== 'charitable' || savedTaxInputs.deduction?.amount !== 12000
+      || savedTaxInputs.credit?.typeId !== 'premium_tax_credit' || savedTaxInputs.credit?.amount !== 2000
+      || !/line 20/i.test(savedTaxInputs.creditNote) || savedTaxInputs.savings !== 12000)
+      throw new Error(`Income & Tax adjustments/deductions/credits did not persist independently: ${JSON.stringify(savedTaxInputs)}`);
+    await page.evaluate(() => {
+      document.querySelector('.hh-it-row [data-rmpath^="incomeTax.adjustments."]')?.click();
+      document.querySelector('.hh-it-row [data-rmpath^="incomeTax.deductions."]')?.click();
+      document.querySelector('.hh-it-row [data-rmpath^="incomeTax.credits."]')?.click();
+    });
+    await new Promise(r => setTimeout(r, 300));
 
     await page.click('#hh-step-4'); await new Promise(r => setTimeout(r, 350));
     const spendingGoals = await page.evaluate(() => ({

@@ -406,12 +406,7 @@ const plan = {
     // only as a legacy single-amount fallback.
     pension:        { benefitByAge: {}, base: 0, startAge: 65, colaPct: 0 }
   },
-  incomeTax: {
-    adjustments: [],
-    deductions: [],
-    deductionMode: 'auto',
-    realizedGains: { shortTerm: 0, longTerm: 0 },
-  },
+  incomeTax: { adjustments: [], deductions: [], deductionMode: 'auto' },
   // expenses: the fixed essential scalars PLUS `extra` — an array of discretionary,
   // time-bounded spending lines ({ label, amount, startAge, endAge }). Discretionary
   // extras flex with the spending lever (spendMult), flat-real otherwise. Empty default.

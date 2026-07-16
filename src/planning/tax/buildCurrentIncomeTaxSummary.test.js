@@ -5,7 +5,7 @@ import { buildCurrentIncomeTaxSummary } from './buildCurrentIncomeTaxSummary.js'
 function plan(overrides = {}){
   return {
     meta: { filingStatus: 'single' },
-    household: { primary: { currentAge: 50, retirementAge: 65, planEndAge: 95 } },
+    household: { primary: { birthYear: 1976, currentAge: 50, retirementAge: 65, planEndAge: 95 } },
     income: {
       other: [{ typeId:'wages', owner:'client', label:'Wages', amount:100000, startAge:50, endAge:64, realGrowth:0, taxablePct:1 }],
       socialSecurity: { primary: { pia:0, claimAge:67 } },
@@ -21,6 +21,93 @@ test('current wizard summary runs the federal engine for supported income', () =
   assert.equal(summary.totalIncome, 100000);
   assert.ok(summary.adjustedGrossIncome > 0);
   assert.ok(summary.federalTaxLiability > 0);
+  assert.ok(summary.ordinaryBracketRoom > 0);
+  assert.equal(summary.rmdAge, 73);
+  assert.equal(summary.firstRmdYear, 2049);
+});
+
+test('qualified dividends expose the audited capital-gains position', () => {
+  const summary = buildCurrentIncomeTaxSummary(plan({
+    income: {
+      other: [{ typeId:'dividends', owner:'client', label:'Dividends', amount:30000, startAge:50, endAge:999, realGrowth:0, qualifiedPct:1 }],
+      socialSecurity: { primary: { pia:0, claimAge:67 } },
+    },
+  }));
+  assert.equal(summary.status, 'ready');
+  assert.equal(summary.capitalGainsRate, 0);
+  assert.ok(summary.capitalGainsRoom > 0);
+  assert.match(summary.capitalGainsNote, /0% bracket/);
+});
+
+test('a working-only 401(k) contribution no longer reduces AGI after retirement', () => {
+  const summary = buildCurrentIncomeTaxSummary(plan({
+    household: { primary: { birthYear: 1956, currentAge: 70, retirementAge: 65, planEndAge: 95 } },
+    income: {
+      other: [{ typeId:'pension', owner:'client', label:'Pension', amount:60000, startAge:65, endAge:999, realGrowth:0, taxablePct:1 }],
+      socialSecurity: { primary: { pia:0, claimAge:67 } },
+    },
+    incomeTax: {
+      adjustments: [{ typeId:'401k', owner:'client', amount:23000, whileWorkingOnly:true }],
+      deductions: [],
+    },
+  }));
+  assert.equal(summary.status, 'ready');
+  assert.equal(summary.adjustments, 0);
+  assert.equal(summary.adjustedGrossIncome, 60000);
+});
+
+test('current-year federal items route through existing 1040 inputs and Premium Tax Credit reduces line 24', () => {
+  const income = {
+    other: [
+      { typeId:'wages', owner:'client', label:'Wages', amount:100000, startAge:50, endAge:64, taxablePct:1 },
+      { typeId:'tax_exempt_interest', owner:'joint', label:'Tax-exempt interest', amount:5000, startAge:50, endAge:50, taxablePct:0 },
+      { typeId:'ira_distribution', owner:'client', label:'IRA distribution', amount:10000, startAge:50, endAge:50, taxablePct:.8 },
+      { typeId:'roth_conversion', owner:'client', label:'Roth conversion', amount:20000, startAge:50, endAge:50, taxablePct:.9 },
+      { typeId:'short_term_capital_gain', owner:'joint', label:'Short-term gain', amount:5000, startAge:50, endAge:50, taxablePct:1 },
+      { typeId:'long_term_capital_gain', owner:'joint', label:'Long-term gain', amount:15000, startAge:50, endAge:50, taxablePct:0 },
+    ],
+    socialSecurity: { primary: { pia:0, claimAge:67 } },
+  };
+  const withoutCredit = buildCurrentIncomeTaxSummary(plan({ income }));
+  const withCredit = buildCurrentIncomeTaxSummary(plan({
+    income,
+    incomeTax: {
+      adjustments: [],
+      deductions: [],
+      credits: [{ typeId:'premium_tax_credit', amount:2000 }],
+    },
+  }));
+  assert.equal(withCredit.status, 'ready');
+  assert.equal(withCredit.totalIncome, 155000);
+  assert.equal(withCredit.adjustedGrossIncome, 146000);
+  assert.equal(withCredit.premiumTaxCredit, 2000);
+  assert.equal(withoutCredit.federalTaxLiability - withCredit.federalTaxLiability, 2000);
+  assert.equal(withCredit.capitalGainsRate, .15);
+  assert.match(withCredit.capitalGainsNote, /0% bracket exceeded/);
+});
+
+test('deductible IRA and separate property taxes persist but fail closed without required federal facts', () => {
+  const ira = buildCurrentIncomeTaxSummary(plan({
+    incomeTax: {
+      adjustments: [{ typeId:'ira_deduction', owner:'client', amount:7000 }],
+      deductions: [],
+      credits: [],
+    },
+  }));
+  assert.equal(ira.status, 'needs_facts');
+  assert.match(ira.message, /workplace-plan facts/);
+
+  for(const typeId of ['real_estate_tax', 'personal_property_tax']){
+    const propertyTax = buildCurrentIncomeTaxSummary(plan({
+      incomeTax: {
+        adjustments: [],
+        deductions: [{ typeId, amount:5000 }],
+        credits: [],
+      },
+    }));
+    assert.equal(propertyTax.status, 'needs_facts');
+    assert.match(propertyTax.message, /SALT.*cap rule/);
+  }
 });
 
 test('active Social Security uses the taxable-benefits worksheet, including tax-exempt interest', () => {
@@ -54,36 +141,4 @@ test('unsupported deduction and self-employment facts fail closed instead of fab
   assert.equal(selfEmployment.status, 'needs_facts');
   assert.match(selfEmployment.message, /Schedule SE/);
   assert.equal(selfEmployment.federalTaxLiability, undefined);
-});
-
-test('current summary maps rental net income and long-term gains to the supported tax spine', () => {
-  const summary = buildCurrentIncomeTaxSummary(plan({
-    income: {
-      other: [
-        { typeId:'rental', owner:'client', label:'Rental', amount:40000, netTaxable:15000, startAge:50, endAge:999 },
-        { typeId:'long_term_capital_gains', owner:'joint', label:'LTCG', amount:10000, startAge:50, endAge:999 },
-      ],
-      socialSecurity: { primary: { pia:0, claimAge:67 } },
-    },
-  }));
-  assert.equal(summary.status, 'ready');
-  assert.equal(summary.totalIncome, 25000);
-  assert.equal(summary.capitalGainsRate, 0);
-  assert.ok(summary.capitalGainsCaption.includes('0%'));
-  assert.ok(summary.ordinaryBracketRoom > 0);
-});
-
-test('current-year realized gains affect tax without becoming projected income rows', () => {
-  const value = plan({
-    incomeTax: {
-      adjustments: [], deductions: [],
-      realizedGains: { shortTerm:5000, longTerm:20000 },
-    },
-  });
-  const beforeRows = structuredClone(value.income.other);
-  const summary = buildCurrentIncomeTaxSummary(value);
-  assert.equal(summary.status, 'ready');
-  assert.equal(summary.totalIncome, 125000);
-  assert.notEqual(summary.capitalGainsRate, null);
-  assert.deepEqual(value.income.other, beforeRows, 'tax-only gains must not create projection rows');
 });
