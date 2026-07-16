@@ -4,6 +4,10 @@ import {
   CREDIT_TYPES,
   DEDUCTION_TYPES,
   INCOME_SOURCE_TYPES,
+  REQUIRED_ADJUSTMENT_TYPE_IDS,
+  REQUIRED_CREDIT_TYPE_IDS,
+  REQUIRED_DEDUCTION_TYPE_IDS,
+  REQUIRED_INCOME_SOURCE_TYPE_IDS,
   adjustmentType,
   creditType,
   deductionType,
@@ -19,7 +23,14 @@ import {
 
 const money = value => '$' + Math.round(Number(value) || 0).toLocaleString('en-US');
 const rate = value => value == null ? '—' : `${Math.round(value * 1000) / 10}%`;
-const ADDABLE_INCOME_SOURCE_TYPES = INCOME_SOURCE_TYPES.filter(row => row.id !== 'social_security');
+const REQUIRED_INCOME_TYPES = new Set(REQUIRED_INCOME_SOURCE_TYPE_IDS);
+const REQUIRED_ADJUSTMENT_TYPES = new Set(REQUIRED_ADJUSTMENT_TYPE_IDS);
+const REQUIRED_DEDUCTION_TYPES = new Set(REQUIRED_DEDUCTION_TYPE_IDS);
+const REQUIRED_CREDIT_TYPES = new Set(REQUIRED_CREDIT_TYPE_IDS);
+const ADDABLE_INCOME_SOURCE_TYPES = INCOME_SOURCE_TYPES.filter(row => row.id !== 'social_security' && !REQUIRED_INCOME_TYPES.has(row.id));
+const ADDABLE_ADJUSTMENT_TYPES = ADJUSTMENT_TYPES.filter(row => !REQUIRED_ADJUSTMENT_TYPES.has(row.id));
+const ADDABLE_DEDUCTION_TYPES = DEDUCTION_TYPES.filter(row => !REQUIRED_DEDUCTION_TYPES.has(row.id));
+const ADDABLE_CREDIT_TYPES = CREDIT_TYPES.filter(row => !REQUIRED_CREDIT_TYPES.has(row.id));
 
 function options(rows){
   return rows.map(row => `<option value="${row.id}">${escHtml(row.label)}</option>`).join('');
@@ -40,6 +51,7 @@ function tinySelect(path, value, html, label){
 function sourceRow(plan, deps, source, index){
   const base = `income.other.${index}`;
   const type = incomeType(source.typeId);
+  const required = REQUIRED_INCOME_TYPES.has(type.id);
   const currentYearOnly = type.timing === 'current';
   const taxNote = source.typeId === 'dividends'
     ? `qualified ${deps.field(`${base}.qualifiedPct`, 'pct')}`
@@ -58,9 +70,9 @@ function sourceRow(plan, deps, source, index){
       : source.typeId === 'self_employment'
         ? 'net taxable · SE tax needs facts'
         : source.typeId === 'rental' ? 'net taxable' : 'taxable';
-  return `<div class="hh-it-row">
+  return `<div class="hh-it-row" data-income-tax-type="${type.id}">
     <span class="hh-it-row__copy">
-      <span class="hh-it-row__title"><input data-path="${base}.label" data-type="text" value="${escHtml(source.label || type.label)}" aria-label="Income source name"></span>
+      <span class="hh-it-row__title">${required ? escHtml(type.label) : `<input data-path="${base}.label" data-type="text" value="${escHtml(source.label || type.label)}" aria-label="Income source name">`}</span>
       <span class="hh-it-row__meta">
         ${tinySelect(`${base}.owner`, source.owner, ownerOptions(plan, source.owner), 'Income owner')}
         ${currentYearOnly
@@ -68,7 +80,7 @@ function sourceRow(plan, deps, source, index){
           : `<span>·</span><span>${deps.field(`${base}.startAge`, 'age')} → ${deps.field(`${base}.endAge`, 'ageOrLife')}</span><span>·</span><span>${deps.field(`${base}.realGrowth`, 'signedPct')} /yr</span><span>·</span><span>${taxNote}</span>`}
       </span>
     </span>
-    <span class="hh-it-row__end"><span class="hh-it-row__amount">${deps.field(`${base}.amount`, 'money')}</span><button class="row-x" data-rmpath="${base}" title="Remove income source">×</button></span>
+    <span class="hh-it-row__end"><span class="hh-it-row__amount">${deps.field(`${base}.amount`, 'money')}</span>${required ? '' : `<button class="row-x" data-rmpath="${base}" title="Remove income source">×</button>`}</span>
   </div>`;
 }
 
@@ -87,28 +99,31 @@ function socialSecurityRow(plan, deps, role){
 function adjustmentRow(plan, deps, row, index){
   const base = `incomeTax.adjustments.${index}`;
   const type = adjustmentType(row.typeId);
+  const required = REQUIRED_ADJUSTMENT_TYPES.has(type.id);
   const active = isAdjustmentActiveNow(plan, row);
-  return `<div class="hh-it-row${active ? '' : ' hh-it-row--inactive'}">
-    <span class="hh-it-row__copy"><span class="hh-it-row__title"><input data-path="${base}.label" data-type="text" value="${escHtml(row.label || type.label)}" aria-label="Adjustment name"></span><span class="hh-it-row__meta">${tinySelect(`${base}.owner`, row.owner || 'client', ownerOptions(plan, row.owner || 'client'), 'Adjustment owner')} · ${escHtml(type.note)}${active ? '' : ' · not in this year\'s AGI'}</span></span>
-    <span class="hh-it-row__end"><span class="hh-it-row__amount">${deps.field(`${base}.amount`, 'money')}</span><button class="row-x" data-rmpath="${base}" title="Remove adjustment">×</button></span>
+  return `<div class="hh-it-row${active ? '' : ' hh-it-row--inactive'}" data-income-tax-type="${type.id}">
+    <span class="hh-it-row__copy"><span class="hh-it-row__title">${required ? escHtml(type.label) : `<input data-path="${base}.label" data-type="text" value="${escHtml(row.label || type.label)}" aria-label="Adjustment name">`}</span><span class="hh-it-row__meta">${tinySelect(`${base}.owner`, row.owner || 'client', ownerOptions(plan, row.owner || 'client'), 'Adjustment owner')} · ${escHtml(type.note)}${active ? '' : ' · not in this year\'s AGI'}</span></span>
+    <span class="hh-it-row__end"><span class="hh-it-row__amount">${deps.field(`${base}.amount`, 'money')}</span>${required ? '' : `<button class="row-x" data-rmpath="${base}" title="Remove adjustment">×</button>`}</span>
   </div>`;
 }
 
 function deductionRow(deps, row, index){
   const base = `incomeTax.deductions.${index}`;
   const type = deductionType(row.typeId);
-  return `<div class="hh-it-row">
-    <span class="hh-it-row__copy"><span class="hh-it-row__title"><input data-path="${base}.label" data-type="text" value="${escHtml(row.label || type.label)}" aria-label="Deduction name"></span>${type.note ? `<span class="hh-it-row__meta">${escHtml(type.note)}</span>` : ''}</span>
-    <span class="hh-it-row__end"><span class="hh-it-row__amount">${deps.field(`${base}.amount`, 'money')}</span><button class="row-x" data-rmpath="${base}" title="Remove deduction">×</button></span>
+  const required = REQUIRED_DEDUCTION_TYPES.has(type.id);
+  return `<div class="hh-it-row" data-income-tax-type="${type.id}">
+    <span class="hh-it-row__copy"><span class="hh-it-row__title">${required ? escHtml(type.label) : `<input data-path="${base}.label" data-type="text" value="${escHtml(row.label || type.label)}" aria-label="Deduction name">`}</span>${type.note ? `<span class="hh-it-row__meta">${escHtml(type.note)}</span>` : ''}</span>
+    <span class="hh-it-row__end"><span class="hh-it-row__amount">${deps.field(`${base}.amount`, 'money')}</span>${required ? '' : `<button class="row-x" data-rmpath="${base}" title="Remove deduction">×</button>`}</span>
   </div>`;
 }
 
 function creditRow(deps, row, index){
   const base = `incomeTax.credits.${index}`;
   const type = creditType(row.typeId);
-  return `<div class="hh-it-row">
-    <span class="hh-it-row__copy"><span class="hh-it-row__title"><input data-path="${base}.label" data-type="text" value="${escHtml(row.label || type.label)}" aria-label="Credit name"></span><span class="hh-it-row__meta">${escHtml(type.note)}</span></span>
-    <span class="hh-it-row__end"><span class="hh-it-row__amount">${deps.field(`${base}.amount`, 'money')}</span><button class="row-x" data-rmpath="${base}" title="Remove credit">×</button></span>
+  const required = REQUIRED_CREDIT_TYPES.has(type.id);
+  return `<div class="hh-it-row" data-income-tax-type="${type.id}">
+    <span class="hh-it-row__copy"><span class="hh-it-row__title">${required ? escHtml(type.label) : `<input data-path="${base}.label" data-type="text" value="${escHtml(row.label || type.label)}" aria-label="Credit name">`}</span><span class="hh-it-row__meta">${escHtml(type.note)}</span></span>
+    <span class="hh-it-row__end"><span class="hh-it-row__amount">${deps.field(`${base}.amount`, 'money')}</span>${required ? '' : `<button class="row-x" data-rmpath="${base}" title="Remove credit">×</button>`}</span>
   </div>`;
 }
 
@@ -124,7 +139,7 @@ function addForm(key, plan){
     <label data-income-types="dividends" hidden><span>Qualified</span><span class="hh-it-add-form__pct"><input type="number" data-hh-draft="qualifiedPct" min="0" max="100" step="1" value="0" aria-label="Qualified dividend percentage"><span>%</span></span></label>
     <div class="hh-it-add-form__actions"><button class="hh-btn hh-btn--primary" type="button" data-hh-action="commit-add">Add</button><button class="hh-btn hh-btn--ghost" type="button" data-hh-action="cancel-add">Cancel</button></div>
   </div>`;
-  const rows = key === 'adjustment' ? ADJUSTMENT_TYPES : key === 'credit' ? CREDIT_TYPES : DEDUCTION_TYPES;
+  const rows = key === 'adjustment' ? ADDABLE_ADJUSTMENT_TYPES : key === 'credit' ? ADDABLE_CREDIT_TYPES : ADDABLE_DEDUCTION_TYPES;
   return `<div class="hh-it-add-form" data-add-kind="${key}">
     <label><span>${key === 'adjustment' ? 'Adjustment' : key === 'credit' ? 'Credit' : 'Deduction'}</span><select data-hh-draft="type" aria-label="${key} type">${options(rows)}</select></label>
     ${key === 'adjustment' ? `<label><span>Owner</span><select data-hh-draft="owner" aria-label="Adjustment owner">${ownerOptions(plan, 'client')}</select></label>` : ''}
@@ -135,6 +150,7 @@ function addForm(key, plan){
 }
 
 function addControl(state, key, label, plan){
+  if(key === 'credit' && ADDABLE_CREDIT_TYPES.length === 0) return '';
   return state.hhAddingKey === key
     ? addForm(key, plan)
     : `<button class="hh-it-add" type="button" data-hh-action="open-add" data-add-key="${key}">+ Add ${label}</button>`;
@@ -170,16 +186,16 @@ export function renderHouseholdIncomeTax(plan, deps, state){
 
     <div class="hh-it-section-head"><span>INCOME SOURCES</span><strong>${money(incomeTotal)} <small>this year</small></strong></div>
     <div class="hh-it-grid">
-      <section><div class="hh-it-subhead"><span>WORKING YEARS</span><small>${money(working.reduce((sum, row) => sum + (Number(row.amount) || 0), 0))} /yr</small></div>${working.length ? working.map(row => sourceRow(plan, deps, row, row.index)).join('') : '<p class="hh-it-empty">No working-year income entered.</p>'}</section>
-      <section><div class="hh-it-subhead"><span>RETIREMENT YEARS</span><small>${money((plan.income?.socialSecurity?.primary?.pia || 0) + (plan.household?.spouse ? (plan.income?.socialSecurity?.spouse?.pia || 0) : 0) + retirement.reduce((sum, row) => sum + (Number(row.amount) || 0), 0))} /yr</small></div>${socialSecurityRow(plan, deps, 'client')}${socialSecurityRow(plan, deps, 'spouse')}${retirement.map(row => sourceRow(plan, deps, row, row.index)).join('')}</section>
+      <section data-income-tax-section="income"><div class="hh-it-subhead"><span>WORKING YEARS</span><small>${money(working.reduce((sum, row) => sum + (Number(row.amount) || 0), 0))} /yr</small></div>${working.length ? working.map(row => sourceRow(plan, deps, row, row.index)).join('') : '<p class="hh-it-empty">No working-year income entered.</p>'}</section>
+      <section data-income-tax-section="income"><div class="hh-it-subhead"><span>RETIREMENT YEARS</span><small>${money((plan.income?.socialSecurity?.primary?.pia || 0) + (plan.household?.spouse ? (plan.income?.socialSecurity?.spouse?.pia || 0) : 0) + retirement.reduce((sum, row) => sum + (Number(row.amount) || 0), 0))} /yr</small></div>${socialSecurityRow(plan, deps, 'client')}${socialSecurityRow(plan, deps, 'spouse')}${retirement.map(row => sourceRow(plan, deps, row, row.index)).join('')}</section>
     </div>
     <div class="hh-it-add-line">${addControl(state, 'income', 'income source', plan)}${state.hhAddingKey !== 'income' ? '<span>Income and current-year tax items · treatment opens by type</span>' : ''}</div>
 
     <div class="hh-it-grid hh-it-grid--lower">
-      <section><div class="hh-it-section-head"><span>PRE-TAX &amp; ADJUSTMENTS</span><strong>−${money(adjustments)}</strong></div>
+      <section data-income-tax-section="adjustment"><div class="hh-it-section-head"><span>PRE-TAX &amp; ADJUSTMENTS</span><strong>−${money(adjustments)}</strong></div>
         <div class="hh-it-row hh-it-row--planning"><span class="hh-it-row__copy"><span class="hh-it-row__title">Annual portfolio savings</span><span class="hh-it-row__meta">planning input · separate from tax adjustments</span></span><span class="hh-it-row__end"><span class="hh-it-row__amount">${deps.field('savings.annual', 'money')}</span></span></div>
         ${(plan.incomeTax?.adjustments || []).map((row, index) => adjustmentRow(plan, deps, row, index)).join('') || '<p class="hh-it-empty">No tax adjustments entered.</p>'}${addControl(state, 'adjustment', 'adjustment', plan)}</section>
-      <section><div class="hh-it-section-head"><span>DEDUCTIONS</span><strong>−${money(deductions)}</strong></div>${(plan.incomeTax?.deductions || []).map((row, index) => deductionRow(deps, row, index)).join('') || '<p class="hh-it-empty">No itemized deductions entered.</p>'}<div class="hh-it-auto-row"><span>${summaryReady ? `${summary.deductionMethod} deduction` : 'Deduction choice'} <b>AUTO</b></span><strong>${summaryReady ? money(summary.deductionUsed) : '—'}</strong></div><div class="hh-it-deduction-footer">${addControl(state, 'deduction', 'deduction', plan)}${deductionComparison ? `<span>${deductionComparison}</span>` : ''}</div><div class="hh-it-mini-head"><span>CREDITS</span><strong>+${money(credits)}</strong></div>${(plan.incomeTax?.credits || []).map((row, index) => creditRow(deps, row, index)).join('') || '<p class="hh-it-empty">No federal credits entered.</p>'}${addControl(state, 'credit', 'credit', plan)}</section>
+      <section data-income-tax-section="deduction"><div class="hh-it-section-head"><span>DEDUCTIONS</span><strong>−${money(deductions)}</strong></div>${(plan.incomeTax?.deductions || []).map((row, index) => deductionRow(deps, row, index)).join('') || '<p class="hh-it-empty">No itemized deductions entered.</p>'}<div class="hh-it-auto-row"><span>${summaryReady ? `${summary.deductionMethod} deduction` : 'Deduction choice'} <b>AUTO</b></span><strong>${summaryReady ? money(summary.deductionUsed) : '—'}</strong></div><div class="hh-it-deduction-footer">${addControl(state, 'deduction', 'deduction', plan)}${deductionComparison ? `<span>${deductionComparison}</span>` : ''}</div><div class="hh-it-mini-head"><span>CREDITS</span><strong>+${money(credits)}</strong></div><div data-income-tax-section="credit">${(plan.incomeTax?.credits || []).map((row, index) => creditRow(deps, row, index)).join('') || '<p class="hh-it-empty">No federal credits entered.</p>'}${addControl(state, 'credit', 'credit', plan)}</div></section>
     </div>
 
     <div class="hh-it-foundation">
