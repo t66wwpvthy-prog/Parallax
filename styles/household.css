@@ -185,6 +185,21 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(195,165,106,.24) transparent;
+  scrollbar-gutter: stable;
+}
+.page[data-page="household"] .hh-wiz-workspace::-webkit-scrollbar { width: 7px; }
+.page[data-page="household"] .hh-wiz-workspace::-webkit-scrollbar-track { background: transparent; }
+.page[data-page="household"] .hh-wiz-workspace::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: rgba(195,165,106,.24);
+  background-clip: padding-box;
+}
+.page[data-page="household"] .hh-wiz-workspace::-webkit-scrollbar-thumb:hover {
+  background: rgba(195,165,106,.38);
+  background-clip: padding-box;
 }
 .page[data-page="household"] .hh-wiz-footer {
   display: flex; align-items: center; justify-content: space-between;
@@ -400,6 +415,15 @@
 .page[data-page="household"] .hh-wiz-footer .hh-btn--primary:hover {
   background: rgba(198,166,98,0.075);
   border-color: rgba(198,166,98,0.58);
+}
+.page[data-page="household"] .hh-wizard[data-wizard-step="3"] .hh-wiz-footer .hh-btn--primary {
+  background: linear-gradient(180deg, #cdb079, #9c7d44);
+  color: var(--gold-ink);
+  border: 0;
+  box-shadow: none;
+}
+.page[data-page="household"] .hh-wizard[data-wizard-step="3"] .hh-wiz-footer .hh-btn--primary:hover {
+  background: linear-gradient(180deg, #d5b980, #aa894b);
 }
 .page[data-page="household"] .hh-btn--outline {
   background: transparent; border-color: var(--line-16); color: var(--text-1);
@@ -651,6 +675,9 @@
   min-height: 43px; padding: 5px 2px; display: flex; align-items: center; justify-content: space-between;
   gap: 14px; border-bottom: 1px solid var(--line-06);
 }
+.page[data-page="household"] .hh-it-row:hover { background: rgba(255,255,255,.02); }
+.page[data-page="household"] .hh-it-row--inactive { opacity: .58; }
+.page[data-page="household"] .hh-it-row--planning { background: rgba(195,165,106,.018); }
 .page[data-page="household"] .hh-it-row__copy { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 3px; }
 .page[data-page="household"] .hh-it-row__title,
 .page[data-page="household"] .hh-it-row__title input {
@@ -667,10 +694,15 @@
 .page[data-page="household"] .hh-it-row__meta input[data-path] {
   width: 5.5ch; padding: 0; color: var(--text-3); font-size: 11px; text-align: center;
 }
+.page[data-page="household"] .hh-it-row__meta input[data-type="ageOrLife"] { width: 6.2ch; }
 .page[data-page="household"] .hh-it-row__end { flex: none; display: inline-flex; align-items: center; gap: 8px; }
-.page[data-page="household"] .hh-it-row__amount,
+.page[data-page="household"] .hh-it-row__amount {
+  width: 10ch; display: inline-flex; align-items: baseline; justify-content: flex-end;
+  color: var(--text-hi); font: 400 18px/1 var(--font-serif); text-align: right; white-space: nowrap;
+}
+.page[data-page="household"] .hh-it-row__amount .pre { flex: none; margin-right: 2px; font-size: 14px; }
 .page[data-page="household"] .hh-it-row__amount input[data-type="money"] {
-  width: 8.5ch; color: var(--text-hi); font: 400 18px/1 var(--font-serif); text-align: right;
+  width: 8ch; min-width: 0; color: var(--text-hi); font: 400 18px/1 var(--font-serif); text-align: right;
 }
 .page[data-page="household"] .hh-it-inline-select {
   width: auto; max-width: 13ch; padding: 0; border: 0; background: transparent;
@@ -690,18 +722,30 @@
 }
 .page[data-page="household"] .hh-it-add:hover { border-color: var(--gold); color: var(--gold-bright); }
 .page[data-page="household"] .hh-it-add-form {
-  width: 100%; min-height: 42px; margin-top: 10px; padding: 7px 9px; display: flex; align-items: center; gap: 8px;
+  width: 100%; min-height: 42px; margin-top: 10px; padding: 10px; display: flex; align-items: flex-end; flex-wrap: wrap; gap: 10px;
   border: 1px solid var(--line-10); border-radius: 8px; background: rgba(231,222,201,.012);
 }
+.page[data-page="household"] .hh-it-add-form > label {
+  min-width: 105px; flex: 1 1 125px; display: flex; flex-direction: column; gap: 5px;
+  color: var(--text-4); font-size: 9px; letter-spacing: .11em; text-transform: uppercase;
+}
+.page[data-page="household"] .hh-it-add-form > label[hidden] { display: none; }
 .page[data-page="household"] .hh-it-add-form select,
 .page[data-page="household"] .hh-it-add-form input {
-  min-width: 0; border: 0; border-bottom: 1px solid var(--line-16); background: transparent;
-  color: var(--text-1); font-size: 12px; padding: 5px 2px;
+  width: 100%; min-width: 0; border: 0; border-bottom: 1px solid var(--line-16); background: transparent;
+  color: var(--text-1); font-size: 13px; padding: 5px 2px; text-transform: none; letter-spacing: 0;
 }
-.page[data-page="household"] .hh-it-add-form select { flex: 1; }
-.page[data-page="household"] .hh-it-add-form > input { flex: 1; }
-.page[data-page="household"] .hh-it-add-form__money { flex: 0 0 90px; display: flex; align-items: center; color: var(--text-4); }
+.page[data-page="household"] .hh-it-add-form select { color-scheme: dark; }
+.page[data-page="household"] .hh-it-add-form input::placeholder { color: var(--text-5); opacity: 1; }
+.page[data-page="household"] .hh-it-add-form__money,
+.page[data-page="household"] .hh-it-add-form__pct { display: flex; align-items: center; color: var(--text-4); }
 .page[data-page="household"] .hh-it-add-form__money input { width: 100%; text-align: right; }
+.page[data-page="household"] .hh-it-add-form__pct input { text-align: right; }
+.page[data-page="household"] .hh-it-add-form__check {
+  align-self: center; flex: 0 1 auto; flex-direction: row; align-items: center;
+}
+.page[data-page="household"] .hh-it-add-form__check input { width: 15px; height: 15px; border: 1px solid var(--line-16); }
+.page[data-page="household"] .hh-it-add-form__actions { flex: none; display: inline-flex; align-items: center; gap: 4px; }
 .page[data-page="household"] .hh-it-add-form .hh-btn { padding: 7px 11px; font-size: 11px; }
 .page[data-page="household"] .hh-it-auto-row {
   min-height: 43px; padding: 7px 2px; display: flex; align-items: center; justify-content: space-between;
@@ -712,6 +756,19 @@
   color: var(--sage); font-size: 8px; letter-spacing: .12em;
 }
 .page[data-page="household"] .hh-it-auto-row strong { color: var(--text-3); font: 400 18px/1 var(--font-serif); }
+.page[data-page="household"] .hh-it-deduction-footer {
+  display: flex; align-items: flex-end; justify-content: space-between; gap: 12px;
+}
+.page[data-page="household"] .hh-it-deduction-footer > span {
+  padding-bottom: 7px; color: var(--text-4); font-size: 9.5px; text-align: right;
+}
+.page[data-page="household"] .hh-it-mini-head {
+  margin-top: 13px; padding-top: 10px; display: flex; align-items: baseline; justify-content: space-between;
+  border-top: 1px solid var(--line-10); color: var(--gold); font-size: 9px; letter-spacing: .16em;
+}
+.page[data-page="household"] .hh-it-mini-head strong {
+  color: var(--gold); font: 400 15px/1 var(--font-serif); letter-spacing: 0;
+}
 .page[data-page="household"] .hh-it-foundation {
   margin-top: 20px; padding: 12px 0; display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 24px;
   border-top: 1px solid var(--line-10); border-bottom: 1px solid var(--line-10);
@@ -721,11 +778,16 @@
 .page[data-page="household"] .hh-it-stat > strong {
   overflow: hidden; color: var(--gold); font: 400 20px/1 var(--font-serif); text-overflow: ellipsis; white-space: nowrap;
 }
+.page[data-page="household"] .hh-it-stat--ledger > strong { color: var(--text-2); }
+.page[data-page="household"] .hh-it-stat--primary > strong { color: var(--gold); }
 .page[data-page="household"] .hh-it-stat > small { color: var(--text-4); font-size: 9.5px; }
 .page[data-page="household"] .hh-it-tax-head { margin-top: 15px; display: flex; justify-content: space-between; gap: 20px; }
 .page[data-page="household"] .hh-it-tax-head small { color: var(--text-4); font-size: 10px; }
 .page[data-page="household"] .hh-it-tax-grid { margin-top: 10px; display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 11px 48px; }
 .page[data-page="household"] .hh-it-tax-grid .hh-it-stat > strong { color: var(--text-1); font-size: 19px; }
+.page[data-page="household"] .hh-it-tax-grid .hh-it-stat--pending > strong { color: #c99a6a; }
+.page[data-page="household"] .hh-it .row-x:hover,
+.page[data-page="household"] .hh-sg .row-x:hover { color: var(--text-1); }
 .page[data-page="household"] .hh-sg-row,
 .page[data-page="household"] .hh-sg-goal {
   min-height: 52px; padding: 9px 2px; display: flex; align-items: center; justify-content: space-between;
@@ -999,8 +1061,7 @@
   .page[data-page="household"] .hh-it-foundation,
   .page[data-page="household"] .hh-it-tax-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .page[data-page="household"] .hh-it-add-form { flex-wrap: wrap; }
-  .page[data-page="household"] .hh-it-add-form select,
-  .page[data-page="household"] .hh-it-add-form > input { flex-basis: calc(50% - 8px); }
+  .page[data-page="household"] .hh-it-add-form > label { flex-basis: calc(50% - 8px); }
   .page[data-page="household"] .hh-sg-foundation { grid-template-columns: 1fr; }
   .page[data-page="household"] .hh-sg-foundation > span { grid-row: auto; }
   .page[data-page="household"] .hh-tax-details > summary,

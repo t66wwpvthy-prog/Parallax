@@ -1276,6 +1276,10 @@ function renderField(f, klass){
   if(f.type==='rate'){
     return `<input type="number" data-path="${f.path}" data-type="rate" value="${v||0}" min="0" step="0.1">`;
   }
+  if(f.type==='ageOrLife'){
+    const dv = Number(v) >= 999 ? '' : v;
+    return `<input type="number" data-path="${f.path}" data-type="ageOrLife" value="${dv ?? ''}" placeholder="Life" min="0" max="120" data-min="0" data-max="120" step="1">`;
+  }
   // age
   const min = f.min != null ? ` min="${f.min}" data-min="${f.min}"` : '';
   const max = f.max != null ? ` max="${f.max}" data-max="${f.max}"` : '';

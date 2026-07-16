@@ -9,7 +9,12 @@ export const INCOME_SOURCE_TYPES = freezeRows([
   { id: 'annuity', label: 'Annuity', timing: 'retirement', taxablePct: 1 },
   { id: 'rental', label: 'Rental net income', timing: 'ongoing', taxablePct: 1 },
   { id: 'interest', label: 'Interest', timing: 'ongoing', taxablePct: 1 },
+  { id: 'tax_exempt_interest', label: 'Tax-exempt interest', timing: 'current', taxablePct: 0 },
   { id: 'dividends', label: 'Dividends', timing: 'ongoing', taxablePct: 1 },
+  { id: 'ira_distribution', label: 'IRA distribution', timing: 'current', taxablePct: 1 },
+  { id: 'roth_conversion', label: 'Roth conversion', timing: 'current', taxablePct: 1 },
+  { id: 'short_term_capital_gain', label: 'Short-term capital gain', timing: 'current', taxablePct: 1 },
+  { id: 'long_term_capital_gain', label: 'Long-term capital gain', timing: 'current', taxablePct: 0 },
   { id: 'deferred_comp', label: 'Deferred compensation', timing: 'retirement', taxablePct: 1 },
   { id: 'other', label: 'Other income', timing: 'ongoing', taxablePct: 1 },
 ]);
@@ -25,8 +30,14 @@ export const DEDUCTION_TYPES = freezeRows([
   { id: 'medical', label: 'Medical expenses', note: 'AGI floor not yet calculated' },
   { id: 'charitable', label: 'Charitable contributions', note: '' },
   { id: 'mortgage_interest', label: 'Mortgage interest', note: '' },
+  { id: 'real_estate_tax', label: 'Real-estate taxes', note: 'SALT cap rule not yet calculated' },
+  { id: 'personal_property_tax', label: 'Personal-property taxes', note: 'SALT cap rule not yet calculated' },
   { id: 'salt', label: 'State & local taxes', note: 'cap not yet calculated' },
   { id: 'other', label: 'Other itemized deduction', note: '' },
+]);
+
+export const CREDIT_TYPES = freezeRows([
+  { id: 'premium_tax_credit', label: 'Premium Tax Credit', note: 'applied as entered on Form 1040 line 20' },
 ]);
 
 const byId = (rows, id, fallback = 'other') =>
@@ -35,11 +46,13 @@ const byId = (rows, id, fallback = 'other') =>
 export const incomeType = id => byId(INCOME_SOURCE_TYPES, id);
 export const adjustmentType = id => byId(ADJUSTMENT_TYPES, id);
 export const deductionType = id => byId(DEDUCTION_TYPES, id);
+export const creditType = id => byId(CREDIT_TYPES, id, 'premium_tax_credit');
 
 export function createIncomeTaxInputs(){
   return {
     adjustments: [],
     deductions: [],
+    credits: [],
     deductionMode: 'auto',
   };
 }
@@ -56,6 +69,14 @@ export function retirementAgeForOwner(plan, owner){
     return plan.household.spouse.retirementAge;
   }
   return plan.household?.primary?.retirementAge ?? currentAgeForOwner(plan, owner);
+}
+
+function retirementAgeForSource(plan, owner){
+  if(owner !== 'joint') return retirementAgeForOwner(plan, owner);
+  return Math.max(
+    retirementAgeForOwner(plan, 'client'),
+    plan.household?.spouse ? retirementAgeForOwner(plan, 'spouse') : 0,
+  );
 }
 
 export function ownerLabel(plan, owner){
@@ -76,7 +97,9 @@ export function normalizedIncomeSource(plan, source = {}){
     owner,
     amount: Math.max(0, Number(source.amount) || 0),
     startAge: source.startAge ?? currentAge,
-    endAge: source.endAge ?? (type.timing === 'working' ? retirementAge - 1 : 999),
+    endAge: source.endAge ?? (type.timing === 'working'
+      ? retirementAge - 1
+      : type.timing === 'current' ? currentAge : 999),
     realGrowth: Number(source.realGrowth) || 0,
     taxablePct: source.taxablePct == null ? type.taxablePct : source.taxablePct,
     qualifiedPct: source.qualifiedPct == null ? 0 : source.qualifiedPct,
@@ -90,11 +113,16 @@ export function isSourceActiveNow(plan, source){
   return age >= row.startAge && age <= row.endAge;
 }
 
+export function incomePhase(plan, source){
+  const row = normalizedIncomeSource(plan, source);
+  return row.startAge >= retirementAgeForSource(plan, row.owner) ? 'retirement' : 'working';
+}
+
 export function incomeSourceGroups(plan){
   const sources = (plan.income?.other || []).map(source => normalizedIncomeSource(plan, source));
   return {
-    working: sources.filter(source => source.timing !== 'retirement'),
-    retirement: sources.filter(source => source.timing === 'retirement'),
+    working: sources.filter(source => incomePhase(plan, source) === 'working'),
+    retirement: sources.filter(source => incomePhase(plan, source) === 'retirement'),
   };
 }
 
@@ -106,11 +134,32 @@ export function enteredIncomeTotal(plan){
 
 export function enteredAdjustmentTotal(plan){
   return (plan.incomeTax?.adjustments || [])
+    .filter(row => isAdjustmentActiveNow(plan, row))
     .reduce((sum, row) => sum + (Number(row.amount) || 0), 0);
+}
+
+export function isAdjustmentActiveNow(plan, row = {}){
+  const type = adjustmentType(row.typeId);
+  const whileWorkingOnly = row.whileWorkingOnly == null
+    ? type.id === '401k'
+    : row.whileWorkingOnly === true;
+  if(!whileWorkingOnly) return true;
+  if(row.owner === 'joint'){
+    return currentAgeForOwner(plan, 'client') < retirementAgeForOwner(plan, 'client')
+      || (plan.household?.spouse
+        && currentAgeForOwner(plan, 'spouse') < retirementAgeForOwner(plan, 'spouse'));
+  }
+  const owner = row.owner === 'spouse' ? 'spouse' : 'client';
+  return currentAgeForOwner(plan, owner) < retirementAgeForOwner(plan, owner);
 }
 
 export function enteredDeductionTotal(plan){
   return (plan.incomeTax?.deductions || [])
+    .reduce((sum, row) => sum + (Number(row.amount) || 0), 0);
+}
+
+export function enteredCreditTotal(plan){
+  return (plan.incomeTax?.credits || [])
     .reduce((sum, row) => sum + (Number(row.amount) || 0), 0);
 }
 
@@ -124,7 +173,9 @@ export function createIncomeSource(plan, typeId = 'wages', owner = 'client'){
     owner,
     amount: 0,
     startAge: currentAge,
-    endAge: type.timing === 'working' ? Math.max(currentAge, retirementAge - 1) : 999,
+    endAge: type.timing === 'working'
+      ? Math.max(currentAge, retirementAge - 1)
+      : type.timing === 'current' ? currentAge : 999,
     realGrowth: 0,
     taxablePct: type.taxablePct,
     qualifiedPct: type.id === 'dividends' ? 0 : undefined,
@@ -133,10 +184,21 @@ export function createIncomeSource(plan, typeId = 'wages', owner = 'client'){
 
 export function createAdjustment(typeId = '401k', owner = 'client'){
   const type = adjustmentType(typeId);
-  return { typeId: type.id, label: type.label, owner, amount: 0 };
+  return {
+    typeId: type.id,
+    label: type.label,
+    owner,
+    amount: 0,
+    whileWorkingOnly: type.id === '401k',
+  };
 }
 
 export function createDeduction(typeId = 'charitable'){
   const type = deductionType(typeId);
+  return { typeId: type.id, label: type.label, amount: 0 };
+}
+
+export function createCredit(typeId = 'premium_tax_credit'){
+  const type = creditType(typeId);
   return { typeId: type.id, label: type.label, amount: 0 };
 }

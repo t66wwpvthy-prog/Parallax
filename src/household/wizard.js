@@ -125,7 +125,10 @@ export function createHouseholdWizardController({
     const footer = $('#hh-wiz-footer');
     if(footer) footer.innerHTML = householdWizard.footer(step);
     const wizardRoot = document.querySelector('.hh-wizard');
-    if(wizardRoot) wizardRoot.dataset.wizardRev = '7';
+    if(wizardRoot){
+      wizardRoot.dataset.wizardRev = '7';
+      wizardRoot.dataset.wizardStep = String(step);
+    }
     for(let i = 1; i <= 5; i++){
       const element = $('#hh-step-' + i);
       if(!element) continue;

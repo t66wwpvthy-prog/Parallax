@@ -2,7 +2,7 @@ import { createAccount, hasSpouseOwnedAccounts } from './createAccount.js';
 import { createBlankTaxProfiles, taxProfileHasConfirmedFacts } from './factEnvelope.js';
 import { applyHouseholdTaxFactEdit } from './taxFactEdits.js';
 import { taxFactEditFromControl } from './taxFactEditorController.js';
-import { createAdjustment, createDeduction, createIncomeSource } from './incomeTaxModel.js';
+import { createAdjustment, createCredit, createDeduction, createIncomeSource } from './incomeTaxModel.js';
 
 export function bindHouseholdEditor({
   root,
@@ -62,6 +62,21 @@ export function bindHouseholdEditor({
     if(!e.target.dataset.path && e.target.classList && e.target.classList.contains('hh-form-type')){
       return;
     }
+    if(e.target.matches?.('[data-hh-draft="type"]')){
+      const form = e.target.closest('.hh-it-add-form');
+      if(!form) return;
+      const selected = e.target.value;
+      form.querySelectorAll('[data-income-types]').forEach(control => {
+        control.hidden = !control.dataset.incomeTypes.split(' ').includes(selected);
+      });
+      form.querySelectorAll('[data-adjustment-types]').forEach(control => {
+        control.hidden = !control.dataset.adjustmentTypes.split(' ').includes(selected);
+      });
+      form.querySelectorAll('[data-hide-for-income-types]').forEach(control => {
+        control.hidden = control.dataset.hideForIncomeTypes.split(' ').includes(selected);
+      });
+      return;
+    }
     const path = e.target.dataset.path, type = e.target.dataset.type;
     if(!path) return;
     if(!guardPlanMutation()){ syncHousehold(); return; }
@@ -77,6 +92,11 @@ export function bindHouseholdEditor({
       return;
     }
     if(type==='acctType') return;
+    if(type === 'ageOrLife' && String(raw).trim() === ''){
+      setPath(plan, path, 999);
+      hhCommit();
+      return;
+    }
     let v;
     if(type==='money' || type==='monthlyMoney') v = parseFloat(String(raw).replace(/[^0-9.]/g,''));
     else if(type==='risk') v = +raw;
@@ -87,7 +107,7 @@ export function bindHouseholdEditor({
     if(type==='money'){ v = Math.max(0, Math.round(v)); e.target.value = v.toLocaleString('en-US'); }
     if(type==='monthlyMoney'){ const m = Math.max(0, Math.round(v)); v = m*12; e.target.value = m.toLocaleString('en-US'); }
     if(type==='num')  v = Math.max(1, Math.round(v));
-    if(type==='age'){
+    if(type==='age' || type==='ageOrLife'){
       v = Math.round(v);
       const min = parseFloat(e.target.dataset.min);
       const max = parseFloat(e.target.dataset.max);
@@ -215,6 +235,13 @@ export function bindHouseholdEditor({
       transientState.hhDraftAmount = '';
       syncHousehold();
     } else if(action === 'commit-add'){
+      const draft = name => document.querySelector(`[data-hh-draft="${name}"]`);
+      const draftNumber = name => {
+        const rawValue = draft(name)?.value;
+        if(rawValue == null || String(rawValue).trim() === '') return null;
+        const value = parseFloat(String(rawValue).replace(/[^0-9.-]/g, ''));
+        return Number.isFinite(value) ? value : null;
+      };
       const label = (document.querySelector('[data-hh-draft="label"]')?.value || transientState.hhDraftLabel || '').trim();
       const amtRaw = document.querySelector('[data-hh-draft="amount"]')?.value ?? transientState.hhDraftAmount ?? '';
       const amt = parseFloat(String(amtRaw).replace(/[^0-9.]/g, '')) || 0;
@@ -224,22 +251,44 @@ export function bindHouseholdEditor({
         if(!plan.income.other) plan.income.other = [];
         const row = createIncomeSource(plan, typeId, owner);
         row.amount = Math.round(amt);
+        const startAge = draftNumber('startAge');
+        const endAge = draftNumber('endAge');
+        const growthPct = draftNumber('growthPct');
+        const taxablePct = draftNumber('taxablePct');
+        const qualifiedPct = draftNumber('qualifiedPct');
+        if(startAge != null) row.startAge = Math.max(0, Math.min(120, Math.round(startAge)));
+        if(endAge != null) row.endAge = Math.max(row.startAge, Math.min(120, Math.round(endAge)));
+        if(growthPct != null) row.realGrowth = Math.max(-100, Math.min(100, growthPct)) / 100;
+        if(taxablePct != null && ['interest','pension','annuity','deferred_comp','other','ira_distribution','roth_conversion'].includes(typeId)){
+          row.taxablePct = Math.max(0, Math.min(100, taxablePct)) / 100;
+        }
+        if(qualifiedPct != null && typeId === 'dividends'){
+          row.qualifiedPct = Math.max(0, Math.min(100, qualifiedPct)) / 100;
+        }
         if(label) row.label = label;
         plan.income.other.push(row);
       } else if(transientState.hhAddingKey === 'adjustment'){
-        if(!plan.incomeTax) plan.incomeTax = { adjustments: [], deductions: [], deductionMode: 'auto' };
+        if(!plan.incomeTax) plan.incomeTax = { adjustments: [], deductions: [], credits: [], deductionMode: 'auto' };
         if(!Array.isArray(plan.incomeTax.adjustments)) plan.incomeTax.adjustments = [];
         const row = createAdjustment(typeId, owner);
         row.amount = Math.round(amt);
+        row.whileWorkingOnly = typeId === '401k' && draft('whileWorkingOnly')?.checked === true;
         if(label) row.label = label;
         plan.incomeTax.adjustments.push(row);
       } else if(transientState.hhAddingKey === 'deduction'){
-        if(!plan.incomeTax) plan.incomeTax = { adjustments: [], deductions: [], deductionMode: 'auto' };
+        if(!plan.incomeTax) plan.incomeTax = { adjustments: [], deductions: [], credits: [], deductionMode: 'auto' };
         if(!Array.isArray(plan.incomeTax.deductions)) plan.incomeTax.deductions = [];
         const row = createDeduction(typeId);
         row.amount = Math.round(amt);
         if(label) row.label = label;
         plan.incomeTax.deductions.push(row);
+      } else if(transientState.hhAddingKey === 'credit'){
+        if(!plan.incomeTax) plan.incomeTax = { adjustments: [], deductions: [], credits: [], deductionMode: 'auto' };
+        if(!Array.isArray(plan.incomeTax.credits)) plan.incomeTax.credits = [];
+        const row = createCredit(typeId);
+        row.amount = Math.round(amt);
+        if(label) row.label = label;
+        plan.incomeTax.credits.push(row);
       } else if(transientState.hhAddingKey === 'child'){
         const year = parseInt(String(document.querySelector('[data-hh-draft="year"]')?.value ?? transientState.hhDraftAmount ?? ''), 10);
         if(!plan.household.children) plan.household.children = [];

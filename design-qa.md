@@ -292,6 +292,47 @@ final result: passed
 
 ---
 
+# Income & Tax Wizard Phase 7 Design QA
+
+## Comparison target
+
+- Source visual truth:
+  - `C:\Dev\Parallax\Claude tax\design_handoff_income_tax_step\README.md`
+  - `C:\Dev\Parallax\Claude tax\design_handoff_income_tax_step\Income Tax Step -2a-.dc.html`
+- Browser-rendered implementation:
+  - `verify-out/phase7-income-tax-1440.png`
+  - `verify-out/phase7-income-tax-full-1440.png`
+  - `verify-out/phase7-income-add-1440.png`
+- Side-by-side inspection used the local design 2a reference captures and the browser-rendered implementation captures above.
+- Viewports: 1440 x 900 and 1440 x 1540.
+
+## Fixture coverage
+
+- The visual capture asserts and logs all requested rows before taking a screenshot: two wages, interest, dividends, real long-term and short-term gain inputs, two Social Security rows, two 401(k) entries, HSA, three deductions, and Premium Tax Credit.
+- The populated capture uses the production long-term and short-term gain types and a persisted Premium Tax Credit; none of these rows are screenshot-only stand-ins.
+- The populated fixture uses supported deductions so the computed ledger remains an honest federal-engine result rather than displaying invented medical/SALT treatment.
+
+## Findings
+
+- No actionable P0, P1, or P2 mismatch remains.
+- The implementation preserves design 2a's five-step hierarchy, two-column income and adjustment/deduction ledgers, restrained gold/charcoal treatment, computed four-cell foundation, six-cell Tax Position grid, and quiet pinned footer.
+- Production inline inputs expose the complete editable timing, growth, taxable, and qualified fields while retaining the source hierarchy. Money fields remain readable and do not wrap their currency prefix.
+- The integrated Parallax header and editable annual-savings row are retained production context, not prototype artifacts.
+- IRMAA and the age-65 enhancement remain explicitly `Not modeled`; the UI does not fabricate values shown by the static mock.
+- The compact Roth-conversion add form fits cleanly at 1440px, hides irrelevant timing fields, and reveals only its taxable-percentage input.
+- Deductible IRA contributions and separate real-estate/personal-property taxes persist and display, but their rows and summary clearly disclose that required workplace-plan facts or the federal SALT-cap rule are not yet available.
+
+## Verification
+
+- `npm test`: 381 passed, 0 failed.
+- `node scripts/verify.mjs`: passed the complete unit, static-contract, browser, interaction, persistence, calculation, readability, and screenshot suite.
+- Phase 7 browser coverage includes all five new current-year income choices, the compact Roth-conversion path, timing-based column placement, working-only 401(k) behavior, deductible IRA and separate property-tax choices, Premium Tax Credit persistence, six tax-position cells, money-input layout, and scrollbar treatment.
+- Visual capture console: no errors.
+
+final result: passed
+
+---
+
 # Tax Buckets Phase 7 Design QA
 
 ## Comparison target
