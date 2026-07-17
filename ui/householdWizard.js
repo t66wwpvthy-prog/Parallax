@@ -154,16 +154,49 @@ function acctOwnerColumn(owner, plan, deps, state){
   }
   const init = isJoint ? 'H' : isC ? deps.initial(plan.meta?.primaryName, 'C')
     : deps.initial(plan.meta?.spouseName, 'CC');
-  const title = isJoint ? 'HOUSEHOLD & JOINT' : isC ? 'CLIENT' : 'CO-CLIENT';
+  const title = isJoint ? 'JOINT ACCOUNTS' : isC ? 'CLIENT' : 'CO-CLIENT';
   const rows = accts.map(a => acctRow(a, deps)).join('');
   return `<div class="hh-col${isJoint ? ' hh-col--joint' : ''}">
     <div class="hh-col__head hh-col__head--total">
       <span class="hh-col__id"><span class="hh-av hh-av--${isJoint ? 'joint' : isC ? 'c' : 's'}">${init}</span><span class="hh-col__role">${title}</span></span>
       <span class="hh-col__sum">${hhMoney(inv)}</span>
     </div>
+    ${isJoint ? `<p class="hh-joint-block__note">Joint and household accounts — ownership is Joint, separate from client/co-client sleeves.</p>` : ''}
     ${rows || `<p class="hh-account-empty">No ${isJoint ? 'joint or household' : 'personal'} accounts entered.</p>`}
     ${acctAddForm(owner, deps, state)}
-    ${state.hhAcctFormOwner !== owner ? `<button class="hh-dash-btn" type="button" data-hh-action="open-account-form" data-owner="${owner}">+ Add account</button>` : ''}
+    ${state.hhAcctFormOwner !== owner ? `<button class="hh-dash-btn" type="button" data-hh-action="open-account-form" data-owner="${owner}">+ Add ${isJoint ? 'joint account' : 'account'}</button>` : ''}
+  </div>`;
+}
+
+function savingsAddon(plan, deps, state){
+  const annual = plan.savings?.annual || 0;
+  if(state.hhAddingKey === 'savings'){
+    return `<div class="hh-savings-addon hh-savings-addon--open" data-savings-addon="draft">
+      <div class="hh-savings-addon__label">Annual contribution</div>
+      <p class="hh-savings-addon__note">Optional — lands in the pre-tax sleeve by default until retirement.</p>
+      <div class="hh-inline-form hh-inline-form--slim">
+        <span class="hh-inline-form__money"><span class="pre">$</span><input data-hh-draft="amount" type="text" inputmode="numeric" data-type="money" placeholder="0" aria-label="Annual contribution amount"></span>
+        <button class="hh-btn hh-btn--primary" type="button" data-hh-action="commit-add">Add</button>
+        <button class="hh-btn hh-btn--ghost" type="button" data-hh-action="cancel-add">Cancel</button>
+      </div>
+    </div>`;
+  }
+  if(annual > 0){
+    return `<div class="hh-savings-addon" data-savings-addon="active">
+      <div class="hh-savings-addon__row">
+        <span class="hh-savings-addon__copy">
+          <span class="hh-savings-addon__label">Annual contribution</span>
+          <span class="hh-savings-addon__note">Stops when the last spouse retires · default pre-tax</span>
+        </span>
+        <span class="hh-savings-addon__end">
+          <span class="hh-savings-addon__amount">${deps.field('savings.annual', 'money')}</span>
+          <button class="row-x" type="button" data-hh-clear-path="savings.annual" title="Remove annual contribution">×</button>
+        </span>
+      </div>
+    </div>`;
+  }
+  return `<div class="hh-savings-addon" data-savings-addon="inactive">
+    <button class="hh-dash-btn" type="button" data-hh-action="open-add" data-add-key="savings">+ Add annual contribution</button>
   </div>`;
 }
 
@@ -285,9 +318,11 @@ export function createHouseholdWizard(deps){
         <div class="hh-cols__div" aria-hidden="true"></div>
         ${acctOwnerColumn('spouse', plan, deps, state)}
       </div>
-      <div class="hh-joint-block">
+      <div class="hh-joint-block" data-joint-accounts>
+        <div class="hh-joint-block__eyebrow">Joint</div>
         ${acctOwnerColumn('joint', plan, deps, state)}
       </div>
+      ${savingsAddon(plan, deps, state)}
       <div class="hh-grand-total">
         <div><div class="hh-grand-total__k">Total investable</div><div class="hh-grand-total__sub">${count} account${count === 1 ? '' : 's'}</div></div>
         <div class="hh-grand-total__v">${hhMoney(total)}</div>

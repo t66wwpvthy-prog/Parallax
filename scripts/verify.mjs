@@ -150,6 +150,9 @@ function verifyHousehold(){
   ok(/renderHouseholdSpending\b/.test(source), 'Profile spending renderer missing');
   ok(!/class="hh-tl/.test(source) && !/\.hh-tl/.test(css), 'retired person timeline bars must be removed');
   ok(/Annual savings/.test(source), 'annual savings must still appear on the Summary flow');
+  ok(/data-add-key="savings"/.test(source) || /data-savings-addon/.test(source), 'optional annual contribution add-on missing');
+  ok(/data-add-key="external-sale"/.test(source), 'external-sale income add path missing');
+  ok(/data-joint-accounts/.test(source), 'joint accounts section missing');
   ok(!/hhField\('income\.workingIncome'/.test(source), 'working income must not render as a wizard input (engine-inert today)');
 
   // EDITABLE console: inline data-path inputs + a #hh-view delegate that writes
@@ -750,7 +753,7 @@ try {
     }, growthPath);
     await new Promise(r => setTimeout(r, 250));
 
-    // Expanded add form: handoff catalog + LT/ST, conditional tax fields, persist by age phase.
+    // Expanded add form: ordinary income catalog (path CG is withdrawal-derived).
     await page.click('#hh-view [data-hh-action="open-add"][data-add-key="income"]'); await new Promise(r => setTimeout(r, 200));
     const incomeDraft = await page.evaluate(() => ({
       options: [...document.querySelectorAll('#hh-view [data-hh-draft="type"] option')].map(option => option.value),
@@ -758,13 +761,13 @@ try {
     }));
     if(incomeDraft.options.includes('social_security'))
       throw new Error('Social Security must use the dedicated per-client rows, not duplicate generic income');
-    for(const typeId of ['pension','annuity','long_term_capital_gain','short_term_capital_gain','deferred_comp']){
+    for(const typeId of ['pension','annuity','deferred_comp']){
       if(!incomeDraft.options.includes(typeId))
         throw new Error(`income add catalog missing ${typeId}: ${JSON.stringify(incomeDraft.options)}`);
     }
-    for(const typeId of ['tax_exempt_interest','ira_distribution','roth_conversion']){
+    for(const typeId of ['long_term_capital_gain','short_term_capital_gain','tax_exempt_interest','ira_distribution','roth_conversion']){
       if(incomeDraft.options.includes(typeId))
-        throw new Error(`downstream/advanced income type must stay out of Add catalog: ${typeId}`);
+        throw new Error(`path/advanced income type must stay out of primary Add catalog: ${typeId}`);
     }
     if(!incomeDraft.fields) throw new Error('expanded income draft is missing amount, timing, or growth fields');
     await page.evaluate(() => {
@@ -817,8 +820,8 @@ try {
     });
     await new Promise(r => setTimeout(r, 300));
 
-    // Current-year LT gains use compact add (no age schedule) and appear under Working years.
-    await page.click('#hh-view [data-hh-action="open-add"][data-add-key="income"]'); await new Promise(r => setTimeout(r, 150));
+    // External sale (rare) uses compact add and is not a taxable-sleeve draw.
+    await page.click('#hh-view [data-hh-action="open-add"][data-add-key="external-sale"]'); await new Promise(r => setTimeout(r, 150));
     await page.evaluate(() => {
       const set = (name, value, eventName = 'input') => {
         const el = document.querySelector(`#hh-view [data-hh-draft="${name}"]`);
@@ -831,9 +834,12 @@ try {
     });
     const currentYearDraft = await page.evaluate(() => ({
       timingHidden: [...document.querySelectorAll('#hh-view [data-hide-for-income-types]')].every(el => el.hidden),
+      note: document.querySelector('#hh-view .hh-it-add-form__note')?.textContent || '',
     }));
     if(!currentYearDraft.timingHidden)
-      throw new Error(`current-year income controls did not stay compact: ${JSON.stringify(currentYearDraft)}`);
+      throw new Error(`external-sale controls did not stay compact: ${JSON.stringify(currentYearDraft)}`);
+    if(!/outside the modeled brokerage path/i.test(currentYearDraft.note))
+      throw new Error(`external-sale note missing: ${JSON.stringify(currentYearDraft)}`);
     await page.click('#hh-view [data-hh-action="commit-add"]'); await new Promise(r => setTimeout(r, 250));
     await page.click('#save-btn'); await new Promise(r => setTimeout(r, 250));
     const addedCurrentYearItem = await page.evaluate(() => {
@@ -850,9 +856,9 @@ try {
       };
     });
     if(addedCurrentYearItem.hasTimingInput || !addedCurrentYearItem.workingColumn
-      || !/preferential rate/i.test(addedCurrentYearItem.rowText)
+      || !/not a taxable-sleeve draw/i.test(addedCurrentYearItem.rowText)
       || addedCurrentYearItem.saved?.typeId !== 'long_term_capital_gain' || addedCurrentYearItem.saved?.amount !== 12000)
-      throw new Error(`current-year tax item did not render and persist correctly: ${JSON.stringify(addedCurrentYearItem)}`);
+      throw new Error(`external sale did not render and persist correctly: ${JSON.stringify(addedCurrentYearItem)}`);
     await page.evaluate(() => {
       const amountInputs = [...document.querySelectorAll('#hh-view input[data-path^="income.other."][data-path$=".amount"]')];
       amountInputs.at(-1)?.closest('.hh-it-row')?.querySelector('[data-rmpath]')?.click();

@@ -18,17 +18,21 @@ const money = value => '$' + Math.round(Number(value) || 0).toLocaleString('en-U
 const rate = value => value == null ? '—' : `${Math.round(value * 1000) / 10}%`;
 const positive = row => Number(row?.amount) > 0;
 
-/** Handoff 2a catalog + LT/ST from 1440 design. SS stays on fixed rows only. */
+/** Ordinary income types for the primary add catalog. Path CG is withdrawal-derived. */
 const ADDABLE_INCOME_IDS = Object.freeze([
   'wages', 'bonus', 'self_employment', 'pension', 'annuity', 'rental',
-  'interest', 'dividends', 'long_term_capital_gain', 'short_term_capital_gain',
-  'deferred_comp', 'other',
+  'interest', 'dividends', 'deferred_comp', 'other',
+]);
+/** Rare sales outside the modeled brokerage path — not for funding lifestyle from taxable. */
+const EXTERNAL_SALE_INCOME_IDS = Object.freeze([
+  'long_term_capital_gain', 'short_term_capital_gain',
 ]);
 const ADDABLE_INCOME_SOURCE_TYPES = INCOME_SOURCE_TYPES.filter(row => ADDABLE_INCOME_IDS.includes(row.id));
+const EXTERNAL_SALE_SOURCE_TYPES = INCOME_SOURCE_TYPES.filter(row => EXTERNAL_SALE_INCOME_IDS.includes(row.id));
 const ADDABLE_DEDUCTION_TYPES = DEDUCTION_TYPES.filter(row =>
   ['medical', 'charitable', 'mortgage_interest', 'salt', 'other'].includes(row.id));
 
-const INCOME_ADD_HINT = 'Wages · Bonus · Self-employment · Social Security · Pension · Annuity · Rental · Interest · Dividends · LT cap gains · ST cap gains · Deferred comp · Other';
+const INCOME_ADD_HINT = 'Wages · Bonus · Self-employment · Pension · Annuity · Rental · Interest · Dividends · Deferred comp · Other';
 
 const DEFAULT_INCOME_SLOTS = Object.freeze([
   { typeId: 'wages', owner: 'client' },
@@ -100,10 +104,10 @@ function sourceMeta(plan, deps, source, index){
     return `${owner} · ongoing · ${taxable}`;
   }
   if(source.typeId === 'long_term_capital_gain'){
-    return `${owner} · realized · preferential rate`;
+    return `${owner} · external sale · preferential · not a taxable-sleeve draw`;
   }
   if(source.typeId === 'short_term_capital_gain'){
-    return `${owner} · realized · taxed as ordinary`;
+    return `${owner} · external sale · ordinary · not a taxable-sleeve draw`;
   }
   if(type.timing === 'current'){
     return `${owner} · current year · ${source.typeId === 'tax_exempt_interest' ? 'tax-exempt' : 'taxable'}`;
@@ -220,9 +224,14 @@ function fixedDeductionRow(slot){
 }
 
 function addForm(key, plan){
-  if(key === 'income'){
-    return `<div class="hh-it-add-form hh-it-add-form--income" data-add-kind="income">
-      <label><span>Source</span><select data-hh-draft="type" aria-label="Income type">${options(ADDABLE_INCOME_SOURCE_TYPES)}</select></label>
+  if(key === 'income' || key === 'external-sale'){
+    const types = key === 'external-sale' ? EXTERNAL_SALE_SOURCE_TYPES : ADDABLE_INCOME_SOURCE_TYPES;
+    const note = key === 'external-sale'
+      ? `<p class="hh-it-add-form__note">For sales outside the modeled brokerage path. Funding goals from taxable accounts realizes gain on the cash-flow path automatically.</p>`
+      : '';
+    return `<div class="hh-it-add-form hh-it-add-form--income" data-add-kind="${key}">
+      ${note}
+      <label><span>Source</span><select data-hh-draft="type" aria-label="Income type">${options(types)}</select></label>
       <label><span>Owner</span><select data-hh-draft="owner" aria-label="Income owner">${ownerOptions(plan, 'client')}</select></label>
       <label data-income-types="rental" hidden><span>Net taxable</span><span class="hh-it-add-form__money"><span>$</span><input data-hh-draft="netTaxable" inputmode="numeric" placeholder="0" aria-label="Net taxable income"></span></label>
       <label data-hide-for-income-types="rental"><span>Annual amount</span><span class="hh-it-add-form__money"><span>$</span><input data-hh-draft="amount" inputmode="numeric" placeholder="0" aria-label="Annual amount"></span></label>
@@ -336,7 +345,8 @@ export function renderHouseholdIncomeTax(plan, deps, state){
         ${retirementExtras.map(row => sourceRow(plan, deps, row, row.index)).join('')}
       </section>
     </div>
-    <div class="hh-it-add-line">${addControl(state, 'income', 'income source', plan)}${state.hhAddingKey !== 'income' ? `<span>${INCOME_ADD_HINT}</span>` : ''}</div>
+    <div class="hh-it-add-line">${addControl(state, 'income', 'income source', plan)}${state.hhAddingKey !== 'income' && state.hhAddingKey !== 'external-sale' ? `<span>${INCOME_ADD_HINT}</span>` : ''}</div>
+    <div class="hh-it-add-line hh-it-add-line--secondary">${addControl(state, 'external-sale', 'external sale', plan)}${state.hhAddingKey !== 'external-sale' ? `<span>Rare — outside modeled brokerage draws</span>` : ''}</div>
 
     <div class="hh-it-grid hh-it-grid--lower">
       <section>

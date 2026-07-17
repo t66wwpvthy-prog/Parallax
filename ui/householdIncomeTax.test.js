@@ -63,7 +63,7 @@ test('default slots match design 2a without persisting empty rows', () => {
   assert.doesNotMatch(html, /data-income-tax-slot="(?:short|long)_term_capital_gain/);
 });
 
-test('income add flow uses handoff catalog plus LT/ST gains', () => {
+test('income add flow uses ordinary catalog without path capital gains', () => {
   const html = renderHouseholdIncomeTax(plan(), deps, { hhAddingKey: 'income' });
   for(const key of [
     'type', 'owner', 'amount', 'startAge', 'endAge', 'growthPct',
@@ -72,29 +72,38 @@ test('income add flow uses handoff catalog plus LT/ST gains', () => {
 
   for(const type of [
     'wages', 'bonus', 'self_employment', 'pension', 'annuity', 'rental',
-    'interest', 'dividends', 'long_term_capital_gain', 'short_term_capital_gain',
-    'deferred_comp', 'other',
+    'interest', 'dividends', 'deferred_comp', 'other',
   ]) assert.match(html, new RegExp(`option value="${type}"`), type);
 
+  assert.doesNotMatch(html, /option value="(?:long|short)_term_capital_gain"/);
   assert.doesNotMatch(html, /option value="social_security"/);
   assert.doesNotMatch(html, /option value="(?:ira_distribution|roth_conversion|tax_exempt_interest)"/);
 
   const closed = renderHouseholdIncomeTax(plan(), deps, { hhAddingKey: null });
-  assert.match(closed, /LT cap gains/);
+  assert.doesNotMatch(closed, /LT cap gains/);
+  assert.match(closed, /external sale/);
+});
+
+test('external sale add flow is opt-in and labels rare brokerage-outside sales', () => {
+  const html = renderHouseholdIncomeTax(plan(), deps, { hhAddingKey: 'external-sale' });
+  assert.match(html, /outside the modeled brokerage path/);
+  assert.match(html, /option value="long_term_capital_gain"/);
+  assert.match(html, /option value="short_term_capital_gain"/);
+  assert.doesNotMatch(html, /option value="wages"/);
 });
 
 test('nonzero optional income and adjustment rows render without becoming defaults', () => {
   const value = plan();
   value.income.other = [{
-    typeId: 'long_term_capital_gain', owner: 'joint', label: 'Long-term capital gains',
+    typeId: 'long_term_capital_gain', owner: 'joint', label: 'External sale — long-term gain',
     amount: 12000, startAge: 64, endAge: 64, realGrowth: 0, taxablePct: 0,
   }];
   value.incomeTax.adjustments = [{
     typeId: 'ira_deduction', owner: 'client', label: 'Deductible IRA contribution', amount: 7000,
   }];
   const html = renderHouseholdIncomeTax(value, deps, { hhAddingKey: null });
-  assert.match(html, /Long-term capital gains/);
-  assert.match(html, /preferential rate/);
+  assert.match(html, /External sale — long-term gain/);
+  assert.match(html, /not a taxable-sleeve draw/);
   assert.match(html, /Deductible IRA contribution/);
   assert.match(html, /data-path="income\.other\.0\.amount"/);
 });

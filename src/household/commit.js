@@ -295,14 +295,14 @@ export function bindHouseholdEditor({
         const netTaxable = draftNumber('netTaxable');
         if(netTaxable != null) amt = netTaxable;
       }
-      if(['income', 'adjustment', 'deduction', 'credit'].includes(transientState.hhAddingKey) && amt <= 0){
+      if(['income', 'external-sale', 'adjustment', 'deduction', 'credit', 'savings'].includes(transientState.hhAddingKey) && amt <= 0){
         transientState.hhAddingKey = null;
         transientState.hhDraftLabel = '';
         transientState.hhDraftAmount = '';
         syncHousehold();
         return;
       }
-      if(transientState.hhAddingKey === 'income'){
+      if(transientState.hhAddingKey === 'income' || transientState.hhAddingKey === 'external-sale'){
         if(!plan.income.other) plan.income.other = [];
         const row = createIncomeSource(plan, typeId, owner);
         row.amount = Math.round(amt);
@@ -325,6 +325,9 @@ export function bindHouseholdEditor({
         }
         if(label) row.label = label;
         plan.income.other.push(row);
+      } else if(transientState.hhAddingKey === 'savings'){
+        if(!plan.savings) plan.savings = { annual: 0, split: { traditional: 1, roth: 0, taxable: 0 } };
+        plan.savings.annual = Math.round(amt);
       } else if(transientState.hhAddingKey === 'adjustment'){
         if(!plan.incomeTax) plan.incomeTax = { adjustments: [], deductions: [], credits: [], deductionMode: 'auto' };
         if(!Array.isArray(plan.incomeTax.adjustments)) plan.incomeTax.adjustments = [];
