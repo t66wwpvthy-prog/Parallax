@@ -305,7 +305,18 @@
     }
     .it-row__title { display: block; font-size: 14px; color: var(--ink-bright); }
     .it-row__meta { display: block; font-size: 11.5px; color: var(--ink-faint); margin-top: 2px; }
-    .it-row__meta em { color: #96a394; font-style: normal; }
+    .it-row__meta .it-age {
+      width: 4.2ch;
+      margin-left: 6px;
+      background: transparent;
+      border: 1px solid var(--line-strong);
+      border-radius: 4px;
+      color: var(--ink-bright);
+      font: inherit;
+      font-size: 12px;
+      padding: 2px 4px;
+      text-align: center;
+    }
     .it-row__amount {
       font-family: var(--font-serif); font-size: 16px; color: var(--ink-bright);
       font-variant-numeric: tabular-nums; white-space: nowrap;
@@ -471,63 +482,68 @@
         </div>`,
       2: () => `
         <h2>Income &amp; Tax</h2>
-        <p class="it__intro">All known income, pre-tax contributions and deductions — the base year the tax engine works from. <em style="color:var(--gold)">This is the full current page, placed as step 2.</em></p>
+        <p class="it__intro">All known income, pre-tax contributions and deductions — the base year the tax engine works from.</p>
 
         <div class="it-section-head"><span>Income sources</span><strong>$327,000 <small>this year</small></strong></div>
         <div class="it-grid">
           <section>
             <div class="it-subhead"><span>Working years</span><small>$327,000 /yr</small></div>
             <div class="it-row">
-              <span><span class="it-row__title">Wages</span><span class="it-row__meta">Alex · 56 → 64 · +0%/yr</span></span>
+              <span><span class="it-row__title">Wages</span><span class="it-row__meta">Alex</span></span>
               <span class="it-row__amount">$185,000</span>
             </div>
             <div class="it-row">
-              <span><span class="it-row__title">Wages</span><span class="it-row__meta">Jordan · 54 → 64 · +0%/yr</span></span>
+              <span><span class="it-row__title">Wages</span><span class="it-row__meta">Jordan</span></span>
               <span class="it-row__amount">$142,000</span>
             </div>
             <div class="it-row">
-              <span><span class="it-row__title">Interest</span><span class="it-row__meta">Joint · ongoing · taxable</span></span>
+              <span><span class="it-row__title">Interest</span><span class="it-row__meta">Joint</span></span>
               <span class="it-row__amount">$0</span>
             </div>
             <div class="it-row">
-              <span><span class="it-row__title">Dividends</span><span class="it-row__meta">Joint · ongoing · qualified 0%</span></span>
+              <span><span class="it-row__title">Dividends</span><span class="it-row__meta">Joint</span></span>
               <span class="it-row__amount">$0</span>
             </div>
           </section>
           <section>
             <div class="it-subhead"><span>Retirement years</span><small>$62,000 /yr</small></div>
             <div class="it-row">
-              <span><span class="it-row__title">Social Security</span><span class="it-row__meta">Alex · from 67 · COLA · <em>taxable auto</em></span></span>
+              <span>
+                <span class="it-row__title">Social Security</span>
+                <span class="it-row__meta">Alex · claim age
+                  <input class="it-age" type="number" min="62" max="70" value="67" aria-label="Alex Social Security claim age">
+                </span>
+              </span>
               <span class="it-row__amount">$36,000</span>
             </div>
             <div class="it-row">
-              <span><span class="it-row__title">Social Security</span><span class="it-row__meta">Jordan · from 67 · COLA · <em>taxable auto</em></span></span>
+              <span>
+                <span class="it-row__title">Social Security</span>
+                <span class="it-row__meta">Jordan · claim age
+                  <input class="it-age" type="number" min="62" max="70" value="67" aria-label="Jordan Social Security claim age">
+                </span>
+              </span>
               <span class="it-row__amount">$26,000</span>
             </div>
           </section>
         </div>
         <div class="it-add-line">
           <button type="button" class="it-add">+ Add income source</button>
-          <span>Wages · Bonus · Self-employment · Pension · Annuity · Rental · Interest · Dividends · Deferred comp · Other</span>
-        </div>
-        <div class="it-add-line it-add-line--secondary">
-          <button type="button" class="it-add">+ Add external sale</button>
-          <span>Rare — outside modeled brokerage draws</span>
         </div>
 
         <div class="it-grid it-grid--lower">
           <section>
             <div class="it-section-head"><span>Pre-tax &amp; adjustments</span><strong>−$46,000</strong></div>
             <div class="it-row">
-              <span><span class="it-row__title">401(k)</span><span class="it-row__meta">Alex · employee deferral · while working</span></span>
+              <span><span class="it-row__title">401(k)</span><span class="it-row__meta">Alex</span></span>
               <span class="it-row__amount">$23,000</span>
             </div>
             <div class="it-row">
-              <span><span class="it-row__title">401(k)</span><span class="it-row__meta">Jordan · employee deferral · while working</span></span>
+              <span><span class="it-row__title">401(k)</span><span class="it-row__meta">Jordan</span></span>
               <span class="it-row__amount">$23,000</span>
             </div>
             <div class="it-row">
-              <span><span class="it-row__title">HSA</span><span class="it-row__meta">Joint · family contribution</span></span>
+              <span><span class="it-row__title">HSA</span><span class="it-row__meta">Joint</span></span>
               <span class="it-row__amount">$0</span>
             </div>
             <div class="it-add-line"><button type="button" class="it-add">+ Add adjustment</button></div>
@@ -550,10 +566,10 @@
               <span><span class="it-row__title">SALT</span></span>
               <span class="it-row__amount">$0</span>
             </div>
-            <div class="it-auto-row"><span>Standard · MFJ + senior 65+ <b>AUTO</b></span><strong>$33,200</strong></div>
+            <div class="it-auto-row"><span>Standard · MFJ + senior 65+</span><strong>$33,200</strong></div>
             <div class="it-deduction-footer">
               <button type="button" class="it-add">+ Add deduction</button>
-              <span>Standard $33,200 ≥ itemized — <em>standard applied</em></span>
+              <span>Standard applied</span>
             </div>
           </section>
         </div>
@@ -563,58 +579,39 @@
             <div class="it-equation__cell">
               <span>Total income</span>
               <strong>$327,000</strong>
-              <small>&nbsp;</small>
             </div>
             <div class="it-equation__op" aria-hidden="true">−</div>
             <div class="it-equation__cell">
-              <span>AGI → MAGI</span>
+              <span>AGI</span>
               <strong>$281,000</strong>
-              <small>adjustments $46,000</small>
             </div>
             <div class="it-equation__op" aria-hidden="true">−</div>
             <div class="it-equation__cell">
               <span>Deduction</span>
               <strong>$33,200</strong>
-              <small>&nbsp;</small>
             </div>
             <div class="it-equation__op it-equation__op--eq" aria-hidden="true">=</div>
             <div class="it-equation__cell it-equation__cell--result">
-              <span>Initial taxable income</span>
+              <span>Taxable income</span>
               <strong>$247,800</strong>
-              <small>&nbsp;</small>
             </div>
           </div>
-          <p class="it-position__note">Computed by the tax engine — updates as inputs change</p>
-          <div class="it-tax-grid">
+          <div class="it-tax-grid" style="margin-top:16px">
             <div class="it-stat">
               <span>Federal marginal bracket</span>
               <strong>24%</strong>
-              <small>$12,200 of room to top of bracket</small>
             </div>
             <div class="it-stat">
               <span>Capital gains rate</span>
               <strong>15%</strong>
-              <small>Preferential long-term rate</small>
-            </div>
-            <div class="it-stat">
-              <span>Next IRMAA tier</span>
-              <strong>Not modeled</strong>
-              <small>Requires Medicare threshold rule support</small>
-            </div>
-            <div class="it-stat it-stat--pending">
-              <span>Senior deduction (65+)</span>
-              <strong>Not modeled</strong>
-              <small>Age enhancement is not yet in the engine</small>
             </div>
             <div class="it-stat">
               <span>Effective tax rate</span>
               <strong>18.2%</strong>
-              <small>$45,100 est. federal tax on taxable income</small>
             </div>
             <div class="it-stat">
               <span>RMDs begin</span>
               <strong>Age 75</strong>
-              <small>First required year 2045</small>
             </div>
           </div>
         </div>`,
