@@ -1,4 +1,5 @@
-import { selectedPathIndex } from './sequencing.js';
+import { resolveCashFlowSim } from '../src/planning/cashFlowPathReplay.js';
+import { pathReplay } from '../src/state.js';
 
 export const CF_BREAKDOWN_MODES = Object.freeze(['summary', 'income', 'draw', 'goals', 'tax']);
 
@@ -96,10 +97,10 @@ function goalsSplitForAge(plan, age){
 }
 
 export function buildPathRows(s, {
-  simByIndex, baselineResult, plan, currentYear,
+  simByIndex, plan, currentYear,
 }) {
   if (!s.res) return [];
-  const sim = simByIndex(s.res, selectedPathIndex(baselineResult()));
+  const sim = resolveCashFlowSim(s.res, pathReplay.mode, pathReplay.randomSimIndex, simByIndex);
   if (!sim || !Array.isArray(sim.rows)) return [];
   const curAge = plan.household.primary.currentAge;
   const baseYear = currentYear;
@@ -142,10 +143,10 @@ export function buildPathRows(s, {
 }
 
 export function buildCashSummary(s, {
-  simByIndex, baselineResult, pathDigest,
+  simByIndex, pathDigest,
 }) {
   if (!s.res) return {};
-  const sim = simByIndex(s.res, selectedPathIndex(baselineResult()));
+  const sim = resolveCashFlowSim(s.res, pathReplay.mode, pathReplay.randomSimIndex, simByIndex);
   if (!sim) return {};
   let d = {};
   try { d = (typeof pathDigest === 'function') ? pathDigest(sim) : {}; } catch { d = {}; }
