@@ -24,7 +24,7 @@ import {
 import { createGoalsHorizonController } from '../ui/goalsHorizon.js';
 import { createTaxBucketsController } from '../ui/taxBuckets.js';
 import { pathModeLabel, drawSeqChart, renderPrints, syncPathControls, updatePathReplayMode } from '../ui/sequencing.js';
-import { buildPathRows, buildCashSummary, renderCashflow } from '../ui/cashflow.js';
+import { buildPathRows, buildCashSummary, renderCashflow, normalizeCashBreakdown } from '../ui/cashflow.js';
 import { toneForProb, toneGlow, wdColor, ring, num as scenarioNum, renderCompare, renderFocus } from '../ui/scenarios.js';
 import { solvePanelHTML, goalParamsHtml, comboPillValue } from '../ui/solver.js';
 import {
@@ -2674,18 +2674,18 @@ $('#path-mode').onchange=e=>{
   }
 
   /* ---- CASH FLOW --------------------------------------------------------- */
-  // Visible columns, exactly and in order. No Engine-tax / Federal-tax columns.
-  const CF_COLS = ['Year', 'Age', 'Income', 'RMD', 'Essential', 'Goals', 'Tax', 'Draw', 'Return', 'WD Rate', 'Ending'];
+  // Lean summary columns; Income / Goals / Tax / Draw headers open a breakdown.
 
   function renderCashflowView(scn, allScns) {
     return renderCashflow(scn, allScns, {
       pathRows: PROD.pathRows,
       cashSummary: PROD.cashSummary,
       cashFromRetirement: state.cashFromRetirement,
+      cashBreakdown: normalizeCashBreakdown(state.cashBreakdown),
       isTypicalPath: PROD.isTypicalPath,
       typicalPathFederalTax: PROD.typicalPathFederalTax,
       pathFederalTax: PROD.pathFederalTax,
-      toneGlow, ring, wdColor, num:scenarioNum, esc, fmtMoney, cfCols: CF_COLS,
+      toneGlow, ring, wdColor, num:scenarioNum, esc, fmtMoney,
     });
   }
 
@@ -2766,6 +2766,12 @@ $('#path-mode').onchange=e=>{
     // "Start at retirement" — hide the working (accum) years in the cash-flow ledger.
     const retStart = view.querySelector('[data-cash-retstart]');
     if (retStart) retStart.addEventListener('click', () => { state.cashFromRetirement = !state.cashFromRetirement; syncScenariosView(); });
+    view.querySelectorAll('[data-cf-breakdown]').forEach((el) => {
+      el.addEventListener('click', () => {
+        state.cashBreakdown = normalizeCashBreakdown(el.dataset.cfBreakdown);
+        syncScenariosView();
+      });
+    });
     // Always-visible +/- buttons in Compare (discrete levers) and Focus (all levers).
     // data-lever-key + data-dir + optional data-scn-id → stepFocusLever.
     view.querySelectorAll('[data-lever-key]').forEach((el) => {
