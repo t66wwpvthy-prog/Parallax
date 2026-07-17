@@ -37,7 +37,7 @@
         linear-gradient(180deg, #0c0f14, var(--bg-deep));
     }
     .page {
-      max-width: 980px;
+      max-width: 1120px;
       margin: 0 auto;
       padding: 28px 22px 48px;
     }
@@ -275,6 +275,106 @@
     }
     .map strong { color: var(--ink-body); font-weight: 500; }
     [hidden] { display: none !important; }
+
+    /* Full Income & Tax mock (mirrors live hh-it surface) */
+    .it__intro { color: var(--ink-body); font-size: 13px; margin: 0 0 18px; max-width: 62ch; line-height: 1.45; }
+    .it-section-head {
+      display: flex; justify-content: space-between; align-items: baseline;
+      gap: 12px; padding-bottom: 8px; margin: 18px 0 6px;
+      border-bottom: 1px solid var(--line);
+    }
+    .it-section-head > span {
+      font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--gold);
+    }
+    .it-section-head > strong {
+      font-family: var(--font-serif); font-weight: 400; font-size: 18px; color: var(--ink-bright);
+    }
+    .it-section-head > strong small { font-family: var(--font-sans); font-size: 11px; color: var(--ink-faint); margin-left: 6px; }
+    .it-grid { display: flex; gap: 36px; }
+    .it-grid > section { flex: 1; min-width: 0; }
+    .it-grid--lower { margin-top: 8px; }
+    .it-subhead {
+      display: flex; justify-content: space-between; align-items: baseline;
+      margin: 8px 0 4px; font-size: 12px; color: var(--ink-body);
+    }
+    .it-subhead small { color: var(--ink-faint); }
+    .it-row {
+      display: flex; justify-content: space-between; align-items: center; gap: 12px;
+      padding: 9px 6px; border-radius: 6px;
+      border-bottom: 1px solid var(--line);
+    }
+    .it-row__title { display: block; font-size: 14px; color: var(--ink-bright); }
+    .it-row__meta { display: block; font-size: 11.5px; color: var(--ink-faint); margin-top: 2px; }
+    .it-row__meta em { color: #96a394; font-style: normal; }
+    .it-row__amount {
+      font-family: var(--font-serif); font-size: 16px; color: var(--ink-bright);
+      font-variant-numeric: tabular-nums; white-space: nowrap;
+    }
+    .it-add-line {
+      display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+      margin: 10px 0 4px; font-size: 12px; color: var(--ink-faint);
+    }
+    .it-add-line--secondary { margin-top: 2px; }
+    .it-add {
+      background: transparent; border: 1px dashed rgba(198,166,98,0.35);
+      color: var(--gold-bright); border-radius: 8px; padding: 8px 12px;
+      font: inherit; font-size: 12px; cursor: default;
+    }
+    .it-auto-row {
+      display: flex; justify-content: space-between; gap: 12px;
+      padding: 10px 6px; font-size: 12px; color: var(--ink-mute);
+      border-bottom: 1px solid var(--line);
+    }
+    .it-auto-row b { letter-spacing: 0.08em; color: var(--ink-faint); }
+    .it-auto-row strong { color: #9a968d; font: 400 16px/1 var(--font-serif); }
+    .it-deduction-footer {
+      margin-top: 10px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+      font-size: 12px; color: var(--ink-faint);
+    }
+    .it-deduction-footer em { color: #96a394; font-style: normal; }
+    .it-position {
+      margin-top: 22px; padding-top: 16px; border-top: 1px solid var(--line);
+    }
+    .it-equation {
+      display: flex; align-items: stretch; gap: 6px; flex-wrap: wrap;
+      padding: 14px 12px; border: 1px solid var(--line); border-radius: 12px;
+      background: rgba(255,255,255,0.02);
+    }
+    .it-equation__cell {
+      flex: 1 1 120px; min-width: 110px;
+      display: flex; flex-direction: column; gap: 4px;
+    }
+    .it-equation__cell > span {
+      font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint);
+    }
+    .it-equation__cell > strong {
+      font-family: var(--font-serif); font-weight: 400; font-size: 22px; color: var(--ink-bright);
+    }
+    .it-equation__cell > small { font-size: 11px; color: var(--ink-faint); min-height: 1em; }
+    .it-equation__cell--result > strong { color: #c3a56a; }
+    .it-equation__op {
+      align-self: center; padding: 0 4px; color: var(--ink-mute); font-size: 18px;
+    }
+    .it-equation__op--eq { color: #8a8880; }
+    .it-position__note {
+      margin: 10px 0 14px; font-size: 12px; color: var(--ink-faint);
+    }
+    .it-tax-grid {
+      display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px 28px;
+    }
+    .it-stat { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+    .it-stat > span {
+      font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-faint);
+    }
+    .it-stat > strong {
+      font-family: var(--font-serif); font-weight: 400; font-size: 22px; color: var(--ink-bright);
+    }
+    .it-stat--pending > strong { color: #c99a6a; }
+    .it-stat > small { font-size: 11px; color: var(--ink-faint); line-height: 1.35; }
+    @media (max-width: 900px) {
+      .it-grid { flex-direction: column; gap: 18px; }
+      .it-tax-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
   </style>
 </head>
 <body>
@@ -282,8 +382,7 @@
     <p class="eyebrow">Exploration mock</p>
     <h1>Household wizard · flow</h1>
     <p class="lede">
-      Six-step IA in Parallax chrome (Spectral + champagne gold). Click the stepper or use Back / Continue.
-      No app wiring — toy with order and density here first.
+      Six-step IA in Parallax chrome. Step 2 shows the <strong style="color:var(--ink-bright);font-weight:500">full live Income &amp; Tax surface</strong> (not a stripped mock) so you can review before wiring.
     </p>
 
     <div class="controls">
@@ -322,11 +421,11 @@
     <p class="map">
       <strong>Content map:</strong>
       Family → people/filing ·
-      Income → salary/SS/tax strip ·
+      Income → <strong>full Income &amp; Tax page</strong> (sources, adjustments, deductions, equation, tax grid) ·
       Savings → annual contribution ·
       Net Worth → accounts ·
       Expenses → retirement spending ·
-      Goals → Summary finish (or Goals-lite)
+      Summary → blueprint finish
     </p>
   </div>
 
@@ -337,10 +436,10 @@
       { id: 3, label: "Savings" },
       { id: 4, label: "Net Worth" },
       { id: 5, label: "Expenses" },
-      { id: 6, label: "Goals" },
+      { id: 6, label: "Summary" },
     ];
 
-    let step = 1;
+    let step = 2;
     let showLabels = true;
     let finish = "summary";
 
@@ -371,20 +470,152 @@
           <div class="kv"><span>Children</span><span>Sam · born 2008</span></div>
         </div>`,
       2: () => `
-        <h2>Income</h2>
-        <p class="note">Working and retirement income — tax strip stays secondary on this step.</p>
-        <div class="grid-2">
-          <div class="card"><div class="card__head"><span>Alex</span><span>Salary</span></div><div class="card__title">$185,000 /yr</div></div>
-          <div class="card"><div class="card__head"><span>Jordan</span><span>Salary</span></div><div class="card__title">$142,000 /yr</div></div>
-          <div class="card"><div class="card__head"><span>Alex</span><span>Social Security</span></div><div class="kv"><span>Claim</span><span>67 · FRA 67</span></div></div>
-          <div class="card"><div class="card__head"><span>Jordan</span><span>Social Security</span></div><div class="kv"><span>Claim</span><span>67 · FRA 67</span></div></div>
+        <h2>Income &amp; Tax</h2>
+        <p class="it__intro">All known income, pre-tax contributions and deductions — the base year the tax engine works from. <em style="color:var(--gold)">This is the full current page, placed as step 2.</em></p>
+
+        <div class="it-section-head"><span>Income sources</span><strong>$327,000 <small>this year</small></strong></div>
+        <div class="it-grid">
+          <section>
+            <div class="it-subhead"><span>Working years</span><small>$327,000 /yr</small></div>
+            <div class="it-row">
+              <span><span class="it-row__title">Wages</span><span class="it-row__meta">Alex · 56 → 64 · +0%/yr</span></span>
+              <span class="it-row__amount">$185,000</span>
+            </div>
+            <div class="it-row">
+              <span><span class="it-row__title">Wages</span><span class="it-row__meta">Jordan · 54 → 64 · +0%/yr</span></span>
+              <span class="it-row__amount">$142,000</span>
+            </div>
+            <div class="it-row">
+              <span><span class="it-row__title">Interest</span><span class="it-row__meta">Joint · ongoing · taxable</span></span>
+              <span class="it-row__amount">$0</span>
+            </div>
+            <div class="it-row">
+              <span><span class="it-row__title">Dividends</span><span class="it-row__meta">Joint · ongoing · qualified 0%</span></span>
+              <span class="it-row__amount">$0</span>
+            </div>
+          </section>
+          <section>
+            <div class="it-subhead"><span>Retirement years</span><small>$62,000 /yr</small></div>
+            <div class="it-row">
+              <span><span class="it-row__title">Social Security</span><span class="it-row__meta">Alex · from 67 · COLA · <em>taxable auto</em></span></span>
+              <span class="it-row__amount">$36,000</span>
+            </div>
+            <div class="it-row">
+              <span><span class="it-row__title">Social Security</span><span class="it-row__meta">Jordan · from 67 · COLA · <em>taxable auto</em></span></span>
+              <span class="it-row__amount">$26,000</span>
+            </div>
+          </section>
         </div>
-        <div class="card" style="margin-top:12px">
-          <div class="card__head"><span>Current-year tax strip</span></div>
-          <div class="stat-row">
-            <div class="stat"><div class="v">$248,400</div><div class="k">Taxable income</div></div>
-            <div class="stat"><div class="v">24%</div><div class="k">Marginal</div></div>
-            <div class="stat"><div class="v">18.2%</div><div class="k">Effective</div></div>
+        <div class="it-add-line">
+          <button type="button" class="it-add">+ Add income source</button>
+          <span>Wages · Bonus · Self-employment · Pension · Annuity · Rental · Interest · Dividends · Deferred comp · Other</span>
+        </div>
+        <div class="it-add-line it-add-line--secondary">
+          <button type="button" class="it-add">+ Add external sale</button>
+          <span>Rare — outside modeled brokerage draws</span>
+        </div>
+
+        <div class="it-grid it-grid--lower">
+          <section>
+            <div class="it-section-head"><span>Pre-tax &amp; adjustments</span><strong>−$46,000</strong></div>
+            <div class="it-row">
+              <span><span class="it-row__title">401(k)</span><span class="it-row__meta">Alex · employee deferral · while working</span></span>
+              <span class="it-row__amount">$23,000</span>
+            </div>
+            <div class="it-row">
+              <span><span class="it-row__title">401(k)</span><span class="it-row__meta">Jordan · employee deferral · while working</span></span>
+              <span class="it-row__amount">$23,000</span>
+            </div>
+            <div class="it-row">
+              <span><span class="it-row__title">HSA</span><span class="it-row__meta">Joint · family contribution</span></span>
+              <span class="it-row__amount">$0</span>
+            </div>
+            <div class="it-add-line"><button type="button" class="it-add">+ Add adjustment</button></div>
+          </section>
+          <section>
+            <div class="it-section-head"><span>Deductions</span><strong>−$12,000</strong></div>
+            <div class="it-row">
+              <span><span class="it-row__title">Medical</span></span>
+              <span class="it-row__amount">$0</span>
+            </div>
+            <div class="it-row">
+              <span><span class="it-row__title">Charitable</span></span>
+              <span class="it-row__amount">$12,000</span>
+            </div>
+            <div class="it-row">
+              <span><span class="it-row__title">Mortgage interest</span></span>
+              <span class="it-row__amount">$0</span>
+            </div>
+            <div class="it-row">
+              <span><span class="it-row__title">SALT</span></span>
+              <span class="it-row__amount">$0</span>
+            </div>
+            <div class="it-auto-row"><span>Standard · MFJ + senior 65+ <b>AUTO</b></span><strong>$33,200</strong></div>
+            <div class="it-deduction-footer">
+              <button type="button" class="it-add">+ Add deduction</button>
+              <span>Standard $33,200 ≥ itemized — <em>standard applied</em></span>
+            </div>
+          </section>
+        </div>
+
+        <div class="it-position">
+          <div class="it-equation" role="group" aria-label="Taxable income equation">
+            <div class="it-equation__cell">
+              <span>Total income</span>
+              <strong>$327,000</strong>
+              <small>&nbsp;</small>
+            </div>
+            <div class="it-equation__op" aria-hidden="true">−</div>
+            <div class="it-equation__cell">
+              <span>AGI → MAGI</span>
+              <strong>$281,000</strong>
+              <small>adjustments $46,000</small>
+            </div>
+            <div class="it-equation__op" aria-hidden="true">−</div>
+            <div class="it-equation__cell">
+              <span>Deduction</span>
+              <strong>$33,200</strong>
+              <small>&nbsp;</small>
+            </div>
+            <div class="it-equation__op it-equation__op--eq" aria-hidden="true">=</div>
+            <div class="it-equation__cell it-equation__cell--result">
+              <span>Initial taxable income</span>
+              <strong>$247,800</strong>
+              <small>&nbsp;</small>
+            </div>
+          </div>
+          <p class="it-position__note">Computed by the tax engine — updates as inputs change</p>
+          <div class="it-tax-grid">
+            <div class="it-stat">
+              <span>Federal marginal bracket</span>
+              <strong>24%</strong>
+              <small>$12,200 of room to top of bracket</small>
+            </div>
+            <div class="it-stat">
+              <span>Capital gains rate</span>
+              <strong>15%</strong>
+              <small>Preferential long-term rate</small>
+            </div>
+            <div class="it-stat">
+              <span>Next IRMAA tier</span>
+              <strong>Not modeled</strong>
+              <small>Requires Medicare threshold rule support</small>
+            </div>
+            <div class="it-stat it-stat--pending">
+              <span>Senior deduction (65+)</span>
+              <strong>Not modeled</strong>
+              <small>Age enhancement is not yet in the engine</small>
+            </div>
+            <div class="it-stat">
+              <span>Effective tax rate</span>
+              <strong>18.2%</strong>
+              <small>$45,100 est. federal tax on taxable income</small>
+            </div>
+            <div class="it-stat">
+              <span>RMDs begin</span>
+              <strong>Age 75</strong>
+              <small>First required year 2045</small>
+            </div>
           </div>
         </div>`,
       3: () => `
