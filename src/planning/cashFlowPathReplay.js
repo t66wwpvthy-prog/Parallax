@@ -37,8 +37,8 @@ export function pathModeLabel(mode = 'typical'){
   return ({
     typical: 'Typical path',
     favorable: 'Favorable path',
-    'stressed-pp': 'Stressed — purchasing power erosion',
-    'sequence-dotcom-gfc': 'Sequence stress — dot-com to GFC',
+    'stressed-pp': 'Stressed',
+    'sequence-dotcom-gfc': 'Sequence',
     random: 'Random path',
   })[normalizeCashFlowPathMode(mode)] || 'Typical path';
 }
