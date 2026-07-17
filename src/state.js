@@ -74,6 +74,7 @@ const scenariosUiValues = {
   showRange: true,
   goalsExpanded: false,
   cashFromRetirement: false,
+  cashBreakdown: 'summary',
 };
 
 export const scenariosUiState = {
@@ -89,4 +90,6 @@ export const scenariosUiState = {
   set goalsExpanded(value){ scenariosUiValues.goalsExpanded = value; },
   get cashFromRetirement(){ return scenariosUiValues.cashFromRetirement; },
   set cashFromRetirement(value){ scenariosUiValues.cashFromRetirement = value; },
+  get cashBreakdown(){ return scenariosUiValues.cashBreakdown; },
+  set cashBreakdown(value){ scenariosUiValues.cashBreakdown = value; },
 };

@@ -1991,22 +1991,24 @@ try {
     await new Promise(r => setTimeout(r, 600));
     await setCashFlow(page, true);
     await waitCashRows(page, 10);
-    const EXPECT = ['Year', 'Age', 'Income', 'RMD', 'Essential', 'Goals', 'Tax', 'Draw', 'Return', 'WD Rate', 'Ending'];
+    const EXPECT = ['Year', 'Age', 'Income', 'Goals', 'Tax', 'Draw', 'Ending'];
     const m = await page.evaluate(() => {
       const v = document.querySelector('#scn-view');
       return {
         cf: !!v?.querySelector('.cf'),
+        mode: v?.querySelector('.cf')?.dataset.cfMode || '',
         rows: v?.querySelectorAll('.cf-row').length || 0,
-        cols: [...(v?.querySelectorAll('.cf-table__head .cf-th') || [])].map(th => th.textContent.trim()),
+        cols: [...(v?.querySelectorAll('.cf-table__head .cf-th') || [])].map(th => th.childNodes[0]?.textContent?.trim() || th.textContent.trim()),
+        breakHeaders: [...(v?.querySelectorAll('.cf-table__head [data-cf-breakdown]') || [])].map(th => th.dataset.cfBreakdown),
         pills: [...(v?.querySelectorAll('.cf-pill') || [])].map(p => p.textContent.trim()),
         activePill: v?.querySelector('.cf-pill.is-active')?.textContent.trim() || '',
         stats: [...(v?.querySelectorAll('.cf-stat__label') || [])].map(s => s.textContent.trim()),
         pathControls: !!v?.querySelector('#scn-cf-path-controls #path-mode'),
-        mode: v?.querySelector('#scn-cf-path-controls #path-mode')?.value || '',
+        pathMode: v?.querySelector('#scn-cf-path-controls #path-mode')?.value || '',
         taxHeader: (() => {
           const th = v?.querySelector('.cf-table__head .cf-th[data-tax-source]');
           return th ? {
-            label: th.textContent.trim(),
+            label: th.childNodes[0]?.textContent?.trim() || th.textContent.trim(),
             source: th.dataset.taxSource || '',
             scope: th.dataset.taxScope || '',
             title: th.getAttribute('title') || '',
@@ -2045,6 +2047,8 @@ try {
     if(!m.cf) throw new Error('cash-flow view did not render');
     if(m.rows < 10) throw new Error(`cash-flow rows = ${m.rows} (expected >=10)`);
     if(JSON.stringify(m.cols) !== JSON.stringify(EXPECT)) throw new Error(`cash-flow columns are not the exact contract: ${JSON.stringify(m.cols)}`);
+    if(m.mode !== 'summary') throw new Error(`cash-flow default mode should be summary (got "${m.mode}")`);
+    if(JSON.stringify(m.breakHeaders) !== JSON.stringify(['income', 'goals', 'tax', 'draw'])) throw new Error(`breakdown headers missing: ${JSON.stringify(m.breakHeaders)}`);
     if(m.cols.filter(c => /tax/i.test(c)).length !== 1) throw new Error(`cash flow must have exactly one scoped tax column: ${JSON.stringify(m.cols)}`);
     if(m.taxHeader?.source !== 'federal-converged-row' || m.taxHeader?.scope !== 'MODELED_FEDERAL_LINE_24') throw new Error(`typical path converged tax scope missing: ${JSON.stringify(m.taxHeader)}`);
     if(!/retirement rows funded and converged; working years reporting-only/i.test(m.taxHeader?.title || '')) throw new Error(`typical path tax tooltip missing phase scope: ${JSON.stringify(m.taxHeader)}`);
@@ -2052,10 +2056,10 @@ try {
     if(m.taxDisclosure?.state !== 'federal-converged-row' || !/retirement rows funded and converged, working years reporting-only/i.test(m.taxDisclosure?.scope || '')) throw new Error(`typical path converged federal scope disclosure missing: ${JSON.stringify(m.taxDisclosure)}`);
     if(m.taxDisclosure?.fallback) throw new Error(`typical path unexpectedly uses engine fallback: ${JSON.stringify(m.taxDisclosure)}`);
     if(!/^\$[\d,]+/.test(m.accumTax)) throw new Error(`accumulation-year Tax cell is not populated: "${m.accumTax}"`);
-    if(m.cols.some(c => ['Withdraw', 'One-time', 'Return $', 'Starting value', 'Inflows', 'Outflows', 'Annual return', 'Ending value'].includes(c))) throw new Error(`old cash-flow columns still present: ${JSON.stringify(m.cols)}`);
+    if(m.cols.some(c => ['Withdraw', 'One-time', 'Return $', 'Starting value', 'Inflows', 'Outflows', 'Annual return', 'Ending value', 'RMD', 'Essential', 'WD Rate'].includes(c))) throw new Error(`old cash-flow columns still present: ${JSON.stringify(m.cols)}`);
     if(m.pills.length < 2) throw new Error(`scenario pills missing: ${JSON.stringify(m.pills)}`);
     if(!m.pathControls) throw new Error('path-replay controls not relocated into #scn-cf-path-controls');
-    if(m.mode !== 'typical') throw new Error(`path replay default mode not typical (${m.mode})`);
+    if(m.pathMode !== 'typical') throw new Error(`path replay default mode not typical (${m.pathMode})`);
     for(const label of ['Median Ending', 'Peak Withdrawal']){
       if(!m.stats.includes(label)) throw new Error(`cash-flow summary stat missing: ${label} (${JSON.stringify(m.stats)})`);
     }
@@ -2078,6 +2082,27 @@ try {
       return row ? (row.querySelector('.cf-cell--age')?.textContent.trim() || '') : '';
     });
     if(rmdAge !== '75') throw new Error(`RMD start marker not at age 75 (got "${rmdAge}")`);
+
+    // Clickable Income header opens the income breakdown; Summary returns.
+    await page.click('#scn-view .cf-table__head [data-cf-breakdown="income"]');
+    await new Promise(r => setTimeout(r, 300));
+    const incomeBreak = await page.evaluate(() => {
+      const v = document.querySelector('#scn-view');
+      return {
+        mode: v?.querySelector('.cf')?.dataset.cfMode || '',
+        cols: [...(v?.querySelectorAll('.cf-table__head .cf-th') || [])].map(th => th.childNodes[0]?.textContent?.trim() || th.textContent.trim()),
+        back: v?.querySelector('[data-cf-breakdown-bar] [data-cf-breakdown="summary"]')?.textContent.trim() || '',
+      };
+    });
+    if(incomeBreak.mode !== 'income') throw new Error(`income breakdown did not activate: ${JSON.stringify(incomeBreak)}`);
+    if(JSON.stringify(incomeBreak.cols) !== JSON.stringify(['Year', 'Age', 'SS', 'Pension', 'Other', 'Income', 'Ending'])){
+      throw new Error(`income breakdown columns wrong: ${JSON.stringify(incomeBreak.cols)}`);
+    }
+    if(!/Summary/i.test(incomeBreak.back)) throw new Error('income breakdown missing Summary back control');
+    await page.click('#scn-view [data-cf-breakdown-bar] [data-cf-breakdown="summary"]');
+    await new Promise(r => setTimeout(r, 250));
+    const backSummary = await page.evaluate(() => document.querySelector('#scn-view .cf')?.dataset.cfMode || '');
+    if(backSummary !== 'summary') throw new Error(`Summary did not restore lean columns (mode=${backSummary})`);
 
     // The scenario pills switch which plan's cash flow is shown, and each plan's
     // cash flow reflects ITS OWN retire age. demoScenarios seeds Baseline at the
@@ -2176,7 +2201,6 @@ try {
         toneGlow: () => 'transparent', ring: () => '', wdColor: () => 'inherit', num: (n) => String(n),
         esc: (value) => String(value).replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch])),
         fmtMoney: (n) => '$' + Math.round(n).toLocaleString('en-US'),
-        cfCols: ['Year', 'Age', 'Income', 'RMD', 'Essential', 'Goals', 'Tax', 'Draw', 'Return', 'WD Rate', 'Ending'],
       };
       const inspect = () => {
         const host = document.createElement('div');
