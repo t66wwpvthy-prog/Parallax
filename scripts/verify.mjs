@@ -151,7 +151,7 @@ function verifyHousehold(){
   ok(!/class="hh-tl/.test(source) && !/\.hh-tl/.test(css), 'retired person timeline bars must be removed');
   ok(/Annual savings/.test(source), 'annual savings must still appear on the Summary flow');
   ok(/data-add-key="savings"/.test(source) || /data-savings-addon/.test(source), 'optional annual contribution add-on missing');
-  ok(/data-add-key="external-sale"/.test(source), 'external-sale income add path missing');
+  ok(/addControl\(state,\s*['"]external-sale['"]/.test(source), 'external-sale income add path missing');
   ok(/data-joint-accounts/.test(source), 'joint accounts section missing');
   ok(!/hhField\('income\.workingIncome'/.test(source), 'working income must not render as a wizard input (engine-inert today)');
 
@@ -800,23 +800,23 @@ try {
       const active = localStorage.getItem('parallax.activeHouseholdId');
       const other = JSON.parse(localStorage.getItem('parallax.households.v1') || '{}')?.[active]?.income?.other || [];
       const saved = other.at(-1);
-      const amountInputs = [...document.querySelectorAll('#hh-view input[data-path^="income.other."][data-path$=".amount"]')];
-      const row = amountInputs.at(-1)?.closest('.hh-it-row');
+      const slotRow = document.querySelector('#hh-view [data-income-tax-slot="dividends:joint"]');
+      const slotAmount = slotRow?.querySelector('[data-hh-fixed-type="dividends"]')?.value?.replace(/[^0-9]/g, '') || '';
       return {
         count: other.length,
-        retirementColumn: /Retirement years/i.test(row?.closest('section')?.querySelector('.hh-it-subhead span')?.textContent || ''),
-        rowText: row?.textContent || '',
+        slotAmount,
+        slotText: slotRow?.textContent || '',
         saved,
       };
     });
-    if(addedIncome.count !== beforeOtherCount + 1 || !addedIncome.retirementColumn
+    if(addedIncome.count !== beforeOtherCount + 1 || addedIncome.slotAmount !== '8600'
+      || !/Dividends/i.test(addedIncome.slotText)
       || addedIncome.saved?.typeId !== 'dividends' || addedIncome.saved?.owner !== 'joint'
       || addedIncome.saved?.amount !== 8600 || addedIncome.saved?.endAge !== 999
       || addedIncome.saved?.realGrowth !== .02 || addedIncome.saved?.qualifiedPct !== .85)
       throw new Error(`expanded income source did not render and persist correctly: ${JSON.stringify(addedIncome)}`);
     await page.evaluate(() => {
-      const amountInputs = [...document.querySelectorAll('#hh-view input[data-path^="income.other."][data-path$=".amount"]')];
-      amountInputs.at(-1)?.closest('.hh-it-row')?.querySelector('[data-rmpath]')?.click();
+      document.querySelector('#hh-view [data-income-tax-slot="dividends:joint"] [data-rmpath]')?.click();
     });
     await new Promise(r => setTimeout(r, 300));
 
@@ -833,7 +833,10 @@ try {
       set('amount', '12000');
     });
     const currentYearDraft = await page.evaluate(() => ({
-      timingHidden: [...document.querySelectorAll('#hh-view [data-hide-for-income-types]')].every(el => el.hidden),
+      timingHidden: ['startAge', 'endAge', 'growthPct'].every(name => {
+        const el = document.querySelector(`#hh-view [data-hh-draft="${name}"]`)?.closest('[data-hide-for-income-types]');
+        return el?.hidden === true;
+      }),
       note: document.querySelector('#hh-view .hh-it-add-form__note')?.textContent || '',
     }));
     if(!currentYearDraft.timingHidden)
@@ -936,7 +939,7 @@ try {
     });
     await page.reload({ waitUntil: 'networkidle0' });
     await new Promise(r => setTimeout(r, 700));
-    await page.click('#tab-household'); await new Promise(r => setTimeout(r, 400));
+    await page.click('.htab[data-page="household"]'); await new Promise(r => setTimeout(r, 400));
     await page.click('#hh-step-4'); await new Promise(r => setTimeout(r, 350));
     const s4 = await page.evaluate(() => ({
       gauge: !!document.querySelector('#hh-view .hh-bp-gauge'),
@@ -980,7 +983,7 @@ try {
     });
     await page.reload({ waitUntil: 'networkidle0' });
     await new Promise(r => setTimeout(r, 700));
-    await page.click('#tab-household'); await new Promise(r => setTimeout(r, 400));
+    await page.click('.htab[data-page="household"]'); await new Promise(r => setTimeout(r, 400));
     await page.click('#hh-step-4'); await new Promise(r => setTimeout(r, 250));
   });
 
@@ -1166,6 +1169,8 @@ try {
           'hh-empty','hh-future-row__note','hh-future-row__name','hh-future-row__claim','hh-ledger-row__name',
           'hh-ledger-row__note','hh-ledger-row__age-label',
           'hh-dash-btn','hh-text-add','pre','hh-av','hh-avatar',
+          'hh-profile__note','hh-profile__eyebrow','hh-derived-in','hh-kv__v',
+          'hh-joint-block__eyebrow','hh-joint-block__note',
           'hh-tax-microcopy','hh-tax-details__state','hh-tax-fieldset__eyebrow',
           'hh-tax-badge','hh-tax-limit__eyebrow',
         ]);
@@ -2138,7 +2143,14 @@ try {
     }));
     if(advanced.chooseOpt || advanced.indexInput || advanced.seedInput) throw new Error(`removed path #/seed controls still present: ${JSON.stringify(advanced)}`);
     const availableModes = await page.evaluate(() => [...document.querySelectorAll('#path-mode option')].map(o => o.value));
-    for(const mode of ['stressed', 'favorable']){
+    const expectedModes = ['typical', 'favorable', 'stressed-pp', 'sequence-dotcom-gfc', 'random'];
+    if(JSON.stringify(availableModes) !== JSON.stringify(expectedModes)){
+      throw new Error(`path-mode options mismatch: ${JSON.stringify(availableModes)}`);
+    }
+    if(await page.evaluate(() => !!document.querySelector('#path-seed, #path-index'))) {
+      throw new Error('seed/index path controls must stay removed');
+    }
+    for(const mode of ['favorable', 'stressed-pp', 'sequence-dotcom-gfc']){
       if(!availableModes.includes(mode)) throw new Error(`${mode} option missing from path-mode select`);
       await page.select('#path-mode', mode);
       await new Promise(r => setTimeout(r, 400));
@@ -2182,6 +2194,22 @@ try {
     if(restoredTaxHeader?.label !== 'Tax' || restoredTaxHeader?.source !== 'federal-converged-row') throw new Error(`typical path tax scope did not restore: ${JSON.stringify(restoredTaxHeader)}`);
     if(await page.evaluate(() => !!document.querySelector('#scn-view [data-tax-compare]'))) throw new Error('obsolete federal-vs-engine summary restored on typical path');
     if(!await page.evaluate(() => /retirement rows funded and converged, working years reporting-only/i.test(document.querySelector('#scn-view [data-tax-scope-disclosure]')?.textContent || ''))) throw new Error('readable phase-scoped federal disclosure did not restore on typical path');
+
+    await page.select('#path-mode', 'random');
+    await new Promise(r => setTimeout(r, 300));
+    const randomUi = await page.evaluate(() => ({
+      regenHidden: document.querySelector('#path-regenerate')?.hidden,
+      label: document.querySelector('#path-mode option:checked')?.textContent.trim() || '',
+    }));
+    if(randomUi.regenHidden) throw new Error('Regenerate must show for Random path');
+    if(/seed/i.test(randomUi.label)) throw new Error(`Random path must not expose seed label: ${JSON.stringify(randomUi)}`);
+
+    await page.click('#scn-seg-compare');
+    await new Promise(r => setTimeout(r, 350));
+    await page.click('#scn-cash-toggle');
+    await new Promise(r => setTimeout(r, 350));
+    const reopened = await page.evaluate(() => document.querySelector('#path-mode')?.value || '');
+    if(reopened !== 'typical') throw new Error(`Cash Flow must reopen on Typical path, got "${reopened}"`);
 
     // Exercise warning and attach-failure states directly through the production
     // Cash Flow renderer. This avoids changing real scenario or Household state.

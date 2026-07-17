@@ -514,6 +514,25 @@
   cursor: pointer;
 }
 
+.page[data-page="scenarios"] .cf__path-controls .scn-path-regen {
+  margin-left: 4px;
+  padding: 3px 10px;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  color: var(--text-3);
+  background: transparent;
+  border: 1px solid var(--line-10);
+  border-radius: var(--r-pill);
+  cursor: pointer;
+}
+
+.page[data-page="scenarios"] .cf__path-controls .scn-path-regen:hover {
+  color: var(--text-1);
+  border-color: var(--line-18);
+}
+
 /* summary strip — floats directly on the page, no glass box */
 .page[data-page="scenarios"] .cf-summary { display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap; padding: 4px 0 18px; margin-bottom: 16px; border-bottom: 1px solid var(--line-07); }
 .page[data-page="scenarios"] .cf-summary__id { display: flex; align-items: center; gap: 16px; }
