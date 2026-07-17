@@ -387,7 +387,7 @@ export function renderHouseholdIncomeTax(plan, deps, state){
         ${taxStat('Next IRMAA tier', 'Not modeled', 'Requires Medicare threshold rule support')}
         ${taxStat('Senior deduction (65+)', 'Not modeled', 'Age enhancement is not yet in the engine', 'hh-it-stat--pending')}
         ${taxStat('Effective tax rate', summaryReady ? rate(summary.effectiveRate) : '—', effectiveNote)}
-        ${taxStat('RMDs begin', `Age ${summary.rmdAge || 73}`, rmdNote)}
+        ${taxStat('RMDs begin', `Age ${summary.rmdAge ?? '—'}`, rmdNote)}
       </div>
     </div>
   </div>`;

@@ -1,4 +1,5 @@
 import { qualifiedRothDistribution } from '../../tax/federal/rules/qualifiedRothDistribution.js';
+import { getRmdStartAgeFromBirthDate } from '../rmdStartAge.js';
 
 const TOLERANCE = 0.01;
 const MODEL_LIMITATION_CODES = Object.freeze([
@@ -34,17 +35,6 @@ function ageAtStartOfYear(birthDate, calendarYear){
   const [year, month, day] = birthDate.split('-').map(Number);
   if(!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) return null;
   return calendarYear - year - (month === 1 && day === 1 ? 0 : 1);
-}
-
-function applicableRmdAge(birthDate){
-  if(typeof birthDate !== 'string') return null;
-  const year = Number(birthDate.slice(0, 4));
-  if(!Number.isInteger(year)) return null;
-  if(year >= 1960) return 75;
-  if(year >= 1951) return 73;
-  if(year >= 1950) return 72;
-  if(year === 1949 && birthDate >= '1949-07-01') return 72;
-  return 70.5;
 }
 
 function projectedAccumulationSkipsRmd(context, startAge){
@@ -163,11 +153,10 @@ export function resolveRmdReasons(row, context, mandatoryRmd){
   }
 
   const birthDate = context.ownerProfiles?.client?.birthDate;
-  const startAge = applicableRmdAge(birthDate);
+  const startAge = getRmdStartAgeFromBirthDate(birthDate);
   if(startAge === null){
     reasons.push('RMD_BIRTH_DATE_NOT_CONFIRMED');
   }else{
-    if(startAge !== 73) reasons.push('RMD_START_AGE_MODEL_MISMATCH');
     if(Math.abs(row.age - startAge) < TOLERANCE){
       reasons.push('RMD_FIRST_YEAR_TIMING_ELECTION_NOT_MODELED');
     }
@@ -190,9 +179,9 @@ export function resolveRmdReasons(row, context, mandatoryRmd){
 export function retirementBeforeRmdReasons(context){
   if(context.engineProjection?.traditionalCouldExistAtRetirement !== true) return [];
   if(context.householdAges.resolvedRetirement <= context.householdAges.primary) return [];
-  if(context.householdAges.resolvedRetirement <= 73) return [];
-  const startAge = applicableRmdAge(context.ownerProfiles?.client?.birthDate);
+  const startAge = getRmdStartAgeFromBirthDate(context.ownerProfiles?.client?.birthDate);
   if(startAge === null) return ['RMD_BIRTH_DATE_NOT_CONFIRMED'];
+  if(context.householdAges.resolvedRetirement <= startAge) return [];
   return projectedAccumulationSkipsRmd(context, startAge)
     ? ['RMD_BEFORE_RETIREMENT_NOT_MODELED']
     : [];
