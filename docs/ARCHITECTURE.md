@@ -108,7 +108,7 @@ Extract **when you touch an area**, not as a standalone refactor sprint.
 3. **Thin `main.js`** — alongside features: `src/household/persistence.js` first (low risk).
 4. **Asset bucketing** — `engine.js` + tests, then `ui/household.js` inputs, then scenarios/CF display. Start after tax adapter (T1) is stable.
 
-**Deferred decision:** Replace engine `row.taxes` with federal tax vs keep parallel compare — decide after tax benchmark (T4), not before.
+**Deferred decision:** Replace engine `row.taxes` with federal tax vs keep parallel compare — decide after tax benchmark (T4), not before. Real↔nominal tax bridge: see `docs/tax/real-vs-nominal-tax-contract.md`.
 
 ---
 
