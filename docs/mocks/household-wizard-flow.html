@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Parallax · Household wizard flow mock</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@300;400;500;600;700&family=Spectral:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0b0d11;
+      --bg-deep: #080a0d;
+      --ink: #ddd5c4;
+      --ink-bright: #e7dec9;
+      --ink-body: #9097a0;
+      --ink-mute: #878e96;
+      --ink-faint: #7d848c;
+      --gold: #c6a662;
+      --gold-bright: #d8c084;
+      --gold-ink: #15181d;
+      --line: rgba(231,222,201,0.10);
+      --line-strong: rgba(231,222,201,0.16);
+      --card: rgba(255,255,255,0.025);
+      --font-sans: "Hanken Grotesk", system-ui, sans-serif;
+      --font-serif: "Spectral", Georgia, serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: var(--font-sans);
+      color: var(--ink);
+      background:
+        radial-gradient(1200px 600px at 20% -10%, rgba(198,166,98,0.08), transparent 55%),
+        radial-gradient(900px 500px at 90% 0%, rgba(120,140,180,0.06), transparent 50%),
+        linear-gradient(180deg, #0c0f14, var(--bg-deep));
+    }
+    .page {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 28px 22px 48px;
+    }
+    .eyebrow {
+      font-size: 11px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin: 0 0 8px;
+    }
+    h1 {
+      font-family: var(--font-serif);
+      font-weight: 300;
+      font-size: 32px;
+      color: var(--ink-bright);
+      margin: 0 0 8px;
+    }
+    .lede {
+      color: var(--ink-body);
+      font-size: 14px;
+      line-height: 1.5;
+      margin: 0 0 20px;
+      max-width: 62ch;
+    }
+    .controls, .shell {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      backdrop-filter: blur(14px);
+    }
+    .controls {
+      padding: 14px 16px;
+      margin-bottom: 16px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px 28px;
+      align-items: center;
+    }
+    .ctrl {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      color: var(--ink-body);
+    }
+    .ctrl strong { color: var(--ink-bright); font-weight: 500; }
+    .seg {
+      display: inline-flex;
+      border: 1px solid var(--line-strong);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .seg button {
+      background: transparent;
+      border: 0;
+      color: var(--ink-mute);
+      font: inherit;
+      font-size: 12px;
+      letter-spacing: 0.04em;
+      padding: 7px 12px;
+      cursor: pointer;
+    }
+    .seg button.is-on {
+      background: rgba(198,166,98,0.18);
+      color: var(--ink-bright);
+    }
+    .toggle {
+      width: 36px; height: 20px; border-radius: 999px;
+      border: 1px solid var(--line-strong);
+      background: rgba(255,255,255,0.04);
+      position: relative; cursor: pointer; padding: 0;
+    }
+    .toggle::after {
+      content: "";
+      position: absolute; top: 2px; left: 2px;
+      width: 14px; height: 14px; border-radius: 50%;
+      background: var(--ink-mute);
+      transition: transform .15s ease, background .15s ease;
+    }
+    .toggle.is-on { border-color: rgba(198,166,98,0.45); }
+    .toggle.is-on::after {
+      transform: translateX(16px);
+      background: var(--gold);
+    }
+    .shell { overflow: hidden; }
+    .shell-top {
+      padding: 14px 20px 0;
+    }
+    .shell-meta {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 6px;
+    }
+    .shell-meta .k {
+      font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase;
+      color: var(--ink-faint);
+    }
+    .shell-meta .pill {
+      font-size: 11px; color: var(--ink-body);
+      border: 1px solid var(--line); border-radius: 999px;
+      padding: 3px 10px;
+    }
+    .stepper {
+      display: grid;
+      align-items: center;
+      width: 100%;
+      padding: 4px 0 14px;
+    }
+    .step {
+      display: inline-flex; align-items: center; gap: 7px;
+      background: transparent; border: 0; padding: 4px 2px;
+      cursor: pointer; min-width: 0; color: inherit; font: inherit;
+    }
+    .step__num {
+      width: 22px; height: 22px; border-radius: 50%;
+      display: inline-flex; align-items: center; justify-content: center;
+      flex: none;
+      font-family: var(--font-serif); font-size: 14px;
+      border: 1px solid var(--line-strong); color: var(--ink-faint);
+    }
+    .step__label {
+      font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--ink-faint); white-space: nowrap;
+      overflow: hidden; text-overflow: ellipsis; min-width: 0;
+    }
+    .step.is-current .step__num {
+      background: var(--gold); border-color: transparent; color: var(--gold-ink);
+      font-weight: 500;
+    }
+    .step.is-current .step__label { color: var(--ink-bright); }
+    .step.is-done .step__num {
+      background: rgba(198,166,98,0.10);
+      border-color: rgba(198,166,98,0.45);
+      color: var(--gold);
+      font-family: var(--font-sans); font-size: 12px;
+    }
+    .step.is-done .step__label { color: var(--ink); }
+    .conn {
+      height: 1px; min-width: 12px; margin: 0 10px;
+      background: var(--line);
+    }
+    .conn.is-done { background: rgba(195,165,106,0.4); }
+    .pane {
+      padding: 18px 20px 8px;
+      border-top: 1px solid var(--line);
+      min-height: 360px;
+    }
+    .pane h2 {
+      font-family: var(--font-serif);
+      font-weight: 300;
+      font-size: 28px;
+      color: var(--ink-bright);
+      margin: 0 0 6px;
+    }
+    .pane .note {
+      color: var(--ink-body);
+      font-size: 13px;
+      margin: 0 0 18px;
+      max-width: 58ch;
+      line-height: 1.45;
+    }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+    @media (max-width: 720px) {
+      .grid-2, .grid-3 { grid-template-columns: 1fr; }
+      .step__label { display: none; }
+    }
+    .card {
+      background: rgba(255,255,255,0.02);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 12px 14px;
+    }
+    .card__head {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 8px;
+      font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--gold);
+    }
+    .card__title {
+      font-family: var(--font-serif);
+      font-size: 20px; font-weight: 400; color: var(--ink-bright);
+      margin: 0 0 10px;
+    }
+    .kv {
+      display: flex; justify-content: space-between; gap: 12px;
+      padding: 9px 0;
+      border-bottom: 1px solid var(--line);
+      font-size: 13px;
+    }
+    .kv:last-child { border-bottom: 0; }
+    .kv span:first-child { color: var(--ink-mute); }
+    .kv span:last-child { color: var(--ink-bright); font-variant-numeric: tabular-nums; }
+    .stat-row { display: flex; flex-wrap: wrap; gap: 22px; }
+    .stat .v {
+      font-family: var(--font-serif);
+      font-size: 26px; font-weight: 300; color: var(--ink-bright);
+    }
+    .stat .k {
+      font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--ink-faint); margin-top: 2px;
+    }
+    .nw-hero .v {
+      font-family: var(--font-serif);
+      font-size: 38px; font-weight: 300; color: var(--gold);
+      line-height: 1.1;
+    }
+    .nw-hero .k {
+      font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--ink-faint); margin-bottom: 4px;
+    }
+    .footer {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 12px 20px 16px;
+      border-top: 1px solid var(--line);
+    }
+    .btn {
+      font: inherit; font-size: 12px; letter-spacing: 0.14em;
+      text-transform: uppercase; cursor: pointer; border-radius: 8px;
+      padding: 10px 18px;
+    }
+    .btn-outline {
+      background: transparent; color: var(--ink);
+      border: 1px solid var(--line-strong);
+    }
+    .btn-primary {
+      background: linear-gradient(180deg, var(--gold-bright), var(--gold));
+      color: var(--gold-ink); border: 0; font-weight: 600;
+    }
+    .ghost { color: var(--ink-faint); font-size: 12px; letter-spacing: 0.06em; }
+    .map {
+      margin-top: 18px;
+      color: var(--ink-mute);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+    .map strong { color: var(--ink-body); font-weight: 500; }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <p class="eyebrow">Exploration mock</p>
+    <h1>Household wizard · flow</h1>
+    <p class="lede">
+      Six-step IA in Parallax chrome (Spectral + champagne gold). Click the stepper or use Back / Continue.
+      No app wiring — toy with order and density here first.
+    </p>
+
+    <div class="controls">
+      <div class="ctrl">
+        <strong>Step labels</strong>
+        <button type="button" class="toggle is-on" id="lblToggle" aria-pressed="true" title="Toggle labels"></button>
+      </div>
+      <div class="ctrl">
+        <strong>Step 6 finish</strong>
+        <div class="seg" role="group" aria-label="Goals finish variant">
+          <button type="button" class="is-on" data-finish="summary">Summary</button>
+          <button type="button" data-finish="goals">Goals-lite</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="shell">
+      <div class="shell-top">
+        <div class="shell-meta">
+          <span class="k">Household setup</span>
+          <span class="pill" id="stepPill">Step 1 of 6 · Family</span>
+        </div>
+        <nav class="stepper" id="stepper" aria-label="Wizard steps"></nav>
+      </div>
+
+      <div class="pane" id="pane"></div>
+
+      <div class="footer">
+        <button type="button" class="btn btn-outline" id="backBtn" hidden>← Back</button>
+        <span id="backSpacer"></span>
+        <button type="button" class="btn btn-primary" id="nextBtn">Continue →</button>
+        <span class="ghost" id="doneNote" hidden>Step 6 of 6</span>
+      </div>
+    </div>
+
+    <p class="map">
+      <strong>Content map:</strong>
+      Family → people/filing ·
+      Income → salary/SS/tax strip ·
+      Savings → annual contribution ·
+      Net Worth → accounts ·
+      Expenses → retirement spending ·
+      Goals → Summary finish (or Goals-lite)
+    </p>
+  </div>
+
+  <script>
+    const STEPS = [
+      { id: 1, label: "Family" },
+      { id: 2, label: "Income" },
+      { id: 3, label: "Savings" },
+      { id: 4, label: "Net Worth" },
+      { id: 5, label: "Expenses" },
+      { id: 6, label: "Goals" },
+    ];
+
+    let step = 1;
+    let showLabels = true;
+    let finish = "summary";
+
+    const panes = {
+      1: () => `
+        <h2>Family</h2>
+        <p class="note">Household identity — who is in the plan, when they retire, filing posture.</p>
+        <div class="grid-2">
+          <div class="card">
+            <div class="card__head"><span>Client</span></div>
+            <div class="card__title">Alex Rivera</div>
+            <div class="kv"><span>Age</span><span>56</span></div>
+            <div class="kv"><span>Retires at</span><span>65</span></div>
+            <div class="kv"><span>Plan to age</span><span>95</span></div>
+          </div>
+          <div class="card">
+            <div class="card__head"><span>Co-client</span></div>
+            <div class="card__title">Jordan Rivera</div>
+            <div class="kv"><span>Age</span><span>54</span></div>
+            <div class="kv"><span>Retires at</span><span>65</span></div>
+            <div class="kv"><span>Plan to age</span><span>95</span></div>
+          </div>
+        </div>
+        <div class="card" style="margin-top:12px">
+          <div class="card__head"><span>Household meta</span></div>
+          <div class="kv"><span>Filing</span><span>Married filing jointly</span></div>
+          <div class="kv"><span>State</span><span>Virginia</span></div>
+          <div class="kv"><span>Children</span><span>Sam · born 2008</span></div>
+        </div>`,
+      2: () => `
+        <h2>Income</h2>
+        <p class="note">Working and retirement income — tax strip stays secondary on this step.</p>
+        <div class="grid-2">
+          <div class="card"><div class="card__head"><span>Alex</span><span>Salary</span></div><div class="card__title">$185,000 /yr</div></div>
+          <div class="card"><div class="card__head"><span>Jordan</span><span>Salary</span></div><div class="card__title">$142,000 /yr</div></div>
+          <div class="card"><div class="card__head"><span>Alex</span><span>Social Security</span></div><div class="kv"><span>Claim</span><span>67 · FRA 67</span></div></div>
+          <div class="card"><div class="card__head"><span>Jordan</span><span>Social Security</span></div><div class="kv"><span>Claim</span><span>67 · FRA 67</span></div></div>
+        </div>
+        <div class="card" style="margin-top:12px">
+          <div class="card__head"><span>Current-year tax strip</span></div>
+          <div class="stat-row">
+            <div class="stat"><div class="v">$248,400</div><div class="k">Taxable income</div></div>
+            <div class="stat"><div class="v">24%</div><div class="k">Marginal</div></div>
+            <div class="stat"><div class="v">18.2%</div><div class="k">Effective</div></div>
+          </div>
+        </div>`,
+      3: () => `
+        <h2>Savings</h2>
+        <p class="note">How much the household adds each year — separated from account balances.</p>
+        <div class="card">
+          <div class="card__head"><span>Annual contribution</span></div>
+          <div class="stat"><div class="v">$48,000</div><div class="k">Household annual contribution</div></div>
+          <p class="note" style="margin:14px 0 0">Maps to the contribution control currently on Balance Sheet.</p>
+        </div>`,
+      4: () => `
+        <h2>Net Worth</h2>
+        <p class="note">Investable accounts by owner — tax details stay collapsed until needed.</p>
+        <div class="nw-hero" style="margin-bottom:14px">
+          <div class="k">Total investable</div>
+          <div class="v">$1,510,000</div>
+        </div>
+        <div class="grid-3">
+          <div class="card">
+            <div class="card__head"><span>Client</span></div>
+            <div class="kv"><span>401(k)</span><span>$620,000</span></div>
+            <div class="kv"><span>Brokerage</span><span>$210,000</span></div>
+          </div>
+          <div class="card">
+            <div class="card__head"><span>Co-client</span></div>
+            <div class="kv"><span>403(b)</span><span>$410,000</span></div>
+            <div class="kv"><span>Roth IRA</span><span>$95,000</span></div>
+          </div>
+          <div class="card">
+            <div class="card__head"><span>Joint</span></div>
+            <div class="kv"><span>Taxable joint</span><span>$175,000</span></div>
+          </div>
+        </div>
+        <div class="card" style="margin-top:12px">
+          <div class="card__head"><span>Tax details</span><span>Collapsed</span></div>
+          <p class="note" style="margin:0">Basis / contribution facts remain here — matching today’s Balance Sheet placement.</p>
+        </div>`,
+      5: () => `
+        <h2>Expenses</h2>
+        <p class="note">Retirement lifestyle floor — moved off Profile so Family stays identity-only.</p>
+        <div class="card">
+          <div class="card__head"><span>Retirement spending</span><span>$115,200 /yr</span></div>
+          <div class="kv"><span>Living</span><span>$72,000 /yr</span></div>
+          <div class="kv"><span>Healthcare</span><span>$14,400 /yr</span></div>
+          <div class="kv"><span>Housing</span><span>$28,800 /yr</span></div>
+        </div>`,
+      6: () => finish === "summary" ? `
+        <h2>Summary</h2>
+        <p class="note">Finish step — blueprint read. Discretionary goals stay on the Goals tab.</p>
+        <div class="grid-2">
+          <div class="card">
+            <div class="card__head"><span>Household</span></div>
+            <div class="card__title">Alex &amp; Jordan Rivera</div>
+            <p class="note" style="margin-top:0">Married filing jointly · Virginia</p>
+            <div class="kv"><span>Retire</span><span>65 / 65</span></div>
+            <div class="kv"><span>Horizon</span><span>95</span></div>
+            <div class="kv"><span>Spending</span><span>$115,200 /yr</span></div>
+            <div class="kv"><span>Income (working)</span><span>$327,000 /yr</span></div>
+          </div>
+          <div class="card">
+            <div class="card__head"><span>Net worth</span></div>
+            <div class="stat"><div class="v" style="color:var(--gold)">$1.51M</div><div class="k">Investable</div></div>
+            <div class="kv"><span>Tax-deferred</span><span>68%</span></div>
+            <div class="kv"><span>Taxable</span><span>26%</span></div>
+            <div class="kv"><span>Tax-free</span><span>6%</span></div>
+          </div>
+        </div>` : `
+        <h2>Goals</h2>
+        <p class="note">Lite card grid variant — retirement anchors plus discretionary goals.</p>
+        <div class="grid-2">
+          <div class="card"><div class="card__head"><span>Retirement ages</span></div><div class="card__title">Alex 65 · Jordan 65</div></div>
+          <div class="card"><div class="card__head"><span>Retirement spending</span></div><div class="card__title">$115,200 /yr</div></div>
+          <div class="card"><div class="card__head"><span>Cash reserve</span></div><div class="card__title">Target $90,000</div></div>
+          <div class="card"><div class="card__head"><span>Travel</span></div><div class="card__title">$25,000 · 66–68</div></div>
+        </div>`,
+    };
+
+    function renderStepper() {
+      const nav = document.getElementById("stepper");
+      const cols = STEPS.map((_, i) =>
+        i === STEPS.length - 1 ? "minmax(0, auto)" : "minmax(0, auto) minmax(12px, 1fr)"
+      ).join(" ");
+      nav.style.gridTemplateColumns = cols;
+      nav.innerHTML = STEPS.map((s, i) => {
+        const cls = s.id === step ? "is-current" : s.id < step ? "is-done" : "";
+        const num = s.id < step ? "✓" : String(s.id);
+        const label = showLabels ? `<span class="step__label">${s.label}</span>` : "";
+        const btn = `<button type="button" class="step ${cls}" data-step="${s.id}"><span class="step__num">${num}</span>${label}</button>`;
+        const conn = i < STEPS.length - 1
+          ? `<span class="conn ${s.id < step ? "is-done" : ""}" aria-hidden="true"></span>`
+          : "";
+        return btn + conn;
+      }).join("");
+      nav.querySelectorAll("[data-step]").forEach((el) => {
+        el.addEventListener("click", () => {
+          step = Number(el.getAttribute("data-step"));
+          render();
+        });
+      });
+    }
+
+    function render() {
+      const label = STEPS.find((s) => s.id === step).label;
+      document.getElementById("stepPill").textContent = `Step ${step} of 6 · ${label}`;
+      document.getElementById("pane").innerHTML = panes[step]();
+      renderStepper();
+
+      const back = document.getElementById("backBtn");
+      const next = document.getElementById("nextBtn");
+      const done = document.getElementById("doneNote");
+      const spacer = document.getElementById("backSpacer");
+      const isLast = step >= 6;
+      back.hidden = step <= 1;
+      spacer.hidden = step > 1;
+      next.hidden = isLast;
+      done.hidden = !isLast;
+      done.textContent = `Step 6 of 6 · ${finish === "summary" ? "Summary" : "Goals-lite"}`;
+      next.textContent = step === 5 ? "Review →" : "Continue →";
+    }
+
+    document.getElementById("backBtn").addEventListener("click", () => {
+      step = Math.max(1, step - 1);
+      render();
+    });
+    document.getElementById("nextBtn").addEventListener("click", () => {
+      step = Math.min(6, step + 1);
+      render();
+    });
+    document.getElementById("lblToggle").addEventListener("click", (e) => {
+      showLabels = !showLabels;
+      e.currentTarget.classList.toggle("is-on", showLabels);
+      e.currentTarget.setAttribute("aria-pressed", String(showLabels));
+      render();
+    });
+    document.querySelectorAll("[data-finish]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        finish = btn.getAttribute("data-finish");
+        document.querySelectorAll("[data-finish]").forEach((b) =>
+          b.classList.toggle("is-on", b === btn)
+        );
+        if (step === 6) render();
+      });
+    });
+
+    render();
+  </script>
+</body>
+</html>
