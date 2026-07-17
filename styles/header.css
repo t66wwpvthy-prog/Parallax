@@ -49,16 +49,23 @@
   align-self: stretch;
   display: flex;
   align-items: stretch;
+  flex: 1 1 auto;
   gap: 28px;
   height: 100%;
   margin: 0;
   padding: 0;
   border: 0;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
 }
+.app-header .hdr__tabs::-webkit-scrollbar { display: none; }
 .app-header .htab {
   position: relative;
   display: flex;
   align-items: center;
+  flex: 0 0 auto;
   height: 100%;
   padding: 0 2px;
   appearance: none;
@@ -71,6 +78,7 @@
   line-height: 1;
   letter-spacing: 0.12em;
   text-transform: uppercase;
+  white-space: nowrap;
   cursor: pointer;
 }
 .app-header .htab:hover {
@@ -195,16 +203,36 @@
     flex-wrap: wrap;
     height: auto;
     min-height: 56px;
-    padding: 0 20px 0;
-    gap: 12px 20px;
+    padding: 0 20px;
+    gap: 0;
+    /* Keep the rail in normal flow so wrapped tabs never paint over page chrome. */
+    overflow: hidden;
+  }
+  .app-header .hdr__logo,
+  .app-header .hdr__right {
+    height: 56px;
+    display: flex;
+    align-items: center;
   }
   .app-header .hdr__tabs {
     order: 3;
     flex: 1 1 100%;
+    width: 100%;
+    height: 44px;
     overflow-x: auto;
+    overflow-y: hidden;
     -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
     gap: 20px;
-    padding-bottom: 0;
+    border-top: 1px solid var(--hdr-line);
+    scrollbar-width: none;
+  }
+  .app-header .hdr__tabs::-webkit-scrollbar { display: none; }
+  .app-header .htab {
+    height: 100%;
+  }
+  .app-header .htab.on::after {
+    bottom: 0;
   }
   .app-header .hdr__right {
     margin-left: auto;
@@ -217,15 +245,35 @@
 @media (max-width: 760px) {
   .app-header {
     padding: 0 14px;
-    gap: 10px 14px;
   }
   .app-header .hdr__logo {
     height: 40px;
   }
-  .app-header .cluster {
+  .app-header .hdr__logo,
+  .app-header .hdr__right {
+    height: 48px;
+  }
+  .app-header .hdr__tabs {
+    height: 40px;
     gap: 16px;
   }
+  .app-header .cluster {
+    gap: 12px;
+  }
+  .app-header .cluster__stat {
+    /* Status text can drop first; keep Save/Run reachable. */
+    max-width: none;
+  }
   .app-header .status {
-    max-width: 120px;
+    max-width: 72px;
+  }
+}
+
+@media (max-width: 420px) {
+  .app-header .cluster__stat {
+    display: none;
+  }
+  .app-header .hdr__tabs {
+    gap: 14px;
   }
 }
