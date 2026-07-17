@@ -22,8 +22,8 @@ test('current wizard summary runs the federal engine for supported income', () =
   assert.ok(summary.adjustedGrossIncome > 0);
   assert.ok(summary.federalTaxLiability > 0);
   assert.ok(summary.ordinaryBracketRoom > 0);
-  assert.equal(summary.rmdAge, 73);
-  assert.equal(summary.firstRmdYear, 2049);
+  assert.equal(summary.rmdAge, 75);
+  assert.equal(summary.firstRmdYear, 2051);
 });
 
 test('qualified dividends expose the audited capital-gains position', () => {

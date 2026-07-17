@@ -439,24 +439,30 @@ test('a pre-retirement lump sum debits the portfolio (no longer ignored in accum
 });
 
 // ── RMDs (Required Minimum Distributions) ───────────────────────────────────
-// From age 73 the pre-tax sleeve must distribute a minimum even if spending
-// doesn't need it; the after-tax excess is reinvested into the taxable sleeve.
-// Roth / taxable-only plans have no RMD.
-test('RMDs force pre-tax distributions from 73 and reinvest the excess', () => {
+// From the SECURE start age the pre-tax sleeve must distribute a minimum even if
+// spending doesn't need it; the after-tax excess is reinvested into taxable.
+// Roth / taxable-only plans have no RMD. Start age is inferred from currentAge.
+test('RMDs force pre-tax distributions from the SECURE start age and reinvest the excess', () => {
   const p = JSON.parse(JSON.stringify(defaultPlan));
+  // Age 65 in 2026 → birth year 1961 → RMD start 75.
+  p.meta = { ...(p.meta || {}), asOfYear: 2026 };
+  p.household.primary = { currentAge: 65, retirementAge: 65, planEndAge: 95 };
   p.portfolio.accounts.taxable.balance     = 0;     // starts empty…
   p.portfolio.accounts.traditional.balance = 10e6;  // big pre-tax → RMD >> spending
   p.portfolio.accounts.roth.balance        = 0;
   const r = runHistoricalPath(p, 1995, 'taxable-first');
-  const at73 = r.rows.find(x => x.age === 73);
-  assert.ok(at73 && at73.rmd > 0, 'a required distribution fires at age 73');
+  const at74 = r.rows.find(x => x.age === 74);
+  const at75 = r.rows.find(x => x.age === 75);
+  assert.equal(at74?.rmdRequired || 0, 0, 'no RMD before start age 75');
+  assert.ok(at75 && at75.rmd > 0, 'a required distribution fires at age 75');
   // Taxable began at $0 and nothing else funds it in retirement, so any positive
   // taxable balance can ONLY be reinvested RMD proceeds.
-  assert.ok(r.rows.some(x => x.age >= 73 && x.accountBalances.taxable > 1),
+  assert.ok(r.rows.some(x => x.age >= 75 && x.accountBalances.taxable > 1),
     'excess RMD is reinvested into the taxable sleeve');
 
   // No pre-tax balance → no RMD ever (Roth/taxable are exempt).
   const q = JSON.parse(JSON.stringify(defaultPlan));
+  q.meta = { ...(q.meta || {}), asOfYear: 2026 };
   q.portfolio.accounts.taxable.balance     = 10e6;
   q.portfolio.accounts.traditional.balance = 0;
   q.portfolio.accounts.roth.balance        = 0;
@@ -464,8 +470,10 @@ test('RMDs force pre-tax distributions from 73 and reinvest the excess', () => {
   assert.ok(r2.rows.every(x => !(x.rmd > 0)), 'no Traditional balance → no RMD');
 });
 
-test('engine rows separate total required RMD from the forced top-up', () => {
+test('RMD start age 73 still applies for 1951–1959 birth cohorts', () => {
   const p = structuredClone(defaultPlan);
+  // Age 72 in 2026 → birth year 1954 → RMD start 73.
+  p.meta = { ...(p.meta || {}), asOfYear: 2026 };
   p.household.primary = { currentAge: 72, retirementAge: 72, planEndAge: 75 };
   p.portfolio.accounts = {
     taxable: { balance: 0, basisPct: 1 },
@@ -484,6 +492,7 @@ test('engine rows separate total required RMD from the forced top-up', () => {
   p.properties = [];
   p.ltc = { amount: 0, onsetAge: 99 };
   const params = resolveInputs(p, {});
+  assert.equal(params.rmdStartAge, 73);
   const sim = runSinglePath(params, [
     { y: 2025, proxyReturn: 0 },
     { y: 2026, proxyReturn: 0 },
@@ -500,6 +509,13 @@ test('engine rows separate total required RMD from the forced top-up', () => {
   assert.deepEqual(at73.preTaxDeltaAccountBreakdown, at73.accountBreakdown);
   assert.ok(at73.rmd < at73.rmdRequired,
     'row.rmd remains only the portion forced beyond the spending withdrawal');
+});
+
+test('Mike/Sarah-style ages (born 1962+) begin RMDs at 75', () => {
+  const p = structuredClone(defaultPlan);
+  p.meta = { ...(p.meta || {}), asOfYear: 2026 };
+  p.household.primary = { currentAge: 64, retirementAge: 66, planEndAge: 95 };
+  assert.equal(resolveInputs(p, {}).rmdStartAge, 75);
 });
 
 // ── Contribution split (Roth / brokerage contributions in accumulation) ─────

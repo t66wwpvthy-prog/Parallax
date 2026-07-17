@@ -2071,7 +2071,7 @@ try {
       const row = document.querySelector('#scn-view .cf-row__mark-dot--rmd')?.closest('.cf-row');
       return row ? (row.querySelector('.cf-cell--age')?.textContent.trim() || '') : '';
     });
-    if(rmdAge !== '73') throw new Error(`RMD start marker not at age 73 (got "${rmdAge}")`);
+    if(rmdAge !== '75') throw new Error(`RMD start marker not at age 75 (got "${rmdAge}")`);
 
     // The scenario pills switch which plan's cash flow is shown, and each plan's
     // cash flow reflects ITS OWN retire age. demoScenarios seeds Baseline at the

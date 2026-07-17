@@ -7,6 +7,7 @@ import {
   isSourceActiveNow,
   normalizedIncomeSource,
 } from '../../household/incomeTaxModel.js';
+import { getRmdStartAge, inferBirthYear } from '../rmdStartAge.js';
 
 const add = (target, key, amount) => { target[key] = (target[key] || 0) + amount; };
 
@@ -127,12 +128,19 @@ function capitalGainsPosition(filingStatus, taxableIncome, marginalRate, prefere
   return { room: null, note: 'Income reaches the 20% capital-gains band' };
 }
 
-function firstRmdYear(plan){
-  const birthYearInput = plan.household?.primary?.birthYear;
-  const birthYear = Number(birthYearInput);
-  if(birthYearInput != null && birthYearInput !== '' && Number.isFinite(birthYear)) return birthYear + 73;
-  const age = Number(plan.household?.primary?.currentAge);
-  return Number.isFinite(age) ? new Date().getFullYear() + (73 - age) : null;
+function rmdSchedule(plan){
+  const asOfYear = Number.isFinite(plan.meta?.asOfYear)
+    ? plan.meta.asOfYear
+    : new Date().getFullYear();
+  const currentAge = Number(plan.household?.primary?.currentAge);
+  const birthYear = Number.isFinite(currentAge)
+    ? inferBirthYear(currentAge, asOfYear)
+    : Number(plan.household?.primary?.birthYear);
+  const rmdAge = getRmdStartAge(birthYear);
+  if(rmdAge == null || !Number.isFinite(birthYear)){
+    return { rmdAge: null, firstRmdYear: null };
+  }
+  return { rmdAge, firstRmdYear: birthYear + rmdAge };
 }
 
 export function buildCurrentIncomeTaxSummary(plan){
@@ -202,8 +210,7 @@ export function buildCurrentIncomeTaxSummary(plan){
       capitalGainsRate,
       capitalGainsRoom: capitalGains.room,
       capitalGainsNote: capitalGains.note,
-      rmdAge: 73,
-      firstRmdYear: firstRmdYear(plan),
+      ...rmdSchedule(plan),
       warnings: annual.warnings || [],
     };
   }catch(error){

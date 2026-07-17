@@ -169,12 +169,15 @@ export function federalWarningMessage(warning) {
     return 'Federal tax calculation warning';
   }
 
-export function groupPhases(rows) {
+export function groupPhases(rows, rmdStartAge = null) {
     if (!rows.length) return [];
-    const RMD_START_AGE = 73;
+    const start = Number.isFinite(rmdStartAge)
+      ? rmdStartAge
+      : (rows.find((r) => (r.rmdRequired || 0) > 0)?.age ?? null);
+    if(start == null) return [{ rows }];
     return [
-      { rows: rows.filter((r) => r.age < RMD_START_AGE) },
-      { rows: rows.filter((r) => r.age >= RMD_START_AGE) },
+      { rows: rows.filter((r) => r.age < start) },
+      { rows: rows.filter((r) => r.age >= start) },
     ].filter((p) => p.rows.length);
   }
 
@@ -207,8 +210,9 @@ export function renderCashflow(scn, allScns, {
     )).join('');
 
     const retStartAge = rows.find((r) => !r.accum)?.age ?? null;
-    const RMD_START_AGE = 73;
-    const rmdStartAge = rows.find((r) => r.age >= RMD_START_AGE)?.age ?? null;
+    const rmdStartAge = Number.isFinite(scn.raw?.res?.params?.rmdStartAge)
+      ? scn.raw.res.params.rmdStartAge
+      : (rows.find((r) => (r.rmdRequired || 0) > 0)?.age ?? null);
 
     const taxComparisonHtml = taxComparison ? (
       '<div class="cf-tax-compare" data-tax-compare style="display:contents;"' +
@@ -285,7 +289,7 @@ export function renderCashflow(scn, allScns, {
       );
     };
 
-    const phases = groupPhases(rows).map((p, idx) => (
+    const phases = groupPhases(rows, rmdStartAge).map((p, idx) => (
       '<div class="cf-band ' + (idx % 2 === 1 ? 'is-shaded' : '') + '">' + p.rows.map(rowHtml).join('') + '</div>'
     )).join('');
 
