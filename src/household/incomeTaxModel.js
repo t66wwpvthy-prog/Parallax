@@ -13,8 +13,8 @@ export const INCOME_SOURCE_TYPES = freezeRows([
   { id: 'dividends', label: 'Dividends', timing: 'ongoing', taxablePct: 1 },
   { id: 'ira_distribution', label: 'IRA distribution', timing: 'current', taxablePct: 1 },
   { id: 'roth_conversion', label: 'Roth conversion', timing: 'current', taxablePct: 1 },
-  { id: 'short_term_capital_gain', label: 'Short-term capital gains', timing: 'current', taxablePct: 1 },
-  { id: 'long_term_capital_gain', label: 'Long-term capital gains', timing: 'current', taxablePct: 0 },
+  { id: 'short_term_capital_gain', label: 'External sale — short-term gain', timing: 'current', taxablePct: 1, projectionRole: 'external_sale' },
+  { id: 'long_term_capital_gain', label: 'External sale — long-term gain', timing: 'current', taxablePct: 0, projectionRole: 'external_sale' },
   { id: 'deferred_comp', label: 'Deferred compensation', timing: 'retirement', taxablePct: 1 },
   { id: 'other', label: 'Other income', timing: 'ongoing', taxablePct: 1 },
 ]);

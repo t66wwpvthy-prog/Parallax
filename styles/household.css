@@ -414,6 +414,71 @@
   color: var(--text-4); margin: 26px 0 4px;
 }
 
+/* ---- Joint accounts + optional savings ------------------------------------ */
+.page[data-page="household"] .hh-joint-block {
+  margin-top: 28px;
+  padding-top: 22px;
+  border-top: 1px solid var(--line-08);
+}
+.page[data-page="household"] .hh-joint-block__eyebrow {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-4);
+  margin-bottom: 12px;
+}
+.page[data-page="household"] .hh-joint-block__note {
+  margin: 0 0 12px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-3);
+  max-width: 42rem;
+}
+.page[data-page="household"] .hh-col--joint .hh-av--joint {
+  background: color-mix(in srgb, var(--gold) 22%, transparent);
+  color: var(--gold);
+}
+.page[data-page="household"] .hh-savings-addon {
+  margin-top: 22px;
+  padding: 14px 0 0;
+  border-top: 1px dashed var(--line-08);
+}
+.page[data-page="household"] .hh-savings-addon__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.page[data-page="household"] .hh-savings-addon__label {
+  display: block;
+  font-size: 14px;
+  color: var(--text-1);
+}
+.page[data-page="household"] .hh-savings-addon__note {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--text-3);
+}
+.page[data-page="household"] .hh-savings-addon__end {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.page[data-page="household"] .hh-savings-addon__amount {
+  font-family: var(--font-serif);
+  font-size: 18px;
+}
+.page[data-page="household"] .hh-it-add-line--secondary {
+  margin-top: 8px;
+}
+.page[data-page="household"] .hh-it-add-form__note {
+  grid-column: 1 / -1;
+  margin: 0 0 4px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-3);
+}
+
 /* ---- Grand total ---------------------------------------------------------- */
 .page[data-page="household"] .hh-grand-total {
   display: flex; align-items: flex-end; justify-content: space-between;
