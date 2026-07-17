@@ -60,6 +60,7 @@
   padding: 2px 6px 12px;
   display: flex;
   flex-direction: column;
+  min-width: 0;
   min-height: calc(100vh - 52px);
 }
 
@@ -74,6 +75,7 @@
   display: flex;
   flex-direction: column;
   flex: 1;
+  min-width: 0;
   min-height: 0;
 }
 
@@ -157,14 +159,19 @@
 /* ---- Stepper -------------------------------------------------------------- */
 .page[data-page="household"] .hh-stepper {
   display: grid;
-  grid-template-columns: auto 1fr auto 1fr auto 1fr auto;
+  /* 4 steps + 3 connectors; minmax(0,…) lets labels ellipsize instead of colliding. */
+  grid-template-columns: minmax(0, auto) minmax(12px, 1fr) minmax(0, auto) minmax(12px, 1fr) minmax(0, auto) minmax(12px, 1fr) minmax(0, auto);
   align-items: center;
+  width: 100%;
   max-width: 1280px;
+  min-width: 0;
   margin: 0 auto;
   padding: 8px 48px 0 28px; /* right room for overlay ⋯ menu */
+  box-sizing: border-box;
 }
 .page[data-page="household"] .hh-step {
   display: inline-flex; align-items: center; gap: 7px;
+  min-width: 0;
   background: transparent; border: 0; padding: 0; cursor: pointer;
 }
 .page[data-page="household"] .hh-step:focus-visible {
@@ -175,11 +182,13 @@
 .page[data-page="household"] .hh-step__num {
   width: 22px; height: 22px; border-radius: 50%;
   display: inline-flex; align-items: center; justify-content: center;
+  flex: none;
   font-family: var(--font-serif); font-size: 14px;
   border: 1px solid var(--line-16); color: var(--text-4);
 }
 .page[data-page="household"] .hh-step__label {
-  font-size: 10px; letter-spacing: 0.12em; color: var(--text-4); white-space: nowrap;
+  font-size: 10px; letter-spacing: 0.12em; color: var(--text-4);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;
 }
 .page[data-page="household"] .hh-step.is-current .hh-step__num {
   background: var(--gold);
@@ -192,7 +201,7 @@
 }
 .page[data-page="household"] .hh-step.is-done .hh-step__label { color: var(--text-1); }
 .page[data-page="household"] .hh-step__conn {
-  height: 1px; min-width: 16px; margin: 0 14px; background: var(--line-08);
+  height: 1px; min-width: 12px; margin: 0 10px; background: var(--line-08);
 }
 .page[data-page="household"] .hh-step__conn.is-done { background: rgba(195,165,106,0.4); }
 
@@ -537,7 +546,8 @@
 .page[data-page="household"] .hh-bp-sheet {
   position: relative; background: var(--sheet-bg);
   border: 0; border-radius: 0;
-  padding: 34px 8px 22px; display: flex; gap: 76px; align-items: stretch; overflow: hidden;
+  padding: 34px 8px 22px; display: flex; flex-wrap: wrap; gap: 48px 76px;
+  align-items: stretch; min-width: 0; overflow: visible;
 }
 .page[data-page="household"] .hh-bp-corner {
   display: none;
@@ -558,12 +568,13 @@
 }
 .page[data-page="household"] .hh-bp-avs { display: inline-flex; align-items: center; flex: none; }
 .page[data-page="household"] .hh-bp-house__name {
-  font-family: var(--font-serif); font-size: 34px; font-weight: 300; color: var(--text-hi); white-space: nowrap;
+  font-family: var(--font-serif); font-size: 34px; font-weight: 300; color: var(--text-hi);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;
 }
 .page[data-page="household"] .hh-bp-filing {
   font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-2); margin-top: 12px;
 }
-.page[data-page="household"] .hh-bp-facts { display: flex; gap: 34px; margin-top: 24px; }
+.page[data-page="household"] .hh-bp-facts { display: flex; flex-wrap: wrap; gap: 18px 34px; margin-top: 24px; }
 .page[data-page="household"] .hh-bp-facts__k {
   display: block; font-size: 9px; letter-spacing: 0.14em; color: var(--text-5); margin-bottom: 8px;
 }
@@ -587,11 +598,15 @@
 .page[data-page="household"] .hh-bp-flow__val--sage { color: var(--sage); }
 
 .page[data-page="household"] .hh-bp-inst {
-  flex: none; width: 420px; max-width: 100%;
+  flex: 1 1 280px; width: min(420px, 100%); max-width: 100%;
+  min-width: 0; box-sizing: border-box; overflow: hidden;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
 }
 .page[data-page="household"] .hh-bp-gauge {
-  position: relative; width: 260px; height: 260px; flex: none;
+  position: relative; width: min(260px, 100%); max-width: 100%;
+  aspect-ratio: 1; height: auto; flex: none;
+  /* Rotated arc SVG otherwise expands scrollWidth past the circle box. */
+  overflow: hidden;
 }
 .page[data-page="household"] .hh-bp-gauge__svg {
   display: block; width: 100%; height: 100%;
@@ -611,22 +626,28 @@
   font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-5); margin-top: 10px;
 }
 .page[data-page="household"] .hh-bp-alloc-list {
-  width: 100%; display: flex; flex-direction: column; gap: 13px;
+  width: 100%; max-width: 100%; min-width: 0; box-sizing: border-box;
+  display: flex; flex-direction: column; gap: 13px;
   margin-top: 30px; padding: 0 4px;
 }
 .page[data-page="household"] .hh-bp-alloc {
-  display: flex; align-items: center; justify-content: space-between; gap: 14px;
+  display: flex; align-items: center; justify-content: space-between; gap: 10px 14px;
+  min-width: 0; width: 100%;
 }
 .page[data-page="household"] .hh-bp-alloc__name {
-  display: inline-flex; align-items: center; gap: 10px; flex: 1; min-width: 0;
+  display: inline-flex; align-items: center; gap: 10px; flex: 1 1 auto; min-width: 0;
   font-size: 12px; color: var(--text-1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .page[data-page="household"] .hh-bp-alloc__dot { width: 7px; height: 7px; border-radius: 2px; flex: none; }
 .page[data-page="household"] .hh-bp-alloc__nums {
-  display: inline-flex; align-items: baseline; gap: 10px; flex: none; width: 150px; justify-content: flex-end;
+  display: inline-flex; align-items: baseline; gap: 8px; flex: 0 1 auto;
+  min-width: 0; max-width: 100%; justify-content: flex-end;
 }
-.page[data-page="household"] .hh-bp-alloc__pct { font-size: 10.5px; color: var(--text-2); }
-.page[data-page="household"] .hh-bp-alloc__amt { font-family: var(--font-serif); font-size: 17px; color: var(--text-hi); }
+.page[data-page="household"] .hh-bp-alloc__pct { font-size: 10.5px; color: var(--text-2); flex: none; }
+.page[data-page="household"] .hh-bp-alloc__amt {
+  font-family: var(--font-serif); font-size: 17px; color: var(--text-hi); flex: none;
+  white-space: nowrap;
+}
 
 /* ---- Inputs --------------------------------------------------------------- */
 .page[data-page="household"] input,
@@ -1218,6 +1239,55 @@
   line-height: 1.4;
 }
 
+/* Stack summary before side-by-side can clip the gauge. */
+@media (max-width: 1240px) {
+  .page[data-page="household"] .hh-bp-sheet {
+    flex-direction: column;
+    gap: 36px;
+  }
+  .page[data-page="household"] .hh-bp-inst {
+    flex: none;
+    width: 100%;
+    max-width: 420px;
+    align-self: center;
+  }
+  .page[data-page="household"] .hh-bp-alloc-list {
+    width: 100%;
+    max-width: none;
+    margin-top: 24px;
+  }
+  .page[data-page="household"] .hh-bp-flow {
+    max-width: none;
+    padding-top: 36px;
+  }
+}
+
+/* Compact stepper before labels collide with each other or the header rail. */
+@media (max-width: 1180px) {
+  .page[data-page="household"] .hh-stepper {
+    padding-left: 20px;
+    padding-right: 40px;
+  }
+  .page[data-page="household"] .hh-step {
+    position: relative;
+    justify-content: center;
+  }
+  .page[data-page="household"] .hh-step__label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+  .page[data-page="household"] .hh-step__conn {
+    margin: 0 6px;
+  }
+}
+
 @media (max-width: 1080px) {
   .page[data-page="household"] .hh-profile__board {
     grid-template-columns: 1fr;
@@ -1234,9 +1304,6 @@
   .page[data-page="household"] .hh-cols__div { width: 100%; height: 1px; margin: 24px 0; }
   .page[data-page="household"] .hh-cols--split .hh-col:first-child,
   .page[data-page="household"] .hh-cols--split .hh-col:last-child { padding: 0; }
-  .page[data-page="household"] .hh-bp-sheet { flex-direction: column; }
-  .page[data-page="household"] .hh-bp-inst { flex-direction: column; width: 100%; }
-  .page[data-page="household"] .hh-bp-alloc-list { width: 100%; max-width: none; margin-top: 24px; }
   .page[data-page="household"] .hh-wiz-top,
   .page[data-page="household"] .hh-stepper,
   .page[data-page="household"] .hh-wiz-workspace,
@@ -1253,9 +1320,18 @@
     column-gap: 18px;
   }
   .page[data-page="household"] .hh-it-equation__op { display: none; }
+  .page[data-page="household"] .hh-bp-gauge__v { font-size: clamp(32px, 8vw, 48px); }
+  .page[data-page="household"] .hh-bp-house__name { font-size: clamp(24px, 6vw, 34px); }
 }
 
 @media (max-width: 660px) {
+  .page[data-page="household"] .hh-stage { padding-top: 10px; }
+  .page[data-page="household"] .hh-wiz-id__name { font-size: 20px; }
+  .page[data-page="household"] .hh-bp-alloc__nums { width: auto; min-width: 0; }
+  .page[data-page="household"] .hh-bp-alloc {
+    flex-wrap: wrap;
+    gap: 6px 14px;
+  }
   .page[data-page="household"] .hh-it-grid { flex-direction: column; gap: 22px; }
   .page[data-page="household"] .hh-it-grid--lower { margin-top: 26px; }
   .page[data-page="household"] .hh-it-tax-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -1270,6 +1346,20 @@
   .page[data-page="household"] .hh-tax-badge { justify-self: start; margin-top: 4px; }
   .page[data-page="household"] .hh-tax-fields { grid-template-columns: 1fr; }
   .page[data-page="household"] .hh-tax-limit { grid-template-columns: 1fr; gap: 6px; }
+}
+
+@media (max-width: 420px) {
+  .page[data-page="household"] .hh-stepper {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+  .page[data-page="household"] .hh-wiz-workspace,
+  .page[data-page="household"] .hh-wiz-footer {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+  .page[data-page="household"] .hh-bp-sheet { padding-left: 0; padding-right: 0; }
+  .page[data-page="household"] .hh-it-tax-grid { grid-template-columns: 1fr; }
 }
 
 /* Hide sticky-note floater on Household wizard — it clashes with footer CTAs */
