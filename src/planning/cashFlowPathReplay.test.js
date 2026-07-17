@@ -57,7 +57,8 @@ test('pickRandomSimIndex returns a valid sim index', () => {
 });
 
 test('pathModeLabel uses product names', () => {
-  assert.match(pathModeLabel('stressed-pp'), /purchasing power erosion/i);
+  assert.equal(pathModeLabel('stressed-pp'), 'Stressed');
+  assert.equal(pathModeLabel('sequence-dotcom-gfc'), 'Sequence');
   assert.match(pathModeLabel('random'), /Random path/);
 });
 

@@ -2161,8 +2161,8 @@ function renderStory(){
   const picks = [
     ['typical','Typical'],
     ['favorable','Favorable'],
-    ['stressed-pp','PP erosion'],
-    ['sequence-dotcom-gfc','Dot-com→GFC'],
+    ['stressed-pp','Stressed'],
+    ['sequence-dotcom-gfc','Sequence'],
     ['random','Random'],
   ].map(([m,l]) => `<button class="${pathReplay.mode===m?'on':''}" data-story-mode="${m}">${l}</button>`).join('');
   const verb = d.first10Supports ? 'cooperate' : 'push back';
