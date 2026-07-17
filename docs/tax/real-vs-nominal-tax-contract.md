@@ -49,7 +49,7 @@ engine.js (real $)
 |-------|-----------------|-------------|--------|
 | **Wages / retirement income** | Real amounts on rows / streams | Inflate before ordinary income | `taxablePct` applies in real space before inflate |
 | **Social Security** | PIA already today’s $; flat real once claimed | Inflate benefits + worksheet companions for §86 | Shortcut still uses 85% × ordinary (approximate) |
-| **Capital gains** | See § Capital gains (two concepts) | Preferential stacking on **nominal** preferential income | Character (ST/LT) must survive the bridge |
+| **Capital gains** | Derived from taxable withdrawals / sale events | Preferential stacking on **nominal** preferential income | Not a free-floating wizard income driver; see § Capital gains |
 | **Deductions** | Entered in today’s $ | Inflate itemized amounts; standard deduction stays table nominal | |
 | **Brackets** | — | Always law-table nominal for the tax year | Never deflate brackets into real |
 | **IRMAA** | — | Thresholds are nominal MAGI | **Not modeled** in tax engine today; UI discloses |
@@ -58,27 +58,36 @@ engine.js (real $)
 
 ---
 
-## Capital gains (two concepts)
+## Capital gains (product rules)
 
-These must never be treated as the same transaction.
+Projected capital gains are almost always an **output of taxable funding**, not a wizard income amount.
 
-### 1. Externally realized / entered capital gain
+### 1. Path / tax-bucket realization (primary)
 
-- Household income source (`short_term_capital_gain`, `long_term_capital_gain`) or a modeled sale event with **gross proceeds + basis**.
-- Adds **cash** (and taxable gain) according to the event.
-- Does **not** by itself reduce portfolio balances unless the event explicitly sells portfolio shares.
+- Spending, goals, or a funding counterfactual (“pay from taxable vs IRA”) drives a **taxable-sleeve withdrawal**.
+- Withdrawal proceeds = cash; **balance and cost basis decline**.
+- Only the gain portion is taxable income (`taxableCapitalGain`, `taxableGainFraction`).
+- Cash flow and tax-bucket compares must use this same path — do **not** also type that gain as wizard “capital gains income.”
 
-### 2. Gain created by portfolio withdrawal
+### 2. External sale events (exception)
 
-- Taxable-sleeve draw to fund the cash-flow gap.
-- Withdrawal proceeds = cash.
-- Only the realized gain portion is taxable income; **cost basis declines** with the withdrawal.
-- Engine fields: `taxableCapitalGain`, `taxableGainFraction`, basis on `accounts.taxable`.
+- Sales **outside** the modeled brokerage path (property, business, known one-off with proceeds + basis).
+- Structured as a **sale event** (proceeds, basis, timing), not a naked LTCG/STCG income line.
+- Portfolio balances move only if the event sells modeled shares.
 
-### Forbidden double count
+### 3. Tax-only facts (not projection drivers)
 
-A generic “capital gains income” row must **not** also shrink the portfolio for the same dollars.  
-`plan.incomeTax.realizedGains` is tax-fact only today and must not move engine cash (pinned by test).
+- `plan.incomeTax.realizedGains` (and similar current-year return facts) may inform a tax **snapshot**.
+- They must **not** create engine cash or change withdrawals/balances (pinned by test).
+- Do not use them to explore “what if we fund from taxable” — use a withdrawal / bucket lever instead.
+
+### Consistency
+
+| Allowed | Forbidden |
+|---------|-----------|
+| Taxable draw → implied gain → tax → lower balance | Book CG for tax with **no** portfolio decrease (phantom income) |
+| Same need funded from IRA vs taxable (different tax shape) | Same sale counted as income row **and** full withdrawal |
+| External sale event with proceeds + basis | Free-floating wizard “$LTCG” driving the multi-year plan |
 
 ### Asset sales (properties)
 
@@ -103,6 +112,6 @@ Until the federal bridge is wired, treat current federal results as **same-year 
 ## Implementation helpers
 
 - `src/planning/tax/realNominalBridge.js` — `inflationFactor`, `toNominal`, `toReal`, `projectionLagYears`
-- Tests pin bridge math and the capital-gains / no-double-count rules above
+- Tests pin bridge math and the capital-gains product rules above
 
 Wiring the federal adapter to call this bridge is a follow-on change; this PR locks the contract.

@@ -47,46 +47,7 @@ test('IRMAA is not registered as a federal rule yet', () => {
   assert.equal(ids.some(id => /irmaa/i.test(id)), false);
 });
 
-test('entered long-term capital gain income adds cash without shrinking taxable basis via withdrawal', () => {
-  const base = structuredClone(defaultPlan);
-  base.meta = { ...(base.meta || {}), asOfYear: 2026 };
-  base.household.primary = { currentAge: 70, retirementAge: 70, planEndAge: 75 };
-  base.portfolio.accounts = {
-    taxable: { balance: 500_000, basisPct: 1 },
-    traditional: { balance: 0 },
-    roth: { balance: 0 },
-  };
-  base.income.socialSecurity = { primary: { pia: 0, claimAge: 70 }, spouse: null };
-  base.income.pension = { benefitByAge: {}, base: 0, startAge: 99, colaPct: 0 };
-  base.income.other = [];
-  base.expenses = { living: 40_000, housing: 0, debt: 0, healthcare: 0, healthcareRealGrowth: 0, extra: [] };
-  base.goals = [];
-  base.liabilities = [];
-  base.properties = [];
-  base.ltc = { amount: 0, onsetAge: 99 };
-
-  const without = runHistoricalPath(base, 1995, 'taxable-first');
-  const withGain = structuredClone(base);
-  withGain.income.other = [{
-    typeId: 'long_term_capital_gain',
-    label: 'External LTCG',
-    amount: 40_000,
-    startAge: 70,
-    endAge: 70,
-    taxablePct: 0,
-    realGrowth: 0,
-  }];
-  const withRow = runHistoricalPath(withGain, 1995, 'taxable-first');
-  const age70Base = without.rows.find(r => r.age === 70);
-  const age70Gain = withRow.rows.find(r => r.age === 70);
-  assert.equal(age70Gain.otherIncome, 40_000);
-  assert.ok(age70Gain.withdrawal < age70Base.withdrawal - 1,
-    'external capital-gain income reduces the withdrawal gap');
-  assert.ok((age70Gain.taxableCapitalGain || 0) <= (age70Base.taxableCapitalGain || 0) + 0.01,
-    'entered LTCG income must not invent extra portfolio withdrawal gains');
-});
-
-test('taxableCapitalGain requires a taxable withdrawal (portfolio realization path)', () => {
+test('path capital gain is derived from taxable withdrawal (not a wizard income line)', () => {
   const p = structuredClone(defaultPlan);
   p.meta = { ...(p.meta || {}), asOfYear: 2026 };
   p.household.primary = { currentAge: 70, retirementAge: 70, planEndAge: 72 };
@@ -100,10 +61,24 @@ test('taxableCapitalGain requires a taxable withdrawal (portfolio realization pa
   p.expenses = { living: 50_000, housing: 0, debt: 0, healthcare: 0, healthcareRealGrowth: 0, extra: [] };
   p.goals = [];
   const row = runHistoricalPath(p, 1995, 'taxable-first').rows.find(r => r.age === 70);
+  assert.equal(row.otherIncome, 0, 'no typed capital-gain income on the path');
   assert.ok(row.withdrawal > 0);
-  assert.ok(row.accountBreakdown.taxable > 0);
-  assert.ok(row.taxableCapitalGain > 0);
+  assert.ok(row.accountBreakdown.taxable > 0, 'funding comes from the taxable sleeve');
+  assert.ok(row.taxableCapitalGain > 0, 'gain comes from the taxable draw');
   assert.ok(row.taxableCapitalGain <= row.accountBreakdown.taxable + 0.01);
+  assert.ok(
+    Math.abs(row.taxableCapitalGain - row.accountBreakdown.taxable * 0.5) < 0.01,
+    'gain fraction follows taxable basis (50% basis → 50% gain)'
+  );
+});
+
+test('tax-only realizedGains facts do not drive projection cash or balances', () => {
+  const p = structuredClone(defaultPlan);
+  const base = runHistoricalPath(p, 1995, 'taxable-first');
+  p.incomeTax = { ...(p.incomeTax || {}), realizedGains: { shortTerm: 25_000, longTerm: 75_000 } };
+  const withFacts = runHistoricalPath(p, 1995, 'taxable-first');
+  assert.deepEqual(withFacts.rows, base.rows,
+    'snapshot CG facts must not change withdrawals or portfolio balances');
 });
 
 test('federal path still receives real cash without inflate bridge (current ≈ target gap)', () => {
