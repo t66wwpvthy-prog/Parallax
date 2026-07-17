@@ -378,7 +378,7 @@ export function bindHouseholdEditor({
       transientState.hhAcctFormOwner = null;
       syncHousehold();
     } else if(action === 'step-next'){
-      transientState.hhStep = Math.min(4, transientState.hhStep + 1);
+      transientState.hhStep = Math.min(6, transientState.hhStep + 1);
       transientState.hhAddingKey = null;
       transientState.hhAcctFormOwner = null;
       syncHousehold();

@@ -278,10 +278,10 @@ export function createHouseholdWizard(deps){
     }).join('');
     return `<div class="hh-step-pane hh-profile">
       <header class="hh-profile__head">
-        <h2 class="hh-profile__title">Profile</h2>
-        <p class="hh-profile__note">Household identity and retirement lifestyle — goals stay on Goals.</p>
+        <h2 class="hh-profile__title">Family</h2>
+        <p class="hh-profile__note">Household identity — goals stay on Goals.</p>
       </header>
-      <div class="hh-profile__board">
+      <div class="hh-profile__board hh-profile__board--solo">
         <section class="hh-profile__people" aria-label="Household">
           <div class="hh-profile__eyebrow">Household</div>
           <div class="hh-cols hh-cols--split hh-profile__people-cols">
@@ -298,10 +298,19 @@ export function createHouseholdWizard(deps){
               <div class="hh-meta__v">${childRows}${childAdd}</div></div>
           </div>
         </section>
-        <aside class="hh-profile__spend" aria-label="Retirement spending">
-          ${renderHouseholdSpending(plan, deps, state)}
-        </aside>
       </div>
+    </div>`;
+  }
+
+  function stepIncome(){
+    return renderHouseholdIncomeTax(deps.plan, deps, state);
+  }
+
+  function stepSavings(){
+    return `<div class="hh-step-pane">
+      <h2 class="hh-step-title">Savings</h2>
+      <p class="hh-step-note">How much the household adds each year — separate from account balances.</p>
+      ${savingsAddon(deps.plan, deps, state)}
     </div>`;
   }
 
@@ -322,12 +331,19 @@ export function createHouseholdWizard(deps){
         <div class="hh-joint-block__eyebrow">Joint</div>
         ${acctOwnerColumn('joint', plan, deps, state)}
       </div>
-      ${savingsAddon(plan, deps, state)}
       <div class="hh-grand-total">
         <div><div class="hh-grand-total__k">Total investable</div><div class="hh-grand-total__sub">${count} account${count === 1 ? '' : 's'}</div></div>
         <div class="hh-grand-total__v">${hhMoney(total)}</div>
       </div>
       ${renderHouseholdTaxFacts(plan, deps)}
+    </div>`;
+  }
+
+  function stepExpenses(){
+    return `<div class="hh-step-pane">
+      <h2 class="hh-step-title">Expenses</h2>
+      <p class="hh-step-note">Retirement lifestyle floor — portfolio withdrawals begin when both clients are retired.</p>
+      ${renderHouseholdSpending(deps.plan, deps, state)}
     </div>`;
   }
 
@@ -392,20 +408,22 @@ export function createHouseholdWizard(deps){
     const back = step > 1
       ? `<button class="hh-btn hh-btn--outline" type="button" data-hh-action="step-back">← Back</button>`
       : `<span></span>`;
-    const right = step < 4
-      ? `<button class="hh-btn hh-btn--primary" type="button" data-hh-action="step-next">${step === 3 ? 'Review →' : 'Continue →'}</button>`
-      : `<span class="hh-wiz-foot-note">Step 4 of 4</span>`;
+    const right = step < 6
+      ? `<button class="hh-btn hh-btn--primary" type="button" data-hh-action="step-next">${step === 5 ? 'Review →' : 'Continue →'}</button>`
+      : `<span class="hh-wiz-foot-note">Step 6 of 6</span>`;
     return `<div class="hh-wiz-footer">${back}${right}</div>`;
   }
 
   return {
     steps: {
       1: stepPeople,
-      2: stepBalance,
-      3: () => renderHouseholdIncomeTax(deps.plan, deps, state),
-      4: stepSummary,
+      2: stepIncome,
+      3: stepSavings,
+      4: stepBalance,
+      5: stepExpenses,
+      6: stepSummary,
     },
     footer,
-    stepLabels: ['Profile', 'Balance Sheet', 'Income & Tax', 'Summary'],
+    stepLabels: ['Family', 'Income & Tax', 'Savings', 'Net Worth', 'Expenses', 'Summary'],
   };
 }

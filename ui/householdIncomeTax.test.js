@@ -81,10 +81,10 @@ test('income add flow uses ordinary catalog without path capital gains', () => {
 
   const closed = renderHouseholdIncomeTax(plan(), deps, { hhAddingKey: null });
   assert.doesNotMatch(closed, /LT cap gains/);
-  assert.match(closed, /external sale/);
+  assert.doesNotMatch(closed, /external sale/);
 });
 
-test('external sale add flow is opt-in and labels rare brokerage-outside sales', () => {
+test('external sale add flow remains available when opened and labels rare brokerage-outside sales', () => {
   const html = renderHouseholdIncomeTax(plan(), deps, { hhAddingKey: 'external-sale' });
   assert.match(html, /outside the modeled brokerage path/);
   assert.match(html, /option value="long_term_capital_gain"/);

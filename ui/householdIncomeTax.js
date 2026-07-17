@@ -32,8 +32,6 @@ const EXTERNAL_SALE_SOURCE_TYPES = INCOME_SOURCE_TYPES.filter(row => EXTERNAL_SA
 const ADDABLE_DEDUCTION_TYPES = DEDUCTION_TYPES.filter(row =>
   ['medical', 'charitable', 'mortgage_interest', 'salt', 'other'].includes(row.id));
 
-const INCOME_ADD_HINT = 'Wages · Bonus · Self-employment · Pension · Annuity · Rental · Interest · Dividends · Deferred comp · Other';
-
 const DEFAULT_INCOME_SLOTS = Object.freeze([
   { typeId: 'wages', owner: 'client' },
   { typeId: 'wages', owner: 'spouse' },
@@ -175,7 +173,7 @@ function socialSecurityRow(plan, deps, role){
     ? `<button class="row-x" data-hh-clear-path="${base}.pia" title="Clear Social Security">×</button>`
     : '';
   return `<div class="hh-it-row" data-income-tax-slot="social_security:${owner}">
-    <span class="hh-it-row__copy"><span class="hh-it-row__title">Social Security</span><span class="hh-it-row__meta">${escHtml(ownerLabel(plan, owner))} · from ${claimAge} · COLA · <em>taxable auto</em></span></span>
+    <span class="hh-it-row__copy"><span class="hh-it-row__title">Social Security</span><span class="hh-it-row__meta">${escHtml(ownerLabel(plan, owner))} · claim ${claimAge}</span></span>
     <span class="hh-it-row__end"><span class="hh-it-row__amount">${amount}</span>${clear}</span>
   </div>`;
 }
@@ -345,21 +343,20 @@ export function renderHouseholdIncomeTax(plan, deps, state){
         ${retirementExtras.map(row => sourceRow(plan, deps, row, row.index)).join('')}
       </section>
     </div>
-    <div class="hh-it-add-line">${addControl(state, 'income', 'income source', plan)}${state.hhAddingKey !== 'income' && state.hhAddingKey !== 'external-sale' ? `<span>${INCOME_ADD_HINT}</span>` : ''}</div>
-    <div class="hh-it-add-line hh-it-add-line--secondary">${addControl(state, 'external-sale', 'external sale', plan)}${state.hhAddingKey !== 'external-sale' ? `<span>Rare — outside modeled brokerage draws</span>` : ''}</div>
+    <div class="hh-it-add-line">${addControl(state, 'income', 'income source', plan)}</div>
 
     <div class="hh-it-grid hh-it-grid--lower">
       <section>
-        <div class="hh-it-section-head"><span>PRE-TAX &amp; ADJUSTMENTS</span><strong>−${money(adjustments)}</strong></div>
+        <div class="hh-it-section-head"><span>PRE-TAX &amp; ADJUSTMENTS</span><strong>${money(adjustments)}</strong></div>
         ${adjustmentSlots.slots.map(slot => fixedAdjustmentRow(plan, slot)).join('')}
         ${extraAdjustments.map(row => adjustmentRow(plan, deps, row, row.index)).join('')}
         ${addControl(state, 'adjustment', 'adjustment', plan)}
       </section>
       <section>
-        <div class="hh-it-section-head"><span>DEDUCTIONS</span><strong>−${money(deductions)}</strong></div>
+        <div class="hh-it-section-head"><span>DEDUCTIONS</span><strong>${money(deductions)}</strong></div>
         ${deductionSlots.slots.map(fixedDeductionRow).join('')}
         ${extraDeductions.map(row => deductionRow(deps, row, row.index)).join('')}
-        <div class="hh-it-auto-row"><span>Standard · MFJ + senior 65+ <b>AUTO</b></span><strong>${summaryReady ? money(summary.standardDeduction) : '—'}</strong></div>
+        <div class="hh-it-auto-row"><span>Standard · MFJ + senior 65+</span><strong>${summaryReady ? money(summary.standardDeduction) : '—'}</strong></div>
         <div class="hh-it-deduction-footer">${addControl(state, 'deduction', 'deduction', plan)}${deductionComparison ? `<span>${deductionComparison}</span>` : ''}</div>
       </section>
     </div>

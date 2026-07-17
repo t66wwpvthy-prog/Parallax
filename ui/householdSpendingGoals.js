@@ -16,7 +16,7 @@ function addControl(state){
     : `<button class="hh-it-add" type="button" data-hh-action="open-add" data-add-key="spending">+ Add category</button>`;
 }
 
-/** Retirement spending pane for Profile (goals stay on the Goals page). */
+/** Retirement spending pane for Expenses (goals stay on the Goals page). */
 export function renderHouseholdSpending(plan, deps, state){
   const extras = plan.expenses?.extra || [];
   const spendingTotal = (plan.expenses?.living || 0) + (plan.expenses?.healthcare || 0)
