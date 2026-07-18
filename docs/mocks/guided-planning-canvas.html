@@ -1,0 +1,1190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Parallax · Guided Planning Canvas (POC)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@300;400;500;600&family=Spectral:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0b0d11;
+      --bg-deep: #080a0d;
+      --surface: rgba(255,255,255,0.022);
+      --ink: #ddd5c4;
+      --ink-bright: #e7dec9;
+      --ink-body: #9097a0;
+      --ink-mute: #7d848c;
+      --gold: #c6a662;
+      --gold-bright: #d8c084;
+      --gold-ink: #15181d;
+      --line: rgba(231,222,201,0.10);
+      --line-strong: rgba(231,222,201,0.16);
+      --sage: #9bb59a;
+      --slate: #8fa3b8;
+      --font-sans: "Hanken Grotesk", system-ui, sans-serif;
+      --font-serif: "Spectral", Georgia, serif;
+      --lane: 780px;
+      --rail: 280px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: var(--font-sans);
+      color: var(--ink);
+      background:
+        radial-gradient(1100px 520px at 18% -8%, rgba(198,166,98,0.07), transparent 55%),
+        radial-gradient(800px 420px at 92% 0%, rgba(120,140,180,0.05), transparent 50%),
+        linear-gradient(180deg, #0c0f14, var(--bg-deep));
+    }
+    .page { max-width: 1180px; margin: 0 auto; padding: 24px 20px 48px; }
+
+    /* —— POC chrome (not part of wizard) —— */
+    .poc-banner {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--surface);
+      padding: 14px 16px;
+      margin-bottom: 16px;
+    }
+    .poc-banner .eyebrow {
+      margin: 0 0 6px;
+      font-size: 11px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--gold);
+    }
+    .poc-banner h1 {
+      margin: 0 0 6px;
+      font-family: var(--font-serif);
+      font-weight: 300;
+      font-size: 26px;
+      color: var(--ink-bright);
+    }
+    .poc-banner p {
+      margin: 0;
+      font-size: 13px;
+      line-height: 1.5;
+      color: var(--ink-body);
+      max-width: 72ch;
+    }
+    .poc-banner ul {
+      margin: 10px 0 0;
+      padding-left: 18px;
+      color: var(--ink-mute);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    /* —— Wizard shell —— */
+    .shell {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background:
+        radial-gradient(110% 85% at 0% 0%, rgba(231,222,201,0.018), transparent 48%),
+        rgba(14,16,19,0.94);
+      box-shadow: 0 24px 54px -48px rgba(0,0,0,0.78);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      min-height: 720px;
+    }
+    .shell-top {
+      padding: 16px 22px 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .shell-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 12px;
+    }
+    .shell-meta .k {
+      font-size: 11px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--gold);
+    }
+    .shell-meta .pill {
+      font-size: 12px;
+      color: var(--ink-mute);
+    }
+
+    /* Thin progress rail — not purple chevrons, not heavy cards */
+    .stepper {
+      display: flex;
+      gap: 0;
+      align-items: center;
+      padding-bottom: 14px;
+      overflow-x: auto;
+    }
+    .step {
+      appearance: none;
+      background: none;
+      border: 0;
+      color: var(--ink-mute);
+      font: 500 11px/1 var(--font-sans);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 6px 10px 6px 0;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+    .step .num {
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      border: 1px solid var(--line-strong);
+      display: inline-grid;
+      place-items: center;
+      font-size: 11px;
+      color: var(--ink-mute);
+    }
+    .step.is-done { color: var(--ink-body); }
+    .step.is-done .num {
+      background: rgba(198,166,98,0.18);
+      border-color: rgba(198,166,98,0.45);
+      color: var(--gold-bright);
+    }
+    .step.is-current { color: var(--ink-bright); }
+    .step.is-current .num {
+      background: var(--gold);
+      border-color: var(--gold);
+      color: var(--gold-ink);
+      font-weight: 600;
+    }
+    .step-conn {
+      flex: 1;
+      min-width: 12px;
+      height: 1px;
+      background: var(--line);
+      margin: 0 4px;
+    }
+    .step-conn.is-done { background: rgba(198,166,98,0.45); }
+
+    /* Guided Planning Canvas */
+    .gpc { padding: 22px 22px 8px; flex: 1; display: flex; flex-direction: column; min-height: 0; }
+    .gpc-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+    .gpc-title {
+      margin: 0;
+      font-family: var(--font-serif);
+      font-weight: 300;
+      font-size: 32px;
+      color: var(--ink-bright);
+      letter-spacing: -0.01em;
+    }
+    .gpc-status {
+      font-size: 13px;
+      color: var(--ink-body);
+      text-align: right;
+    }
+    .gpc-status strong { color: var(--gold); font-weight: 500; }
+    .gpc-status small { color: var(--ink-mute); }
+
+    .gpc-body {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 0;
+      flex: 1;
+      min-height: 0;
+    }
+    .gpc-body.has-rail {
+      grid-template-columns: minmax(0, var(--lane)) 1px minmax(220px, var(--rail));
+      gap: 0 22px;
+    }
+    .gpc-lane { min-width: 0; max-width: var(--lane); }
+    .gpc-rail-rule {
+      background: var(--line);
+      width: 1px;
+      align-self: stretch;
+    }
+    .gpc-rail {
+      min-width: 0;
+      padding-top: 4px;
+    }
+    .rail-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 12px;
+      padding: 6px 0;
+      color: var(--ink-body);
+    }
+    .rail-row strong { color: var(--ink-bright); font-weight: 500; }
+    .rail-k { color: var(--ink-mute); }
+    .rail-note {
+      margin: 12px 0 0;
+      font-size: 12px;
+      line-height: 1.45;
+      color: var(--ink-mute);
+    }
+    .rail-hr {
+      border: 0;
+      border-top: 1px solid var(--line);
+      margin: 10px 0;
+    }
+
+    /* Sections — heading + hairline, NOT cards */
+    .sec { margin-bottom: 28px; }
+    .sec-head {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .sec-eye {
+      font-size: 11px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--gold);
+      flex: none;
+    }
+    .sec-head::after {
+      content: "";
+      flex: 1;
+      height: 1px;
+      background: var(--line);
+      transform: translateY(-2px);
+    }
+    .sec-tot {
+      flex: none;
+      font-size: 13px;
+      color: var(--gold);
+      font-weight: 500;
+    }
+    .sec-note {
+      margin: -4px 0 12px;
+      font-size: 12px;
+      color: var(--ink-mute);
+      line-height: 1.4;
+    }
+
+    /* Compact field clusters — proximity rule */
+    .cluster {
+      display: grid;
+      gap: 12px 14px;
+    }
+    .cluster.cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .cluster.cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+    .field.wide { grid-column: 1 / -1; }
+    .field label {
+      font-size: 11px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--ink-mute);
+    }
+    .field input, .field select {
+      width: 100%;
+      max-width: 100%;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      color: var(--ink-bright);
+      font: 400 14px/1.2 var(--font-sans);
+      padding: 8px 10px;
+      outline: none;
+    }
+    .field input:focus, .field select:focus {
+      border-color: rgba(198,166,98,0.55);
+    }
+    .field input.short { max-width: 96px; }
+    .money {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 0 10px;
+      width: 100%;
+    }
+    .money span { color: var(--ink-mute); font-size: 13px; }
+    .money input {
+      border: 0 !important;
+      background: transparent !important;
+      padding: 8px 0 !important;
+      flex: 1;
+      min-width: 0;
+    }
+
+    /* Expandable record bands — not cards */
+    .stack { display: flex; flex-direction: column; gap: 6px; }
+    .band {
+      border-radius: 8px;
+      background: transparent;
+    }
+    .band.is-open {
+      background: rgba(255,255,255,0.028);
+      border: 1px solid var(--line);
+      padding: 0 0 12px;
+    }
+    .band-toggle {
+      width: 100%;
+      appearance: none;
+      background: transparent;
+      border: 0;
+      color: inherit;
+      font: inherit;
+      text-align: left;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 4px;
+      border-radius: 6px;
+    }
+    .band:not(.is-open) .band-toggle:hover {
+      background: rgba(255,255,255,0.03);
+    }
+    .band.is-open .band-toggle {
+      padding: 12px 14px 8px;
+    }
+    .band-copy { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .band-title {
+      font-size: 15px;
+      color: var(--ink-bright);
+      font-weight: 500;
+    }
+    .band-meta {
+      font-size: 12px;
+      color: var(--ink-mute);
+    }
+    .band-end {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      flex: none;
+      color: var(--ink-bright);
+      font-size: 14px;
+      font-weight: 500;
+    }
+    .band-chev { color: var(--ink-mute); font-size: 16px; }
+    .band-editor { padding: 4px 14px 0; }
+    .band-editor .cluster { margin-top: 4px; }
+
+    .add {
+      appearance: none;
+      background: none;
+      border: 0;
+      color: var(--gold);
+      font: 500 13px/1 var(--font-sans);
+      padding: 10px 4px;
+      cursor: pointer;
+      text-align: left;
+    }
+    .add:hover { color: var(--gold-bright); }
+    .add-row { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; padding: 4px 0; }
+    .add.quiet { color: var(--ink-mute); font-weight: 400; }
+    .add.quiet:hover { color: var(--ink-body); }
+
+    .pill {
+      appearance: none;
+      border: 1px solid var(--line-strong);
+      background: transparent;
+      color: var(--ink-body);
+      font: 500 12px/1 var(--font-sans);
+      padding: 8px 12px;
+      border-radius: 999px;
+      cursor: pointer;
+    }
+    .pill:hover { border-color: rgba(198,166,98,0.45); color: var(--ink-bright); }
+    .pill.primary {
+      background: rgba(198,166,98,0.16);
+      border-color: rgba(198,166,98,0.4);
+      color: var(--gold-bright);
+    }
+
+    .empty {
+      padding: 8px 0 4px;
+    }
+    .empty-q {
+      margin: 0 0 14px;
+      font-family: var(--font-serif);
+      font-weight: 300;
+      font-size: 22px;
+      color: var(--ink-bright);
+      max-width: 28ch;
+      line-height: 1.25;
+    }
+    .empty-choices { display: flex; flex-wrap: wrap; gap: 8px; }
+
+    .foot-note {
+      margin: 10px 0 0;
+      font-size: 12px;
+      color: var(--ink-mute);
+      line-height: 1.4;
+    }
+    .hero-amt {
+      font-family: var(--font-serif);
+      font-weight: 300;
+      font-size: 36px;
+      color: var(--ink-bright);
+      margin: 0 0 14px;
+    }
+    .hero-amt small {
+      font-family: var(--font-sans);
+      font-size: 14px;
+      color: var(--ink-mute);
+      font-weight: 400;
+    }
+
+    /* Expenses composition bar */
+    .bar { margin-bottom: 16px; }
+    .bar-track {
+      display: flex;
+      height: 8px;
+      border-radius: 999px;
+      overflow: hidden;
+      background: rgba(255,255,255,0.04);
+      gap: 2px;
+    }
+    .bar-seg { background: var(--gold); border-radius: 2px; min-width: 4px; }
+    .bar-legs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 14px;
+      margin-top: 8px;
+      font-size: 11px;
+      color: var(--ink-mute);
+    }
+    .bar-legs i {
+      display: inline-block;
+      width: 8px; height: 8px;
+      border-radius: 2px;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+
+    /* Income life phases */
+    .phases {
+      display: grid;
+      grid-template-columns: 1fr 28px 1fr;
+      gap: 8px;
+      margin-bottom: 8px;
+      align-items: start;
+    }
+    .phase-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 8px;
+      font-size: 12px;
+      color: var(--ink-body);
+    }
+    .phase-head strong { color: var(--ink-bright); font-weight: 500; }
+    .phase-arrow {
+      text-align: center;
+      color: var(--ink-mute);
+      padding-top: 28px;
+      font-size: 18px;
+    }
+
+    .equation {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      gap: 10px 8px;
+      margin-top: 20px;
+      padding: 14px 0 0;
+      border-top: 1px solid var(--line);
+    }
+    .eq-cell { display: flex; flex-direction: column; gap: 4px; min-width: 88px; }
+    .eq-cell span { font-size: 11px; color: var(--ink-mute); letter-spacing: 0.04em; text-transform: uppercase; }
+    .eq-cell strong { font-size: 16px; color: var(--ink-bright); font-weight: 500; }
+    .eq-cell.result strong { color: var(--gold); }
+    .eq-op { color: var(--ink-mute); padding-bottom: 2px; }
+
+    /* Net worth ownership anchors */
+    .owners { display: flex; flex-direction: column; gap: 22px; }
+    .owner-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 8px;
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--ink-mute);
+    }
+    .owner-head strong {
+      letter-spacing: 0;
+      text-transform: none;
+      color: var(--ink-bright);
+      font-size: 14px;
+      font-weight: 500;
+    }
+    .nw-total {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-top: 20px;
+      padding-top: 14px;
+      border-top: 1px solid var(--line);
+      font-size: 13px;
+      color: var(--ink-mute);
+    }
+    .nw-total strong {
+      font-family: var(--font-serif);
+      font-size: 28px;
+      font-weight: 300;
+      color: var(--gold);
+    }
+
+    /* Summary receipt */
+    .receipt { max-width: 560px; }
+    .receipt-house {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 22px;
+    }
+    .avs { display: inline-flex; }
+    .av {
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      display: inline-grid;
+      place-items: center;
+      font-size: 13px;
+      font-weight: 600;
+      background: rgba(198,166,98,0.2);
+      color: var(--gold-bright);
+      border: 1px solid rgba(198,166,98,0.35);
+    }
+    .av.s { background: rgba(143,163,184,0.2); color: var(--slate); border-color: rgba(143,163,184,0.35); margin-left: -10px; }
+    .receipt-name {
+      font-family: var(--font-serif);
+      font-size: 22px;
+      font-weight: 400;
+      color: var(--ink-bright);
+    }
+    .receipt-filing { font-size: 12px; color: var(--ink-mute); margin-top: 2px; }
+    .receipt-row {
+      width: 100%;
+      appearance: none;
+      background: transparent;
+      border: 0;
+      border-top: 1px solid var(--line);
+      color: inherit;
+      font: inherit;
+      text-align: left;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 14px 2px;
+    }
+    .receipt-row:hover strong { color: var(--gold-bright); }
+    .receipt-row span { color: var(--ink-mute); font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; }
+    .receipt-row strong { color: var(--ink-bright); font-weight: 500; font-size: 14px; }
+
+    /* Person identity strip (Family) */
+    .person-head {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .person-role {
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--ink-mute);
+    }
+    .link-btn {
+      appearance: none;
+      background: none;
+      border: 0;
+      color: var(--ink-mute);
+      font: 400 12px/1 var(--font-sans);
+      cursor: pointer;
+      margin-left: auto;
+    }
+    .link-btn:hover { color: var(--ink-body); }
+
+    .draft {
+      padding: 12px 0 4px;
+    }
+    .draft-acts {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    /* Footer */
+    .footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 22px 16px;
+      border-top: 1px solid var(--line);
+    }
+    .btn {
+      appearance: none;
+      border-radius: 8px;
+      font: 500 13px/1 var(--font-sans);
+      padding: 11px 18px;
+      cursor: pointer;
+    }
+    .btn-outline {
+      background: transparent;
+      border: 1px solid var(--line-strong);
+      color: var(--ink-body);
+    }
+    .btn-outline:hover { color: var(--ink-bright); border-color: var(--ink-mute); }
+    .btn-primary {
+      background: var(--gold);
+      border: 1px solid var(--gold);
+      color: var(--gold-ink);
+    }
+    .btn-primary:hover { background: var(--gold-bright); }
+    .btn-ghost {
+      background: transparent;
+      border: 0;
+      color: var(--ink-mute);
+      padding: 11px 10px;
+    }
+    .step-note { font-size: 12px; color: var(--ink-mute); }
+
+    .lane-flow {
+      font-size: 14px;
+      color: var(--ink-bright);
+      padding: 8px 0 4px;
+      letter-spacing: 0.01em;
+    }
+    .lane-flow em {
+      font-style: normal;
+      color: var(--gold);
+    }
+
+    @media (max-width: 920px) {
+      .gpc-body.has-rail {
+        grid-template-columns: 1fr;
+      }
+      .gpc-rail-rule { display: none; }
+      .gpc-rail {
+        border-top: 1px solid var(--line);
+        margin-top: 20px;
+        padding-top: 14px;
+      }
+      .phases { grid-template-columns: 1fr; }
+      .phase-arrow { display: none; }
+      .cluster.cols-3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="poc-banner">
+      <p class="eyebrow">Proof of concept · mock only</p>
+      <h1>Guided Planning Canvas</h1>
+      <p>
+        Interactive exploration of the production wizard direction. Not wired into the live app.
+        One vertical path, compact field clusters, one expanded record at a time, quiet context rail.
+      </p>
+      <ul>
+        <li>No card grids · no stretched Age————57 ledger rows · no empty $0 tiles</li>
+        <li>Gold reserved for active step, totals, and primary CTA</li>
+        <li>Step patterns: Family spine · Income life-phases · Savings lanes · NW ownership · Expenses composition · Summary receipt</li>
+      </ul>
+    </div>
+
+    <div class="shell">
+      <div class="shell-top">
+        <div class="shell-meta">
+          <span class="k">Household setup</span>
+          <span class="pill" id="stepPill">Step 1 of 6 · Family</span>
+        </div>
+        <nav class="stepper" id="stepper" aria-label="Wizard steps"></nav>
+      </div>
+
+      <div class="gpc" id="pane"></div>
+
+      <div class="footer">
+        <button type="button" class="btn btn-outline" id="backBtn" hidden>← Back</button>
+        <span id="backSpacer"></span>
+        <span class="step-note" id="stepNote">Step 1 of 6</span>
+        <button type="button" class="btn btn-primary" id="nextBtn">Continue →</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const STEPS = [
+      { id: 1, label: "Family" },
+      { id: 2, label: "Income & Tax" },
+      { id: 3, label: "Savings" },
+      { id: 4, label: "Net Worth" },
+      { id: 5, label: "Expenses" },
+      { id: 6, label: "Summary" },
+    ];
+
+    let step = 1;
+    let expanded = "person:client";
+
+    const money = n => "$" + Math.round(n).toLocaleString("en-US");
+
+    function shell(title, status, lane, rail) {
+      return `
+        <div class="gpc-head">
+          <h2 class="gpc-title">${title}</h2>
+          <div class="gpc-status">${status}</div>
+        </div>
+        <div class="gpc-body${rail ? " has-rail" : ""}">
+          <div class="gpc-lane">${lane}</div>
+          ${rail ? `<div class="gpc-rail-rule" aria-hidden="true"></div><aside class="gpc-rail">${rail}</aside>` : ""}
+        </div>`;
+    }
+
+    function sec(eye, body, tot = "") {
+      return `<section class="sec">
+        <div class="sec-head"><span class="sec-eye">${eye}</span>${tot ? `<strong class="sec-tot">${tot}</strong>` : ""}</div>
+        ${body}
+      </section>`;
+    }
+
+    function field(lab, ctl, wide = false) {
+      return `<div class="field${wide ? " wide" : ""}"><label>${lab}</label>${ctl}</div>`;
+    }
+
+    function band(key, title, meta, amount, editor) {
+      const open = expanded === key;
+      if (open) {
+        return `<div class="band is-open" data-key="${key}">
+          <button type="button" class="band-toggle" data-expand="${key}" aria-expanded="true">
+            <span class="band-copy"><span class="band-title">${title}</span><span class="band-meta">${meta}</span></span>
+            <span class="band-end">${amount || ""}</span>
+          </button>
+          <div class="band-editor">${editor}</div>
+        </div>`;
+      }
+      return `<div class="band" data-key="${key}">
+        <button type="button" class="band-toggle" data-expand="${key}" aria-expanded="false">
+          <span class="band-copy"><span class="band-title">${title}</span><span class="band-meta">${meta}</span></span>
+          <span class="band-end">${amount || ""}<span class="band-chev" aria-hidden="true">›</span></span>
+        </button>
+      </div>`;
+    }
+
+    function rail(rows) {
+      return rows.map(r => {
+        if (r === "hr") return `<hr class="rail-hr" />`;
+        if (r.note) return `<p class="rail-note">${r.note}</p>`;
+        return `<div class="rail-row"><span class="rail-k">${r.k}</span><span>${r.v}</span></div>`;
+      }).join("");
+    }
+
+    const panes = {
+      1: () => shell(
+        "Family",
+        "Married filing jointly · Virginia",
+        `
+          ${sec("Household", `
+            <div class="cluster cols-3">
+              ${field("Filing status", `<select><option>Married filing jointly</option><option>Single</option><option>Head of household</option></select>`)}
+              ${field("State", `<select><option>Virginia</option><option>California</option><option>Texas</option></select>`)}
+              ${field("Plan through", `<input class="short" type="number" value="95">`)}
+            </div>
+          `)}
+          ${sec("People", `
+            <div class="stack">
+              ${band("person:client", "Alex Rivera", "Age 56 · retires 65", "", `
+                <div class="person-head"><span class="av">A</span><span class="person-role">Client</span></div>
+                <div class="cluster cols-3">
+                  ${field("Name", `<input value="Alex Rivera">`, true)}
+                  ${field("Born", `<input class="short" value="1970">`)}
+                  ${field("Age", `<input class="short" value="56" disabled>`)}
+                  ${field("Retires at", `<input class="short" value="65">`)}
+                  ${field("Plan to age", `<input class="short" value="95">`)}
+                </div>
+              `)}
+              ${band("person:spouse", "Jordan Rivera", "Age 54 · retires 65", "", `
+                <div class="person-head"><span class="av s">J</span><span class="person-role">Co-client</span><button type="button" class="link-btn">Remove</button></div>
+                <div class="cluster cols-3">
+                  ${field("Name", `<input value="Jordan Rivera">`, true)}
+                  ${field("Born", `<input class="short" value="1972">`)}
+                  ${field("Age", `<input class="short" value="54" disabled>`)}
+                  ${field("Retires at", `<input class="short" value="65">`)}
+                  ${field("Plan to age", `<input class="short" value="95">`)}
+                </div>
+              `)}
+            </div>
+          `)}
+          ${sec("Dependents", `
+            <div class="stack">
+              ${band("child:0", "Sam", "2008 · age 18", "", `
+                <div class="cluster cols-2">
+                  ${field("Name", `<input value="Sam">`)}
+                  ${field("Born", `<input class="short" value="2008">`)}
+                </div>
+              `)}
+              <button type="button" class="add">+ Add child or dependent</button>
+            </div>
+          `)}
+        `,
+        rail([
+          { k: "Household", v: "<strong>Alex & Jordan</strong>" },
+          { k: "Filing", v: "MFJ" },
+          { k: "State", v: "Virginia" },
+          { k: "Dependents", v: "1" },
+          "hr",
+          { note: "Identity first. Compact clusters — labels sit 6–8px above controls, not stretched across the lane." },
+        ])
+      ),
+
+      2: () => shell(
+        "Income & Tax",
+        `<strong>${money(327000)}</strong> <small>this year</small>`,
+        `
+          <div class="phases">
+            <div>
+              <div class="phase-head"><span>Working years</span><strong>${money(327000)} /yr</strong></div>
+              <div class="stack">
+                ${band("inc:wages:a", "Wages", "Alex · 56 → 64 · +0%/yr", money(185000), `
+                  <div class="cluster cols-3">
+                    ${field("Amount", `<div class="money"><span>$</span><input value="185,000"></div>`)}
+                    ${field("Start age", `<input class="short" value="56">`)}
+                    ${field("End age", `<input class="short" value="64">`)}
+                    ${field("Growth", `<input class="short" value="0">`)}
+                  </div>
+                `)}
+                ${band("inc:wages:j", "Wages", "Jordan · 54 → 64", money(142000), `
+                  <div class="cluster cols-3">
+                    ${field("Amount", `<div class="money"><span>$</span><input value="142,000"></div>`)}
+                    ${field("Start", `<input class="short" value="54">`)}
+                    ${field("End", `<input class="short" value="64">`)}
+                  </div>
+                `)}
+                ${band("inc:int", "Interest", "Joint · taxable", money(0), `
+                  <div class="cluster cols-2">
+                    ${field("Amount", `<div class="money"><span>$</span><input value="0"></div>`)}
+                    ${field("Treatment", `<select><option>Taxable</option><option>Tax-exempt</option></select>`)}
+                  </div>
+                `)}
+              </div>
+            </div>
+            <div class="phase-arrow" aria-hidden="true">→</div>
+            <div>
+              <div class="phase-head"><span>Retirement years</span><strong>${money(62000)} /yr</strong></div>
+              <div class="stack">
+                ${band("ss:a", "Social Security", "Alex · claim 67", money(36000), `
+                  <div class="cluster cols-2">
+                    ${field("Annual benefit", `<div class="money"><span>$</span><input value="36,000"></div>`)}
+                    ${field("Claim age", `<input class="short" value="67">`)}
+                  </div>
+                `)}
+                ${band("ss:j", "Social Security", "Jordan · claim 65", money(26000), `
+                  <div class="cluster cols-2">
+                    ${field("Annual benefit", `<div class="money"><span>$</span><input value="26,000"></div>`)}
+                    ${field("Claim age", `<input class="short" value="65">`)}
+                  </div>
+                `)}
+              </div>
+            </div>
+          </div>
+          <div class="add-row">
+            <button type="button" class="add">+ Add income source</button>
+            <button type="button" class="add quiet">+ External sale</button>
+          </div>
+
+          ${sec("Pre-tax & adjustments", `
+            <div class="stack">
+              ${band("adj:401k:a", "401(k) contribution", "Alex · while working", money(23000), `
+                <div class="cluster cols-2">
+                  ${field("Amount", `<div class="money"><span>$</span><input value="23,000"></div>`)}
+                  ${field("Owner", `<select><option>Alex</option></select>`)}
+                </div>
+              `)}
+              ${band("adj:401k:j", "401(k) contribution", "Jordan · while working", money(23000), `
+                <div class="cluster cols-2">
+                  ${field("Amount", `<div class="money"><span>$</span><input value="23,000"></div>`)}
+                  ${field("Owner", `<select><option>Jordan</option></select>`)}
+                </div>
+              `)}
+              ${band("adj:hsa", "HSA contribution", "Joint · reduces AGI", money(0), `
+                ${field("Amount", `<div class="money"><span>$</span><input value="0"></div>`)}
+              `)}
+              <button type="button" class="add">+ Add adjustment</button>
+            </div>
+          `, money(46000))}
+
+          ${sec("Deductions", `
+            <div class="stack">
+              ${band("ded:char", "Charitable contributions", "", money(12000), `
+                ${field("Amount", `<div class="money"><span>$</span><input value="12,000"></div>`)}
+              `)}
+              ${band("ded:mort", "Mortgage interest", "", money(0), `
+                ${field("Amount", `<div class="money"><span>$</span><input value="0"></div>`)}
+              `)}
+              ${band("ded:salt", "State & local taxes", "Cap rules apply when modeled", money(0), `
+                ${field("Amount", `<div class="money"><span>$</span><input value="0"></div>`)}
+              `)}
+              <p class="foot-note">Standard ${money(33200)} ≥ itemized — standard applied</p>
+              <button type="button" class="add">+ Add deduction</button>
+            </div>
+          `, money(12000))}
+
+          <div class="equation" role="group" aria-label="Taxable income">
+            <div class="eq-cell"><span>Total income</span><strong>${money(327000)}</strong></div>
+            <div class="eq-op">−</div>
+            <div class="eq-cell"><span>AGI</span><strong>${money(281000)}</strong></div>
+            <div class="eq-op">−</div>
+            <div class="eq-cell"><span>Deduction</span><strong>${money(33200)}</strong></div>
+            <div class="eq-op">=</div>
+            <div class="eq-cell result"><span>Taxable</span><strong>${money(247800)}</strong></div>
+          </div>
+          <p class="foot-note">Full Parallax tax input surface — streams expand for owner, timing, growth, and treatment. Not a four-quadrant ledger.</p>
+        `,
+        rail([
+          { k: "Income this year", v: `<strong>${money(327000)}</strong>` },
+          { k: "Adjustments", v: money(46000) },
+          { k: "Itemized", v: money(12000) },
+          "hr",
+          { k: "Marginal bracket", v: "24%" },
+          { k: "Capital gains", v: "15%" },
+          { k: "Effective rate", v: "18.2%" },
+          { k: "RMDs begin", v: "Age 75" },
+          "hr",
+          { note: "Tax results live in the quiet rail — not another glass card competing with inputs." },
+        ])
+      ),
+
+      3: () => shell(
+        "Savings",
+        `<strong>${money(46000)}</strong> <small>/yr</small>`,
+        sec("Contribution flow", `
+          <p class="sec-note">How much the household adds each year — separate from Net Worth balances.</p>
+          <div class="stack">
+            ${band("sav:1", "Annual contribution", "Joint · until age 65", money(46000), `
+              <p class="lane-flow">Alex &amp; Jordan → <em>pre-tax</em> → <em>${money(46000)}/year</em> → until age 65</p>
+              <div class="cluster cols-2">
+                ${field("Amount / year", `<div class="money"><span>$</span><input value="46,000"></div>`)}
+                ${field("Until", `<input value="Age 65" disabled>`)}
+              </div>
+              <p class="foot-note">Engine accumulation uses this total. AGI-reducing 401(k)/HSA line items live on Income &amp; Tax.</p>
+            `)}
+            <button type="button" class="add">+ Add another contribution lane</button>
+          </div>
+        `, money(46000)),
+        rail([
+          { k: "Annual savings", v: `<strong>${money(46000)}</strong>` },
+          { k: "Stops at", v: "Age 65" },
+          "hr",
+          { note: "Blank households start with one question and quick choices — never default empty 401(k) cards." },
+        ])
+      ),
+
+      4: () => shell(
+        "Net Worth",
+        `<strong>${money(1240000)}</strong> <small>investable</small>`,
+        sec("Accounts", `
+          <div class="owners">
+            <div>
+              <div class="owner-head"><span>Alex</span><strong>${money(520000)}</strong></div>
+              <div class="stack">
+                ${band("acct:1", "Traditional IRA", "Retirement", money(320000), `
+                  ${field("Balance", `<div class="money"><span>$</span><input value="320,000"></div>`)}
+                `)}
+                ${band("acct:2", "401(k)", "Employer plan", money(200000), `
+                  ${field("Balance", `<div class="money"><span>$</span><input value="200,000"></div>`)}
+                `)}
+                <button type="button" class="add">+ Add account</button>
+              </div>
+            </div>
+            <div>
+              <div class="owner-head"><span>Joint / Household</span><strong>${money(410000)}</strong></div>
+              <div class="stack">
+                ${band("acct:3", "Brokerage", "Taxable · basis available in tax details", money(350000), `
+                  <div class="cluster cols-2">
+                    ${field("Balance", `<div class="money"><span>$</span><input value="350,000"></div>`)}
+                    ${field("Cost basis", `<div class="money"><span>$</span><input value="210,000"></div>`)}
+                  </div>
+                `)}
+                ${band("acct:4", "Bank / Cash", "Liquidity", money(60000), `
+                  ${field("Balance", `<div class="money"><span>$</span><input value="60,000"></div>`)}
+                `)}
+                <button type="button" class="add">+ Add account</button>
+              </div>
+            </div>
+            <div>
+              <div class="owner-head"><span>Jordan</span><strong>${money(310000)}</strong></div>
+              <div class="stack">
+                ${band("acct:5", "Roth IRA", "Retirement", money(310000), `
+                  ${field("Balance", `<div class="money"><span>$</span><input value="310,000"></div>`)}
+                `)}
+                <button type="button" class="add">+ Add account</button>
+              </div>
+            </div>
+          </div>
+          <div class="nw-total"><span>Total investable</span><strong>${money(1240000)}</strong></div>
+        `, money(1240000)),
+        rail([
+          { k: "Investable", v: `<strong>${money(1240000)}</strong>` },
+          { k: "Accounts", v: "5" },
+          "hr",
+          { note: "Ownership anchors replace the giant dashed Add tile. Empty state would ask one question + quick owner choices." },
+        ])
+      ),
+
+      5: () => shell(
+        "Expenses",
+        `<strong>${money(115200)}</strong> <small>essential /yr</small>`,
+        sec("Essential spending", `
+          <div class="hero-amt">${money(115200)} <small>/yr</small></div>
+          <div class="bar">
+            <div class="bar-track">
+              <span class="bar-seg" style="flex:78; background:#c6a662"></span>
+              <span class="bar-seg" style="flex:16; background:#8fa3b8"></span>
+              <span class="bar-seg" style="flex:6; background:#9bb59a"></span>
+            </div>
+            <div class="bar-legs">
+              <span><i style="background:#c6a662"></i>Living</span>
+              <span><i style="background:#8fa3b8"></i>Healthcare</span>
+              <span><i style="background:#9bb59a"></i>Housing</span>
+            </div>
+          </div>
+          <div class="stack">
+            ${band("exp:living", "Living", "Housing, utilities, food, transport", money(90000), `
+              <div class="cluster cols-2">
+                ${field("Amount", `<div class="money"><span>$</span><input value="90,000"></div>`)}
+                ${field("Cadence", `<select><option>Per year</option><option>Per month</option></select>`)}
+              </div>
+            `)}
+            ${band("exp:health", "Healthcare", "Premiums + out-of-pocket", money(18000), `
+              <div class="cluster cols-3">
+                ${field("Amount", `<div class="money"><span>$</span><input value="18,000"></div>`)}
+                ${field("Cadence", `<select><option>Per year</option></select>`)}
+                ${field("Real growth", `<input class="short" value="2">`)}
+              </div>
+            `)}
+            ${band("exp:housing", "Housing", "Property costs beyond living", money(7200), `
+              ${field("Amount", `<div class="money"><span>$</span><input value="7,200"></div>`)}
+            `)}
+            <div class="add-row">
+              <button type="button" class="pill">+ Debt</button>
+              <button type="button" class="pill">+ Custom</button>
+            </div>
+          </div>
+          <p class="foot-note">Composition first. Discretionary goals stay on the Goals tab.</p>
+        `, money(115200)),
+        rail([
+          { k: "Living", v: money(90000) },
+          { k: "Healthcare", v: money(18000) },
+          { k: "Housing", v: money(7200) },
+          "hr",
+          { k: "Essential total", v: `<strong>${money(115200)}</strong>` },
+          { note: "Two primary numbers on first paint for a blank household; expand categories only when needed." },
+        ])
+      ),
+
+      6: () => shell(
+        "Summary",
+        "Household ready for planning",
+        `
+          <div class="receipt">
+            <div class="receipt-house">
+              <span class="avs"><span class="av">A</span><span class="av s">J</span></span>
+              <div>
+                <div class="receipt-name">Alex &amp; Jordan Rivera</div>
+                <div class="receipt-filing">Married filing jointly · Virginia</div>
+              </div>
+            </div>
+            <button type="button" class="receipt-row" data-goto="1"><span>Family</span><strong>Retire 65 &amp; 65 · to 95</strong></button>
+            <button type="button" class="receipt-row" data-goto="2"><span>Income &amp; Tax</span><strong>${money(327000)} working · ${money(62000)} SS</strong></button>
+            <button type="button" class="receipt-row" data-goto="3"><span>Savings</span><strong>${money(46000)} /yr</strong></button>
+            <button type="button" class="receipt-row" data-goto="4"><span>Net Worth</span><strong>${money(1240000)} · 5 accounts</strong></button>
+            <button type="button" class="receipt-row" data-goto="5"><span>Expenses</span><strong>${money(115200)} essential /yr</strong></button>
+          </div>
+          <p class="foot-note" style="margin-top:20px">Narrative receipt — tap a line to jump back. Not another form.</p>
+        `,
+        ""
+      ),
+    };
+
+    function defaultsForStep(s) {
+      if (s === 1) return "person:client";
+      if (s === 2) return "inc:wages:a";
+      if (s === 3) return "sav:1";
+      if (s === 4) return "acct:3";
+      if (s === 5) return "exp:living";
+      return null;
+    }
+
+    function renderStepper() {
+      const el = document.getElementById("stepper");
+      el.innerHTML = STEPS.map((s, i) => {
+        const cls = s.id === step ? "is-current" : s.id < step ? "is-done" : "";
+        const num = s.id < step ? "✓" : String(s.id);
+        const conn = i < STEPS.length - 1
+          ? `<span class="step-conn${s.id < step ? " is-done" : ""}" aria-hidden="true"></span>`
+          : "";
+        return `<button type="button" class="step ${cls}" data-step="${s.id}"><span class="num">${num}</span>${s.label}</button>${conn}`;
+      }).join("");
+    }
+
+    function render() {
+      document.getElementById("pane").innerHTML = panes[step]();
+      document.getElementById("stepPill").textContent = `Step ${step} of 6 · ${STEPS[step - 1].label}`;
+      document.getElementById("stepNote").textContent = `Step ${step} of 6`;
+      document.getElementById("backBtn").hidden = step === 1;
+      document.getElementById("backSpacer").hidden = step !== 1;
+      document.getElementById("nextBtn").textContent = step === 5 ? "Review →" : step === 6 ? "Done" : "Continue →";
+      document.getElementById("nextBtn").disabled = step === 6;
+      renderStepper();
+    }
+
+    document.getElementById("stepper").addEventListener("click", e => {
+      const btn = e.target.closest("[data-step]");
+      if (!btn) return;
+      step = +btn.dataset.step;
+      expanded = defaultsForStep(step);
+      render();
+    });
+
+    document.getElementById("pane").addEventListener("click", e => {
+      const goto = e.target.closest("[data-goto]");
+      if (goto) {
+        step = +goto.dataset.goto;
+        expanded = defaultsForStep(step);
+        render();
+        return;
+      }
+      const exp = e.target.closest("[data-expand]");
+      if (!exp) return;
+      const key = exp.dataset.expand;
+      expanded = expanded === key ? null : key;
+      render();
+    });
+
+    document.getElementById("backBtn").addEventListener("click", () => {
+      if (step > 1) {
+        step -= 1;
+        expanded = defaultsForStep(step);
+        render();
+      }
+    });
+
+    document.getElementById("nextBtn").addEventListener("click", () => {
+      if (step < 6) {
+        step += 1;
+        expanded = defaultsForStep(step);
+        render();
+      }
+    });
+
+    render();
+  </script>
+</body>
+</html>
