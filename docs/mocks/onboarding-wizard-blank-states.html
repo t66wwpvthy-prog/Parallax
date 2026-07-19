@@ -366,6 +366,90 @@
       cursor: pointer;
     }
 
+    /* Step 3 — income toggle + default rows */
+    .work-toggle {
+      display: inline-flex;
+      flex-wrap: wrap;
+      gap: 0;
+      margin-bottom: 22px;
+      border: 1px solid var(--line-strong);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .work-toggle button {
+      appearance: none;
+      border: 0;
+      border-right: 1px solid var(--line-strong);
+      background: transparent;
+      color: var(--ink-mute);
+      font: 500 13px/1 var(--font-sans);
+      padding: 11px 24px;
+      cursor: pointer;
+    }
+    .work-toggle button:last-child { border-right: 0; }
+    .work-toggle button.is-on {
+      background: var(--accent);
+      color: var(--accent-ink);
+    }
+    .income-note {
+      font-size: 14px;
+      color: var(--ink-body);
+      line-height: 1.5;
+      max-width: 52ch;
+      margin-bottom: 18px;
+    }
+    .income-defaults {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      max-width: 520px;
+      margin-bottom: 22px;
+      border-top: 1px solid var(--line);
+    }
+    .income-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: baseline;
+      gap: 16px;
+      padding: 11px 0;
+      border-bottom: 1px solid var(--line);
+      font-size: 14px;
+    }
+    .income-row__label {
+      color: var(--ink-bright);
+    }
+    .income-row__label small {
+      display: block;
+      margin-top: 2px;
+      font-size: 11px;
+      letter-spacing: 0.04em;
+      color: var(--ink-faint);
+      font-weight: 400;
+    }
+    .income-row__amt {
+      font-family: var(--font-serif);
+      font-size: 16px;
+      color: var(--ink-mute);
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+    .add-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 18px 28px;
+      margin-bottom: 36px;
+    }
+    .add-links button {
+      appearance: none;
+      background: transparent;
+      border: 0;
+      color: var(--ink-mute);
+      font: 500 13px/1 var(--font-sans);
+      cursor: pointer;
+      padding: 0;
+    }
+    .add-links button:hover { color: var(--accent-bright); }
+
     .wiz-footer {
       margin-top: auto;
       display: flex;
@@ -540,7 +624,7 @@
     </main>
   </section>
 
-  <!-- 3 — Income & expenses (blank placeholder, same shell) -->
+  <!-- 3 — Income & expenses -->
   <section class="screen-wizard" id="screen-3" hidden>
     <aside class="wiz-sidebar">
       <img class="wiz-logo" src="/assets/parallax-logo.png" alt="Parallax" width="978" height="647" />
@@ -553,7 +637,23 @@
     </aside>
     <main class="wiz-main">
       <p class="wiz-main__eyebrow">Step III — Income &amp; expenses</p>
-      <h1 class="wiz-main__title">Income &amp; expenses</h1>
+
+      <div class="work-toggle" role="group" aria-label="Employment status">
+        <button type="button" class="is-on" data-work="employed" aria-pressed="true">Still working</button>
+        <button type="button" data-work="retired" aria-pressed="false">Retired</button>
+      </div>
+
+      <p class="income-note" id="income-note">
+        A couple of default landing incomes — salary and bonus for each spouse. Edit or add more below.
+      </p>
+
+      <div class="income-defaults" id="income-defaults" aria-live="polite"></div>
+
+      <div class="add-links">
+        <button type="button">+ Add income stream</button>
+        <button type="button">+ Add expense category</button>
+      </div>
+
       <footer class="wiz-footer">
         <button type="button" class="back">← Back</button>
         <button type="button" class="continue">Continue</button>
@@ -629,6 +729,53 @@
     });
 
     document.querySelector(".screen-welcome__begin")?.addEventListener("click", () => showScreen("1"));
+
+    /* Step 3 — employed / retired default incomes */
+    const INCOME_DEFAULTS = {
+      employed: [
+        { type: "Salary", person: "Aman" },
+        { type: "Bonus", person: "Aman" },
+        { type: "Salary", person: "Awoman" },
+        { type: "Bonus", person: "Awoman" },
+      ],
+      retired: [
+        { type: "Social Security", person: "Aman" },
+        { type: "Social Security", person: "Awoman" },
+      ],
+    };
+    const INCOME_NOTES = {
+      employed: "A couple of default landing incomes — salary and bonus for each spouse. Edit or add more below.",
+      retired: "Default retirement income — Social Security for each spouse. Edit or add more below.",
+    };
+
+    let workMode = "employed";
+
+    function renderIncomeDefaults() {
+      const list = document.getElementById("income-defaults");
+      const note = document.getElementById("income-note");
+      if (!list || !note) return;
+      note.textContent = INCOME_NOTES[workMode];
+      list.innerHTML = INCOME_DEFAULTS[workMode].map((row) => `
+        <div class="income-row">
+          <span class="income-row__label">${row.type}<small>${row.person}</small></span>
+          <span class="income-row__amt">—</span>
+        </div>
+      `).join("");
+    }
+
+    document.querySelectorAll("[data-work]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        workMode = btn.getAttribute("data-work");
+        document.querySelectorAll("[data-work]").forEach((b) => {
+          const on = b === btn;
+          b.classList.toggle("is-on", on);
+          b.setAttribute("aria-pressed", String(on));
+        });
+        renderIncomeDefaults();
+      });
+    });
+
+    renderIncomeDefaults();
   </script>
 </body>
 </html>
