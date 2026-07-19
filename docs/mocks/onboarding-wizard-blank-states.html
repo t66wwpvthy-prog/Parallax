@@ -33,11 +33,16 @@
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+    html, body {
+      min-height: 100%;
+      background-color: var(--bg-deep);
+    }
     body {
       min-height: 100vh;
       font-family: var(--font-sans);
       color: var(--ink);
-      background:
+      background-color: var(--bg-deep);
+      background-image:
         radial-gradient(1000px 720px at 18% -12%, rgba(198,166,98,0.05), transparent 60%),
         radial-gradient(880px 620px at 100% 0%, rgba(124,133,137,0.028), transparent 62%),
         linear-gradient(180deg, #0d0f12 0%, var(--bg) 55%, var(--bg-deep) 100%);
@@ -457,7 +462,7 @@
   <!-- 1 — Family -->
   <section class="screen-wizard" id="screen-1" hidden>
     <aside class="wiz-sidebar">
-      <img class="wiz-logo" src="../../assets/parallax-logo.png" alt="Parallax" width="978" height="647" />
+      <img class="wiz-logo" src="/assets/parallax-logo.png" alt="Parallax" width="978" height="647" />
       <ol class="wiz-nav" aria-label="Wizard progress">
         <li class="is-current" data-num="I">Family</li>
         <li data-num="II">Balance sheet</li>
@@ -506,7 +511,7 @@
   <!-- 2 — Balance sheet -->
   <section class="screen-wizard" id="screen-2" hidden>
     <aside class="wiz-sidebar">
-      <img class="wiz-logo" src="../../assets/parallax-logo.png" alt="Parallax" width="978" height="647" />
+      <img class="wiz-logo" src="/assets/parallax-logo.png" alt="Parallax" width="978" height="647" />
       <ol class="wiz-nav" aria-label="Wizard progress">
         <li class="is-done" data-num="I">Family</li>
         <li class="is-current" data-num="II">Balance sheet</li>
@@ -538,7 +543,7 @@
   <!-- 3 — Income & expenses (blank placeholder, same shell) -->
   <section class="screen-wizard" id="screen-3" hidden>
     <aside class="wiz-sidebar">
-      <img class="wiz-logo" src="../../assets/parallax-logo.png" alt="Parallax" width="978" height="647" />
+      <img class="wiz-logo" src="/assets/parallax-logo.png" alt="Parallax" width="978" height="647" />
       <ol class="wiz-nav" aria-label="Wizard progress">
         <li class="is-done" data-num="I">Family</li>
         <li class="is-done" data-num="II">Balance sheet</li>
@@ -559,7 +564,7 @@
   <!-- 4 — Tax (blank placeholder, same shell) -->
   <section class="screen-wizard" id="screen-4" hidden>
     <aside class="wiz-sidebar">
-      <img class="wiz-logo" src="../../assets/parallax-logo.png" alt="Parallax" width="978" height="647" />
+      <img class="wiz-logo" src="/assets/parallax-logo.png" alt="Parallax" width="978" height="647" />
       <ol class="wiz-nav" aria-label="Wizard progress">
         <li class="is-done" data-num="I">Family</li>
         <li class="is-done" data-num="II">Balance sheet</li>
