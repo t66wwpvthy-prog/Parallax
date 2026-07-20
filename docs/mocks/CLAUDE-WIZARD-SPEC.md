@@ -8,7 +8,9 @@
 
 ## Deliverable
 
-One self-contained HTML file. Inline CSS + minimal JS. Parallax HF theme (dark charcoal + gold `#c6a662`, Hanken Grotesk + Spectral). **No** engine/tax backend.
+One self-contained HTML file. Inline CSS + JS. Parallax HF theme (dark charcoal + gold `#c6a662`, Hanken Grotesk + Spectral).
+
+**No Parallax engine.js** — but the mock **must compute** sidebar + summary from state (same pattern the real app will use).
 
 ---
 
@@ -20,7 +22,7 @@ One self-contained HTML file. Inline CSS + minimal JS. Parallax HF theme (dark c
 | 1 | Family — sidebar + meta fields + person tabs |
 | 2 | Balance sheet — 5 add buttons |
 | 3 | Income — Still working/Retired toggle + default rows |
-| 4 | Tax — deductions panel + read-only summary (filled) |
+| 4 | Tax — deduction inputs → computed read-only summary |
 | ✓ | Plan Overview — **defer** |
 
 Chrome: top-right `A|B|C` · `FILLED|BLANK` · step keys; bottom-right Edit FAB.
@@ -36,58 +38,106 @@ Chrome: top-right `A|B|C` · `FILLED|BLANK` · step keys; bottom-right Edit FAB.
 
 ---
 
-## Step IV — Tax (important)
+## Data model (single source of truth)
 
-**Inputs only:** deductions. No wages, 401(k), HSA here (Income step).
+Do **not** maintain separate hardcoded HTML for FILLED vs BLANK. One state object; render from it.
 
-**Blank:** subhead *Any deductions to claim?* + buttons:
-`+ Charitable` · `+ Mortgage interest` · `+ SALT` · `+ Medical`  
-Helper: *Until then, the standard deduction ($32,600 MFJ) applies automatically.*
+```javascript
+const plan = {
+  meta: { filingStatus: "marriedFilingJointly" },
+  income: { total: 0, adjustments: 0 },       // from step 3 later; seed in FILLED demo
+  incomeTax: {
+    deductions: [],  // { typeId, amount } — typeId: medical|charitable|mortgage_interest|salt
+  },
+};
 
-**Sidebar blank:** AGI — · Deductions Standard · $32,600 · Bracket — · IRMAA —
+// FILLED toggle → Object.assign(plan, DEMO_PLAN) then re-render
+// BLANK toggle → reset deductions [], income zeros, re-render
+// + button → push { typeId, amount: 0 }; re-render
+// $ input change → update amount; re-render
+```
 
-### FILLED state (hardcode display — no live math)
+**DEMO_PLAN** (FILLED seed — same shape, not a separate UI):
 
-When user clicks **FILLED** on step 4, show:
+```javascript
+const DEMO_PLAN = {
+  income: { total: 413000, adjustments: 41750 },
+  incomeTax: {
+    deductions: [
+      { typeId: "medical", amount: 8000 },
+      { typeId: "charitable", amount: 12000 },
+      { typeId: "mortgage_interest", amount: 18400 },
+      { typeId: "salt", amount: 44800 },
+    ],
+  },
+};
+```
 
-**Deduction rows** (compact `$` rows or list, not ledger):
-| Row | Entered | Applied / note |
-|-----|---------|----------------|
-| Medical expenses | $8,000 | $0 — *below 7.5% AGI floor* |
-| Charitable giving | $12,000 | $12,000 |
-| Mortgage interest | $18,400 | $18,400 |
-| State & local taxes | $44,800 | $40,000 — *capped at $40,000* |
+---
 
-**Rule labels (copy only — do not calculate):**
-- Medical floor: **7.5% of AGI**
-- SALT cap: **$40,000** (MFJ)
+## Step IV — Tax compute (client-side prototype)
 
-**Standard vs Itemized cards:** Standard $32,600 (muted) · Itemized **$70,400** AUTO-SELECTED
+```javascript
+const RULES = {
+  standardDeductionMFJ: 32600,
+  saltCapMFJ: 40000,
+  medicalAgiFloorPct: 0.075,
+  // simplified bracket lookup for demo — or flat effective rate from demo
+};
 
-**The math** (read-only block):
-- Total income $413,000 → − Adjustments $41,750 → **AGI $371,250**
-- − Deductions $70,400 → **Taxable income $300,850**
-- Federal 24% · LTCG 15% · Effective 14.8% · Est. tax **$54,880**
+function appliedDeduction(typeId, entered, agi) {
+  if (typeId === "medical") {
+    const floor = agi * RULES.medicalAgiFloorPct;
+    return { applied: Math.max(0, entered - floor), note: entered > 0 && entered <= floor ? "below 7.5% AGI floor" : null };
+  }
+  if (typeId === "salt") {
+    const applied = Math.min(entered, RULES.saltCapMFJ);
+    return { applied, note: entered > RULES.saltCapMFJ ? `capped at $${RULES.saltCapMFJ.toLocaleString()}` : null };
+  }
+  return { applied: entered, note: null };
+}
 
-**Sidebar filled:** AGI $371,250 · Deductions $70,400 itemized · Bracket 24% · IRMAA $408,000 MAGI
+function computeTaxSummary(plan) {
+  const agi = plan.income.total - plan.income.adjustments;
+  const rows = plan.incomeTax.deductions.map(d => {
+    const { applied, note } = appliedDeduction(d.typeId, d.amount, agi);
+    return { ...d, applied, note };
+  });
+  const itemized = rows.reduce((s, r) => s + r.applied, 0);
+  const standard = RULES.standardDeductionMFJ;
+  const deductionUsed = Math.max(standard, itemized);
+  const method = itemized > standard ? "itemized" : "standard";
+  const taxableIncome = Math.max(0, agi - deductionUsed);
+  // bracket / effective / estTax — simplified table or demo formulas OK for mock
+  return { agi, rows, standard, itemized, deductionUsed, method, taxableIncome, /* bracket, estTax */ };
+}
+```
 
-Clicking `+ Medical` / `+ SALT` in blank may append an empty `$` row; filled toggle swaps to table above.
+**Render loop:** `computeTaxSummary(plan)` → paint deduction rows (entered + applied + note), Standard/Itemized cards, sidebar, "The math" block. Every input change re-runs compute.
+
+**Row UI:** label left, `$` input for **entered** amount; show **applied** + note inline when `applied !== entered` or note present.
+
+---
+
+## Step IV — Tax UI
+
+**Inputs:** `+ Charitable` · `+ Mortgage interest` · `+ SALT` · `+ Medical` (append row if not duplicate, or allow multiples — prefer one row per type)
+
+**Blank helper:** *Until then, the standard deduction ($32,600 MFJ) applies automatically.*
+
+**Read-only (always from compute):** sidebar AGI / deductions / bracket; Standard vs Itemized cards; "The math" block.
+
+**No** wages, 401(k), HSA on this step.
 
 ---
 
 ## Step III — Income toggle
 
+Same pattern as tax: state + render, not two HTML blocks.
+
 ```javascript
-const INCOME_DEFAULTS = {
-  employed: [
-    { type:"Salary", person:"Aman" }, { type:"Bonus", person:"Aman" },
-    { type:"Salary", person:"Awoman" }, { type:"Bonus", person:"Awoman" },
-  ],
-  retired: [
-    { type:"Social Security", person:"Aman" },
-    { type:"Social Security", person:"Awoman" },
-  ],
-};
+const INCOME_DEFAULTS = { employed: [...], retired: [...] };
+// toggle swaps income rows in state, re-render
 ```
 
 ---
@@ -109,8 +159,8 @@ const INCOME_DEFAULTS = {
 
 ## Out of scope
 
-- Real tax math, engine.js, live app wizard
-- Plan Overview (✓), variant B/C layouts
+- Parallax `engine.js` / `src/tax/` integration (real app replaces `computeTaxSummary` with `buildCurrentIncomeTaxSummary`)
+- Plan Overview (✓), variant B/C
 - Functional `+ Other` dropdown
 
 ---
@@ -118,7 +168,8 @@ const INCOME_DEFAULTS = {
 ## Acceptance
 
 - [ ] HF dark theme + logo all steps
-- [ ] W + steps 1–4 blank match above
-- [ ] FILLED step 4 shows deduction limits copy (7.5% floor, $40k SALT cap) + math block
-- [ ] Income toggle swaps 4 vs 2 rows
+- [ ] Tax step: + buttons add rows; `$` edits recalculate applied amounts live
+- [ ] Medical shows 7.5% floor; SALT shows $40k cap — **computed**, not static copy
+- [ ] FILLED seeds DEMO_PLAN; BLANK clears; **same render path**
+- [ ] Income toggle swaps 4 vs 2 rows via state
 - [ ] No ledger-style inputs

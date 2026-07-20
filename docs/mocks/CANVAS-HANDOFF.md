@@ -271,10 +271,23 @@ Use `Component.FILLED` in the design file for copy:
 ## 9. JavaScript behavior (minimum)
 
 ```javascript
-// Screen navigation: W, 1, 2, 3, 4 via proto bar + Begin button
-// Income toggle: employed ↔ retired swaps INCOME_DEFAULTS rows
-// FILLED/BLANK: toggle should swap blank vs filled content per step (wired on step 4+ when built)
-// Variant A/B/C: visual only for now (future layout variants)
+// Single plan state object — NOT separate hardcoded FILLED HTML
+// FILLED toggle → seed DEMO_PLAN into state; BLANK → clear; same renderTaxStep(plan)
+
+function appliedDeduction(typeId, entered, agi) {
+  if (typeId === "medical") {
+    const floor = agi * 0.075;
+    return { applied: Math.max(0, entered - floor), note: entered > 0 && entered <= floor ? "below 7.5% AGI floor" : null };
+  }
+  if (typeId === "salt") {
+    const cap = 40000;
+    return { applied: Math.min(entered, cap), note: entered > cap ? `capped at $${cap.toLocaleString()}` : null };
+  }
+  return { applied: entered, note: null };
+}
+
+// computeTaxSummary(plan) → sidebar + cards + "The math" — re-run on every input change
+// + Medical/SALT/… → push { typeId, amount: 0 } to plan.incomeTax.deductions
 ```
 
 Income defaults object:
@@ -297,11 +310,10 @@ const INCOME_DEFAULTS = {
 
 ## 10. Out of scope for this mock
 
-- Wiring to Parallax `engine.js` or `src/tax/`
+- Wiring to Parallax `engine.js` or `src/tax/` (mock uses client-side `computeTaxSummary` instead)
 - Live app household wizard (`ui/householdWizard.js`) — different 4-step IA (Profile / Balance Sheet / Income & Tax combined / Summary)
 - Variant B/C visual redesigns (only A is specced)
 - Functional dropdown on `+ Other` (balance sheet) — placeholder button only
-- Tax math — display only in filled state
 
 ---
 
