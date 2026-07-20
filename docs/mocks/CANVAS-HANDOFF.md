@@ -171,6 +171,17 @@ These override any ledger/accounting patterns from the live app or filled-state 
 
 **Scope:** Deductions only on this step. Do **not** put 401(k)/HSA adjustments here — those belong on Income in the 4-step IA (or filled-state Income & Tax in the live app).
 
+**Deduction computation rules (2026 · product lock):**
+
+| Type | Rule | UI copy when limited |
+|------|------|----------------------|
+| **Medical** | Deductible amount = `max(0, entered − 7.5% × AGI)` | *below 7.5% AGI floor — $0 applied* |
+| **SALT** | Roll up `salt` + `real_estate_tax` + `personal_property_tax`; cap **$40,000** (MFJ demo household) | *$X entered — capped at $40,000* |
+| **Charitable / mortgage** | Entered amount applies in full (subject to future limitation rules) | — |
+| **Standard vs itemized** | Engine auto-selects higher of standard deduction or total itemized | Show both cards; mark **AUTO-SELECTED** on winner |
+
+These rules unblock `+ Medical` and `+ SALT` in the wizard summary (`buildCurrentIncomeTaxSummary`). Implementation: `docs/tax/T9-ITEMIZED-DEDUCTIONS-HANDOFF.md`.
+
 **Sidebar foot — THIS HOUSEHOLD:**
 - AGI: —
 - Deductions applied: Standard · $32,600
