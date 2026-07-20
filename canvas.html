@@ -472,44 +472,18 @@
     }
     .add-links button:hover { color: var(--accent-bright); }
 
-    /* Step 4 — tax toggle + default rows */
-    .tax-defaults {
-      display: flex;
-      flex-direction: column;
-      gap: 7px;
-      width: min(100%, 360px);
-      margin: 12px 0 16px;
+    .tax-panel {
+      border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+      padding: 28px 0;
+      margin-bottom: 28px;
     }
-    .tax-quiet {
-      font-size: 13px;
+    .wiz-main__intro {
+      font-size: 14px;
       color: var(--ink-body);
-      line-height: 1.45;
-      max-width: 42ch;
-      margin: 0 0 10px;
-    }
-    .tax-section {
-      margin-bottom: 18px;
-    }
-    .tax-section__k {
-      font-size: 10px;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      color: var(--ink-faint);
-      margin-bottom: 10px;
-    }
-    .tax-section__rows {
-      display: flex;
-      flex-direction: column;
-      gap: 7px;
-      width: min(100%, 360px);
-    }
-    .field-in-wrap--ro {
-      min-width: 88px;
-      justify-content: flex-end;
-      color: var(--ink-mute);
-      font-family: var(--font-serif);
-      font-size: 15px;
-      padding: 5px 10px;
+      line-height: 1.55;
+      max-width: 52ch;
+      margin-bottom: 28px;
     }
 
     .wiz-footer {
@@ -730,36 +704,32 @@
         <li class="is-current" data-num="IV">Tax</li>
       </ol>
       <div class="wiz-sidebar__foot">
-        <div class="k">Filing</div>
-        <div class="row"><strong>Status</strong><br />Select…</div>
-        <div class="row"><strong>State</strong><br />Select…</div>
+        <div class="k">This household</div>
+        <div class="row"><strong>AGI</strong><br />—</div>
+        <div class="row"><strong>Deductions applied</strong><br />Standard · $32,600</div>
+        <div class="row"><strong>Federal bracket</strong><br />—</div>
+        <div class="row"><strong>Next IRMAA tier</strong><br />—</div>
       </div>
     </aside>
     <main class="wiz-main">
       <p class="wiz-main__eyebrow">Step IV — Tax</p>
+      <h1 class="wiz-main__title">The tax picture</h1>
+      <p class="wiz-main__intro">Deductions you claim, and what the planning engine computes from them. Results are read-only.</p>
 
-      <div class="tax-section">
-        <div class="tax-section__k">Pre-tax &amp; adjustments</div>
-        <div class="tax-section__rows" id="tax-adjustments"></div>
-      </div>
-
-      <div class="tax-section">
-        <div class="tax-section__k">Deductions</div>
-        <div class="work-toggle" role="group" aria-label="Deduction method">
-          <button type="button" class="is-on" data-deduction="standard" aria-pressed="true">Standard</button>
-          <button type="button" data-deduction="itemized" aria-pressed="false">Itemized</button>
+      <div class="tax-panel">
+        <h2 class="section-head">Any deductions to claim?</h2>
+        <div class="acct-btns">
+          <button type="button">+ Charitable</button>
+          <button type="button">+ Mortgage interest</button>
+          <button type="button">+ SALT</button>
+          <button type="button">+ Medical</button>
         </div>
-        <div class="tax-defaults" id="tax-defaults" aria-live="polite"></div>
-      </div>
-
-      <div class="add-links">
-        <button type="button">+ Add adjustment</button>
-        <button type="button">+ Add credit</button>
+        <p class="wiz-main__intro" style="margin: 16px 0 0; font-size: 13px; color: var(--ink-faint);">Until then, the standard deduction ($32,600 MFJ) applies automatically.</p>
       </div>
 
       <footer class="wiz-footer">
         <button type="button" class="back">← Back</button>
-        <button type="button" class="continue">Complete</button>
+        <button type="button" class="continue">Finish</button>
       </footer>
     </main>
   </section>
@@ -858,69 +828,6 @@
     });
 
     renderIncomeDefaults();
-
-    /* Step 4 — standard / itemized default deductions */
-    const TAX_ADJUSTMENTS = [
-      { type: "401(k)", person: "Aman" },
-      { type: "401(k)", person: "Awoman" },
-      { type: "HSA", scope: "Household" },
-    ];
-    const TAX_ITEMIZED = [
-      { type: "Medical", scope: "Household" },
-      { type: "Charitable", scope: "Household" },
-      { type: "Mortgage interest", scope: "Household" },
-      { type: "SALT", scope: "Household" },
-    ];
-    let deductionMode = "standard";
-
-    function taxMoneyRow(row, prefix) {
-      const who = row.person || row.scope;
-      const id = `${prefix}-${row.type}-${who}`.replace(/\s+/g, "-").toLowerCase();
-      return `
-        <div class="field-row">
-          <label class="field-row__lbl" for="${id}">${row.type} <em>· ${who}</em></label>
-          <span class="field-in-wrap">
-            <span class="field-in-wrap__prefix">$</span>
-            <input class="field-in" id="${id}" type="text" inputmode="numeric" placeholder="—" aria-label="${row.type} for ${who}">
-          </span>
-        </div>`;
-    }
-
-    function renderTaxAdjustments() {
-      const list = document.getElementById("tax-adjustments");
-      if (!list) return;
-      list.innerHTML = TAX_ADJUSTMENTS.map(row => taxMoneyRow(row, "adj")).join("");
-    }
-
-    function renderTaxDefaults() {
-      const list = document.getElementById("tax-defaults");
-      if (!list) return;
-      if (deductionMode === "standard") {
-        list.innerHTML = `
-          <p class="tax-quiet">Parallax applies the standard deduction from your filing status in Step I.</p>
-          <div class="field-row">
-            <span class="field-row__lbl">Standard deduction <em>· Household</em></span>
-            <span class="field-in-wrap field-in-wrap--ro" aria-hidden="true">Auto</span>
-          </div>`;
-        return;
-      }
-      list.innerHTML = TAX_ITEMIZED.map(row => taxMoneyRow(row, "ded")).join("");
-    }
-
-    document.querySelectorAll("[data-deduction]").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        deductionMode = btn.getAttribute("data-deduction");
-        document.querySelectorAll("[data-deduction]").forEach((b) => {
-          const on = b === btn;
-          b.classList.toggle("is-on", on);
-          b.setAttribute("aria-pressed", String(on));
-        });
-        renderTaxDefaults();
-      });
-    });
-
-    renderTaxAdjustments();
-    renderTaxDefaults();
   </script>
 </body>
 </html>
