@@ -1,0 +1,13 @@
+Update the attached wizard-reference.html into one complete Parallax Guided Planning Canvas.
+
+Keep the dark/gold HF look and layout. One plan state object; FILLED seeds demo data, BLANK clears; same render path everywhere (no separate FILLED HTML).
+
+Steps W, 1–4: welcome, family, balance sheet, income, tax. Compact $ boxes, + buttons, no ledger rows. Step 4 = Finish.
+
+Income (step 3): Still working / Retired toggle. Filled working: Salary Aman 180k, Bonus 25k, Salary Awoman 120k, Bonus 15k, expenses 168k. Roll up total 413000, adjustments 41750 for tax.
+
+Tax (step 4): + Charitable/Mortgage/SALT/Medical add rows. Compute live: medical max(0, entered−7.5%×AGI), salt min(entered, 40000), standard 32600 MFJ, auto itemized vs standard. Filled deductions: medical 8000, charitable 12000, mortgage 18400, salt 44800. Step 3 income feeds AGI.
+
+Family filled: MFJ, California. Balance filled: net worth 4800000.
+
+Return one self-contained HTML file.
