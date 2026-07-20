@@ -1,0 +1,9 @@
+DRAG THESE 3 FILES INTO CLAUDE:
+
+1. Parallax-Guided-Planning-Canvas.dc.html
+2. support.js
+3. parallax-logo.png
+
+All 3 must be in the same folder when Claude opens the .dc.html file.
+
+Or drag claude-handoff.zip from the folder above this one (one zip, all 3 inside).
