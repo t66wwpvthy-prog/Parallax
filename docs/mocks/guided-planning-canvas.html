@@ -487,6 +487,22 @@
       max-width: 42ch;
       margin: 0 0 10px;
     }
+    .tax-section {
+      margin-bottom: 18px;
+    }
+    .tax-section__k {
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--ink-faint);
+      margin-bottom: 10px;
+    }
+    .tax-section__rows {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      width: min(100%, 360px);
+    }
     .field-in-wrap--ro {
       min-width: 88px;
       justify-content: flex-end;
@@ -722,12 +738,19 @@
     <main class="wiz-main">
       <p class="wiz-main__eyebrow">Step IV — Tax</p>
 
-      <div class="work-toggle" role="group" aria-label="Deduction method">
-        <button type="button" class="is-on" data-deduction="standard" aria-pressed="true">Standard</button>
-        <button type="button" data-deduction="itemized" aria-pressed="false">Itemized</button>
+      <div class="tax-section">
+        <div class="tax-section__k">Pre-tax &amp; adjustments</div>
+        <div class="tax-section__rows" id="tax-adjustments"></div>
       </div>
 
-      <div class="tax-defaults" id="tax-defaults" aria-live="polite"></div>
+      <div class="tax-section">
+        <div class="tax-section__k">Deductions</div>
+        <div class="work-toggle" role="group" aria-label="Deduction method">
+          <button type="button" class="is-on" data-deduction="standard" aria-pressed="true">Standard</button>
+          <button type="button" data-deduction="itemized" aria-pressed="false">Itemized</button>
+        </div>
+        <div class="tax-defaults" id="tax-defaults" aria-live="polite"></div>
+      </div>
 
       <div class="add-links">
         <button type="button">+ Add adjustment</button>
@@ -837,49 +860,51 @@
     renderIncomeDefaults();
 
     /* Step 4 — standard / itemized default deductions */
-    const TAX_DEFAULTS = {
-      standard: {
-        note: "Parallax applies the standard deduction from your filing status in Step I.",
-        rows: [
-          { type: "Standard deduction", scope: "Household", readonly: true },
-        ],
-      },
-      itemized: {
-        rows: [
-          { type: "Charitable", scope: "Household" },
-          { type: "Mortgage interest", scope: "Household" },
-          { type: "SALT", scope: "Household" },
-          { type: "Medical", scope: "Household" },
-        ],
-      },
-    };
+    const TAX_ADJUSTMENTS = [
+      { type: "401(k)", person: "Aman" },
+      { type: "401(k)", person: "Awoman" },
+      { type: "HSA", scope: "Household" },
+    ];
+    const TAX_ITEMIZED = [
+      { type: "Medical", scope: "Household" },
+      { type: "Charitable", scope: "Household" },
+      { type: "Mortgage interest", scope: "Household" },
+      { type: "SALT", scope: "Household" },
+    ];
     let deductionMode = "standard";
 
-    function taxRowHtml(row) {
-      const id = `${row.type}-${row.scope}`.replace(/\s+/g, "-").toLowerCase();
-      if (row.readonly) {
-        return `
-          <div class="field-row">
-            <span class="field-row__lbl">${row.type} <em>· ${row.scope}</em></span>
-            <span class="field-in-wrap field-in-wrap--ro" aria-hidden="true">Auto</span>
-          </div>`;
-      }
+    function taxMoneyRow(row, prefix) {
+      const who = row.person || row.scope;
+      const id = `${prefix}-${row.type}-${who}`.replace(/\s+/g, "-").toLowerCase();
       return `
         <div class="field-row">
-          <label class="field-row__lbl" for="${id}">${row.type} <em>· ${row.scope}</em></label>
+          <label class="field-row__lbl" for="${id}">${row.type} <em>· ${who}</em></label>
           <span class="field-in-wrap">
             <span class="field-in-wrap__prefix">$</span>
-            <input class="field-in" id="${id}" type="text" inputmode="numeric" placeholder="—" aria-label="${row.type} for ${row.scope}">
+            <input class="field-in" id="${id}" type="text" inputmode="numeric" placeholder="—" aria-label="${row.type} for ${who}">
           </span>
         </div>`;
+    }
+
+    function renderTaxAdjustments() {
+      const list = document.getElementById("tax-adjustments");
+      if (!list) return;
+      list.innerHTML = TAX_ADJUSTMENTS.map(row => taxMoneyRow(row, "adj")).join("");
     }
 
     function renderTaxDefaults() {
       const list = document.getElementById("tax-defaults");
       if (!list) return;
-      const cfg = TAX_DEFAULTS[deductionMode];
-      const note = cfg.note ? `<p class="tax-quiet">${cfg.note}</p>` : "";
-      list.innerHTML = note + cfg.rows.map(taxRowHtml).join("");
+      if (deductionMode === "standard") {
+        list.innerHTML = `
+          <p class="tax-quiet">Parallax applies the standard deduction from your filing status in Step I.</p>
+          <div class="field-row">
+            <span class="field-row__lbl">Standard deduction <em>· Household</em></span>
+            <span class="field-in-wrap field-in-wrap--ro" aria-hidden="true">Auto</span>
+          </div>`;
+        return;
+      }
+      list.innerHTML = TAX_ITEMIZED.map(row => taxMoneyRow(row, "ded")).join("");
     }
 
     document.querySelectorAll("[data-deduction]").forEach((btn) => {
@@ -894,6 +919,7 @@
       });
     });
 
+    renderTaxAdjustments();
     renderTaxDefaults();
   </script>
 </body>
