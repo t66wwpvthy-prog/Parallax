@@ -65,3 +65,12 @@ test('medical expenses above the floor combine with direct deductions', () => {
   assert.equal(result.breakdown.direct.charitable.appliedAmount, 12000);
   assert.equal(result.itemizedAmount, 14500);
 });
+
+test('SALT remains fail-closed outside the implemented MFJ cap row', () => {
+  assert.throws(() => buildItemizedDeductionTotal({
+    filingStatus: 'single',
+    adjustedGrossIncome: 100000,
+    context,
+    deductions: [{ typeId:'salt', amount:10000 }],
+  }), /No SALT deduction cap/);
+});
