@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  activeIncomeSources,
   createAdjustment,
   createCredit,
   createIncomeSource,
@@ -56,6 +57,19 @@ test('working-only adjustments stop at retirement and joint rows remain active w
   assert.equal(isAdjustmentActiveNow(subject, subject.incomeTax.adjustments[0]), false);
   assert.equal(isAdjustmentActiveNow(subject, subject.incomeTax.adjustments[1]), true);
   assert.equal(enteredAdjustmentTotal(subject), 14300);
+});
+
+test('active income sources dedupe duplicate type+owner rows', () => {
+  const subject = plan({
+    income: {
+      other: [
+        { typeId:'wages', owner:'client', amount:215000, startAge:50, endAge:999 },
+        { typeId:'wages', owner:'client', amount:215000, startAge:50, endAge:999 },
+        { typeId:'bonus', owner:'client', amount:10000, startAge:50, endAge:999 },
+      ],
+    },
+  });
+  assert.equal(activeIncomeSources(subject).length, 2);
 });
 
 test('new 401(k) adjustments persist their working-only default', () => {

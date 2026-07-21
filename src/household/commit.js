@@ -56,9 +56,19 @@ export function bindHouseholdEditor({
       createRow = () => createDeduction(typeId);
     }
     if(!rows || !createRow) return false;
-    if(Number.isInteger(rowIndex) && rowIndex >= 0 && rowIndex < rows.length){
-      if(amount === 0 && fixedKind === 'income') rows.splice(rowIndex, 1);
-      else rows[rowIndex].amount = amount;
+    let index = rowIndex;
+    if(fixedKind === 'income'){
+      if(Number.isInteger(index) && index >= 0 && index < rows.length){
+        const row = rows[index];
+        if(row.typeId !== typeId || (row.owner || 'client') !== owner) index = -1;
+      }
+      if(!(Number.isInteger(index) && index >= 0)){
+        index = rows.findIndex(r => r.typeId === typeId && (r.owner || 'client') === owner);
+      }
+    }
+    if(Number.isInteger(index) && index >= 0 && index < rows.length){
+      if(amount === 0 && fixedKind === 'income') rows.splice(index, 1);
+      else rows[index].amount = amount;
     }else if(amount > 0){
       const row = createRow();
       row.amount = amount;
