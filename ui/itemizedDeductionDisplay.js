@@ -25,10 +25,19 @@ export function itemizedDeductionLimitCopy(summary, typeId){
   return '';
 }
 
+function typeIdFromLabel(input){
+  const label = (input.getAttribute('aria-label') || '').toLowerCase();
+  if(label.includes('medical')) return 'medical';
+  if(label.includes('real-estate')) return 'real_estate_tax';
+  if(label.includes('personal-property')) return 'personal_property_tax';
+  if(label.includes('state & local') || label.includes('salt')) return 'salt';
+  return '';
+}
+
 function typeIdForInput(input, deductions){
   if(input.dataset.hhFixedType) return input.dataset.hhFixedType;
   const match = /^incomeTax\.deductions\.(\d+)\.amount$/.exec(input.dataset.path || '');
-  return match ? deductions[Number(match[1])]?.typeId : '';
+  return (match ? deductions[Number(match[1])]?.typeId : '') || typeIdFromLabel(input);
 }
 
 /** Attach entered-vs-applied copy to the already-rendered GPC deduction rows. */
