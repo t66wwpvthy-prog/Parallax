@@ -108,8 +108,31 @@
     .person-tabs button { appearance: none; border: 1px solid var(--line-strong); border-radius: 2px; background: transparent; color: var(--ink); font: 500 13px/1 var(--font-sans); padding: 11px 22px; cursor: pointer; }
     .person-tabs button.is-on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
     .acct-btns { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; }
-    .acct-btns button { appearance: none; border: 1px solid var(--line-strong); border-radius: 2px; background: transparent; color: var(--ink); font: 500 13px/1 var(--font-sans); padding: 12px 18px; cursor: pointer; }
-    .acct-btns.step2 { margin-bottom: 48px; }
+    .acct-btns button {
+      appearance: none; border: 1px solid var(--line-strong); border-radius: 2px; background: transparent;
+      color: var(--ink); font: 500 13px/1 var(--font-sans); padding: 12px 18px; cursor: pointer;
+      transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+    }
+    .acct-btns button:hover { border-color: rgba(198,166,98,0.45); background: rgba(198,166,98,0.08); color: var(--ink-bright); }
+    .acct-btns button.is-open { border-color: var(--accent); background: rgba(198,166,98,0.14); color: var(--ink-bright); }
+    .acct-btns.step2 { margin-bottom: 16px; }
+    .acct-list { display: flex; flex-direction: column; gap: 7px; width: min(100%, 380px); margin: 8px 0 32px; }
+    .acct-list .field-in { width: 96px; }
+    .row-x {
+      appearance: none; border: 0; background: transparent; color: var(--ink-faint);
+      font: 400 18px/1 var(--font-sans); cursor: pointer; padding: 0 2px; line-height: 1; flex: none;
+    }
+    .row-x:hover { color: var(--ink-bright); }
+    .other-panel {
+      margin: 0 0 24px; padding: 14px 16px; border: 1px solid var(--line-strong); border-radius: 4px;
+      background: rgba(255,255,255,0.03); max-width: 280px;
+    }
+    .other-panel__k { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 10px; }
+    .other-panel button {
+      appearance: none; border: 0; background: transparent; color: var(--ink-body); font: 400 13px/1.4 var(--font-sans);
+      padding: 6px 0; cursor: pointer; text-align: left; display: block; width: 100%;
+    }
+    .other-panel button:hover { color: var(--accent-bright); }
     .work-toggle { display: inline-flex; flex-wrap: wrap; gap: 0; margin-bottom: 14px; border: 1px solid var(--line-strong); border-radius: 2px; overflow: hidden; }
     .work-toggle button { appearance: none; border: 0; border-right: 1px solid var(--line-strong); background: transparent; color: var(--ink-mute); font: 500 13px/1 var(--font-sans); padding: 9px 20px; cursor: pointer; }
     .work-toggle button:last-child { border-right: 0; }
@@ -230,13 +253,21 @@
     <main class="wiz-main">
       <p class="wiz-main__eyebrow">Step II — Balance sheet</p>
       <h1 class="wiz-main__subtitle">Investment Accounts · Tangible Property · Debt</h1>
-      <div class="acct-btns step2">
-        <button type="button">+ Taxable Account</button>
-        <button type="button">+ Traditional IRA</button>
-        <button type="button">+ Roth IRA</button>
-        <button type="button">+ Real estate</button>
-        <button type="button">+ Other</button>
+      <div class="acct-btns step2" id="acct-add-btns">
+        <button type="button" data-acct="taxable">+ Taxable Account</button>
+        <button type="button" data-acct="traditional_ira">+ Traditional IRA</button>
+        <button type="button" data-acct="roth_ira">+ Roth IRA</button>
+        <button type="button" data-acct="real_estate">+ Real estate</button>
+        <button type="button" data-acct="other" id="acct-other-btn" aria-expanded="false">+ Other</button>
       </div>
+      <div class="other-panel" id="other-panel" hidden>
+        <div class="other-panel__k">Other account type</div>
+        <button type="button" data-acct="529">529 Plan</button>
+        <button type="button" data-acct="hsa">HSA</button>
+        <button type="button" data-acct="trust">Trust account</button>
+        <button type="button" data-acct="life_insurance">Life insurance (cash value)</button>
+      </div>
+      <div class="acct-list" id="acct-rows" aria-live="polite"></div>
       <footer class="wiz-footer">
         <button type="button" class="back">← Back</button>
         <button type="button" class="continue">Continue</button>
@@ -336,6 +367,17 @@
         medical: 'Medical expenses'
       };
 
+      var ACCOUNT_LABELS = {
+        taxable: 'Taxable Account',
+        traditional_ira: 'Traditional IRA',
+        roth_ira: 'Roth IRA',
+        real_estate: 'Real estate',
+        '529': '529 Plan',
+        hsa: 'HSA',
+        trust: 'Trust account',
+        life_insurance: 'Life insurance (cash value)'
+      };
+
       // 2026 figures are not yet published in the source spec — 2024 MFJ
       // brackets are used as a stand-in (see CHANGES.md).
       var RULES = { standardMFJ: 32600, saltCap: 40000, medicalFloor: 0.075, blendedRate: 0.182416 };
@@ -343,7 +385,7 @@
       function blankPlan() {
         return {
           meta: { filingStatus: '', state: '' },
-          balance: { netWorth: 0 },
+          balance: { accounts: [] },
           income: {
             workMode: 'employed',
             sources: INCOME_DEFAULTS.employed.map(function (r) { return { type: r.type, person: r.person, amount: 0 }; }),
@@ -358,7 +400,14 @@
       function demoPlan() {
         return {
           meta: { filingStatus: 'Married filing jointly', state: 'California' },
-          balance: { netWorth: 4800000 },
+          balance: {
+            accounts: [
+              { typeId: 'taxable', label: 'Taxable Account', balance: 1800000 },
+              { typeId: 'traditional_ira', label: 'Traditional IRA', balance: 1200000 },
+              { typeId: 'roth_ira', label: 'Roth IRA', balance: 600000 },
+              { typeId: 'real_estate', label: 'Real estate', balance: 1200000 }
+            ]
+          },
           income: {
             workMode: 'employed',
             sources: [
@@ -384,6 +433,7 @@
 
       var plan = blankPlan();
       var screen = 'w';
+      var otherOpen = false;
 
       function parseMoney(raw) {
         var n = Number(String(raw || '').replace(/[^0-9.-]/g, ''));
@@ -404,6 +454,30 @@
       function incomeTotal(p) {
         var src = p.income.sources.reduce(function (s, r) { return s + (Number(r.amount) || 0); }, 0);
         return src + (Number(p.income.extraIncome) || 0);
+      }
+
+      function netWorth(p) {
+        return (p.balance.accounts || []).reduce(function (s, a) {
+          return s + (Number(a.balance) || 0);
+        }, 0);
+      }
+
+      function addAccount(typeId) {
+        var label = ACCOUNT_LABELS[typeId];
+        if (!label) return;
+        plan.balance.accounts.push({ typeId: typeId, label: label, balance: 0 });
+        renderBalance();
+      }
+
+      function setOtherOpen(open) {
+        otherOpen = open;
+        var panel = document.getElementById('other-panel');
+        var btn = document.getElementById('acct-other-btn');
+        if (panel) panel.hidden = !open;
+        if (btn) {
+          btn.classList.toggle('is-open', open);
+          btn.setAttribute('aria-expanded', String(open));
+        }
       }
 
       // Rolls up to a single capped/floored figure per §9 of the handoff spec.
@@ -457,7 +531,39 @@
       }
 
       function renderBalance() {
-        setText('nw-value', plan.balance.netWorth > 0 ? fmtMoneyAlways(plan.balance.netWorth) : '$0');
+        var nw = netWorth(plan);
+        setText('nw-value', nw > 0 ? fmtMoneyAlways(nw) : '$0');
+
+        var list = document.getElementById('acct-rows');
+        if (!list) return;
+        var accounts = plan.balance.accounts || [];
+        if (!accounts.length) {
+          list.innerHTML = '';
+          list.style.display = 'none';
+          return;
+        }
+        list.style.display = 'flex';
+        list.innerHTML = accounts.map(function (row, i) {
+          var val = row.balance ? fmtMoney(row.balance) : '';
+          return '<div class="field-row">' +
+            '<span class="field-row__lbl">' + row.label + '</span>' +
+            '<span class="field-in-wrap"><span class="field-in-wrap__prefix">$</span>' +
+            '<input class="field-in" data-acct-idx="' + i + '" type="text" inputmode="numeric" placeholder="—" value="' + val + '" aria-label="' + row.label + ' balance"></span>' +
+            '<button type="button" class="row-x" data-rm-acct="' + i + '" aria-label="Remove ' + row.label + '">×</button></div>';
+        }).join('');
+
+        Array.prototype.forEach.call(list.querySelectorAll('input[data-acct-idx]'), function (inp) {
+          inp.addEventListener('input', function () {
+            plan.balance.accounts[Number(inp.getAttribute('data-acct-idx'))].balance = parseMoney(inp.value);
+            setText('nw-value', netWorth(plan) > 0 ? fmtMoneyAlways(netWorth(plan)) : '$0');
+          });
+        });
+        Array.prototype.forEach.call(list.querySelectorAll('[data-rm-acct]'), function (btn) {
+          btn.addEventListener('click', function () {
+            plan.balance.accounts.splice(Number(btn.getAttribute('data-rm-acct')), 1);
+            renderBalance();
+          });
+        });
       }
 
       function renderIncomeDefaults() {
@@ -580,6 +686,7 @@
       Array.prototype.forEach.call(document.querySelectorAll('[data-fill]'), function (btn) {
         btn.addEventListener('click', function () {
           plan = btn.getAttribute('data-fill') === 'filled' ? demoPlan() : blankPlan();
+          setOtherOpen(false);
           Array.prototype.forEach.call(document.querySelectorAll('[data-fill]'), function (b) { b.classList.toggle('is-on', b === btn); });
           Array.prototype.forEach.call(document.querySelectorAll('[data-work]'), function (b) {
             var on = b.getAttribute('data-work') === plan.income.workMode;
@@ -613,6 +720,25 @@
           if (!label || plan.incomeTax.deductions.some(function (d) { return d.typeId === typeId; })) return;
           plan.incomeTax.deductions.push({ typeId: typeId, label: label, amount: 0 });
           renderTax();
+        });
+      });
+
+      Array.prototype.forEach.call(document.querySelectorAll('#acct-add-btns [data-acct]'), function (btn) {
+        btn.addEventListener('click', function () {
+          var typeId = btn.getAttribute('data-acct');
+          if (typeId === 'other') {
+            setOtherOpen(!otherOpen);
+            return;
+          }
+          addAccount(typeId);
+          setOtherOpen(false);
+        });
+      });
+
+      Array.prototype.forEach.call(document.querySelectorAll('#other-panel [data-acct]'), function (btn) {
+        btn.addEventListener('click', function () {
+          addAccount(btn.getAttribute('data-acct'));
+          setOtherOpen(false);
         });
       });
 
