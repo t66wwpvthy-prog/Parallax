@@ -25,12 +25,21 @@ export function itemizedDeductionLimitCopy(summary, typeId){
   return '';
 }
 
+function typeIdForInput(input, deductions){
+  if(input.dataset.hhFixedType) return input.dataset.hhFixedType;
+  const match = /^incomeTax\.deductions\.(\d+)\.amount$/.exec(input.dataset.path || '');
+  return match ? deductions[Number(match[1])]?.typeId : '';
+}
+
 /** Attach entered-vs-applied copy to the already-rendered GPC deduction rows. */
-export function applyItemizedDeductionDisplay(root, summary){
+export function applyItemizedDeductionDisplay(root, summary, deductions = []){
   if(!root || summary?.status !== 'ready') return;
   let saltShown = false;
-  for(const input of root.querySelectorAll('[data-hh-fixed-kind="deduction"]')){
-    const typeId = input.dataset.hhFixedType;
+  const inputs = root.querySelectorAll(
+    '[data-hh-fixed-kind="deduction"], input[data-path^="incomeTax.deductions."][data-path$=".amount"]'
+  );
+  for(const input of inputs){
+    const typeId = typeIdForInput(input, deductions);
     if(SALT_TYPE_IDS.has(typeId)){
       if(saltShown) continue;
       saltShown = true;
