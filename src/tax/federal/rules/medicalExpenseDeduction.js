@@ -3,8 +3,9 @@
 import {
   MEDICAL_EXPENSE_AGI_FLOOR,
   MEDICAL_EXPENSE_AGI_FLOOR_SOURCE,
-} from '../../core/constants.js';
-import { CONTEXT_SCHEMA, MEDICAL_EXPENSE_DEDUCTION_INPUT_SCHEMA } from '../../core/schemas.js';
+} from '../../core/itemizedDeductionConstants.js';
+import { CONTEXT_SCHEMA } from '../../core/schemas.js';
+import { MEDICAL_EXPENSE_DEDUCTION_INPUT_SCHEMA } from '../../core/itemizedDeductionSchemas.js';
 import { validateAgainstSchema, assertNonNegativeNumber } from '../../core/validators.js';
 import { getDataSource } from '../../core/dataSourceRegistry.js';
 import { TaxDataError, TaxInputError } from '../../core/errors.js';
@@ -27,7 +28,7 @@ export const meta = {
     'Assumes entered expenses are otherwise qualified medical expenses',
     'Does not determine reimbursement, timing, or taxpayer/dependent eligibility',
   ],
-  triggerTags: ['agi_threshold', 'itemized_deduction', 'medical_deduction'],
+  triggerTags: ['agi_threshold'],
 };
 
 const round2 = number => Math.round((number + Number.EPSILON) * 100) / 100;
