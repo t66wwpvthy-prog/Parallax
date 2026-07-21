@@ -273,7 +273,26 @@ async function runAudit(viewport, label){
   if ((await step(page)) !== '4') fail(`${prefix} step3→4`, await step(page));
   else pass(`${prefix} step3→4 nav`);
 
-  for (const type of ['charitable', 'mortgage_interest', 'salt', 'medical']){
+  await tap(page, '#hh-view [data-hh-action="gpc-add-deduction"][data-ded-type="charitable"]');
+  await sleep(350);
+
+  // Mobile blur/change race: type amount, tap another deduction before blur.
+  await page.focus('#hh-view input[data-path="incomeTax.deductions.0.amount"]');
+  await page.keyboard.type('12000');
+  await sleep(100);
+  await page.evaluate(() => {
+    const btn = document.querySelector('#hh-view [data-hh-action="gpc-add-deduction"][data-ded-type="salt"]');
+    btn?.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true }));
+    btn?.click();
+  });
+  await sleep(500);
+  snap = await planSnapshot(page);
+  if (!snap.deductions.some(d => d.typeId === 'charitable' && d.amount === 12000)) fail(`${prefix} mobile ded race charitable`, JSON.stringify(snap.deductions));
+  else pass(`${prefix} mobile ded race charitable saves`);
+  if (!snap.deductions.some(d => d.typeId === 'salt')) fail(`${prefix} mobile ded race salt row`, JSON.stringify(snap.deductions));
+  else pass(`${prefix} mobile ded race adds second row`);
+
+  for (const type of ['mortgage_interest', 'medical']){
     const btn = `#hh-view [data-hh-action="gpc-add-deduction"][data-ded-type="${type}"]`;
     const el = await page.$(btn);
     if (el && !(await el.evaluate(n => n.disabled))){
@@ -286,7 +305,6 @@ async function runAudit(viewport, label){
   if (dedInputs.length < 4) fail(`${prefix} step4 add deductions`, `rows=${dedInputs.length}`);
   else pass(`${prefix} step4 add all 4 deductions`);
 
-  await setField(page, '#hh-view input[data-path="incomeTax.deductions.0.amount"]', '12000');
   await blurActive(page);
   snap = await planSnapshot(page);
   if (!snap.deductions.some(d => d.typeId === 'charitable' && d.amount === 12000)) fail(`${prefix} step4 charitable save`, JSON.stringify(snap.deductions));
@@ -299,8 +317,8 @@ async function runAudit(viewport, label){
   if (snap.deductions.length < 4) fail(`${prefix} step4 ded rows kept`, JSON.stringify(snap.deductions));
   else pass(`${prefix} step4 all deduction rows kept`);
 
-  await setField(page, '#hh-view input[data-path="incomeTax.deductions.1.amount"]', '18000');
-  await setField(page, '#hh-view input[data-path="incomeTax.deductions.2.amount"]', '5000');
+  await setField(page, '#hh-view input[data-path="incomeTax.deductions.1.amount"]', '5000');
+  await setField(page, '#hh-view input[data-path="incomeTax.deductions.2.amount"]', '18000');
   await setField(page, '#hh-view input[data-path="incomeTax.deductions.3.amount"]', '3000');
   await blurActive(page);
   snap = await planSnapshot(page);

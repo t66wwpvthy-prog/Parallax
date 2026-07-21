@@ -181,6 +181,7 @@ export function createHouseholdWizardController({
   function bindRail(){
     document.querySelectorAll('.hh-stepper .hh-step').forEach(button =>
       button.addEventListener('click', () => {
+        beforeSync?.();
         step = +button.dataset.step || 1;
         addingKey = null;
         accountFormOwner = null;
