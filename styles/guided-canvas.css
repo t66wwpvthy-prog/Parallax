@@ -618,7 +618,7 @@
   width: 100%;
 }
 
-  .page[data-page="household"] #hh-wiz-footer {
+.page[data-page="household"] #hh-wiz-footer {
   flex: none;
   position: sticky;
   bottom: 0;
