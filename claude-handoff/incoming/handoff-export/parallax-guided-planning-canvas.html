@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Parallax · Guided Planning Canvas</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@300;400;500;600;700&family=Spectral:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0b0d11;
+      --bg-deep: #080a0d;
+      --ink: #ddd5c4;
+      --ink-bright: #e7dec9;
+      --ink-body: #9097a0;
+      --ink-mute: #878e96;
+      --ink-faint: #7d848c;
+      --num: #b8ad92;
+      --value-highlight: #e7dec9;
+      --accent: #c6a662;
+      --accent-bright: #d8c084;
+      --accent-ink: #15181d;
+      --line: rgba(231,222,201,0.10);
+      --line-strong: rgba(231,222,201,0.16);
+      --btn: linear-gradient(180deg, #d8c084, #c6a662);
+      --fab: linear-gradient(180deg, #d4b06a, #a8863f);
+      --font-sans: "Hanken Grotesk", system-ui, sans-serif;
+      --font-serif: "Spectral", Georgia, serif;
+      --sidebar-w: 248px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { min-height: 100%; background-color: var(--bg-deep); }
+    body {
+      min-height: 100vh;
+      font-family: var(--font-sans);
+      color: var(--ink);
+      background-color: var(--bg-deep);
+      background-image:
+        radial-gradient(1000px 720px at 18% -12%, rgba(198,166,98,0.05), transparent 60%),
+        radial-gradient(880px 620px at 100% 0%, rgba(124,133,137,0.028), transparent 62%),
+        linear-gradient(180deg, #0d0f12 0%, var(--bg) 55%, var(--bg-deep) 100%);
+      -webkit-font-smoothing: antialiased;
+    }
+    .proto-bar {
+      position: fixed; top: 18px; right: 18px; z-index: 100;
+      display: flex; align-items: center;
+      background: rgba(8,10,13,0.92); border: 1px solid rgba(231,222,201,0.12);
+      border-radius: 999px; padding: 4px 6px; box-shadow: 0 8px 28px -8px rgba(0,0,0,0.55);
+    }
+    .proto-seg { display: inline-flex; align-items: center; border-right: 1px solid rgba(231,222,201,0.10); padding: 0 6px; }
+    .proto-seg:last-child { border-right: 0; }
+    .proto-seg button {
+      appearance: none; background: transparent; border: 0; color: var(--ink-mute);
+      font: 500 11px/1 var(--font-sans); letter-spacing: 0.04em; padding: 6px 10px;
+      border-radius: 999px; cursor: pointer;
+    }
+    .proto-seg button.is-on { background: rgba(231,222,201,0.92); color: var(--accent-ink); }
+    .proto-seg--steps button { width: 28px; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; }
+    .edit-fab {
+      position: fixed; bottom: 22px; right: 22px; z-index: 100;
+      display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px 10px 14px;
+      border: 0; border-radius: 999px; background: var(--fab); color: var(--accent-ink);
+      font: 600 13px/1 var(--font-sans); letter-spacing: 0.02em; cursor: pointer;
+      box-shadow: 0 10px 28px -8px rgba(0,0,0,0.45);
+    }
+    .edit-fab svg { flex: none; }
+    [hidden] { display: none !important; }
+    .screen-welcome { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 80px 24px 100px; text-align: center; }
+    .screen-welcome__eyebrow { font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--ink-mute); margin-bottom: 18px; }
+    .screen-welcome__title { font-family: var(--font-serif); font-weight: 300; font-size: clamp(42px, 6vw, 64px); color: var(--ink-bright); line-height: 1.05; margin-bottom: 22px; }
+    .screen-welcome__rule { width: min(420px, 72vw); height: 2px; background: var(--accent); margin: 0 auto 28px; }
+    .screen-welcome__begin { appearance: none; border: 0; border-radius: 2px; background: var(--btn); color: var(--accent-ink); font: 600 12px/1 var(--font-sans); letter-spacing: 0.18em; text-transform: uppercase; padding: 14px 42px; cursor: pointer; }
+    .screen-welcome__steps { position: fixed; left: 28px; bottom: 28px; display: flex; flex-wrap: wrap; gap: 18px 24px; font-size: 12px; letter-spacing: 0.06em; color: var(--ink-faint); }
+    .screen-wizard { min-height: 100vh; display: flex; }
+    .wiz-sidebar { width: var(--sidebar-w); flex: none; display: flex; flex-direction: column; padding: 28px 24px 24px; border-right: 1px solid var(--line); background: rgba(255,255,255,0.012); }
+    .wiz-logo { display: block; height: 54px; width: auto; margin-bottom: 40px; object-fit: contain; object-position: left center; }
+    .wiz-nav { list-style: none; display: flex; flex-direction: column; gap: 14px; }
+    .wiz-nav li { font-size: 13px; letter-spacing: 0.02em; color: var(--ink-faint); display: flex; align-items: center; gap: 8px; }
+    .wiz-nav li.is-current { color: var(--accent); font-weight: 500; }
+    .wiz-nav li.is-done { color: var(--ink-body); }
+    .wiz-nav li.is-done::before { content: "✓"; font-size: 11px; color: var(--accent); width: 14px; flex: none; }
+    .wiz-nav li:not(.is-done)::before { content: attr(data-num); font-size: 11px; color: var(--ink-faint); width: 14px; flex: none; font-variant-numeric: tabular-nums; }
+    .wiz-sidebar__foot { margin-top: auto; padding-top: 28px; }
+    .wiz-sidebar__foot .k { font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 10px; }
+    .wiz-sidebar__foot .row { font-size: 13px; color: var(--ink-body); margin-bottom: 6px; line-height: 1.45; }
+    .wiz-sidebar__foot .row strong { color: var(--ink-bright); font-weight: 500; }
+    .wiz-sidebar__foot .nw { font-family: var(--font-serif); font-size: 28px; font-weight: 300; color: var(--accent); margin-top: 4px; }
+    .wiz-main { flex: 1; min-width: 0; display: flex; flex-direction: column; padding: 48px 56px 32px; }
+    .wiz-main__eyebrow { font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-mute); margin-bottom: 10px; }
+    .wiz-main__title { font-family: var(--font-serif); font-weight: 300; font-size: clamp(36px, 4vw, 48px); color: var(--ink-bright); line-height: 1.08; margin-bottom: 32px; }
+    .wiz-main__subtitle { font-family: var(--font-serif); font-weight: 300; font-size: 22px; color: var(--ink-bright); margin-bottom: 28px; }
+    .meta-row { display: grid; grid-template-columns: repeat(3, minmax(0, max-content)); gap: 28px 36px; margin-bottom: 28px; }
+    .meta-field { display: flex; flex-direction: column; gap: 6px; }
+    .meta-field .lbl { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-faint); }
+    .meta-field .val { display: inline-block; width: auto; min-width: 108px; font-size: 14px; color: var(--ink-mute); background: rgba(255,255,255,0.04); border: 1px solid var(--line-strong); border-radius: 4px; padding: 6px 10px; line-height: 1.3; }
+    .field-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; min-height: 32px; }
+    .field-row__lbl { font-size: 14px; color: var(--ink); flex: 1; min-width: 0; line-height: 1.3; }
+    .field-row__lbl em { font-style: normal; color: var(--ink-faint); }
+    .field-in-wrap { display: inline-flex; align-items: center; gap: 3px; flex: none; background: rgba(255,255,255,0.04); border: 1px solid var(--line-strong); border-radius: 4px; padding: 5px 8px; }
+    .field-in-wrap__prefix { font-size: 13px; color: var(--ink-faint); line-height: 1; }
+    .field-in { width: 68px; border: 0; background: transparent; font-family: var(--font-serif); font-size: 15px; color: var(--num); text-align: right; padding: 0; outline: none; line-height: 1.2; }
+    .field-in::placeholder { color: var(--ink-faint); }
+    .field-in:focus { color: var(--ink-bright); }
+    .section-rule { border: 0; border-top: 1px solid var(--line); margin: 0 0 24px; }
+    .section-head { font-family: var(--font-serif); font-weight: 400; font-size: 20px; color: var(--ink-bright); margin-bottom: 18px; }
+    .person-tabs { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 48px; }
+    .person-tabs button { appearance: none; border: 1px solid var(--line-strong); border-radius: 2px; background: transparent; color: var(--ink); font: 500 13px/1 var(--font-sans); padding: 11px 22px; cursor: pointer; }
+    .person-tabs button.is-on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+    .acct-btns { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; }
+    .acct-btns button { appearance: none; border: 1px solid var(--line-strong); border-radius: 2px; background: transparent; color: var(--ink); font: 500 13px/1 var(--font-sans); padding: 12px 18px; cursor: pointer; }
+    .acct-btns.step2 { margin-bottom: 48px; }
+    .work-toggle { display: inline-flex; flex-wrap: wrap; gap: 0; margin-bottom: 14px; border: 1px solid var(--line-strong); border-radius: 2px; overflow: hidden; }
+    .work-toggle button { appearance: none; border: 0; border-right: 1px solid var(--line-strong); background: transparent; color: var(--ink-mute); font: 500 13px/1 var(--font-sans); padding: 9px 20px; cursor: pointer; }
+    .work-toggle button:last-child { border-right: 0; }
+    .work-toggle button.is-on { background: var(--accent); color: var(--accent-ink); }
+    .income-defaults { display: flex; flex-direction: column; gap: 7px; width: min(100%, 340px); margin: 12px 0 16px; }
+    .add-links { display: flex; flex-wrap: wrap; gap: 14px 22px; margin-bottom: 28px; }
+    .add-links button { appearance: none; background: transparent; border: 0; color: var(--ink-mute); font: 500 13px/1 var(--font-sans); cursor: pointer; padding: 0; }
+    .add-links button:hover { color: var(--accent-bright); }
+    .tax-panel { border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 28px 0; margin-bottom: 28px; }
+    .wiz-main__intro { font-size: 14px; color: var(--ink-body); line-height: 1.55; max-width: 52ch; margin-bottom: 28px; }
+    .wiz-footer { margin-top: auto; display: flex; align-items: center; justify-content: space-between; padding-top: 24px; }
+    .wiz-footer .back { appearance: none; background: transparent; border: 0; color: var(--ink-mute); font: 500 12px/1 var(--font-sans); letter-spacing: 0.12em; text-transform: uppercase; cursor: pointer; padding: 8px; }
+    .wiz-footer .back:hover { color: var(--ink-bright); }
+    .wiz-footer .continue { appearance: none; border: 0; border-radius: 2px; background: var(--btn); color: var(--accent-ink); font: 600 12px/1 var(--font-sans); letter-spacing: 0.16em; text-transform: uppercase; padding: 14px 36px; cursor: pointer; }
+    @media (max-width: 860px) {
+      .screen-wizard { flex-direction: column; }
+      .wiz-sidebar { width: 100%; border-right: 0; border-bottom: 1px solid var(--line); flex-direction: row; flex-wrap: wrap; align-items: center; gap: 16px; padding: 16px 20px; }
+      .wiz-logo { height: 34px; margin: 0; }
+      .wiz-nav { flex-direction: row; flex-wrap: wrap; gap: 10px 16px; }
+      .wiz-sidebar__foot { width: 100%; margin-top: 0; padding-top: 12px; }
+      .wiz-main { padding: 28px 24px 24px; }
+      .meta-row { grid-template-columns: 1fr; gap: 20px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="proto-bar" aria-label="Prototype controls">
+    <div class="proto-seg" role="group" aria-label="Variant">
+      <button type="button" class="is-on" data-variant="a">A</button>
+      <button type="button" data-variant="b">B</button>
+      <button type="button" data-variant="c">C</button>
+    </div>
+    <div class="proto-seg" role="group" aria-label="Fill state">
+      <button type="button" data-fill="filled">FILLED</button>
+      <button type="button" class="is-on" data-fill="blank">BLANK</button>
+    </div>
+    <div class="proto-seg proto-seg--steps" role="group" aria-label="Wizard screen">
+      <button type="button" class="is-on" data-screen="w">W</button>
+      <button type="button" data-screen="1">1</button>
+      <button type="button" data-screen="2">2</button>
+      <button type="button" data-screen="3">3</button>
+      <button type="button" data-screen="4">4</button>
+      <button type="button" data-screen="done" aria-label="Complete">✓</button>
+    </div>
+  </div>
+
+  <button type="button" class="edit-fab" aria-label="Edit">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M11.5 1.5l3 3L5 14H2v-3L11.5 1.5z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+    Edit
+  </button>
+
+  <section class="screen-welcome" id="screen-w">
+    <p class="screen-welcome__eyebrow">Plan Intake</p>
+    <h1 class="screen-welcome__title">Aman &amp; Awoman</h1>
+    <div class="screen-welcome__rule" aria-hidden="true"></div>
+    <button type="button" class="screen-welcome__begin">Begin</button>
+    <nav class="screen-welcome__steps" aria-label="Wizard steps">
+      <span>I Family</span>
+      <span>II Balance sheet</span>
+      <span>III Income &amp; expenses</span>
+      <span>IV Tax</span>
+    </nav>
+  </section>
+
+  <section class="screen-wizard" id="screen-1" hidden>
+    <aside class="wiz-sidebar">
+      <img class="wiz-logo" src="parallax-logo.png" alt="Parallax" width="978" height="647" />
+      <ol class="wiz-nav" aria-label="Wizard progress">
+        <li class="is-current" data-num="I">Family</li>
+        <li data-num="II">Balance sheet</li>
+        <li data-num="III">Income &amp; expenses</li>
+        <li data-num="IV">Tax</li>
+      </ol>
+      <div class="wiz-sidebar__foot">
+        <div class="k">This household</div>
+        <div class="row"><strong>Household</strong><br />Aman &amp; Awoman</div>
+        <div class="row"><strong>Filing status</strong><br /><span id="sf-filing">Select…</span></div>
+        <div class="row"><strong>State</strong><br /><span id="sf-state">Select…</span></div>
+        <div class="row"><strong>Dependents</strong><br />—</div>
+      </div>
+    </aside>
+    <main class="wiz-main">
+      <p class="wiz-main__eyebrow">Step I — Family</p>
+      <h1 class="wiz-main__title">Household</h1>
+      <div class="meta-row">
+        <div class="meta-field"><span class="lbl">Filing status</span><span class="val" id="mf-filing">Select…</span></div>
+        <div class="meta-field"><span class="lbl">State</span><span class="val" id="mf-state">Select…</span></div>
+        <div class="meta-field"><span class="lbl">Plan through</span><span class="val">—</span></div>
+      </div>
+      <hr class="section-rule" />
+      <h2 class="section-head">Who is this plan for?</h2>
+      <div class="person-tabs" role="tablist">
+        <button type="button" class="is-on" role="tab" aria-selected="true">Person 1</button>
+        <button type="button" role="tab" aria-selected="false">Person 2</button>
+        <button type="button" role="tab" aria-selected="false">+ Dependent</button>
+      </div>
+      <footer class="wiz-footer">
+        <button type="button" class="back">← Back</button>
+        <button type="button" class="continue">Continue</button>
+      </footer>
+    </main>
+  </section>
+
+  <section class="screen-wizard" id="screen-2" hidden>
+    <aside class="wiz-sidebar">
+      <img class="wiz-logo" src="parallax-logo.png" alt="Parallax" width="978" height="647" />
+      <ol class="wiz-nav" aria-label="Wizard progress">
+        <li class="is-done" data-num="I">Family</li>
+        <li class="is-current" data-num="II">Balance sheet</li>
+        <li data-num="III">Income &amp; expenses</li>
+        <li data-num="IV">Tax</li>
+      </ol>
+      <div class="wiz-sidebar__foot">
+        <div class="k">Net worth</div>
+        <div class="nw" id="nw-value">$0</div>
+      </div>
+    </aside>
+    <main class="wiz-main">
+      <p class="wiz-main__eyebrow">Step II — Balance sheet</p>
+      <h1 class="wiz-main__subtitle">Investment Accounts · Tangible Property · Debt</h1>
+      <div class="acct-btns step2">
+        <button type="button">+ Taxable Account</button>
+        <button type="button">+ Traditional IRA</button>
+        <button type="button">+ Roth IRA</button>
+        <button type="button">+ Real estate</button>
+        <button type="button">+ Other</button>
+      </div>
+      <footer class="wiz-footer">
+        <button type="button" class="back">← Back</button>
+        <button type="button" class="continue">Continue</button>
+      </footer>
+    </main>
+  </section>
+
+  <section class="screen-wizard" id="screen-3" hidden>
+    <aside class="wiz-sidebar">
+      <img class="wiz-logo" src="parallax-logo.png" alt="Parallax" width="978" height="647" />
+      <ol class="wiz-nav" aria-label="Wizard progress">
+        <li class="is-done" data-num="I">Family</li>
+        <li class="is-done" data-num="II">Balance sheet</li>
+        <li class="is-current" data-num="III">Income &amp; expenses</li>
+        <li data-num="IV">Tax</li>
+      </ol>
+    </aside>
+    <main class="wiz-main">
+      <p class="wiz-main__eyebrow">Step III — Income &amp; expenses</p>
+      <div class="work-toggle" role="group" aria-label="Employment status">
+        <button type="button" class="is-on" data-work="employed" aria-pressed="true">Still working</button>
+        <button type="button" data-work="retired" aria-pressed="false">Retired</button>
+      </div>
+      <div class="income-defaults" id="income-defaults" aria-live="polite"></div>
+      <div class="add-links">
+        <button type="button">+ Add income stream</button>
+        <button type="button">+ Add expense category</button>
+      </div>
+      <footer class="wiz-footer">
+        <button type="button" class="back">← Back</button>
+        <button type="button" class="continue">Continue</button>
+      </footer>
+    </main>
+  </section>
+
+  <section class="screen-wizard" id="screen-4" hidden>
+    <aside class="wiz-sidebar">
+      <img class="wiz-logo" src="parallax-logo.png" alt="Parallax" width="978" height="647" />
+      <ol class="wiz-nav" aria-label="Wizard progress">
+        <li class="is-done" data-num="I">Family</li>
+        <li class="is-done" data-num="II">Balance sheet</li>
+        <li class="is-done" data-num="III">Income &amp; expenses</li>
+        <li class="is-current" data-num="IV">Tax</li>
+      </ol>
+      <div class="wiz-sidebar__foot">
+        <div class="k">This household</div>
+        <div class="row"><strong>AGI</strong><br /><span id="ts-agi">—</span></div>
+        <div class="row"><strong>Deductions applied</strong><br /><span id="ts-ded">Standard · $32,600</span></div>
+        <div class="row"><strong>Federal bracket</strong><br /><span id="ts-bracket">—</span></div>
+        <div class="row"><strong>Next IRMAA tier</strong><br /><span id="ts-irmaa">—</span></div>
+      </div>
+    </aside>
+    <main class="wiz-main">
+      <p class="wiz-main__eyebrow">Step IV — Tax</p>
+      <h1 class="wiz-main__title">The tax picture</h1>
+      <p class="wiz-main__intro">Deductions you claim, and what the planning engine computes from them. Results are read-only.</p>
+      <div class="tax-panel">
+        <h2 class="section-head">Any deductions to claim?</h2>
+        <div class="acct-btns" id="ded-add-btns">
+          <button type="button" data-ded="charitable">+ Charitable</button>
+          <button type="button" data-ded="mortgage_interest">+ Mortgage interest</button>
+          <button type="button" data-ded="salt">+ SALT</button>
+          <button type="button" data-ded="medical">+ Medical</button>
+        </div>
+        <div id="ded-rows"></div>
+        <p class="wiz-main__intro" id="ded-helper" style="margin: 16px 0 0; font-size: 13px; color: var(--ink-faint);">Until then, the standard deduction ($32,600 MFJ) applies automatically.</p>
+        <div id="tax-cards"></div>
+      </div>
+      <footer class="wiz-footer">
+        <button type="button" class="back">← Back</button>
+        <button type="button" class="continue">Finish</button>
+      </footer>
+    </main>
+  </section>
+
+  <script>
+    (function () {
+      'use strict';
+
+      var INCOME_DEFAULTS = {
+        employed: [
+          { type: 'Salary', person: 'Aman' },
+          { type: 'Bonus', person: 'Aman' },
+          { type: 'Salary', person: 'Awoman' },
+          { type: 'Bonus', person: 'Awoman' }
+        ],
+        retired: [
+          { type: 'Social Security', person: 'Aman' },
+          { type: 'Social Security', person: 'Awoman' }
+        ]
+      };
+
+      var DEDUCTION_LABELS = {
+        charitable: 'Charitable giving',
+        mortgage_interest: 'Mortgage interest',
+        salt: 'State & local taxes',
+        medical: 'Medical expenses'
+      };
+
+      // 2026 figures are not yet published in the source spec — 2024 MFJ
+      // brackets are used as a stand-in (see CHANGES.md).
+      var RULES = { standardMFJ: 32600, saltCap: 40000, medicalFloor: 0.075, blendedRate: 0.182416 };
+
+      function blankPlan() {
+        return {
+          meta: { filingStatus: '', state: '' },
+          balance: { netWorth: 0 },
+          income: {
+            workMode: 'employed',
+            sources: INCOME_DEFAULTS.employed.map(function (r) { return { type: r.type, person: r.person, amount: 0 }; }),
+            adjustments: 0,
+            extraIncome: 0,
+            expenses: 0
+          },
+          incomeTax: { deductions: [] }
+        };
+      }
+
+      function demoPlan() {
+        return {
+          meta: { filingStatus: 'Married filing jointly', state: 'California' },
+          balance: { netWorth: 4800000 },
+          income: {
+            workMode: 'employed',
+            sources: [
+              { type: 'Salary', person: 'Aman', amount: 180000 },
+              { type: 'Bonus', person: 'Aman', amount: 25000 },
+              { type: 'Salary', person: 'Awoman', amount: 120000 },
+              { type: 'Bonus', person: 'Awoman', amount: 15000 }
+            ],
+            adjustments: 41750,
+            extraIncome: 73000,
+            expenses: 168000
+          },
+          incomeTax: {
+            deductions: [
+              { typeId: 'medical', label: 'Medical expenses', amount: 8000 },
+              { typeId: 'charitable', label: 'Charitable giving', amount: 12000 },
+              { typeId: 'mortgage_interest', label: 'Mortgage interest', amount: 18400 },
+              { typeId: 'salt', label: 'State & local taxes', amount: 44800 }
+            ]
+          }
+        };
+      }
+
+      var plan = blankPlan();
+      var screen = 'w';
+
+      function parseMoney(raw) {
+        var n = Number(String(raw || '').replace(/[^0-9.-]/g, ''));
+        return isFinite(n) ? Math.max(0, n) : 0;
+      }
+      function fmtMoney(n) {
+        var v = Math.round(Number(n) || 0);
+        return v ? '$' + v.toLocaleString('en-US') : '';
+      }
+      function fmtMoneyAlways(n) {
+        return '$' + Math.round(Number(n) || 0).toLocaleString('en-US');
+      }
+      function setText(id, text) {
+        var el = document.getElementById(id);
+        if (el) el.textContent = text;
+      }
+
+      function incomeTotal(p) {
+        var src = p.income.sources.reduce(function (s, r) { return s + (Number(r.amount) || 0); }, 0);
+        return src + (Number(p.income.extraIncome) || 0);
+      }
+
+      // Rolls up to a single capped/floored figure per §9 of the handoff spec.
+      function appliedDeduction(typeId, entered, agi) {
+        if (typeId === 'medical') {
+          var floor = agi * RULES.medicalFloor;
+          var applied = Math.max(0, entered - floor);
+          return { applied: applied, note: entered > 0 && applied === 0 ? '$0 applied (below 7.5% AGI floor)' : null };
+        }
+        if (typeId === 'salt') {
+          var capped = Math.min(entered, RULES.saltCap);
+          return { applied: capped, note: entered > capped ? 'capped at $40,000' : null };
+        }
+        return { applied: entered, note: null };
+      }
+
+      function computeTax(p) {
+        var totalIncome = incomeTotal(p);
+        var adjustments = Number(p.income.adjustments) || 0;
+        var agi = Math.max(0, totalIncome - adjustments);
+        var rows = p.incomeTax.deductions.map(function (d) {
+          var entered = Number(d.amount) || 0;
+          var r = appliedDeduction(d.typeId, entered, agi);
+          return { typeId: d.typeId, label: d.label, entered: entered, applied: r.applied, note: r.note };
+        });
+        var itemized = rows.reduce(function (s, r) { return s + r.applied; }, 0);
+        var standard = RULES.standardMFJ;
+        var useItemized = itemized > standard;
+        var deductionUsed = Math.max(standard, itemized);
+        var taxableIncome = Math.max(0, agi - deductionUsed);
+        var bracket = taxableIncome > 383900 ? 0.32 : taxableIncome > 201050 ? 0.24 : taxableIncome > 94300 ? 0.22 : taxableIncome > 23200 ? 0.12 : 0.10;
+        // Single blended-rate estimate, NOT true marginal+LTCG math — see CHANGES.md.
+        var estTax = taxableIncome > 0 ? Math.round(taxableIncome * RULES.blendedRate) : 0;
+        var effective = agi > 0 ? estTax / agi : 0;
+        return { totalIncome: totalIncome, adjustments: adjustments, agi: agi, rows: rows, itemized: itemized, standard: standard, useItemized: useItemized, deductionUsed: deductionUsed, taxableIncome: taxableIncome, bracket: bracket, estTax: estTax, effective: effective };
+      }
+
+      function row2(label, val, borderTop, big) {
+        return '<div style="display:flex;justify-content:space-between;' + (borderTop ? 'padding-top:6px;border-top:1px solid var(--line);' : '') + '">' +
+          '<span style="' + (borderTop ? 'color:var(--ink-bright);' : '') + '">' + label + '</span>' +
+          '<span style="font-family:var(--font-serif);color:' + (borderTop ? 'var(--value-highlight)' : 'var(--num)') + ';' + (big ? 'font-size:18px;' : '') + '">' + val + '</span></div>';
+      }
+
+      function renderFamily() {
+        var filing = plan.meta.filingStatus || 'Select…';
+        var state = plan.meta.state || 'Select…';
+        setText('sf-filing', filing);
+        setText('sf-state', state);
+        setText('mf-filing', filing);
+        setText('mf-state', state);
+      }
+
+      function renderBalance() {
+        setText('nw-value', plan.balance.netWorth > 0 ? fmtMoneyAlways(plan.balance.netWorth) : '$0');
+      }
+
+      function renderIncomeDefaults() {
+        var list = document.getElementById('income-defaults');
+        if (!list) return;
+        list.innerHTML = plan.income.sources.map(function (row, i) {
+          var id = (row.type + '-' + row.person).replace(/\s+/g, '-').toLowerCase();
+          var val = row.amount ? fmtMoney(row.amount) : '';
+          return '<div class="field-row">' +
+            '<label class="field-row__lbl" for="' + id + '">' + row.type + ' <em>· ' + row.person + '</em></label>' +
+            '<span class="field-in-wrap"><span class="field-in-wrap__prefix">$</span>' +
+            '<input class="field-in" id="' + id + '" data-idx="' + i + '" type="text" inputmode="numeric" placeholder="—" value="' + val + '" aria-label="' + row.type + ' for ' + row.person + '"></span></div>';
+        }).join('');
+        Array.prototype.forEach.call(list.querySelectorAll('input[data-idx]'), function (inp) {
+          inp.addEventListener('input', function () {
+            plan.income.sources[Number(inp.getAttribute('data-idx'))].amount = parseMoney(inp.value);
+            renderTax();
+          });
+        });
+      }
+
+      function renderTax() {
+        var tax = computeTax(plan);
+
+        setText('ts-agi', tax.agi > 0 ? fmtMoneyAlways(tax.agi) : '—');
+        setText('ts-ded', tax.deductionUsed > 0 ? fmtMoneyAlways(tax.deductionUsed) + (tax.useItemized ? ' · itemized' : ' · standard') : 'Standard · $32,600');
+        setText('ts-bracket', tax.agi > 0 ? Math.round(tax.bracket * 100) + '%' : '—');
+        setText('ts-irmaa', tax.agi >= 300000 ? '$408,000 MAGI' : '—');
+
+        Array.prototype.forEach.call(document.querySelectorAll('#ded-add-btns [data-ded]'), function (btn) {
+          var already = plan.incomeTax.deductions.some(function (d) { return d.typeId === btn.getAttribute('data-ded'); });
+          btn.disabled = already;
+          btn.style.opacity = already ? '0.4' : '';
+          btn.style.cursor = already ? 'not-allowed' : 'pointer';
+        });
+
+        var rowsEl = document.getElementById('ded-rows');
+        if (tax.rows.length) {
+          rowsEl.style.cssText = 'display:flex;flex-direction:column;gap:12px;margin:20px 0 24px;';
+          rowsEl.innerHTML = tax.rows.map(function (row, i) {
+            var noteHtml = row.note ? ' <span style="color:var(--ink-faint);font-size:12.5px;"> — ' + row.note + '</span>' : '';
+            var appliedHtml = (row.entered > 0 && (row.applied !== row.entered || row.note)) ? '<span style="font-size:12px;color:var(--ink-faint);flex:none;">applied ' + fmtMoneyAlways(row.applied) + '</span>' : '';
+            return '<div style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;">' +
+              '<div style="font-size:14px;color:var(--ink);flex:1;min-width:140px;">' + row.label + noteHtml + '</div>' +
+              '<span class="field-in-wrap"><span class="field-in-wrap__prefix">$</span>' +
+              '<input class="field-in" data-ded-idx="' + i + '" type="text" inputmode="numeric" value="' + (row.entered ? fmtMoney(row.entered) : '') + '" style="width:72px" aria-label="' + row.label + '"></span>' +
+              appliedHtml + '</div>';
+          }).join('');
+          Array.prototype.forEach.call(rowsEl.querySelectorAll('input[data-ded-idx]'), function (inp) {
+            inp.addEventListener('input', function () {
+              plan.incomeTax.deductions[Number(inp.getAttribute('data-ded-idx'))].amount = parseMoney(inp.value);
+              renderTax();
+            });
+          });
+        } else {
+          rowsEl.innerHTML = '';
+          rowsEl.style.display = 'none';
+        }
+
+        var helper = document.getElementById('ded-helper');
+        helper.style.display = (tax.rows.length === 0 || tax.itemized === 0) ? '' : 'none';
+
+        var cardsEl = document.getElementById('tax-cards');
+        if (tax.agi > 0) {
+          var showRates = tax.taxableIncome > 0;
+          cardsEl.innerHTML =
+            '<div style="display:flex;gap:16px;margin:24px 0;flex-wrap:wrap;">' +
+              '<div style="flex:1;min-width:160px;border:1px solid var(--line-strong);border-radius:4px;padding:16px 18px;opacity:' + (tax.useItemized ? '0.55' : '1') + ';box-sizing:border-box;">' +
+                '<div style="font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:8px;">Standard</div>' +
+                '<div style="font-family:var(--font-serif);font-size:22px;color:var(--ink-body);">' + fmtMoneyAlways(tax.standard) + '</div></div>' +
+              '<div style="flex:1;min-width:160px;border:1px solid ' + (tax.useItemized ? 'var(--accent)' : 'var(--line-strong)') + ';border-radius:4px;padding:16px 18px;background:' + (tax.useItemized ? 'rgba(198,166,98,0.22)' : 'transparent') + ';box-sizing:border-box;">' +
+                '<div style="font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:' + (tax.useItemized ? 'var(--accent)' : 'var(--ink-faint)') + ';margin-bottom:8px;">' + (tax.useItemized ? 'Itemized · Auto-selected' : 'Itemized') + '</div>' +
+                '<div style="font-family:var(--font-serif);font-size:22px;color:' + (tax.useItemized ? 'var(--value-highlight)' : 'var(--ink-body)') + ';">' + fmtMoneyAlways(tax.itemized) + '</div></div></div>' +
+            '<div style="display:flex;flex-direction:column;gap:8px;padding-top:20px;border-top:1px solid var(--line);font-size:14px;color:var(--ink-body);">' +
+              row2('Total income', fmtMoneyAlways(tax.totalIncome)) +
+              row2('− Adjustments', fmtMoneyAlways(tax.adjustments)) +
+              row2('AGI', fmtMoneyAlways(tax.agi), true) +
+              row2('− Deductions', fmtMoneyAlways(tax.deductionUsed)) +
+              row2('Taxable income', fmtMoneyAlways(tax.taxableIncome), true, true) +
+              (showRates ? '<div style="display:flex;flex-wrap:wrap;gap:16px;padding-top:10px;font-size:13px;color:var(--ink-mute);">' +
+                '<span>Federal bracket <strong style="color:var(--ink-bright);">' + Math.round(tax.bracket * 100) + '%</strong></span>' +
+                '<span>Capital gains <strong style="color:var(--ink-bright);">15%</strong></span>' +
+                '<span>Effective rate <strong style="color:var(--ink-bright);">' + (Math.round(tax.effective * 1000) / 10) + '%</strong></span>' +
+                '<span>Est. federal tax <strong style="color:var(--value-highlight);">' + fmtMoneyAlways(tax.estTax) + '</strong></span></div>' : '') +
+            '</div>';
+        } else {
+          cardsEl.innerHTML = '';
+        }
+      }
+
+      function renderAll() { renderFamily(); renderBalance(); renderIncomeDefaults(); renderTax(); }
+
+      var ORDER = ['w', '1', '2', '3', '4'];
+      var screens = { w: document.getElementById('screen-w'), 1: document.getElementById('screen-1'), 2: document.getElementById('screen-2'), 3: document.getElementById('screen-3'), 4: document.getElementById('screen-4') };
+
+      function showScreen(id) {
+        screen = id;
+        Object.keys(screens).forEach(function (key) {
+          if (screens[key]) screens[key].hidden = key !== id;
+        });
+        Array.prototype.forEach.call(document.querySelectorAll('[data-screen]'), function (btn) {
+          btn.classList.toggle('is-on', btn.getAttribute('data-screen') === id);
+        });
+      }
+
+      Array.prototype.forEach.call(document.querySelectorAll('[data-screen]'), function (btn) {
+        btn.addEventListener('click', function () {
+          var id = btn.getAttribute('data-screen');
+          if (id === 'done') return;
+          showScreen(id);
+        });
+      });
+
+      Array.prototype.forEach.call(document.querySelectorAll('[data-variant]'), function (btn) {
+        btn.addEventListener('click', function () {
+          Array.prototype.forEach.call(document.querySelectorAll('[data-variant]'), function (b) { b.classList.toggle('is-on', b === btn); });
+        });
+      });
+
+      Array.prototype.forEach.call(document.querySelectorAll('[data-fill]'), function (btn) {
+        btn.addEventListener('click', function () {
+          plan = btn.getAttribute('data-fill') === 'filled' ? demoPlan() : blankPlan();
+          Array.prototype.forEach.call(document.querySelectorAll('[data-fill]'), function (b) { b.classList.toggle('is-on', b === btn); });
+          Array.prototype.forEach.call(document.querySelectorAll('[data-work]'), function (b) {
+            var on = b.getAttribute('data-work') === plan.income.workMode;
+            b.classList.toggle('is-on', on);
+            b.setAttribute('aria-pressed', String(on));
+          });
+          renderAll();
+        });
+      });
+
+      Array.prototype.forEach.call(document.querySelectorAll('[data-work]'), function (btn) {
+        btn.addEventListener('click', function () {
+          var mode = btn.getAttribute('data-work');
+          plan.income.workMode = mode;
+          plan.income.sources = INCOME_DEFAULTS[mode].map(function (r) { return { type: r.type, person: r.person, amount: 0 }; });
+          plan.income.extraIncome = 0;
+          Array.prototype.forEach.call(document.querySelectorAll('[data-work]'), function (b) {
+            var on = b === btn;
+            b.classList.toggle('is-on', on);
+            b.setAttribute('aria-pressed', String(on));
+          });
+          renderIncomeDefaults();
+          renderTax();
+        });
+      });
+
+      Array.prototype.forEach.call(document.querySelectorAll('#ded-add-btns [data-ded]'), function (btn) {
+        btn.addEventListener('click', function () {
+          var typeId = btn.getAttribute('data-ded');
+          var label = DEDUCTION_LABELS[typeId];
+          if (!label || plan.incomeTax.deductions.some(function (d) { return d.typeId === typeId; })) return;
+          plan.incomeTax.deductions.push({ typeId: typeId, label: label, amount: 0 });
+          renderTax();
+        });
+      });
+
+      document.querySelector('.screen-welcome__begin').addEventListener('click', function () { showScreen('1'); });
+
+      Array.prototype.forEach.call(document.querySelectorAll('.wiz-footer .back'), function (btn) {
+        btn.addEventListener('click', function () {
+          var i = ORDER.indexOf(screen);
+          if (i > 0) showScreen(ORDER[i - 1]);
+        });
+      });
+      Array.prototype.forEach.call(document.querySelectorAll('.wiz-footer .continue'), function (btn) {
+        btn.addEventListener('click', function () {
+          var i = ORDER.indexOf(screen);
+          if (i > -1 && i < ORDER.length - 1) showScreen(ORDER[i + 1]);
+        });
+      });
+
+      renderAll();
+    })();
+  </script>
+</body>
+</html>

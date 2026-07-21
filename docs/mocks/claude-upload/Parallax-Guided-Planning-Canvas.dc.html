@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="_ds/parallax-ui-consistency-spec-8725cb15-742d-4575-aa28-2d823cf0db23/tokens/parallax.css"></link>
+  <link rel="stylesheet" href="_ds/parallax-ui-consistency-spec-8725cb15-742d-4575-aa28-2d823cf0db23/styles.css"></link>
+  <script src="_ds/parallax-ui-consistency-spec-8725cb15-742d-4575-aa28-2d823cf0db23/_ds_bundle.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com"></link>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous"></link>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@300;400;500;600;700&family=Spectral:wght@300;400;500;600;700&display=swap" rel="stylesheet"></link>
+  <style>
+    html, body { margin: 0; min-height: 100%; background-color: #070809; }
+    body { -webkit-font-smoothing: antialiased; }
+  </style>
+</helmet>
+<div style="--line:rgba(231,222,201,0.10); --line-strong:rgba(231,222,201,0.16); --fab:linear-gradient(180deg, #d4b06a, #a8863f); min-height:100vh; position:relative; font-family:var(--font-sans); color:var(--ink); background-color:var(--bg-deep); background-image:radial-gradient(1000px 720px at 18% -12%, rgba(198,166,98,0.05), transparent 60%), radial-gradient(880px 620px at 100% 0%, rgba(124,133,137,0.028), transparent 62%), linear-gradient(180deg, #0d0f12 0%, var(--bg) 55%, var(--bg-deep) 100%); overflow-x:hidden;">
+
+  <div style="position:fixed; top:18px; right:18px; z-index:100; display:flex; align-items:center; background:rgba(8,10,13,0.92); border:1px solid rgba(231,222,201,0.12); border-radius:999px; padding:4px 6px; box-shadow:0 8px 28px -8px rgba(0,0,0,0.55);" aria-label="Prototype controls">
+    <div style="display:inline-flex; align-items:center; border-right:1px solid rgba(231,222,201,0.10); padding:0 6px;" role="group" aria-label="Variant">
+      <sc-for list="{{ variantButtons }}" as="btn" hint-placeholder-count="3">
+        <button type="button" onClick="{{ btn.onClick }}" style="{{ btn.style }}" style-hover="{{ btn.hoverStyle }}" style-active="{{ btn.activeStyle }}">{{ btn.label }}</button>
+      </sc-for>
+    </div>
+    <div style="display:inline-flex; align-items:center; border-right:1px solid rgba(231,222,201,0.10); padding:0 6px;" role="group" aria-label="Fill state">
+      <sc-for list="{{ fillButtons }}" as="btn" hint-placeholder-count="2">
+        <button type="button" onClick="{{ btn.onClick }}" style="{{ btn.style }}" style-hover="{{ btn.hoverStyle }}" style-active="{{ btn.activeStyle }}">{{ btn.label }}</button>
+      </sc-for>
+    </div>
+    <div style="display:inline-flex; align-items:center; padding:0 6px;" role="group" aria-label="Wizard screen">
+      <sc-for list="{{ stepButtons }}" as="btn" hint-placeholder-count="6">
+        <button type="button" onClick="{{ btn.onClick }}" style="{{ btn.style }}" style-hover="{{ btn.hoverStyle }}" style-active="{{ btn.activeStyle }}" aria-label="{{ btn.ariaLabel }}">{{ btn.label }}</button>
+      </sc-for>
+    </div>
+  </div>
+
+  <button type="button" style="position:fixed; bottom:22px; right:22px; z-index:100; display:inline-flex; align-items:center; gap:8px; padding:10px 18px 10px 14px; border:0; border-radius:999px; background:var(--fab); color:var(--btn-ink); font:600 13px/1 var(--font-sans); letter-spacing:0.02em; cursor:pointer; box-shadow:0 10px 28px -8px rgba(0,0,0,0.45); transition:filter 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;" style-hover="filter:brightness(1.1); box-shadow:0 14px 34px -8px rgba(0,0,0,0.6);" style-active="transform:scale(0.94);" aria-label="Edit">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M11.5 1.5l3 3L5 14H2v-3L11.5 1.5z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"></path></svg>
+    Edit
+  </button>
+
+  <sc-if value="{{ isWelcome }}" hint-placeholder-val="{{ true }}">
+    <section data-screen-label="Welcome" style="min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:80px 24px 100px; text-align:center; box-sizing:border-box;">
+      <p style="font-size:11px; letter-spacing:0.22em; text-transform:uppercase; color:var(--ink-mute); margin:0 0 18px;">Plan Intake</p>
+      <h1 style="font-family:var(--font-serif); font-weight:300; font-size:clamp(42px, 6vw, 64px); color:var(--ink-bright); line-height:1.05; margin:0 0 22px;">Aman &amp; Awoman</h1>
+      <div style="width:min(420px, 72vw); height:2px; background:var(--accent); margin:0 auto 28px;"></div>
+      <button type="button" onClick="{{ begin }}" style="appearance:none; border:0; border-radius:2px; background:var(--btn); color:var(--btn-ink); font:600 12px/1 var(--font-sans); letter-spacing:0.18em; text-transform:uppercase; padding:14px 42px; cursor:pointer; transition:filter 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;" style-hover="filter:brightness(1.08); box-shadow:0 6px 18px -4px var(--accent-glow);" style-active="transform:scale(0.97); filter:brightness(0.95);">Begin</button>
+      <nav style="position:fixed; left:28px; bottom:28px; display:flex; flex-wrap:wrap; gap:18px 24px; font-size:12px; letter-spacing:0.06em; color:var(--ink-faint);" aria-label="Wizard steps">
+        <span>I Family</span>
+        <span>II Balance sheet</span>
+        <span>III Income &amp; expenses</span>
+        <span>IV Tax</span>
+      </nav>
+    </section>
+  </sc-if>
+
+  <sc-if value="{{ isWizard }}" hint-placeholder-val="{{ false }}">
+    <div style="{{ wizardShellStyle }}">
+      <aside style="{{ sidebarStyle }}">
+        <img src="parallax-logo.png" alt="Parallax" width="978" height="647" style="{{ logoStyle }}"></img>
+        <ol style="{{ navListStyle }}" aria-label="Wizard progress">
+          <sc-for list="{{ navItems }}" as="item" hint-placeholder-count="4">
+            <li style="{{ item.liStyle }}"><span style="{{ item.numStyle }}">{{ item.numLabel }}</span>{{ item.label }}</li>
+          </sc-for>
+        </ol>
+        <sc-if value="{{ showSidebarFoot }}" hint-placeholder-val="{{ false }}">
+          <div style="{{ sidebarFootStyle }}">
+            <sc-if value="{{ isScreen1 }}" hint-placeholder-val="{{ false }}">
+              <div data-screen-label="Step 1 — Family (sidebar)">
+                <div style="font-size:10px; letter-spacing:0.16em; text-transform:uppercase; color:var(--ink-faint); margin-bottom:10px;">This household</div>
+                <div style="font-size:13px; color:var(--ink-body); margin-bottom:6px; line-height:1.45;"><strong style="color:var(--ink-bright); font-weight:500;">Household</strong><br/>Aman &amp; Awoman</div>
+                <div style="font-size:13px; color:var(--ink-body); margin-bottom:6px; line-height:1.45;">
+                  <strong style="color:var(--ink-bright); font-weight:500;">Filing status</strong><br/>{{ familySidebar.filing }}
+                </div>
+                <div style="font-size:13px; color:var(--ink-body); margin-bottom:6px; line-height:1.45;">
+                  <strong style="color:var(--ink-bright); font-weight:500;">State</strong><br/>{{ familySidebar.state }}
+                </div>
+                <div style="font-size:13px; color:var(--ink-body); margin-bottom:6px; line-height:1.45;"><strong style="color:var(--ink-bright); font-weight:500;">Dependents</strong><br/>—</div>
+              </div>
+            </sc-if>
+            <sc-if value="{{ isScreen2 }}" hint-placeholder-val="{{ false }}">
+              <div data-screen-label="Step 2 — Balance sheet (sidebar)">
+                <div style="font-size:10px; letter-spacing:0.16em; text-transform:uppercase; color:var(--ink-faint); margin-bottom:10px;">Net worth</div>
+                <div style="font-family:var(--font-serif); font-size:28px; font-weight:300; color:var(--accent); margin-top:4px;">{{ balanceSidebar.netWorth }}</div>
+              </div>
+            </sc-if>
+            <sc-if value="{{ isScreen4 }}" hint-placeholder-val="{{ false }}">
+              <div data-screen-label="Step 4 — Tax (sidebar)">
+                <div style="font-size:10px; letter-spacing:0.16em; text-transform:uppercase; color:var(--ink-faint); margin-bottom:10px;">This household</div>
+                <div style="font-size:13px; color:var(--ink-body); margin-bottom:6px; line-height:1.45;">
+                  <strong style="color:var(--ink-bright); font-weight:500;">AGI</strong><br/>{{ taxSidebar.agi }}
+                </div>
+                <div style="font-size:13px; color:var(--ink-body); margin-bottom:6px; line-height:1.45;">
+                  <strong style="color:var(--ink-bright); font-weight:500;">Deductions applied</strong><br/>{{ taxSidebar.deductions }}
+                </div>
+                <div style="font-size:13px; color:var(--ink-body); margin-bottom:6px; line-height:1.45;">
+                  <strong style="color:var(--ink-bright); font-weight:500;">Federal bracket</strong><br/>{{ taxSidebar.bracket }}
+                </div>
+                <div style="font-size:13px; color:var(--ink-body); margin-bottom:6px; line-height:1.45;">
+                  <strong style="color:var(--ink-bright); font-weight:500;">Next IRMAA tier</strong><br/>{{ taxSidebar.irmaa }}
+                </div>
+              </div>
+            </sc-if>
+          </div>
+        </sc-if>
+      </aside>
+
+      <main style="{{ mainStyle }}">
+        <sc-if value="{{ isScreen1 }}" hint-placeholder-val="{{ false }}">
+          <div data-screen-label="Step 1 — Family">
+            <p style="font-size:11px; letter-spacing:0.18em; text-transform:uppercase; color:var(--ink-mute); margin:0 0 10px;">Step I — Family</p>
+            <h1 style="font-family:var(--font-serif); font-weight:300; font-size:clamp(36px, 4vw, 48px); color:var(--ink-bright); line-height:1.08; margin:0 0 32px;">Household</h1>
+            <div style="{{ metaRowStyle }}">
+              <div style="display:flex; flex-direction:column; gap:6px;">
+                <span style="font-size:10px; letter-spacing:0.14em; text-transform:uppercase; color:var(--ink-faint);">Filing status</span>
+                <span style="display:inline-block; min-width:108px; font-size:14px; color:var(--ink-mute); background:rgba(255,255,255,0.04); border:1px solid var(--line-strong); border-radius:4px; padding:6px 10px; line-height:1.3; box-sizing:border-box;">
+                  <sc-if value="{{ familyMain.filing }}" hint-placeholder-val="{{ false }}">{{ familyMain.filing }}</sc-if>
+                  <sc-if value="{{ familyMain.filingBlank }}" hint-placeholder-val="{{ true }}">Select…</sc-if>
+                </span>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:6px;">
+                <span style="font-size:10px; letter-spacing:0.14em; text-transform:uppercase; color:var(--ink-faint);">State</span>
+                <span style="display:inline-block; min-width:108px; font-size:14px; color:var(--ink-mute); background:rgba(255,255,255,0.04); border:1px solid var(--line-strong); border-radius:4px; padding:6px 10px; line-height:1.3; box-sizing:border-box;">
+                  <sc-if value="{{ familyMain.state }}" hint-placeholder-val="{{ false }}">{{ familyMain.state }}</sc-if>
+                  <sc-if value="{{ familyMain.stateBlank }}" hint-placeholder-val="{{ true }}">Select…</sc-if>
+                </span>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:6px;">
+                <span style="font-size:10px; letter-spacing:0.14em; text-transform:uppercase; color:var(--ink-faint);">Plan through</span>
+                <span style="display:inline-block; min-width:108px; font-size:14px; color:var(--ink-mute); background:rgba(255,255,255,0.04); border:1px solid var(--line-strong); border-radius:4px; padding:6px 10px; line-height:1.3; box-sizing:border-box;">—</span>
+              </div>
+            </div>
+            <hr style="border:0; border-top:1px solid var(--line); margin:0 0 24px;"/>
+            <h2 style="font-family:var(--font-serif); font-weight:400; font-size:20px; color:var(--ink-bright); margin:0 0 18px;">Who is this plan for?</h2>
+            <div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:48px;" role="tablist">
+              <sc-for list="{{ personTabs }}" as="tab" hint-placeholder-count="3">
+                <button type="button" role="tab" aria-selected="{{ tab.ariaSelected }}" onClick="{{ tab.onClick }}" style="{{ tab.style }}" style-hover="{{ tab.hoverStyle }}" style-active="{{ tab.activeStyle }}">{{ tab.label }}</button>
+              </sc-for>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ isScreen2 }}" hint-placeholder-val="{{ false }}">
+          <div data-screen-label="Step 2 — Balance sheet">
+            <p style="font-size:11px; letter-spacing:0.18em; text-transform:uppercase; color:var(--ink-mute); margin:0 0 10px;">Step II — Balance sheet</p>
+            <h1 style="font-family:var(--font-serif); font-weight:300; font-size:22px; color:var(--ink-bright); margin:0 0 28px;">Investment Accounts · Tangible Property · Debt</h1>
+            <div style="display:flex; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
+              <button type="button" style="appearance:none; border:1px solid var(--line-strong); border-radius:2px; background:transparent; color:var(--ink); font:500 13px/1 var(--font-sans); padding:12px 18px; cursor:pointer; transition:border-color 0.15s ease, background 0.15s ease, color 0.15s ease, transform 0.1s ease;" style-hover="border-color:var(--accent-bd); background:var(--accent-soft); color:var(--ink-bright);" style-active="background:var(--accent-soft); transform:scale(0.97);">+ Taxable Account</button>
+              <button type="button" style="appearance:none; border:1px solid var(--line-strong); border-radius:2px; background:transparent; color:var(--ink); font:500 13px/1 var(--font-sans); padding:12px 18px; cursor:pointer; transition:border-color 0.15s ease, background 0.15s ease, color 0.15s ease, transform 0.1s ease;" style-hover="border-color:var(--accent-bd); background:var(--accent-soft); color:var(--ink-bright);" style-active="background:var(--accent-soft); transform:scale(0.97);">+ Traditional IRA</button>
+              <button type="button" style="appearance:none; border:1px solid var(--line-strong); border-radius:2px; background:transparent; color:var(--ink); font:500 13px/1 var(--font-sans); padding:12px 18px; cursor:pointer; transition:border-color 0.15s ease, background 0.15s ease, color 0.15s ease, transform 0.1s ease;" style-hover="border-color:var(--accent-bd); background:var(--accent-soft); color:var(--ink-bright);" style-active="background:var(--accent-soft); transform:scale(0.97);">+ Roth IRA</button>
+              <button type="button" style="appearance:none; border:1px solid var(--line-strong); border-radius:2px; background:transparent; color:var(--ink); font:500 13px/1 var(--font-sans); padding:12px 18px; cursor:pointer; transition:border-color 0.15s ease, background 0.15s ease, color 0.15s ease, transform 0.1s ease;" style-hover="border-color:var(--accent-bd); background:var(--accent-soft); color:var(--ink-bright);" style-active="background:var(--accent-soft); transform:scale(0.97);">+ Real estate</button>
+              <button type="button" onClick="{{ toggleOther }}" style="{{ otherBtnStyle }}" style-hover="{{ otherHoverStyle }}" style-active="{{ otherActiveStyle }}" aria-expanded="{{ otherOpen }}">+ Other</button>
+            </div>
+            <sc-if value="{{ otherOpen }}" hint-placeholder-val="{{ false }}">
+              <div style="margin:0 0 32px; padding:14px 16px; border:1px solid var(--line-strong); border-radius:4px; background:rgba(255,255,255,0.03); max-width:280px; box-sizing:border-box;">
+                <div style="font-size:10px; letter-spacing:0.14em; text-transform:uppercase; color:var(--ink-faint); margin-bottom:10px;">Other account type</div>
+                <div style="display:flex; flex-direction:column; gap:8px; font-size:13px; color:var(--ink-body);">
+                  <div>529 Plan</div>
+                  <div>HSA</div>
+                  <div>Trust account</div>
+                  <div>Life insurance (cash value)</div>
+                </div>
+              </div>
+            </sc-if>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ isScreen3 }}" hint-placeholder-val="{{ false }}">
+          <div data-screen-label="Step 3 — Income &amp; expenses">
+            <p style="font-size:11px; letter-spacing:0.18em; text-transform:uppercase; color:var(--ink-mute); margin:0 0 10px;">Step III — Income &amp; expenses</p>
+            <div style="display:inline-flex; flex-wrap:wrap; margin-bottom:14px; border:1px solid var(--line-strong); border-radius:2px; overflow:hidden;" role="group" aria-label="Employment status">
+              <sc-for list="{{ workToggle }}" as="w" hint-placeholder-count="2">
+                <button type="button" aria-pressed="{{ w.ariaPressed }}" onClick="{{ w.onClick }}" style="{{ w.style }}" style-hover="{{ w.hoverStyle }}" style-active="{{ w.activeStyle }}">{{ w.label }}</button>
+              </sc-for>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:7px; width:min(100%, 340px); margin:12px 0 16px;" aria-live="polite">
+              <sc-for list="{{ incomeRows }}" as="row" hint-placeholder-count="4">
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:14px; min-height:32px;">
+                  <label for="income-row-{{ $index }}" style="font-size:14px; color:var(--ink); flex:1; min-width:0; line-height:1.3;">{{ row.type }} <em style="font-style:normal; color:var(--ink-faint);">· {{ row.person }}</em></label>
+                  <span style="display:inline-flex; align-items:center; gap:3px; flex:none; background:rgba(255,255,255,0.04); border:1px solid var(--line-strong); border-radius:4px; padding:5px 8px;">
+                    <span style="font-size:13px; color:var(--ink-faint); line-height:1;">$</span>
+                    <input id="income-row-{{ $index }}" type="text" inputmode="numeric" placeholder="—" value="{{ row.displayAmount }}" onInput="{{ row.onInput }}" aria-label="{{ row.type }} for {{ row.person }}" style="width:68px; border:0; background:transparent; font-family:var(--font-serif); font-size:15px; color:var(--num); text-align:right; padding:0; outline:none; line-height:1.2;"/>
+                  </span>
+                </div>
+              </sc-for>
+            </div>
+            <div style="display:flex; flex-wrap:wrap; gap:14px 22px; margin-bottom:28px;">
+              <button type="button" style="appearance:none; background:transparent; border:0; color:var(--ink-mute); font:500 13px/1 var(--font-sans); cursor:pointer; padding:0; transition:color 0.15s ease;" style-hover="color:var(--accent-bright);" style-active="opacity:0.7;">+ Add income stream</button>
+              <button type="button" style="appearance:none; background:transparent; border:0; color:var(--ink-mute); font:500 13px/1 var(--font-sans); cursor:pointer; padding:0; transition:color 0.15s ease;" style-hover="color:var(--accent-bright);" style-active="opacity:0.7;">+ Add expense category</button>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ isScreen4 }}" hint-placeholder-val="{{ false }}">
+          <div data-screen-label="Step 4 — Tax">
+            <p style="font-size:11px; letter-spacing:0.18em; text-transform:uppercase; color:var(--ink-mute); margin:0 0 10px;">Step IV — Tax</p>
+            <h1 style="font-family:var(--font-serif); font-weight:300; font-size:clamp(36px, 4vw, 48px); color:var(--ink-bright); line-height:1.08; margin:0 0 32px;">The tax picture</h1>
+            <p style="font-size:14px; color:var(--ink-body); line-height:1.55; max-width:52ch; margin:0 0 28px;">Deductions you claim, and what the planning engine computes from them. Results are read-only.</p>
+
+            <div style="border-top:1px solid var(--line); border-bottom:1px solid var(--line); padding:28px 0; margin-bottom:28px;">
+              <h2 class="section-head" style="font-family:var(--font-serif); font-weight:400; font-size:20px; color:var(--ink-bright); margin:0 0 18px;">Any deductions to claim?</h2>
+              <div style="display:flex; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
+                <sc-for list="{{ deductionAddButtons }}" as="btn" hint-placeholder-count="4">
+                  <button type="button" onClick="{{ btn.onClick }}" style="appearance:none; border:1px solid var(--line-strong); border-radius:2px; background:transparent; color:var(--ink); font:500 13px/1 var(--font-sans); padding:12px 18px; cursor:pointer;">{{ btn.label }}</button>
+                </sc-for>
+              </div>
+              <sc-if value="{{ hasDeductionRows }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex; flex-direction:column; gap:12px; margin:20px 0 24px;">
+                  <sc-for list="{{ deductionRows }}" as="row" hint-placeholder-count="4">
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap;">
+                      <div style="font-size:14px; color:var(--ink); flex:1; min-width:140px;">
+                        {{ row.label }}
+                        <sc-if value="{{ row.note }}" hint-placeholder-val="{{ false }}">
+                          <span style="color:var(--ink-faint); font-size:12.5px;"> — {{ row.note }}</span>
+                        </sc-if>
+                      </div>
+                      <span style="display:inline-flex; align-items:center; gap:3px; flex:none; background:rgba(255,255,255,0.04); border:1px solid var(--line-strong); border-radius:4px; padding:5px 8px;">
+                        <span style="font-size:13px; color:var(--ink-faint);">$</span>
+                        <input type="text" inputmode="numeric" value="{{ row.displayAmount }}" onInput="{{ row.onInput }}" aria-label="{{ row.label }}" style="width:72px; border:0; background:transparent; font-family:var(--font-serif); font-size:15px; color:var(--num); text-align:right; padding:0; outline:none;"/>
+                      </span>
+                      <sc-if value="{{ row.showApplied }}" hint-placeholder-val="{{ false }}">
+                        <span style="font-size:12px; color:var(--ink-faint); flex:none;">applied {{ row.appliedDisplay }}</span>
+                      </sc-if>
+                    </div>
+                  </sc-for>
+                </div>
+              </sc-if>
+              <sc-if value="{{ showStandardHelper }}" hint-placeholder-val="{{ true }}">
+                <p style="font-size:13px; color:var(--ink-faint); line-height:1.55; margin:16px 0 0;">Until then, the standard deduction ($32,600 MFJ) applies automatically.</p>
+              </sc-if>
+              <sc-if value="{{ taxSummary.showCards }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex; gap:16px; margin:24px 0; flex-wrap:wrap;">
+                  <div style="flex:1; min-width:160px; border:1px solid var(--line-strong); border-radius:4px; padding:16px 18px; opacity:{{ taxSummary.standardMuted }}; box-sizing:border-box;">
+                    <div style="font-size:10px; letter-spacing:0.14em; text-transform:uppercase; color:var(--ink-faint); margin-bottom:8px;">Standard</div>
+                    <div style="font-family:var(--font-serif); font-size:22px; color:var(--ink-body);">{{ taxSummary.standardDisplay }}</div>
+                  </div>
+                  <div style="flex:1; min-width:160px; border:1px solid {{ taxSummary.itemizedBorder }}; border-radius:4px; padding:16px 18px; background:{{ taxSummary.itemizedBg }}; box-sizing:border-box;">
+                    <div style="font-size:10px; letter-spacing:0.14em; text-transform:uppercase; color:{{ taxSummary.itemizedLabelColor }}; margin-bottom:8px;">{{ taxSummary.itemizedLabel }}</div>
+                    <div style="font-family:var(--font-serif); font-size:22px; color:{{ taxSummary.itemizedValueColor }};">{{ taxSummary.itemizedDisplay }}</div>
+                  </div>
+                </div>
+                <div style="display:flex; flex-direction:column; gap:8px; padding-top:20px; border-top:1px solid var(--line); font-size:14px; color:var(--ink-body);">
+                  <div style="display:flex; justify-content:space-between;"><span>Total income</span><span style="color:var(--num); font-family:var(--font-serif);">{{ taxSummary.totalIncomeDisplay }}</span></div>
+                  <div style="display:flex; justify-content:space-between;"><span>− Adjustments</span><span style="color:var(--num); font-family:var(--font-serif);">{{ taxSummary.adjustmentsDisplay }}</span></div>
+                  <div style="display:flex; justify-content:space-between; padding-top:6px; border-top:1px solid var(--line);"><span style="color:var(--ink);">AGI</span><span style="color:var(--value-highlight); font-family:var(--font-serif);">{{ taxSummary.agiDisplay }}</span></div>
+                  <div style="display:flex; justify-content:space-between;"><span>− Deductions</span><span style="color:var(--num); font-family:var(--font-serif);">{{ taxSummary.deductionUsedDisplay }}</span></div>
+                  <div style="display:flex; justify-content:space-between; padding-top:6px; border-top:1px solid var(--line);"><span style="color:var(--ink);">Taxable income</span><span style="color:var(--value-highlight); font-family:var(--font-serif); font-size:18px;">{{ taxSummary.taxableDisplay }}</span></div>
+                  <sc-if value="{{ taxSummary.showRates }}" hint-placeholder-val="{{ false }}">
+                    <div style="display:flex; flex-wrap:wrap; gap:16px; padding-top:10px; font-size:13px; color:var(--ink-mute);">
+                      <span>Federal bracket <strong style="color:var(--ink-bright);">{{ taxSummary.bracketDisplay }}</strong></span>
+                      <span>Capital gains <strong style="color:var(--ink-bright);">{{ taxSummary.ltcgDisplay }}</strong></span>
+                      <span>Effective rate <strong style="color:var(--ink-bright);">{{ taxSummary.effectiveDisplay }}</strong></span>
+                      <span>Est. federal tax <strong style="color:var(--value-highlight);">{{ taxSummary.estTaxDisplay }}</strong></span>
+                    </div>
+                  </sc-if>
+                </div>
+              </sc-if>
+            </div>
+          </div>
+        </sc-if>
+
+        <footer style="margin-top:auto; display:flex; align-items:center; justify-content:space-between; padding-top:24px;">
+          <button type="button" onClick="{{ goBack }}" style="appearance:none; background:transparent; border:0; color:var(--ink-mute); font:500 12px/1 var(--font-sans); letter-spacing:0.12em; text-transform:uppercase; cursor:pointer; padding:8px; transition:color 0.15s ease, transform 0.1s ease;" style-hover="color:var(--ink-bright);" style-active="transform:scale(0.96);">← Back</button>
+          <button type="button" onClick="{{ goContinue }}" style="appearance:none; border:0; border-radius:2px; background:var(--btn); color:var(--btn-ink); font:600 12px/1 var(--font-sans); letter-spacing:0.16em; text-transform:uppercase; padding:14px 36px; margin-right:100px; cursor:pointer; transition:filter 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;" style-hover="filter:brightness(1.08); box-shadow:0 6px 18px -4px var(--accent-glow);" style-active="transform:scale(0.97); filter:brightness(0.95);">{{ ctaLabel }}</button>
+        </footer>
+      </main>
+    </div>
+  </sc-if>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:960},&quot;startScreen&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;w&quot;,&quot;options&quot;:[&quot;w&quot;,&quot;1&quot;,&quot;2&quot;,&quot;3&quot;,&quot;4&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Prototype&quot;},&quot;initialFill&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;blank&quot;,&quot;options&quot;:[&quot;blank&quot;,&quot;filled&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Prototype&quot;},&quot;initialWorkMode&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;employed&quot;,&quot;options&quot;:[&quot;employed&quot;,&quot;retired&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Prototype&quot;}}">
+class Component extends DCLogic {
+  state = {
+    screen: this.props.startScreen || 'w',
+    fill: this.props.initialFill || 'blank',
+    workMode: this.props.initialWorkMode || 'employed',
+    variant: 'a',
+    personTab: 'p1',
+    otherOpen: false,
+    isMobile: false,
+    plan: Component.blankPlan(),
+  };
+
+  static INCOME_TEMPLATES = {
+    employed: [
+      { type: 'Salary', person: 'Aman' },
+      { type: 'Bonus', person: 'Aman' },
+      { type: 'Salary', person: 'Awoman' },
+      { type: 'Bonus', person: 'Awoman' },
+    ],
+    retired: [
+      { type: 'Social Security', person: 'Aman' },
+      { type: 'Social Security', person: 'Awoman' },
+    ],
+  };
+
+  static DEDUCTION_LABELS = {
+    charitable: 'Charitable giving',
+    mortgage_interest: 'Mortgage interest',
+    salt: 'State & local taxes',
+    medical: 'Medical expenses',
+  };
+
+  static RULES = { standardMFJ: 32600, saltCap: 40000, medicalFloor: 0.075 };
+
+  static blankPlan() {
+    return {
+      meta: { filingStatus: '', state: '' },
+      balance: { netWorth: 0 },
+      income: {
+        workMode: 'employed',
+        sources: Component.INCOME_TEMPLATES.employed.map((r) => ({ ...r, amount: 0 })),
+        adjustments: 0,
+        extraIncome: 0,
+        expenses: 0,
+      },
+      incomeTax: { deductions: [] },
+    };
+  }
+
+  static demoPlan() {
+    return {
+      meta: { filingStatus: 'Married filing jointly', state: 'California' },
+      balance: { netWorth: 4800000 },
+      income: {
+        workMode: 'employed',
+        sources: [
+          { type: 'Salary', person: 'Aman', amount: 180000 },
+          { type: 'Bonus', person: 'Aman', amount: 25000 },
+          { type: 'Salary', person: 'Awoman', amount: 120000 },
+          { type: 'Bonus', person: 'Awoman', amount: 15000 },
+        ],
+        adjustments: 41750,
+        extraIncome: 73000,
+        expenses: 168000,
+      },
+      incomeTax: {
+        deductions: [
+          { typeId: 'medical', label: 'Medical expenses', amount: 8000 },
+          { typeId: 'charitable', label: 'Charitable giving', amount: 12000 },
+          { typeId: 'mortgage_interest', label: 'Mortgage interest', amount: 18400 },
+          { typeId: 'salt', label: 'State & local taxes', amount: 44800 },
+        ],
+      },
+    };
+  }
+
+  static parseMoney(raw) {
+    const n = Number(String(raw || '').replace(/[^0-9.-]/g, ''));
+    return Number.isFinite(n) ? Math.max(0, n) : 0;
+  }
+
+  static fmtMoney(n) {
+    const v = Math.round(Number(n) || 0);
+    return v ? '$' + v.toLocaleString('en-US') : '';
+  }
+
+  static fmtMoneyAlways(n) {
+    return '$' + Math.round(Number(n) || 0).toLocaleString('en-US');
+  }
+
+  static incomeTotal(plan) {
+    const src = (plan.income?.sources || []).reduce((s, r) => s + (Number(r.amount) || 0), 0);
+    return src + (Number(plan.income?.extraIncome) || 0);
+  }
+
+  static appliedDeduction(typeId, entered, agi) {
+    if (typeId === 'medical') {
+      const floor = agi * Component.RULES.medicalFloor;
+      const applied = Math.max(0, entered - floor);
+      const note = entered > 0 && applied === 0 ? '$0 applied (below 7.5% AGI floor)' : null;
+      return { applied, note };
+    }
+    if (typeId === 'salt') {
+      const applied = Math.min(entered, Component.RULES.saltCap);
+      const note = entered > applied ? 'capped at $40,000' : null;
+      return { applied, note };
+    }
+    return { applied: entered, note: null };
+  }
+
+  static computeTax(plan) {
+    const totalIncome = Component.incomeTotal(plan);
+    const adjustments = Number(plan.income?.adjustments) || 0;
+    const agi = Math.max(0, totalIncome - adjustments);
+    const rows = (plan.incomeTax?.deductions || []).map((d) => {
+      const entered = Number(d.amount) || 0;
+      const { applied, note } = Component.appliedDeduction(d.typeId, entered, agi);
+      return { ...d, entered, applied, note };
+    });
+    const itemized = rows.reduce((s, r) => s + r.applied, 0);
+    const standard = Component.RULES.standardMFJ;
+    const useItemized = itemized > standard;
+    const deductionUsed = Math.max(standard, itemized);
+    const taxableIncome = Math.max(0, agi - deductionUsed);
+    const bracket = taxableIncome > 383900 ? 0.32 : taxableIncome > 201050 ? 0.24 : taxableIncome > 94300 ? 0.22 : taxableIncome > 23200 ? 0.12 : 0.10;
+    const estTax = taxableIncome > 0 ? Math.round(taxableIncome * 0.1824) : 0;
+    const effective = totalIncome > 0 ? estTax / totalIncome : 0;
+    return {
+      totalIncome, adjustments, agi, rows, itemized, standard, useItemized,
+      deductionUsed, taxableIncome, bracket, estTax, effective,
+    };
+  }
+
+  componentDidMount() {
+    this._onResize = () => this.setState({ isMobile: window.innerWidth <= 860 });
+    this._onResize();
+    window.addEventListener('resize', this._onResize);
+    if (this.state.fill === 'filled') this.setState({ plan: Component.demoPlan(), workMode: 'employed' });
+  }
+
+  componentWillUnmount() {
+    window.removeEventListener('resize', this._onResize);
+  }
+
+  goScreen = (key) => {
+    if (key === 'done') return;
+    this.setState({ screen: key, otherOpen: false });
+  };
+
+  begin = () => this.setState({ screen: '1' });
+
+  goBack = () => {
+    const order = ['w', '1', '2', '3', '4'];
+    const i = order.indexOf(this.state.screen);
+    if (i > 0) this.setState({ screen: order[i - 1], otherOpen: false });
+  };
+
+  goContinue = () => {
+    const order = ['1', '2', '3', '4'];
+    const i = order.indexOf(this.state.screen);
+    if (i > -1 && i < order.length - 1) this.setState({ screen: order[i + 1], otherOpen: false });
+  };
+
+  setVariant = (v) => this.setState({ variant: v });
+
+  setFill = (f) => {
+    const plan = f === 'filled' ? Component.demoPlan() : Component.blankPlan();
+    this.setState({ fill: f, workMode: plan.income.workMode, plan });
+  };
+
+  setWork = (m) => {
+    const sources = Component.INCOME_TEMPLATES[m].map((r) => ({ ...r, amount: 0 }));
+    this.setState((s) => ({
+      workMode: m,
+      plan: { ...s.plan, income: { ...s.plan.income, workMode: m, sources, extraIncome: 0 } },
+    }));
+  };
+
+  setPerson = (p) => this.setState({ personTab: p });
+  toggleOther = () => this.setState((s) => ({ otherOpen: !s.otherOpen }));
+
+  updateIncome = (index, raw) => {
+    const amount = Component.parseMoney(raw);
+    this.setState((s) => {
+      const sources = s.plan.income.sources.map((row, i) => (i === index ? { ...row, amount } : row));
+      return { plan: { ...s.plan, income: { ...s.plan.income, sources } } };
+    });
+  };
+
+  addDeduction = (typeId) => {
+    const label = Component.DEDUCTION_LABELS[typeId];
+    if (!label) return;
+    if ((this.state.plan.incomeTax.deductions || []).some((d) => d.typeId === typeId)) return;
+    this.setState((s) => ({
+      plan: {
+        ...s.plan,
+        incomeTax: {
+          ...s.plan.incomeTax,
+          deductions: [...s.plan.incomeTax.deductions, { typeId, label, amount: 0 }],
+        },
+      },
+    }));
+  };
+
+  updateDeduction = (index, raw) => {
+    const amount = Component.parseMoney(raw);
+    this.setState((s) => {
+      const deductions = s.plan.incomeTax.deductions.map((row, i) => (i === index ? { ...row, amount } : row));
+      return { plan: { ...s.plan, incomeTax: { ...s.plan.incomeTax, deductions } } };
+    });
+  };
+
+  pillStyle(isOn, square) {
+    const style = {
+      appearance: 'none',
+      background: isOn ? 'rgba(231,222,201,0.92)' : 'transparent',
+      border: '0',
+      color: isOn ? 'var(--btn-ink)' : 'var(--ink-mute)',
+      font: '500 11px/1 var(--font-sans)',
+      letterSpacing: '0.04em',
+      padding: square ? '0' : '6px 10px',
+      borderRadius: '999px',
+      cursor: 'pointer',
+      transition: 'background 0.15s ease, color 0.15s ease, filter 0.15s ease, transform 0.1s ease',
+    };
+    if (square) {
+      style.width = '28px';
+      style.height = '28px';
+      style.display = 'inline-flex';
+      style.alignItems = 'center';
+      style.justifyContent = 'center';
+      style.fontSize = '11px';
+    }
+    return style;
+  }
+
+  tabStyle(isOn) {
+    return {
+      appearance: 'none',
+      border: isOn ? '1px solid var(--accent)' : '1px solid var(--line-strong)',
+      borderRadius: '2px',
+      background: isOn ? 'var(--accent)' : 'transparent',
+      color: isOn ? 'var(--btn-ink)' : 'var(--ink)',
+      font: '500 13px/1 var(--font-sans)',
+      padding: '11px 22px',
+      cursor: 'pointer',
+      transition: 'border-color 0.15s ease, background 0.15s ease, color 0.15s ease, filter 0.15s ease, transform 0.1s ease',
+    };
+  }
+
+  toggleBtnStyle(isOn, isLast) {
+    return {
+      appearance: 'none',
+      border: '0',
+      borderRight: isLast ? '0' : '1px solid var(--line-strong)',
+      background: isOn ? 'var(--accent)' : 'transparent',
+      color: isOn ? 'var(--btn-ink)' : 'var(--ink-body)',
+      font: '500 13px/1 var(--font-sans)',
+      padding: '9px 20px',
+      cursor: 'pointer',
+      transition: 'background 0.15s ease, color 0.15s ease, filter 0.15s ease, transform 0.1s ease',
+    };
+  }
+
+  pillHover(isOn, disabled) {
+    if (disabled) return {};
+    return isOn ? { filter: 'brightness(1.1)' } : { background: 'rgba(231,222,201,0.14)', color: 'var(--ink-bright)' };
+  }
+
+  borderHover(isOn) {
+    return isOn ? { filter: 'brightness(1.08)' } : { borderColor: 'var(--accent-bd)', background: 'var(--accent-soft)', color: 'var(--ink-bright)' };
+  }
+
+  pressStyle(disabled) {
+    return disabled ? {} : { transform: 'scale(0.96)' };
+  }
+
+  renderVals() {
+    const { screen, fill, workMode, personTab, otherOpen, isMobile, variant, plan } = this.state;
+    const tax = Component.computeTax(plan);
+    const wizardScreens = ['1', '2', '3', '4'];
+    const screenIdx = wizardScreens.indexOf(screen);
+
+    const variantButtons = ['a', 'b', 'c'].map((v) => ({
+      key: v,
+      label: v.toUpperCase(),
+      onClick: () => this.setVariant(v),
+      style: this.pillStyle(variant === v, false),
+      hoverStyle: this.pillHover(variant === v, false),
+      activeStyle: this.pressStyle(false),
+    }));
+
+    const fillButtons = [
+      { key: 'filled', label: 'FILLED', onClick: () => this.setFill('filled'), style: this.pillStyle(fill === 'filled', false), hoverStyle: this.pillHover(fill === 'filled', false), activeStyle: this.pressStyle(false) },
+      { key: 'blank', label: 'BLANK', onClick: () => this.setFill('blank'), style: this.pillStyle(fill !== 'filled', false), hoverStyle: this.pillHover(fill !== 'filled', false), activeStyle: this.pressStyle(false) },
+    ];
+
+    const stepDefs = [
+      ['w', 'W', null],
+      ['1', '1', null],
+      ['2', '2', null],
+      ['3', '3', null],
+      ['4', '4', null],
+      ['done', '✓', 'Complete'],
+    ];
+    const stepButtons = stepDefs.map(([key, label, ariaLabel]) => {
+      const st = this.pillStyle(screen === key, true);
+      const disabled = key === 'done';
+      if (disabled) {
+        st.cursor = 'not-allowed';
+        st.opacity = '0.4';
+      }
+      return {
+        key, label, ariaLabel,
+        onClick: () => this.goScreen(key),
+        style: st,
+        hoverStyle: this.pillHover(screen === key, disabled),
+        activeStyle: this.pressStyle(disabled),
+      };
+    });
+
+    const navDefs = [
+      ['I', 'Family', '1'],
+      ['II', 'Balance sheet', '2'],
+      ['III', 'Income & expenses', '3'],
+      ['IV', 'Tax', '4'],
+    ];
+    const navItems = navDefs.map(([num, label, key], i) => {
+      const done = screenIdx > -1 && i < screenIdx;
+      const current = key === screen;
+      return {
+        key,
+        label,
+        numLabel: done ? '✓' : num,
+        liStyle: {
+          fontSize: '13px',
+          letterSpacing: '0.02em',
+          color: current ? 'var(--accent)' : done ? 'var(--ink-body)' : 'var(--ink-faint)',
+          fontWeight: current ? '500' : '400',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+        },
+        numStyle: {
+          fontSize: '11px',
+          color: done ? 'var(--accent)' : 'var(--ink-faint)',
+          width: '14px',
+          flex: 'none',
+          fontVariantNumeric: 'tabular-nums',
+        },
+      };
+    });
+
+    const personDefs = [
+      ['p1', 'Person 1'],
+      ['p2', 'Person 2'],
+      ['dep', '+ Dependent'],
+    ];
+    const personTabs = personDefs.map(([key, label]) => ({
+      key,
+      label,
+      onClick: () => this.setPerson(key),
+      ariaSelected: personTab === key ? 'true' : 'false',
+      style: this.tabStyle(personTab === key),
+      hoverStyle: this.borderHover(personTab === key),
+      activeStyle: this.pressStyle(false),
+    }));
+
+    const workDefs = [
+      ['employed', 'Still working'],
+      ['retired', 'Retired'],
+    ];
+    const workToggle = workDefs.map(([key, label], i) => ({
+      key,
+      label,
+      onClick: () => this.setWork(key),
+      ariaPressed: workMode === key ? 'true' : 'false',
+      style: this.toggleBtnStyle(workMode === key, i === workDefs.length - 1),
+      hoverStyle: this.borderHover(workMode === key),
+      activeStyle: this.pressStyle(false),
+    }));
+
+    const incomeRows = (plan.income?.sources || []).map((row, index) => ({
+      type: row.type,
+      person: row.person,
+      displayAmount: row.amount ? Component.fmtMoney(row.amount) : '',
+      onInput: (e) => this.updateIncome(index, e?.target?.value ?? ''),
+    }));
+
+    const deductionAddButtons = [
+      { label: '+ Charitable', onClick: () => this.addDeduction('charitable') },
+      { label: '+ Mortgage interest', onClick: () => this.addDeduction('mortgage_interest') },
+      { label: '+ SALT', onClick: () => this.addDeduction('salt') },
+      { label: '+ Medical', onClick: () => this.addDeduction('medical') },
+    ];
+
+    const deductionRows = tax.rows.map((row, index) => ({
+      label: row.label,
+      note: row.note,
+      displayAmount: row.entered ? Component.fmtMoney(row.entered) : '',
+      appliedDisplay: Component.fmtMoneyAlways(row.applied),
+      showApplied: row.entered > 0 && (row.applied !== row.entered || !!row.note),
+      onInput: (e) => this.updateDeduction(index, e?.target?.value ?? ''),
+    }));
+
+    const hasDeductionRows = deductionRows.length > 0;
+    const showStandardHelper = !hasDeductionRows || tax.itemized === 0;
+    const showRates = tax.agi > 0 && tax.taxableIncome > 0;
+
+    const taxSummary = {
+      showCards: tax.agi > 0,
+      standardDisplay: Component.fmtMoneyAlways(tax.standard),
+      itemizedDisplay: Component.fmtMoneyAlways(tax.itemized),
+      standardMuted: tax.useItemized ? 0.55 : 1,
+      itemizedBorder: tax.useItemized ? 'var(--accent-bd)' : 'var(--line-strong)',
+      itemizedBg: tax.useItemized ? 'var(--accent-soft)' : 'transparent',
+      itemizedLabel: tax.useItemized ? 'Itemized · Auto-selected' : 'Itemized',
+      itemizedLabelColor: tax.useItemized ? 'var(--accent)' : 'var(--ink-faint)',
+      itemizedValueColor: tax.useItemized ? 'var(--value-highlight)' : 'var(--ink-body)',
+      totalIncomeDisplay: Component.fmtMoneyAlways(tax.totalIncome),
+      adjustmentsDisplay: Component.fmtMoneyAlways(tax.adjustments),
+      agiDisplay: Component.fmtMoneyAlways(tax.agi),
+      deductionUsedDisplay: Component.fmtMoneyAlways(tax.deductionUsed),
+      taxableDisplay: Component.fmtMoneyAlways(tax.taxableIncome),
+      showRates,
+      bracketDisplay: Math.round(tax.bracket * 100) + '%',
+      ltcgDisplay: '15%',
+      effectiveDisplay: (Math.round(tax.effective * 1000) / 10) + '%',
+      estTaxDisplay: Component.fmtMoneyAlways(tax.estTax),
+    };
+
+    const taxSidebar = {
+      agi: tax.agi > 0 ? Component.fmtMoneyAlways(tax.agi) : '—',
+      deductions: tax.deductionUsed > 0
+        ? Component.fmtMoneyAlways(tax.deductionUsed) + (tax.useItemized ? ' · itemized' : ' · standard')
+        : 'Standard · $32,600',
+      bracket: tax.agi > 0 ? Math.round(tax.bracket * 100) + '%' : '—',
+      irmaa: tax.agi >= 300000 ? '$408,000 MAGI' : '—',
+    };
+
+    const familySidebar = {
+      filing: plan.meta.filingStatus || 'Select…',
+      state: plan.meta.state || 'Select…',
+    };
+
+    const familyMain = {
+      filing: plan.meta.filingStatus,
+      filingBlank: !plan.meta.filingStatus,
+      state: plan.meta.state,
+      stateBlank: !plan.meta.state,
+    };
+
+    const balanceSidebar = {
+      netWorth: plan.balance.netWorth > 0 ? Component.fmtMoneyAlways(plan.balance.netWorth) : '$0',
+    };
+
+    const otherBtnStyle = {
+      appearance: 'none',
+      border: otherOpen ? '1px solid var(--accent-bd)' : '1px solid var(--line-strong)',
+      borderRadius: '2px',
+      background: 'transparent',
+      color: otherOpen ? 'var(--accent-bright)' : 'var(--ink)',
+      font: '500 13px/1 var(--font-sans)',
+      padding: '12px 18px',
+      cursor: 'pointer',
+      transition: 'border-color 0.15s ease, background 0.15s ease, color 0.15s ease, transform 0.1s ease',
+    };
+    const otherHoverStyle = this.borderHover(otherOpen);
+    const otherActiveStyle = this.pressStyle(false);
+
+    return {
+      isWelcome: screen === 'w',
+      isWizard: screenIdx > -1,
+      isScreen1: screen === '1',
+      isScreen2: screen === '2',
+      isScreen3: screen === '3',
+      isScreen4: screen === '4',
+      showSidebarFoot: screen === '1' || screen === '2' || screen === '4',
+      ctaLabel: screen === '4' ? 'Finish' : 'Continue',
+      otherOpen,
+      variantButtons,
+      fillButtons,
+      stepButtons,
+      navItems,
+      personTabs,
+      workToggle,
+      incomeRows,
+      deductionAddButtons,
+      deductionRows,
+      hasDeductionRows,
+      showStandardHelper,
+      taxSummary,
+      taxSidebar,
+      familySidebar,
+      familyMain,
+      balanceSidebar,
+      otherBtnStyle,
+      otherHoverStyle,
+      otherActiveStyle,
+      begin: this.begin,
+      goBack: this.goBack,
+      goContinue: this.goContinue,
+      toggleOther: this.toggleOther,
+      wizardShellStyle: { minHeight: '100vh', display: 'flex', flexDirection: isMobile ? 'column' : 'row' },
+      sidebarStyle: {
+        width: isMobile ? '100%' : '248px',
+        flex: 'none',
+        display: 'flex',
+        flexDirection: isMobile ? 'row' : 'column',
+        flexWrap: isMobile ? 'wrap' : 'nowrap',
+        alignItems: isMobile ? 'center' : 'stretch',
+        gap: isMobile ? '16px' : '0',
+        padding: isMobile ? '16px 20px' : '28px 24px 24px',
+        borderRight: isMobile ? '0' : '1px solid var(--line)',
+        borderBottom: isMobile ? '1px solid var(--line)' : '0',
+        background: 'rgba(255,255,255,0.012)',
+        boxSizing: 'border-box',
+      },
+      logoStyle: {
+        display: 'block',
+        height: isMobile ? '28px' : '36px',
+        width: 'auto',
+        margin: isMobile ? '0' : '0 0 36px',
+        objectFit: 'contain',
+        objectPosition: 'left center',
+      },
+      navListStyle: {
+        listStyle: 'none',
+        display: 'flex',
+        flexDirection: isMobile ? 'row' : 'column',
+        flexWrap: 'wrap',
+        gap: isMobile ? '10px 16px' : '14px',
+        margin: '0',
+        padding: '0',
+      },
+      sidebarFootStyle: {
+        marginTop: isMobile ? '0' : 'auto',
+        paddingTop: isMobile ? '12px' : '28px',
+        width: isMobile ? '100%' : 'auto',
+      },
+      mainStyle: {
+        flex: '1',
+        minWidth: '0',
+        display: 'flex',
+        flexDirection: 'column',
+        padding: isMobile ? '28px 24px 24px' : '48px 56px 32px',
+        boxSizing: 'border-box',
+      },
+      metaRowStyle: {
+        display: 'grid',
+        gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, minmax(0, max-content))',
+        gap: isMobile ? '20px' : '28px 36px',
+        marginBottom: '28px',
+      },
+    };
+  }
+}
+</script>
+</body>
+</html>
