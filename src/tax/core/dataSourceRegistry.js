@@ -93,6 +93,24 @@ export const DATA_SOURCES = {
     status: 'unverified',
     retrievedAt: '2026-06-21',
   },
+  IRC_213_MEDICAL_EXPENSE_FLOOR_v1_0: {
+    id: 'IRC_213_MEDICAL_EXPENSE_FLOOR_v1.0',
+    description: 'Medical expense itemized deduction threshold of 7.5% of adjusted gross income',
+    authority: 'IRC section 213(a)',
+    taxYear: 2026,
+    lawVersion: '2026_FINAL',
+    status: 'verified',
+    retrievedAt: '2026-07-21',
+  },
+  IRC_164_SALT_CAP_2026_DEMO_v1_0: {
+    id: 'IRC_164_SALT_CAP_2026_DEMO_v1.0',
+    description: 'Parallax T9 locked SALT deduction cap for the 2026 married-filing-jointly demo household',
+    authority: 'IRC section 164(b)(6); Parallax T9 product lock',
+    taxYear: 2026,
+    lawVersion: '2026_FINAL',
+    status: 'product_lock',
+    retrievedAt: '2026-07-21',
+  },
 };
 
 export function getDataSource(id){
