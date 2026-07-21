@@ -214,7 +214,7 @@ export function bindHouseholdEditor({
     const act = e.target.closest('[data-hh-action]');
     if(!act) return;
     const action = act.dataset.hhAction;
-    const lockedAction = ['add-spouse','remove-spouse','open-account-form','save-account','open-add','commit-add','add-home','add-mortgage','add-pension-age'].includes(action);
+    const lockedAction = ['add-spouse','remove-spouse','open-account-form','save-account','open-add','commit-add','add-home','add-mortgage','add-pension-age','gpc-add-account','gpc-add-deduction'].includes(action);
     if(lockedAction && !guardPlanMutation()) return;
     if(action === 'add-spouse'){
       plan.household.spouse = {
@@ -376,11 +376,42 @@ export function bindHouseholdEditor({
       transientState.hhStep = Math.max(1, transientState.hhStep - 1);
       transientState.hhAddingKey = null;
       transientState.hhAcctFormOwner = null;
+      transientState.gpcOtherOpen = false;
       syncHousehold();
     } else if(action === 'step-next'){
-      transientState.hhStep = Math.min(4, transientState.hhStep + 1);
+      transientState.hhStep = Math.min(5, transientState.hhStep + 1);
       transientState.hhAddingKey = null;
       transientState.hhAcctFormOwner = null;
+      transientState.gpcOtherOpen = false;
+      syncHousehold();
+    } else if(action === 'gpc-add-account'){
+      const typeId = act.dataset.acctTypeId;
+      const owner = act.dataset.acctOwner || 'client';
+      if(!typeId) return;
+      if(!plan.portfolio.extraAccounts) plan.portfolio.extraAccounts = [];
+      const acct = createAccount(typeId, { owner, balance: 0 });
+      const customLabel = act.dataset.acctLabel?.trim();
+      if(customLabel) acct.type = customLabel;
+      plan.portfolio.extraAccounts.push(acct);
+      transientState.gpcOtherOpen = false;
+      hhCommit();
+    } else if(action === 'gpc-add-deduction'){
+      const typeId = act.dataset.dedType;
+      if(!typeId) return;
+      if(!plan.incomeTax) plan.incomeTax = { adjustments: [], deductions: [], credits: [], deductionMode: 'auto' };
+      if(!Array.isArray(plan.incomeTax.deductions)) plan.incomeTax.deductions = [];
+      if(!plan.incomeTax.deductions.some(row => row.typeId === typeId)){
+        plan.incomeTax.deductions.push(createDeduction(typeId));
+        hhCommit();
+      }
+    } else if(action === 'gpc-toggle-other'){
+      transientState.gpcOtherOpen = !transientState.gpcOtherOpen;
+      syncHousehold();
+    } else if(action === 'gpc-person-tab'){
+      transientState.gpcPersonTab = act.dataset.personTab || 'primary';
+      syncHousehold();
+    } else if(action === 'gpc-work-mode'){
+      transientState.gpcWorkMode = act.dataset.workMode || 'employed';
       syncHousehold();
     } else if(action === 'add-pension-age'){
       if(!plan.income.pension) plan.income.pension = { benefitByAge:{}, startAge:65, colaPct:0 };

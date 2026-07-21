@@ -1,0 +1,656 @@
+/* Guided Planning Canvas — Household wizard (scoped) */
+.page[data-page="household"] .hh-wizard.gpc-wizard {
+  flex-direction: row;
+}
+
+.page[data-page="household"] .gpc-wizard {
+  display: flex;
+  min-height: min(720px, calc(100vh - 140px));
+  border: 1px solid rgba(231,222,201,0.12);
+  border-radius: 8px;
+  background: rgba(8,10,13,0.55);
+  overflow: hidden;
+}
+
+.page[data-page="household"] .gpc-sidebar {
+  width: 248px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  padding: 28px 24px 24px;
+  border-right: 1px solid rgba(231,222,201,0.10);
+  background: rgba(255,255,255,0.012);
+}
+
+.page[data-page="household"] .gpc-logo {
+  display: block;
+  height: 54px;
+  width: auto;
+  margin-bottom: 36px;
+  object-fit: contain;
+  object-position: left center;
+}
+
+.page[data-page="household"] .gpc-nav {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+}
+
+.page[data-page="household"] .gpc-nav__item {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  font: 400 13px/1.3 "Hanken Grotesk", system-ui, sans-serif;
+  letter-spacing: 0.02em;
+  color: #7d848c;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  cursor: pointer;
+}
+
+.page[data-page="household"] .gpc-nav__item::before {
+  content: attr(data-num);
+  font-size: 11px;
+  width: 14px;
+  flex: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.page[data-page="household"] .gpc-nav__item.is-current { color: #c6a662; font-weight: 500; }
+.page[data-page="household"] .gpc-nav__item.is-done { color: #9097a0; }
+.page[data-page="household"] .gpc-nav__item.is-done::before { content: "✓"; color: #c6a662; }
+
+.page[data-page="household"] .gpc-sidebar__foot {
+  margin-top: auto;
+  padding-top: 28px;
+}
+
+.page[data-page="household"] .gpc-foot-k {
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #7d848c;
+  margin-bottom: 10px;
+}
+
+.page[data-page="household"] .gpc-foot-row {
+  font-size: 13px;
+  color: #9097a0;
+  margin-bottom: 6px;
+  line-height: 1.45;
+}
+
+.page[data-page="household"] .gpc-foot-row strong { color: #e7dec9; font-weight: 500; }
+
+.page[data-page="household"] .gpc-foot-nw {
+  font-family: "Spectral", Georgia, serif;
+  font-size: 28px;
+  font-weight: 300;
+  color: #c6a662;
+  margin-top: 4px;
+}
+
+.page[data-page="household"] .gpc-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 48px 56px 32px;
+}
+
+.page[data-page="household"] .gpc-eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #878e96;
+  margin: 0 0 10px;
+}
+
+.page[data-page="household"] .gpc-title {
+  font-family: "Spectral", Georgia, serif;
+  font-weight: 300;
+  font-size: clamp(36px, 4vw, 48px);
+  color: #e7dec9;
+  line-height: 1.08;
+  margin: 0 0 32px;
+}
+
+.page[data-page="household"] .gpc-subtitle {
+  font-family: "Spectral", Georgia, serif;
+  font-weight: 300;
+  font-size: 22px;
+  color: #e7dec9;
+  margin: 0 0 28px;
+}
+
+.page[data-page="household"] .gpc-intro {
+  font-size: 14px;
+  color: #9097a0;
+  line-height: 1.55;
+  max-width: 52ch;
+  margin: 0 0 28px;
+}
+
+.page[data-page="household"] .gpc-intro--note { font-size: 13px; color: #7d848c; }
+
+.page[data-page="household"] .gpc-meta-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, max-content));
+  gap: 28px 36px;
+  margin-bottom: 28px;
+}
+
+.page[data-page="household"] .gpc-meta { display: flex; flex-direction: column; gap: 6px; }
+.page[data-page="household"] .gpc-meta__k {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #7d848c;
+}
+
+.page[data-page="household"] .gpc-meta__v,
+.page[data-page="household"] .gpc-meta__v select,
+.page[data-page="household"] .gpc-meta__v--static {
+  display: inline-block;
+  min-width: 108px;
+  font-size: 14px;
+  color: #9097a0;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(231,222,201,0.16);
+  border-radius: 4px;
+  padding: 6px 10px;
+  line-height: 1.3;
+}
+
+.page[data-page="household"] .gpc-meta__v select {
+  width: 100%;
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: inherit;
+}
+
+.page[data-page="household"] .gpc-rule {
+  border: 0;
+  border-top: 1px solid rgba(231,222,201,0.10);
+  margin: 0 0 24px;
+}
+
+.page[data-page="household"] .gpc-section-head {
+  font-family: "Spectral", Georgia, serif;
+  font-weight: 400;
+  font-size: 20px;
+  color: #e7dec9;
+  margin: 0 0 18px;
+}
+
+.page[data-page="household"] .gpc-person-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 28px;
+}
+
+.page[data-page="household"] .gpc-person-tabs button {
+  appearance: none;
+  border: 1px solid rgba(231,222,201,0.16);
+  border-radius: 2px;
+  background: transparent;
+  color: #ddd5c4;
+  font: 500 13px/1 "Hanken Grotesk", system-ui, sans-serif;
+  padding: 11px 22px;
+  cursor: pointer;
+}
+
+.page[data-page="household"] .gpc-person-tabs button.is-on {
+  background: #c6a662;
+  border-color: #c6a662;
+  color: #15181d;
+}
+
+.page[data-page="household"] .gpc-field-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  min-height: 32px;
+  margin-bottom: 7px;
+}
+
+.page[data-page="household"] .gpc-field-row__lbl {
+  font-size: 14px;
+  color: #ddd5c4;
+  flex: 1;
+  min-width: 0;
+}
+
+.page[data-page="household"] .gpc-field-row__lbl em {
+  font-style: normal;
+  color: #7d848c;
+}
+
+.page[data-page="household"] .gpc-in-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  flex: none;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(231,222,201,0.16);
+  border-radius: 4px;
+  padding: 5px 8px;
+}
+
+.page[data-page="household"] .gpc-in-wrap__pre {
+  font-size: 13px;
+  color: #7d848c;
+}
+
+.page[data-page="household"] .gpc-in {
+  width: 68px;
+  border: 0;
+  background: transparent;
+  font-family: "Spectral", Georgia, serif;
+  font-size: 15px;
+  color: #b8ad92;
+  text-align: right;
+  padding: 0;
+  outline: none;
+}
+
+.page[data-page="household"] .gpc-in--wide { width: 96px; }
+.page[data-page="household"] .gpc-in:focus { color: #e7dec9; }
+
+.page[data-page="household"] .gpc-meta-in {
+  width: 88px;
+  font-size: 14px;
+  color: #9097a0;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(231,222,201,0.16);
+  border-radius: 4px;
+  padding: 6px 10px;
+}
+
+.page[data-page="household"] .gpc-acct-catalog {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  margin-bottom: 28px;
+  max-width: 720px;
+}
+
+.page[data-page="household"] .gpc-acct-group__head {
+  font-family: "Spectral", Georgia, serif;
+  font-weight: 400;
+  font-size: 16px;
+  color: #c6a662;
+  margin: 0 0 12px;
+  letter-spacing: 0.04em;
+}
+
+.page[data-page="household"] .gpc-acct-group .gpc-acct-btns {
+  margin-bottom: 0;
+}
+
+.page[data-page="household"] .gpc-acct-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.page[data-page="household"] .gpc-acct-btns button {
+  appearance: none;
+  border: 1px solid rgba(231,222,201,0.16);
+  border-radius: 2px;
+  background: transparent;
+  color: #ddd5c4;
+  font: 500 13px/1 "Hanken Grotesk", system-ui, sans-serif;
+  padding: 12px 18px;
+  cursor: pointer;
+}
+
+.page[data-page="household"] .gpc-acct-btns button:hover {
+  border-color: rgba(198,166,98,0.45);
+  background: rgba(198,166,98,0.08);
+}
+
+.page[data-page="household"] .gpc-acct-btns button.is-open,
+.page[data-page="household"] .gpc-acct-btns button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.page[data-page="household"] .gpc-other-panel {
+  margin: 0 0 24px;
+  padding: 14px 16px;
+  border: 1px solid rgba(231,222,201,0.16);
+  border-radius: 4px;
+  background: rgba(255,255,255,0.03);
+  max-width: 280px;
+}
+
+.page[data-page="household"] .gpc-other-panel__k {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #7d848c;
+  margin-bottom: 10px;
+}
+
+.page[data-page="household"] .gpc-other-panel button {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: #9097a0;
+  font: 400 13px/1.4 "Hanken Grotesk", system-ui, sans-serif;
+  padding: 6px 0;
+  cursor: pointer;
+  display: block;
+  width: 100%;
+  text-align: left;
+}
+
+.page[data-page="household"] .gpc-acct-list,
+.page[data-page="household"] .gpc-income-list {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  width: min(100%, 380px);
+  margin: 12px 0 20px;
+}
+
+.page[data-page="household"] .gpc-work-toggle {
+  display: inline-flex;
+  margin-bottom: 14px;
+  border: 1px solid rgba(231,222,201,0.16);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.page[data-page="household"] .gpc-work-toggle button {
+  appearance: none;
+  border: 0;
+  border-right: 1px solid rgba(231,222,201,0.16);
+  background: transparent;
+  color: #878e96;
+  font: 500 13px/1 "Hanken Grotesk", system-ui, sans-serif;
+  padding: 9px 20px;
+  cursor: pointer;
+}
+
+.page[data-page="household"] .gpc-work-toggle button:last-child { border-right: 0; }
+.page[data-page="household"] .gpc-work-toggle button.is-on {
+  background: #c6a662;
+  color: #15181d;
+}
+
+.page[data-page="household"] .gpc-add-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px 22px;
+  margin-bottom: 20px;
+}
+
+.page[data-page="household"] .gpc-text-add {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: #878e96;
+  font: 500 13px/1 "Hanken Grotesk", system-ui, sans-serif;
+  cursor: pointer;
+  padding: 0;
+}
+
+.page[data-page="household"] .gpc-tax-panel {
+  border-top: 1px solid rgba(231,222,201,0.10);
+  border-bottom: 1px solid rgba(231,222,201,0.10);
+  padding: 28px 0;
+}
+
+.page[data-page="household"] .gpc-helper {
+  font-size: 13px;
+  color: #7d848c;
+  margin: 16px 0 0;
+}
+
+.page[data-page="household"] .gpc-tax-cards {
+  display: flex;
+  gap: 16px;
+  margin: 24px 0;
+  flex-wrap: wrap;
+}
+
+.page[data-page="household"] .gpc-tax-card {
+  flex: 1;
+  min-width: 160px;
+  border: 1px solid rgba(231,222,201,0.16);
+  border-radius: 4px;
+  padding: 16px 18px;
+}
+
+.page[data-page="household"] .gpc-tax-card--muted { opacity: 0.55; }
+.page[data-page="household"] .gpc-tax-card--win {
+  border-color: #c6a662;
+  background: rgba(198,166,98,0.22);
+}
+
+.page[data-page="household"] .gpc-tax-card__k {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #7d848c;
+  margin-bottom: 8px;
+}
+
+.page[data-page="household"] .gpc-tax-card--win .gpc-tax-card__k { color: #c6a662; }
+
+.page[data-page="household"] .gpc-tax-card__v {
+  font-family: "Spectral", Georgia, serif;
+  font-size: 22px;
+  color: #9097a0;
+}
+
+.page[data-page="household"] .gpc-tax-card--win .gpc-tax-card__v { color: #e7dec9; }
+
+.page[data-page="household"] .gpc-tax-math {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(231,222,201,0.10);
+  font-size: 14px;
+  color: #9097a0;
+  max-width: 420px;
+}
+
+.page[data-page="household"] .gpc-tax-math__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.page[data-page="household"] .gpc-tax-math__row--top {
+  padding-top: 6px;
+  border-top: 1px solid rgba(231,222,201,0.10);
+  color: #ddd5c4;
+}
+
+.page[data-page="household"] .gpc-tax-math__val {
+  font-family: "Spectral", Georgia, serif;
+  color: #b8ad92;
+}
+
+.page[data-page="household"] .gpc-tax-math__val--big {
+  font-size: 18px;
+  color: #e7dec9;
+}
+
+.page[data-page="household"] .gpc-tax-rates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding-top: 10px;
+  font-size: 13px;
+  color: #878e96;
+}
+
+.page[data-page="household"] .gpc-tax-rates strong { color: #e7dec9; }
+.page[data-page="household"] .gpc-tax-rates__hi { color: #e7dec9; }
+
+.page[data-page="household"] .gpc-footer {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 24px;
+}
+
+.page[data-page="household"] .gpc-btn {
+  appearance: none;
+  border-radius: 2px;
+  font: 600 12px/1 "Hanken Grotesk", system-ui, sans-serif;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 14px 36px;
+  cursor: pointer;
+}
+
+.page[data-page="household"] .gpc-btn--primary {
+  border: 0;
+  background: linear-gradient(180deg, #d8c084, #c6a662);
+  color: #15181d;
+}
+
+.page[data-page="household"] .gpc-btn--ghost {
+  border: 0;
+  background: transparent;
+  color: #878e96;
+  padding: 8px;
+  letter-spacing: 0.12em;
+}
+
+.page[data-page="household"] .gpc-summary-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 40px;
+  align-items: start;
+}
+
+.page[data-page="household"] .gpc-summary-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(231,222,201,0.08);
+  font-size: 14px;
+  color: #9097a0;
+}
+
+.page[data-page="household"] .gpc-bp-gauge-wrap { position: relative; }
+.page[data-page="household"] .gpc-bp-gauge { position: relative; width: 240px; margin: 0 auto; }
+.page[data-page="household"] .gpc-bp-gauge__center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.page[data-page="household"] .gpc-bp-gauge__k {
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #7d848c;
+}
+
+.page[data-page="household"] .gpc-bp-gauge__v {
+  font-family: "Spectral", Georgia, serif;
+  font-size: 32px;
+  color: #c6a662;
+}
+
+.page[data-page="household"] .gpc-bp-gauge__sub { font-size: 12px; color: #7d848c; }
+
+.page[data-page="household"] .gpc-bp-alloc-list { margin-top: 20px; }
+
+.page[data-page="household"] .gpc-bp-alloc {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  padding: 6px 0;
+  color: #9097a0;
+}
+
+.page[data-page="household"] .gpc-bp-alloc__dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 8px;
+}
+
+.page[data-page="household"] .gpc-dash-btn,
+.page[data-page="household"] .gpc-link-btn {
+  appearance: none;
+  border: 1px solid rgba(231,222,201,0.16);
+  background: transparent;
+  color: #ddd5c4;
+  font: 500 13px/1 "Hanken Grotesk", system-ui, sans-serif;
+  padding: 11px 22px;
+  cursor: pointer;
+}
+
+.page[data-page="household"] .gpc-inline-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin: 12px 0;
+}
+
+.page[data-page="household"] .gpc-inline-in,
+.page[data-page="household"] .gpc-sel {
+  font-size: 14px;
+  color: #9097a0;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(231,222,201,0.16);
+  border-radius: 4px;
+  padding: 6px 10px;
+}
+
+.page[data-page="household"] .row-x {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: #7d848c;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 0 2px;
+}
+
+.page[data-page="household"] #hh-view {
+  flex: 1;
+  min-height: 0;
+}
+
+.page[data-page="household"] .gpc-step {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+@media (max-width: 900px) {
+  .page[data-page="household"] .gpc-wizard { flex-direction: column; }
+  .page[data-page="household"] .gpc-sidebar { width: 100%; border-right: 0; border-bottom: 1px solid rgba(231,222,201,0.10); }
+  .page[data-page="household"] .gpc-nav { flex-direction: row; flex-wrap: wrap; }
+  .page[data-page="household"] .gpc-main { padding: 28px 24px; }
+  .page[data-page="household"] .gpc-summary-grid { grid-template-columns: 1fr; }
+}
