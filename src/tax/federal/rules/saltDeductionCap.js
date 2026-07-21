@@ -1,11 +1,12 @@
 /* RULE: Federal SALT Deduction Cap (FED_SALT_DEDUCTION_CAP) */
 
+import { FILING_STATUSES } from '../../core/constants.js';
 import {
-  FILING_STATUSES,
   SALT_DEDUCTION_CAP,
   SALT_DEDUCTION_CAP_SOURCE,
-} from '../../core/constants.js';
-import { CONTEXT_SCHEMA, SALT_DEDUCTION_CAP_INPUT_SCHEMA } from '../../core/schemas.js';
+} from '../../core/itemizedDeductionConstants.js';
+import { CONTEXT_SCHEMA } from '../../core/schemas.js';
+import { SALT_DEDUCTION_CAP_INPUT_SCHEMA } from '../../core/itemizedDeductionSchemas.js';
 import { validateAgainstSchema, assertNonNegativeNumber, assertOneOf } from '../../core/validators.js';
 import { getDataSource } from '../../core/dataSourceRegistry.js';
 import { TaxDataError, TaxInputError } from '../../core/errors.js';
@@ -26,7 +27,7 @@ export const meta = {
     'Does not model the high-income SALT cap phase-down',
     'Does not determine whether entered taxes are otherwise deductible',
   ],
-  triggerTags: ['itemized_deduction', 'salt_deduction'],
+  triggerTags: [],
 };
 
 const round2 = number => Math.round((number + Number.EPSILON) * 100) / 100;
