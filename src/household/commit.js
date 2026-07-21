@@ -376,13 +376,11 @@ export function bindHouseholdEditor({
       transientState.hhStep = Math.max(1, transientState.hhStep - 1);
       transientState.hhAddingKey = null;
       transientState.hhAcctFormOwner = null;
-      transientState.gpcOtherOpen = false;
       syncHousehold();
     } else if(action === 'step-next'){
       transientState.hhStep = Math.min(5, transientState.hhStep + 1);
       transientState.hhAddingKey = null;
       transientState.hhAcctFormOwner = null;
-      transientState.gpcOtherOpen = false;
       syncHousehold();
     } else if(action === 'gpc-add-account'){
       const typeId = act.dataset.acctTypeId;
@@ -393,7 +391,6 @@ export function bindHouseholdEditor({
       const customLabel = act.dataset.acctLabel?.trim();
       if(customLabel) acct.type = customLabel;
       plan.portfolio.extraAccounts.push(acct);
-      transientState.gpcOtherOpen = false;
       hhCommit();
     } else if(action === 'gpc-add-deduction'){
       const typeId = act.dataset.dedType;
@@ -404,9 +401,6 @@ export function bindHouseholdEditor({
         plan.incomeTax.deductions.push(createDeduction(typeId));
         hhCommit();
       }
-    } else if(action === 'gpc-toggle-other'){
-      transientState.gpcOtherOpen = !transientState.gpcOtherOpen;
-      syncHousehold();
     } else if(action === 'gpc-person-tab'){
       transientState.gpcPersonTab = act.dataset.personTab || 'primary';
       syncHousehold();
