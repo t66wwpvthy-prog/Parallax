@@ -20,12 +20,7 @@
 }
 
 .page[data-page="household"] .gpc-logo {
-  display: block;
-  height: 54px;
-  width: auto;
-  margin-bottom: 36px;
-  object-fit: contain;
-  object-position: left center;
+  display: none;
 }
 
 .page[data-page="household"] .gpc-nav {
@@ -495,11 +490,6 @@
   color: #878e96;
 }
 
-/* Wizard sidebar owns the brand mark — hide the global header logo on Household. */
-.wrap:has(.page[data-page="household"].on) .app-header .hdr__logo {
-  display: none;
-}
-
 .page[data-page="household"] .gpc-tax-rates strong { color: #e7dec9; }
 .page[data-page="household"] .gpc-tax-rates__hi { color: #e7dec9; }
 
@@ -675,8 +665,7 @@
   }
 
   .page[data-page="household"] .gpc-logo {
-    height: 34px;
-    margin-bottom: 12px;
+    display: none;
   }
 
   .page[data-page="household"] .gpc-nav {
