@@ -310,7 +310,7 @@ export function bindHouseholdEditor({
     const act = e.target.closest('[data-hh-action]');
     if(!act) return;
     const action = act.dataset.hhAction;
-    const lockedAction = ['add-spouse','remove-spouse','open-account-form','save-account','open-add','commit-add','add-home','add-mortgage','add-pension-age','gpc-add-account','gpc-add-deduction'].includes(action);
+    const lockedAction = ['add-spouse','remove-spouse','open-account-form','save-account','open-add','commit-add','add-home','add-mortgage','add-pension-age','gpc-add-account','gpc-add-property','gpc-add-deduction'].includes(action);
     if(lockedAction && !guardPlanMutation()) return;
     if(action === 'add-spouse'){
       plan.household.spouse = {
@@ -490,6 +490,13 @@ export function bindHouseholdEditor({
       if(customLabel) acct.type = customLabel;
       plan.portfolio.extraAccounts.push(acct);
       hhCommit();
+    } else if(action === 'gpc-add-property'){
+      if(!Array.isArray(plan.properties)) plan.properties = [];
+      plan.properties.push({ name: 'Real estate', value: 0, purchasePrice: 0 });
+      hhCommit();
+    } else if(action === 'gpc-toggle-catalog'){
+      transientState.gpcCatalogOpen = !transientState.gpcCatalogOpen;
+      syncHousehold();
     } else if(action === 'gpc-add-deduction'){
       const typeId = act.dataset.dedType;
       if(!typeId) return;
