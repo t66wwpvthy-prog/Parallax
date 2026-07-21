@@ -16,22 +16,141 @@ export function bindHouseholdEditor({
   appState,
   syncHousehold,
   syncHeaderStatus,
+  persistHousehold,
   liveCommas,
   getPath,
   setPath,
   ageFromYear,
 }){
-  if(!root || !wizardRoot) return;
+  if(!root || !wizardRoot) return { flushPendingEdits: () => {} };
+
+  function syncDraftControl(el){
+    const draft = el?.dataset?.hhDraft;
+    if(draft === 'label') transientState.hhDraftLabel = el.value;
+    else if(draft === 'amount' || draft === 'year') transientState.hhDraftAmount = el.value;
+  }
+
+  function commitFixedKind(plan, el){
+    const fixedKind = el.dataset.hhFixedKind;
+    if(!fixedKind) return false;
+    const typeId = el.dataset.hhFixedType;
+    const owner = el.dataset.hhFixedOwner || 'client';
+    const rowIndex = Number.parseInt(el.dataset.hhFixedIndex, 10);
+    const amount = Math.max(0, Math.round(parseFloat(String(el.value).replace(/[^0-9.]/g, '')) || 0));
+    let rows;
+    let createRow;
+    if(fixedKind === 'income'){
+      if(!plan.income) plan.income = {};
+      if(!Array.isArray(plan.income.other)) plan.income.other = [];
+      rows = plan.income.other;
+      createRow = () => createIncomeSource(plan, typeId, owner);
+    }else if(fixedKind === 'adjustment'){
+      if(!plan.incomeTax) plan.incomeTax = { adjustments: [], deductions: [], credits: [], deductionMode: 'auto' };
+      if(!Array.isArray(plan.incomeTax.adjustments)) plan.incomeTax.adjustments = [];
+      rows = plan.incomeTax.adjustments;
+      createRow = () => createAdjustment(typeId, owner);
+    }else if(fixedKind === 'deduction'){
+      if(!plan.incomeTax) plan.incomeTax = { adjustments: [], deductions: [], credits: [], deductionMode: 'auto' };
+      if(!Array.isArray(plan.incomeTax.deductions)) plan.incomeTax.deductions = [];
+      rows = plan.incomeTax.deductions;
+      createRow = () => createDeduction(typeId);
+    }
+    if(!rows || !createRow) return false;
+    if(Number.isInteger(rowIndex) && rowIndex >= 0 && rowIndex < rows.length){
+      if(amount === 0) rows.splice(rowIndex, 1);
+      else rows[rowIndex].amount = amount;
+    }else if(amount > 0){
+      const row = createRow();
+      row.amount = amount;
+      rows.push(row);
+    }
+    return true;
+  }
+
+  function commitPathControl(plan, el){
+    const path = el.dataset.path;
+    const type = el.dataset.type;
+    if(!path || type === 'acctType') return false;
+    const raw = el.value;
+    if(type === 'text' || type === 'strategy' || type === 'owner' || type === 'bucket'){
+      setPath(plan, path, raw);
+      return true;
+    }
+    if(type === 'bool'){
+      setPath(plan, path, el.checked === true);
+      return true;
+    }
+    if(type === 'ageOrLife' && String(raw).trim() === ''){
+      setPath(plan, path, 999);
+      return true;
+    }
+    let v;
+    if(type === 'money' || type === 'monthlyMoney') v = parseFloat(String(raw).replace(/[^0-9.]/g, ''));
+    else if(type === 'risk') v = +raw;
+    else v = parseFloat(raw);
+    if(!isFinite(v)) return false;
+    if(type === 'pct') v = Math.max(0, Math.min(100, v)) / 100;
+    if(type === 'signedPct') v = Math.max(-100, Math.min(100, v)) / 100;
+    if(type === 'money') v = Math.max(0, Math.round(v));
+    if(type === 'monthlyMoney') v = Math.max(0, Math.round(v)) * 12;
+    if(type === 'num') v = Math.max(1, Math.round(v));
+    if(type === 'age' || type === 'ageOrLife'){
+      v = Math.round(v);
+      const min = parseFloat(el.dataset.min);
+      const max = parseFloat(el.dataset.max);
+      if(isFinite(min)) v = Math.max(min, v);
+      if(isFinite(max)) v = Math.min(max, v);
+    }
+    if(type === 'birthYear'){
+      v = Math.round(v);
+      if(v < 1900 || v > new Date().getFullYear()) return false;
+      const age = ageFromYear(v);
+      setPath(plan, path, v);
+      if(age != null) setPath(plan, path.replace(/\.birthYear$/, '.currentAge'), age);
+      return true;
+    }
+    if(/^properties\.[01]\./.test(path)){
+      if(!Array.isArray(plan.properties)) plan.properties = [];
+      const idx = +path.split('.')[1];
+      while(plan.properties.length <= idx){
+        plan.properties.push({ name: plan.properties.length === 0 ? 'Primary home' : 'Other property',
+          value: 0, purchasePrice: 0, mortgage: { balance: 0, rate: 0, termYears: 0 } });
+      }
+    }
+    setPath(plan, path, v);
+    return true;
+  }
+
+  function commitControl(plan, el){
+    if(!el || !root.contains(el)) return false;
+    if(el.dataset.hhDraft){
+      syncDraftControl(el);
+      return false;
+    }
+    if(el.dataset.hhFixedKind) return commitFixedKind(plan, el);
+    if(el.dataset.path) return commitPathControl(plan, el);
+    return false;
+  }
+
+  function flushPendingEdits(){
+    const el = document.activeElement;
+    if(!el || !root.contains(el)) return false;
+    if(!guardPlanMutation()) return false;
+    return commitControl(getPlan(), el);
+  }
 
   function hhCommit(){
+    flushPendingEdits();
     if(!guardPlanMutation()) return;
     reseedScenarios(); appState.sharedPaths=null; appState.plansDirty=true;
+    persistHousehold?.();
     syncHousehold();
     syncHeaderStatus('Plan edited · open Scenarios');
   }
 
   root.addEventListener('input', e => {
     if(typeof e.target.setCustomValidity === 'function') e.target.setCustomValidity('');
+    syncDraftControl(e.target);
     if(e.target.dataset.type === 'money' || e.target.dataset.type === 'monthlyMoney') liveCommas(e.target);
   });
 
@@ -77,103 +196,27 @@ export function bindHouseholdEditor({
       });
       return;
     }
-    const fixedKind = e.target.dataset.hhFixedKind;
-    if(fixedKind){
+    if(e.target.dataset.hhFixedKind){
       if(!guardPlanMutation()){ syncHousehold(); return; }
-      const typeId = e.target.dataset.hhFixedType;
-      const owner = e.target.dataset.hhFixedOwner || 'client';
-      const rowIndex = Number.parseInt(e.target.dataset.hhFixedIndex, 10);
-      const amount = Math.max(0, Math.round(parseFloat(String(e.target.value).replace(/[^0-9.]/g, '')) || 0));
-      let rows;
-      let createRow;
-      if(fixedKind === 'income'){
-        if(!plan.income) plan.income = {};
-        if(!Array.isArray(plan.income.other)) plan.income.other = [];
-        rows = plan.income.other;
-        createRow = () => createIncomeSource(plan, typeId, owner);
-      }else if(fixedKind === 'adjustment'){
-        if(!plan.incomeTax) plan.incomeTax = { adjustments: [], deductions: [], credits: [], deductionMode: 'auto' };
-        if(!Array.isArray(plan.incomeTax.adjustments)) plan.incomeTax.adjustments = [];
-        rows = plan.incomeTax.adjustments;
-        createRow = () => createAdjustment(typeId, owner);
-      }else if(fixedKind === 'deduction'){
-        if(!plan.incomeTax) plan.incomeTax = { adjustments: [], deductions: [], credits: [], deductionMode: 'auto' };
-        if(!Array.isArray(plan.incomeTax.deductions)) plan.incomeTax.deductions = [];
-        rows = plan.incomeTax.deductions;
-        createRow = () => createDeduction(typeId);
-      }
-      if(!rows || !createRow) return;
-      if(Number.isInteger(rowIndex) && rowIndex >= 0 && rowIndex < rows.length){
-        if(amount === 0) rows.splice(rowIndex, 1);
-        else rows[rowIndex].amount = amount;
-      }else if(amount > 0){
-        const row = createRow();
-        row.amount = amount;
-        rows.push(row);
-      }
-      hhCommit();
+      if(commitFixedKind(plan, e.target)) hhCommit();
       return;
     }
     const path = e.target.dataset.path, type = e.target.dataset.type;
     if(!path) return;
     if(!guardPlanMutation()){ syncHousehold(); return; }
-    const raw = e.target.value;
-    if(type==='text' || type==='strategy' || type==='owner' || type==='bucket'){
-      setPath(plan, path, raw);
-      hhCommit();
-      return;
+    if(type === 'money') e.target.value = Math.max(0, Math.round(parseFloat(String(e.target.value).replace(/[^0-9.]/g, '')) || 0)).toLocaleString('en-US');
+    else if(type === 'monthlyMoney'){
+      const m = Math.max(0, Math.round(parseFloat(String(e.target.value).replace(/[^0-9.]/g, '')) || 0));
+      e.target.value = m.toLocaleString('en-US');
+    }else if(type === 'age' || type === 'ageOrLife'){
+      const v = Math.round(parseFloat(e.target.value));
+      if(Number.isFinite(v)) e.target.value = String(v);
     }
-    if(type==='bool'){
-      setPath(plan, path, e.target.checked === true);
-      hhCommit();
-      return;
-    }
-    if(type==='acctType') return;
-    if(type === 'ageOrLife' && String(raw).trim() === ''){
-      setPath(plan, path, 999);
-      hhCommit();
-      return;
-    }
-    let v;
-    if(type==='money' || type==='monthlyMoney') v = parseFloat(String(raw).replace(/[^0-9.]/g,''));
-    else if(type==='risk') v = +raw;
-    else                   v = parseFloat(raw);
-    if(!isFinite(v)) return;
-    if(type==='pct')  v = Math.max(0, Math.min(100, v))/100;
-    if(type==='signedPct') v = Math.max(-100, Math.min(100, v))/100;
-    if(type==='money'){ v = Math.max(0, Math.round(v)); e.target.value = v.toLocaleString('en-US'); }
-    if(type==='monthlyMoney'){ const m = Math.max(0, Math.round(v)); v = m*12; e.target.value = m.toLocaleString('en-US'); }
-    if(type==='num')  v = Math.max(1, Math.round(v));
-    if(type==='age' || type==='ageOrLife'){
-      v = Math.round(v);
-      const min = parseFloat(e.target.dataset.min);
-      const max = parseFloat(e.target.dataset.max);
-      if(isFinite(min)) v = Math.max(min, v);
-      if(isFinite(max)) v = Math.min(max, v);
-      e.target.value = String(v);
-    }
-    if(type==='birthYear'){
-      v = Math.round(v);
-      if(v < 1900 || v > new Date().getFullYear()) return;
-      const age = ageFromYear(v);
-      setPath(plan, path, v);
-      if(age != null) setPath(plan, path.replace(/\.birthYear$/, '.currentAge'), age);
-      hhCommit();
-      return;
-    }
-    if(/^properties\.[01]\./.test(path)){
-      if(!Array.isArray(plan.properties)) plan.properties = [];
-      const idx = +path.split('.')[1];
-      while(plan.properties.length <= idx){
-        plan.properties.push({ name: plan.properties.length === 0 ? 'Primary home' : 'Other property',
-          value: 0, purchasePrice: 0, mortgage: { balance: 0, rate: 0, termYears: 0 } });
-      }
-    }
-    setPath(plan, path, v);
-    hhCommit();
+    if(commitPathControl(plan, e.target)) hhCommit();
   });
 
   wizardRoot.addEventListener('click', e => {
+    flushPendingEdits();
     const plan = getPlan();
     const clear = e.target.closest('[data-hh-clear-path]');
     if(clear){
@@ -376,11 +419,13 @@ export function bindHouseholdEditor({
       transientState.hhStep = Math.max(1, transientState.hhStep - 1);
       transientState.hhAddingKey = null;
       transientState.hhAcctFormOwner = null;
+      persistHousehold?.();
       syncHousehold();
     } else if(action === 'step-next'){
       transientState.hhStep = Math.min(5, transientState.hhStep + 1);
       transientState.hhAddingKey = null;
       transientState.hhAcctFormOwner = null;
+      persistHousehold?.();
       syncHousehold();
     } else if(action === 'gpc-add-account'){
       const typeId = act.dataset.acctTypeId;
@@ -416,4 +461,6 @@ export function bindHouseholdEditor({
       hhCommit();
     }
   });
+
+  return { flushPendingEdits };
 }

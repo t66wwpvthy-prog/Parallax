@@ -28,6 +28,7 @@ export function createHouseholdWizardController({
   isStorageBlocked,
   renderBlockedRecoverySurfaces,
   syncRecoveryControls,
+  beforeSync,
   onSwitchHousehold,
   onNewHousehold,
   onLoadDemoHousehold,
@@ -114,11 +115,24 @@ export function createHouseholdWizardController({
     sel.value = activeHouseholdId;
   }
 
+  let syncPending = false;
+  let syncAgain = false;
+
   function sync(){
+    if(syncPending){
+      syncAgain = true;
+      return;
+    }
+    syncPending = true;
+    beforeSync?.();
     const view = $('#hh-view');
-    if(!view) return;
+    if(!view){
+      syncPending = false;
+      return;
+    }
     if(isStorageBlocked()){
       renderBlockedRecoverySurfaces();
+      syncPending = false;
       return;
     }
     const plan = getPlan();
@@ -157,6 +171,11 @@ export function createHouseholdWizardController({
     }
 
     syncRecoveryControls();
+    syncPending = false;
+    if(syncAgain){
+      syncAgain = false;
+      sync();
+    }
   }
 
   function bindRail(){

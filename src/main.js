@@ -1057,6 +1057,7 @@ taxBuckets.bind($('#tax-buckets-view'));
    ownership %, beam) recompute read-only on every sync, never faked.
    ═══════════════════════════════════════════════════════════════════════════ */
 // Ownership is a UI label; data keys stay 'spouse' etc. Visible label is Co-Client.
+let flushHouseholdPendingEdits = () => {};
 const householdWizardController = createHouseholdWizardController({
   getPlan: () => plan,
   renderField: (path, type, extra) => renderField(Object.assign({ path, type }, extra || {})),
@@ -1065,6 +1066,7 @@ const householdWizardController = createHouseholdWizardController({
   isStorageBlocked: isHouseholdStorageBlocked,
   renderBlockedRecoverySurfaces,
   syncRecoveryControls,
+  beforeSync: () => flushHouseholdPendingEdits(),
   onSwitchHousehold: switchHousehold,
   onNewHousehold: newHousehold,
   onLoadDemoHousehold: loadDemoHousehold,
@@ -1761,7 +1763,7 @@ $('#np-content').addEventListener('change', e => {
 });
 
 /* Household field commits and wizard actions are bound in src/household/commit.js. */
-bindHouseholdEditor({
+const householdEditorBinding = bindHouseholdEditor({
   root: $('#hh-view'),
   wizardRoot: document.querySelector('.page[data-page="household"] .hh-wizard'),
   getPlan: () => plan,
@@ -1773,11 +1775,13 @@ bindHouseholdEditor({
   appState: uiState,
   syncHousehold,
   syncHeaderStatus,
+  persistHousehold: saveActiveHousehold,
   liveCommas,
   getPath,
   setPath,
   ageFromYear: hhAgeFromYear,
 });
+flushHouseholdPendingEdits = householdEditorBinding?.flushPendingEdits ?? (() => {});
 
 // Pension slider range is PER-HOUSEHOLD: it spans only the ages the advisor has
 // actually quoted a benefit for (the keys of benefitByAge). This means the
