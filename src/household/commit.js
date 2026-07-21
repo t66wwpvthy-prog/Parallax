@@ -132,15 +132,59 @@ export function bindHouseholdEditor({
     return false;
   }
 
-  function flushPendingEdits(){
-    const el = document.activeElement;
-    if(!el || !root.contains(el)) return false;
+  function flushAllVisibleEdits(){
     if(!guardPlanMutation()) return false;
-    return commitControl(getPlan(), el);
+    const plan = getPlan();
+    let changed = false;
+    for(const el of root.querySelectorAll('input[data-path], select[data-path], textarea[data-path], input[data-hh-fixed-kind]')){
+      if(commitControl(plan, el)) changed = true;
+    }
+    for(const el of root.querySelectorAll('input[data-hh-draft], select[data-hh-draft]')){
+      syncDraftControl(el);
+    }
+    return changed;
+  }
+
+  function flushPendingEdits(){
+    return flushAllVisibleEdits();
+  }
+
+  let deferredCommitFrame = 0;
+  function cancelDeferredCommit(){
+    if(!deferredCommitFrame) return;
+    cancelAnimationFrame(deferredCommitFrame);
+    deferredCommitFrame = 0;
+  }
+
+  /** Defer re-render so blur/change on mobile does not destroy the click target first. */
+  function schedulePathCommit(){
+    if(deferredCommitFrame) return;
+    deferredCommitFrame = requestAnimationFrame(() => {
+      deferredCommitFrame = 0;
+      if(!guardPlanMutation()) return;
+      reseedScenarios(); appState.sharedPaths=null; appState.plansDirty=true;
+      persistHousehold?.();
+      syncHousehold();
+      syncHeaderStatus('Plan edited · open Scenarios');
+    });
+  }
+
+  function formatControlDisplay(el){
+    const type = el.dataset.type;
+    if(type === 'money'){
+      el.value = Math.max(0, Math.round(parseFloat(String(el.value).replace(/[^0-9.]/g, '')) || 0)).toLocaleString('en-US');
+    }else if(type === 'monthlyMoney'){
+      const m = Math.max(0, Math.round(parseFloat(String(el.value).replace(/[^0-9.]/g, '')) || 0));
+      el.value = m.toLocaleString('en-US');
+    }else if(type === 'age' || type === 'ageOrLife'){
+      const v = Math.round(parseFloat(el.value));
+      if(Number.isFinite(v)) el.value = String(v);
+    }
   }
 
   function hhCommit(){
-    flushPendingEdits();
+    cancelDeferredCommit();
+    flushAllVisibleEdits();
     if(!guardPlanMutation()) return;
     reseedScenarios(); appState.sharedPaths=null; appState.plansDirty=true;
     persistHousehold?.();
@@ -198,25 +242,24 @@ export function bindHouseholdEditor({
     }
     if(e.target.dataset.hhFixedKind){
       if(!guardPlanMutation()){ syncHousehold(); return; }
-      if(commitFixedKind(plan, e.target)) hhCommit();
+      if(commitFixedKind(plan, e.target)) schedulePathCommit();
       return;
     }
     const path = e.target.dataset.path, type = e.target.dataset.type;
     if(!path) return;
     if(!guardPlanMutation()){ syncHousehold(); return; }
-    if(type === 'money') e.target.value = Math.max(0, Math.round(parseFloat(String(e.target.value).replace(/[^0-9.]/g, '')) || 0)).toLocaleString('en-US');
-    else if(type === 'monthlyMoney'){
-      const m = Math.max(0, Math.round(parseFloat(String(e.target.value).replace(/[^0-9.]/g, '')) || 0));
-      e.target.value = m.toLocaleString('en-US');
-    }else if(type === 'age' || type === 'ageOrLife'){
-      const v = Math.round(parseFloat(e.target.value));
-      if(Number.isFinite(v)) e.target.value = String(v);
-    }
-    if(commitPathControl(plan, e.target)) hhCommit();
+    formatControlDisplay(e.target);
+    if(commitPathControl(plan, e.target)) schedulePathCommit();
   });
 
+  wizardRoot.addEventListener('pointerdown', e => {
+    if(!e.target.closest('[data-hh-action], .row-x, [data-hh-clear-path], [data-add]')) return;
+    flushAllVisibleEdits();
+  }, true);
+
   wizardRoot.addEventListener('click', e => {
-    flushPendingEdits();
+    flushAllVisibleEdits();
+    cancelDeferredCommit();
     const plan = getPlan();
     const clear = e.target.closest('[data-hh-clear-path]');
     if(clear){
