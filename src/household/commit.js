@@ -57,7 +57,7 @@ export function bindHouseholdEditor({
     }
     if(!rows || !createRow) return false;
     if(Number.isInteger(rowIndex) && rowIndex >= 0 && rowIndex < rows.length){
-      if(amount === 0) rows.splice(rowIndex, 1);
+      if(amount === 0 && fixedKind === 'income') rows.splice(rowIndex, 1);
       else rows[rowIndex].amount = amount;
     }else if(amount > 0){
       const row = createRow();

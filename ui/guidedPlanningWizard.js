@@ -119,9 +119,13 @@ function ssRow(plan, deps, role){
 
 function deductionRow(deps, row, index){
   const type = deductionType(row.typeId);
+  const amount = Math.round(Number(row.amount) || 0);
+  const display = amount ? amount.toLocaleString('en-US') : '';
   return `<div class="gpc-field-row gpc-field-row--ded">` +
     `<span class="gpc-field-row__lbl">${escHtml(row.label || type.label)}</span>` +
-    fixedMoneyInput({ kind: 'deduction', typeId: row.typeId, amount: row.amount, rowIndex: index, label: type.label }) +
+    `<span class="gpc-in-wrap"><span class="gpc-in-wrap__pre">$</span>` +
+    `<input class="gpc-in" type="text" inputmode="numeric" data-path="incomeTax.deductions.${index}.amount" data-type="money" ` +
+    `value="${display}" placeholder="—" aria-label="${escHtml(type.label)}"></span>` +
     `<button type="button" class="row-x" data-rmpath="incomeTax.deductions.${index}" aria-label="Remove ${escHtml(type.label)}">×</button></div>`;
 }
 

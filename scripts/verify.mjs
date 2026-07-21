@@ -763,7 +763,7 @@ try {
 
     await page.click('#hh-view [data-hh-action="gpc-add-deduction"][data-ded-type="charitable"]'); await new Promise(r => setTimeout(r, 300));
     await page.evaluate(() => {
-      const input = document.querySelector('#hh-view [data-hh-fixed-kind="deduction"][data-hh-fixed-type="charitable"]');
+      const input = document.querySelector('#hh-view input[data-path^="incomeTax.deductions."][data-path$=".amount"]');
       if(input){ input.value = '12000'; input.dispatchEvent(new Event('change', { bubbles:true })); }
     });
     await new Promise(r => setTimeout(r, 300));
