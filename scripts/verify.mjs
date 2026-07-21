@@ -629,36 +629,48 @@ try {
     if(bp.cta) throw new Error('Run Blueprint CTA must not render');
     await page.screenshot({ path: join(OUT, '01-household.png'), fullPage: true });
 
-    // Step 1 · Household: names, Born (drives age), filing, state, addable children.
+    // Step 1 · Household: person tabs, names, Born, filing, state, addable dependents.
     await page.click('#hh-step-1'); await new Promise(r => setTimeout(r, 350));
     const s1 = await page.evaluate(() => ({
-      nameInputs: document.querySelectorAll('#hh-view input[data-path="meta.primaryName"], #hh-view input[data-path="meta.spouseName"]').length,
-      bornInputs: document.querySelectorAll('#hh-view input[data-type="birthYear"]').length,
+      personTabs: document.querySelectorAll('#hh-view [data-hh-action="gpc-person-tab"]').length,
+      primaryName: !!document.querySelector('#hh-view input[data-path="meta.primaryName"]'),
+      primaryBorn: !!document.querySelector('#hh-view input[data-path="household.primary.birthYear"]'),
       filing: !!document.querySelector('#hh-view select[data-path="meta.filingStatus"]'),
       stateSel: !!document.querySelector('#hh-view select[data-path="meta.state"]'),
-      coClientText: /co-client/i.test(document.querySelector('#hh-view')?.textContent || ''),
-      addChild: !!document.querySelector('#hh-view [data-hh-action="open-add"][data-add-key="child"]'),
       personTimelines: document.querySelectorAll('#hh-view .hh-tl').length,
       back: !!document.querySelector('#hh-wiz-footer [data-hh-action="step-back"]'),
       next: !!document.querySelector('#hh-wiz-footer [data-hh-action="step-next"]'),
     }));
-    if(s1.nameInputs !== 2) throw new Error(`step 1 name inputs: want 2, got ${s1.nameInputs}`);
-    if(s1.bornInputs < 2) throw new Error(`step 1 Born inputs missing, got ${s1.bornInputs}`);
+    if(s1.personTabs !== 3) throw new Error(`step 1 person tabs: want 3, got ${s1.personTabs}`);
+    if(!s1.primaryName || !s1.primaryBorn) throw new Error('step 1 primary name/born missing on Person 1 tab');
     if(!s1.filing) throw new Error('Filing dropdown missing');
     if(!s1.stateSel) throw new Error('State dropdown missing');
-    if(!s1.coClientText) throw new Error('step 1 does not say co-client');
-    if(!s1.addChild) throw new Error('"+ Add child" missing');
     if(s1.personTimelines) throw new Error(`step 1 still renders ${s1.personTimelines} person timeline bars`);
     if(s1.back) throw new Error('Back button must not render on step 1');
     if(!s1.next) throw new Error('Continue button missing on step 1');
 
-    // Children: add a row, confirm its inputs, remove it again.
+    await page.click('#hh-view [data-hh-action="gpc-person-tab"][data-person-tab="spouse"]'); await new Promise(r => setTimeout(r, 350));
+    const s1sp = await page.evaluate(() => ({
+      spouseName: !!document.querySelector('#hh-view input[data-path="meta.spouseName"]'),
+      spouseBorn: !!document.querySelector('#hh-view input[data-path="household.spouse.birthYear"]'),
+      coClientText: /co-client/i.test(document.querySelector('#hh-view')?.textContent || ''),
+    }));
+    if(!s1sp.spouseName || !s1sp.spouseBorn) throw new Error('step 1 spouse name/born missing on Person 2 tab');
+    if(!s1sp.coClientText) throw new Error('step 1 does not say co-client on Person 2 tab');
+
+    await page.click('#hh-view [data-hh-action="gpc-person-tab"][data-person-tab="child"]'); await new Promise(r => setTimeout(r, 350));
+    const s1dep = await page.evaluate(() => ({
+      addChild: !!document.querySelector('#hh-view [data-hh-action="open-add"][data-add-key="child"]'),
+    }));
+    if(!s1dep.addChild) throw new Error('"+ Add dependent" missing on Dependent tab');
+
+    // Dependents: add a row, confirm it renders.
     await page.click('#hh-view [data-hh-action="open-add"][data-add-key="child"]'); await new Promise(r => setTimeout(r, 350));
     await page.click('#hh-view [data-hh-action="commit-add"]'); await new Promise(r => setTimeout(r, 350));
     const kid = await page.evaluate(() => ({
-      row: /Child/.test(document.querySelector('#hh-view')?.textContent || ''),
+      row: /Dependent|Child/i.test(document.querySelector('#hh-view')?.textContent || ''),
     }));
-    if(!kid.row) throw new Error('added child row did not render');
+    if(!kid.row) throw new Error('added dependent row did not render');
 
     // Continue → step 2 (footer nav drives the stepper).
     await page.click('#hh-wiz-footer [data-hh-action="step-next"]'); await new Promise(r => setTimeout(r, 350));
@@ -793,7 +805,7 @@ try {
     if(!s5.gauge) throw new Error('Summary gauge missing on step 5');
     if(s5.controls !== 0) throw new Error(`Summary must be read-only, found ${s5.controls} controls`);
     if(s5.footNote !== 'Step 5 of 5') throw new Error(`footer note mismatch: "${s5.footNote}"`);
-    if(!/\$180,000/.test(s5.incomeLine)) throw new Error(`Summary income must reflect demo wages, got "${s5.incomeLine}"`);
+    if(!/\$188,600/.test(s5.incomeLine)) throw new Error(`Summary income must reflect demo wages + added dividends, got "${s5.incomeLine}"`);
     if(s5.allocLegend < 3) throw new Error(`Summary account legend must list demo accounts, got ${s5.allocLegend}`);
     if(s5.gaugeLabel !== 'NET WORTH') throw new Error(`gauge label must read NET WORTH, got "${s5.gaugeLabel}"`);
     if(!/\$[\d.,MK]/.test(s5.gaugeVal)) throw new Error(`Summary gauge net worth not formatted: "${s5.gaugeVal}"`);
