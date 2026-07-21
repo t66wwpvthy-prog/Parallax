@@ -59,7 +59,7 @@ export function applyItemizedDeductionDisplay(root, summary, deductions = []){
     if(!label || label.querySelector('[data-gpc-deduction-limit]')) continue;
     const note = document.createElement('em');
     note.dataset.gpcDeductionLimit = '';
-    note.textContent = ` · ${copy}`;
+    note.textContent = copy;
     label.append(note);
   }
 }

@@ -70,18 +70,18 @@
 }
 
 .page[data-page="household"] .gpc-foot-k {
-  font-size: 10px;
-  letter-spacing: 0.16em;
+  font-size: 11px;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   color: #7d848c;
   margin-bottom: 10px;
 }
 
 .page[data-page="household"] .gpc-foot-row {
-  font-size: 13px;
+  font-size: 14px;
   color: #9097a0;
-  margin-bottom: 6px;
-  line-height: 1.45;
+  margin-bottom: 8px;
+  line-height: 1.5;
 }
 
 .page[data-page="household"] .gpc-foot-row strong { color: #e7dec9; font-weight: 500; }
@@ -327,12 +327,37 @@
 }
 
 .page[data-page="household"] .gpc-acct-list,
-.page[data-page="household"] .gpc-income-list {
+.page[data-page="household"] .gpc-income-list,
+.page[data-page="household"] .gpc-ded-list {
   display: flex;
   flex-direction: column;
   gap: 7px;
   width: min(100%, 380px);
   margin: 12px 0 20px;
+}
+
+/* Deduction rows: compact label + input (not full-panel ledger spacing). */
+.page[data-page="household"] .gpc-field-row--ded {
+  justify-content: flex-start;
+  gap: 10px;
+}
+
+.page[data-page="household"] .gpc-field-row--ded .gpc-field-row__lbl {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.page[data-page="household"] .gpc-field-row--ded .gpc-field-row__lbl [data-gpc-deduction-limit] {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  line-height: 1.35;
+  color: #7d848c;
+}
+
+.page[data-page="household"] .gpc-field-row--ded .row-x {
+  margin-left: auto;
+  flex: none;
 }
 
 .page[data-page="household"] .gpc-work-toggle {
@@ -411,8 +436,8 @@
 }
 
 .page[data-page="household"] .gpc-tax-card__k {
-  font-size: 10px;
-  letter-spacing: 0.14em;
+  font-size: 11px;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: #7d848c;
   margin-bottom: 8px;
@@ -434,9 +459,9 @@
   gap: 8px;
   padding-top: 20px;
   border-top: 1px solid rgba(231,222,201,0.10);
-  font-size: 14px;
+  font-size: 15px;
   color: #9097a0;
-  max-width: 420px;
+  width: min(100%, 380px);
 }
 
 .page[data-page="household"] .gpc-tax-math__row {
@@ -466,8 +491,13 @@
   flex-wrap: wrap;
   gap: 16px;
   padding-top: 10px;
-  font-size: 13px;
+  font-size: 14px;
   color: #878e96;
+}
+
+/* Wizard sidebar owns the brand mark — hide the global header logo on Household. */
+.wrap:has(.page[data-page="household"].on) .app-header .hdr__logo {
+  display: none;
 }
 
 .page[data-page="household"] .gpc-tax-rates strong { color: #e7dec9; }
@@ -690,7 +720,8 @@
   }
 
   .page[data-page="household"] .gpc-acct-list,
-  .page[data-page="household"] .gpc-income-list {
+  .page[data-page="household"] .gpc-income-list,
+  .page[data-page="household"] .gpc-ded-list {
     width: 100%;
     max-width: none;
   }
