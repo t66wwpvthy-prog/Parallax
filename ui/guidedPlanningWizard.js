@@ -1,6 +1,6 @@
 import { escHtml } from './dom.js';
-import { hhMoney, hhCompact, hhNetWorthTotal, hhAllAccounts } from './household.js';
-import { renderGaugeSvg, accountTreatment } from './householdWizard.js';
+import { hhMoney, hhNetWorthTotal, hhAllAccounts } from './household.js';
+import { renderGaugeSvg, accountTreatment, hhCompact } from './householdWizard.js';
 import { deductionType, enteredDeductionTotal, incomeType, ownerLabel } from '../src/household/incomeTaxModel.js';
 
 const FS_OPTS = [
