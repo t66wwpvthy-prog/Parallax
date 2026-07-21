@@ -40,7 +40,6 @@ export function createHouseholdWizardController({
   let draftLabel = '';
   let draftAmount = '';
   let taxDetailsOpen = false;
-  let gpcOtherOpen = false;
   let gpcPersonTab = 'primary';
   let gpcWorkMode = 'employed';
   let wizard;
@@ -58,8 +57,6 @@ export function createHouseholdWizardController({
     set hhTaxDetailsOpen(value){ taxDetailsOpen = value; },
     get hhStep(){ return step; },
     set hhStep(value){ step = value; },
-    get gpcOtherOpen(){ return gpcOtherOpen; },
-    set gpcOtherOpen(value){ gpcOtherOpen = value; },
     get gpcPersonTab(){ return gpcPersonTab; },
     set gpcPersonTab(value){ gpcPersonTab = value; },
     get gpcWorkMode(){ return gpcWorkMode; },
@@ -99,7 +96,6 @@ export function createHouseholdWizardController({
     draftLabel = '';
     draftAmount = '';
     taxDetailsOpen = false;
-    gpcOtherOpen = false;
     gpcPersonTab = 'primary';
     gpcWorkMode = 'employed';
   }
@@ -169,7 +165,6 @@ export function createHouseholdWizardController({
         step = +button.dataset.step || 1;
         addingKey = null;
         accountFormOwner = null;
-        gpcOtherOpen = false;
         sync();
       }));
 
