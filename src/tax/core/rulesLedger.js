@@ -8,6 +8,8 @@ import { scheduleDClassification } from '../federal/rules/scheduleDClassificatio
 import { taxableSocialSecurity } from '../federal/rules/taxableSocialSecurity.js';
 import { selfEmploymentTax } from '../federal/rules/selfEmploymentTax.js';
 import { qualifiedRothDistribution } from '../federal/rules/qualifiedRothDistribution.js';
+import { medicalExpenseDeduction } from '../federal/rules/medicalExpenseDeduction.js';
+import { saltDeductionCap } from '../federal/rules/saltDeductionCap.js';
 
 export const rulesLedger = [
   ordinaryIncomeTax,
@@ -18,6 +20,8 @@ export const rulesLedger = [
   taxableSocialSecurity,
   selfEmploymentTax,
   qualifiedRothDistribution,
+  medicalExpenseDeduction,
+  saltDeductionCap,
 ];
 
 export function getRuleById(ruleId){

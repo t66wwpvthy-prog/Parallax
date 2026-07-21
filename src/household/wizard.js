@@ -1,5 +1,6 @@
 import { buildHouseholdTaxFactContract } from '../planning/tax/buildHouseholdTaxFactContract.js';
 import { createGuidedPlanningWizard } from '../../ui/guidedPlanningWizard.js';
+import { applyItemizedDeductionDisplay } from '../../ui/itemizedDeductionDisplay.js';
 import { escHtml } from '../../ui/dom.js';
 import { hhAllAccounts, hhAgeFromYear, hhInitial, hhSelect } from '../../ui/household.js';
 import { getWizardAccountTypes } from './accountTypes.js';
@@ -149,6 +150,7 @@ export function createHouseholdWizardController({
     const householdWizard = ensureWizard();
     const renderStep = householdWizard.steps[step] || householdWizard.steps[1];
     view.innerHTML = renderStep();
+    if(step === 4) applyItemizedDeductionDisplay(view, buildCurrentIncomeTaxSummary(plan));
 
     const footer = $('#hh-wiz-footer');
     if(footer) footer.innerHTML = householdWizard.footer(step);
