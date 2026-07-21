@@ -127,9 +127,19 @@ export function incomeSourceGroups(plan){
 }
 
 export function enteredIncomeTotal(plan){
-  return (plan.income?.other || [])
-    .filter(source => isSourceActiveNow(plan, source))
+  return activeIncomeSources(plan)
     .reduce((sum, source) => sum + (Number(source.amount) || 0), 0);
+}
+
+/** One row per type+owner — matches GPC income slots; last row wins if duplicates exist. */
+export function activeIncomeSources(plan){
+  const seen = new Map();
+  for(const raw of plan.income?.other || []){
+    if(!isSourceActiveNow(plan, raw)) continue;
+    const source = normalizedIncomeSource(plan, raw);
+    seen.set(`${source.typeId}:${source.owner}`, source);
+  }
+  return [...seen.values()];
 }
 
 export function enteredAdjustmentTotal(plan){
