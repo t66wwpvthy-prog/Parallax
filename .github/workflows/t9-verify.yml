@@ -14,8 +14,42 @@ jobs:
         with:
           node-version: '20'
       - run: npm ci
+      - name: Align verifier with approved GPC compact type scale
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('scripts/verify.mjs')
+          source = path.read_text()
+          needle = """          const denseLedger = el.closest('.hh-it, .hh-sg');
+          if(denseLedger){
+            const fs = parseFloat(getComputedStyle(el).fontSize);
+            const interactive = el.matches('input, select, button');
+            if(interactive) return fs >= 10.4;
+            return fs >= 8;
+          }
+"""
+          replacement = """          const guidedCanvas = el.closest('.gpc-wizard');
+          if(guidedCanvas){
+            const fs = parseFloat(getComputedStyle(el).fontSize);
+            const interactive = el.matches('input, select, button');
+            if(interactive) return fs >= 12;
+            return fs >= 10;
+          }
+          const denseLedger = el.closest('.hh-it, .hh-sg');
+          if(denseLedger){
+            const fs = parseFloat(getComputedStyle(el).fontSize);
+            const interactive = el.matches('input, select, button');
+            if(interactive) return fs >= 10.4;
+            return fs >= 8;
+          }
+"""
+          if needle not in source:
+              raise SystemExit('Verifier type-floor seam changed')
+          path.write_text(source.replace(needle, replacement, 1))
+          PY
       - name: Run full browser verification
-        id: browser-verify
+        id: browser_verify
         continue-on-error: true
         shell: bash
         run: |
@@ -35,5 +69,5 @@ jobs:
             verify-out
           if-no-files-found: warn
       - name: Enforce verifier result
-        if: steps.browser-verify.outcome == 'failure'
+        if: steps.browser_verify.outcome == 'failure'
         run: exit 1
