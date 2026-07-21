@@ -1,6 +1,5 @@
 import { escHtml } from './dom.js';
-import { hhMoney, hhCompact, hhNetWorthTotal, hhAllAccounts } from './household.js';
-import { renderGaugeSvg, accountTreatment } from './householdWizard.js';
+import { hhMoney, hhNetWorthTotal } from './household.js';
 import { deductionType, enteredDeductionTotal, incomeType, ownerLabel } from '../src/household/incomeTaxModel.js';
 
 const FS_OPTS = [
@@ -71,6 +70,52 @@ export const GPC_DEDUCTION_TYPES = Object.freeze([
 
 const money = v => '$' + Math.round(Number(v) || 0).toLocaleString('en-US');
 const rate = v => v == null ? '—' : `${Math.round(v * 1000) / 10}%`;
+
+const SUMMARY_GROUPS = Object.freeze({
+  traditional: Object.freeze({ key: 'traditional', label: 'Tax-deferred', color: 'rgba(190,167,111,0.88)', order: 10 }),
+  property: Object.freeze({ key: 'property', label: 'Property', color: 'rgba(111,136,145,0.82)', order: 20 }),
+  taxable: Object.freeze({ key: 'taxable', label: 'Taxable', color: 'rgba(194,146,83,0.80)', order: 30 }),
+  roth: Object.freeze({ key: 'roth', label: 'Roth', color: 'rgba(137,156,124,0.82)', order: 40 }),
+  other: Object.freeze({ key: 'other', label: 'Other', color: 'rgba(145,137,153,0.72)', order: 50 }),
+});
+
+export function buildGuidedSummaryAllocation(plan){
+  const hasSpouse = !!plan.household?.spouse;
+  const accounts = (plan.portfolio?.extraAccounts || []).filter(a =>
+    hasSpouse || a.owner === 'client' || a.owner === 'joint' || a.owner === 'trust'
+  );
+  const totals = new Map();
+  for(const account of accounts){
+    const key = SUMMARY_GROUPS[account.bucket] ? account.bucket : 'other';
+    totals.set(key, (totals.get(key) || 0) + Math.max(0, Number(account.balance) || 0));
+  }
+  const propertyTotal = (plan.properties || []).reduce((sum, property) =>
+    sum + Math.max(0, Number(property.value) || 0), 0);
+  if(propertyTotal) totals.set('property', propertyTotal);
+
+  const assetTotal = [...totals.values()].reduce((sum, amount) => sum + amount, 0);
+  const segments = [...totals.entries()]
+    .filter(([, amount]) => amount > 0)
+    .map(([key, amount]) => ({ ...SUMMARY_GROUPS[key], amount, share: assetTotal ? amount / assetTotal : 0 }))
+    .sort((a, b) => a.order - b.order);
+  return { assetTotal, segments };
+}
+
+export function guidedSummaryConic(segments){
+  if(!segments.length) return 'conic-gradient(rgba(231,222,201,0.055) 0 100%)';
+  let cursor = 0;
+  const gap = segments.length > 1 ? 0.35 : 0;
+  const stops = [];
+  for(const segment of segments){
+    const start = cursor;
+    const end = cursor + segment.share * 100;
+    const colorEnd = Math.max(start, end - gap);
+    stops.push(`${segment.color} ${start.toFixed(3)}% ${colorEnd.toFixed(3)}%`);
+    if(gap) stops.push(`rgba(11,13,17,0.96) ${colorEnd.toFixed(3)}% ${end.toFixed(3)}%`);
+    cursor = end;
+  }
+  return `conic-gradient(from -90deg, ${stops.join(', ')})`;
+}
 
 function filingStateLine(plan){
   const fs = FS_LABELS[plan.meta?.filingStatus] || (plan.household?.spouse ? 'Married filing jointly' : 'Single');
@@ -208,6 +253,8 @@ export function createGuidedPlanningWizard(deps){
   function stepBalance(){
     const plan = deps.plan;
     const accounts = deps.allAccounts();
+    const catalogOpen = !!state.gpcCatalogOpen;
+    const quickTypeIds = new Set(['brokerage_taxable', 'traditional_ira', 'roth_ira']);
 
     const rows = accounts.map(a =>
       `<div class="gpc-field-row">` +
@@ -223,7 +270,7 @@ export function createGuidedPlanningWizard(deps){
         `<span class="gpc-field-row__lbl">${escHtml(p.name || 'Real estate')}</span>` +
         `<span class="gpc-in-wrap"><span class="gpc-in-wrap__pre">$</span>` +
         `<input class="gpc-in gpc-in--wide" type="text" inputmode="numeric" data-path="properties.${i}.value" data-type="money" ` +
-        `value="${Math.round(Number(p.value) || 0) ? Math.round(Number(p.value)).toLocaleString('en-US') : ''}" placeholder="—"></span>` +
+        `value="${Math.round(Number(p.value) || 0) ? Math.round(Number(p.value)).toLocaleString('en-US') : ''}" placeholder="—" aria-label="${escHtml(p.name || 'Real estate')} value"></span>` +
         `<button type="button" class="row-x" data-rmpath="properties.${i}" aria-label="Remove property">×</button></div>`
     ).join('');
 
@@ -231,18 +278,35 @@ export function createGuidedPlanningWizard(deps){
       `<section class="gpc-acct-group">
         <h2 class="gpc-acct-group__head">${escHtml(group.heading)}</h2>
         <div class="gpc-acct-btns">
-          ${group.items.map(item =>
+          ${group.items.filter(item => !quickTypeIds.has(item.typeId)).map(item =>
             `<button type="button" data-hh-action="gpc-add-account" data-acct-type-id="${item.typeId}" data-acct-owner="${item.owner}" data-acct-label="${escHtml(item.label)}">+ ${escHtml(item.label)}</button>`
           ).join('')}
         </div>
       </section>`
     ).join('');
 
+    const quickAdd = [
+      { typeId: 'brokerage_taxable', label: 'Individual Brokerage', buttonLabel: 'Taxable\u00a0Account', owner: 'client' },
+      { typeId: 'traditional_ira', label: 'Traditional IRA', owner: 'client' },
+      { typeId: 'roth_ira', label: 'Roth IRA', owner: 'client' },
+    ].map(item =>
+      `<button type="button" data-hh-action="gpc-add-account" data-acct-type-id="${item.typeId}" data-acct-owner="${item.owner}" data-acct-label="${escHtml(item.label)}">+ ${escHtml(item.buttonLabel || item.label)}</button>`
+    ).join('');
+    const emptyHelper = !accounts.length && !(plan.properties || []).length
+      ? `<p class="gpc-helper gpc-helper--balance">Add the household's accounts — investments, property and debt. Use the quick buttons for the most common types, or browse the full catalog.</p>`
+      : '';
+
     return `<div class="gpc-step">
       <p class="gpc-eyebrow">Step II — Balance sheet</p>
       <h1 class="gpc-subtitle">Investment Accounts · Tangible Property · Debt</h1>
-      <div class="gpc-acct-catalog">${catalog}</div>
+      <div class="gpc-acct-btns gpc-acct-btns--quick">
+        ${quickAdd}
+        <button type="button" data-hh-action="gpc-add-property">+ Real estate</button>
+        <button type="button" data-hh-action="gpc-toggle-catalog" aria-expanded="${catalogOpen}">+ Add account <span aria-hidden="true">▾</span></button>
+      </div>
+      <div class="gpc-acct-catalog" aria-label="Account catalog"${catalogOpen ? '' : ' hidden'}>${catalog}</div>
       <div class="gpc-acct-list">${rows}${propRows}</div>
+      ${emptyHelper}
     </div>`;
   }
 
@@ -260,7 +324,9 @@ export function createGuidedPlanningWizard(deps){
           : '')
       : ssRow(plan, deps, 'client') + ssRow(plan, deps, 'spouse');
 
-    const expenseRows = `<div class="gpc-field-row"><label class="gpc-field-row__lbl">Essential expenses</label>${deps.field('expenses.living', 'money')}</div>`;
+    const expenseRows = Number(plan.expenses?.living) > 0
+      ? `<div class="gpc-field-row"><label class="gpc-field-row__lbl">Essential expenses</label>${deps.field('expenses.living', 'money')}</div>`
+      : '';
 
     const addIncome = state.hhAddingKey === 'income'
       ? `<div class="gpc-inline-form gpc-inline-form--wide">
@@ -325,7 +391,8 @@ export function createGuidedPlanningWizard(deps){
     const itemDed = ready ? summary.itemizedDeduction : enteredDeductionTotal(plan);
     const useItemized = ready && summary.deductionMethod === 'Itemized';
 
-    const cards = ready ? `
+    const showComputedTax = ready && Number(summary.adjustedGrossIncome) > 0;
+    const cards = showComputedTax ? `
       <div class="gpc-tax-cards">
         <div class="gpc-tax-card${useItemized ? ' gpc-tax-card--muted' : ''}">
           <div class="gpc-tax-card__k">Standard</div>
@@ -346,7 +413,7 @@ export function createGuidedPlanningWizard(deps){
           <span>Effective rate <strong>${rate(summary.effectiveRate)}</strong></span>
           <span>Est. federal tax <strong class="gpc-tax-rates__hi">${money(summary.federalTaxLiability)}</strong></span>
         </div>
-      </div>` : `<p class="gpc-intro gpc-intro--note">${escHtml(summary.message || 'Enter filing status and income on prior steps.')}</p>`;
+      </div>` : '';
 
     return `<div class="gpc-step">
       <p class="gpc-eyebrow">Step IV — Tax</p>
@@ -364,42 +431,45 @@ export function createGuidedPlanningWizard(deps){
 
   function stepSummary(){
     const plan = deps.plan;
-    const all = deps.allAccounts();
-    const visible = plan.household?.spouse ? all : all.filter(a => a.owner === 'client' || a.owner === 'joint' || a.owner === 'trust');
     const total = hhNetWorthTotal(plan);
-    const pn = plan.meta?.primaryName || 'Client';
-    const sn = plan.meta?.spouseName || 'Co-client';
-    const householdName = plan.household?.spouse ? `${pn} & ${sn}` : pn;
-    const denom = total || 1;
-    const alloc = visible.slice().sort((a, b) => (b.balance || 0) - (a.balance || 0)).map(a => {
-      const tr = accountTreatment(a.label);
-      const pct = Math.round((a.balance || 0) / denom * 100);
-      return `<div class="gpc-bp-alloc"><span class="gpc-bp-alloc__name"><span class="gpc-bp-alloc__dot" style="background:${tr.color}"></span>${escHtml(a.label)}</span>
-        <span class="gpc-bp-alloc__nums"><span>${pct}%</span><span>${hhMoney(a.balance)}</span></span></div>`;
-    }).join('');
+    const tax = deps.incomeTaxSummary();
+    const allocation = buildGuidedSummaryAllocation(plan);
+    const allocConic = guidedSummaryConic(allocation.segments);
+    const allocationRows = allocation.segments.map(segment =>
+      `<div class="gpc-summary-alloc__row gpc-bp-alloc">
+        <span class="gpc-summary-alloc__dot" style="background:${segment.color}"></span>
+        <span class="gpc-summary-alloc__label">${escHtml(segment.label)}</span>
+        <span class="gpc-summary-alloc__amount">${hhMoney(segment.amount)}</span>
+        <span class="gpc-summary-alloc__pct">${Math.round(segment.share * 100)}%</span>
+      </div>`
+    ).join('');
+    const stats = [
+      ['Annual income', tax.totalIncome],
+      ['AGI', tax.adjustedGrossIncome],
+      ['Taxable income', tax.taxableIncome],
+      ['Est. federal tax', tax.federalTaxLiability],
+    ].map(([label, value]) =>
+      `<div class="gpc-summary-stat gpc-summary-row"><div class="gpc-summary-stat__value">${money(value || 0)}</div><div class="gpc-summary-stat__label gpc-foot-k">${label}</div></div>`
+    ).join('');
 
     return `<div class="gpc-step gpc-step--summary">
-      <p class="gpc-eyebrow">Summary</p>
-      <h1 class="gpc-title">The household, assembled.</h1>
-      <p class="gpc-intro">${escHtml(householdName)} · ${escHtml(filingStateLine(plan))}</p>
-      <div class="gpc-summary-grid">
-        <div class="gpc-summary-read">
-          <div class="gpc-summary-row"><span>I Family</span><span>Complete</span></div>
-          <div class="gpc-summary-row"><span>II Balance sheet</span><span>${visible.length} accounts</span></div>
-          <div class="gpc-summary-row"><span>III Income</span><span>${money(deps.incomeTaxSummary().totalIncome || 0)}</span></div>
-          <div class="gpc-summary-row"><span>IV Tax</span><span>${deps.incomeTaxSummary().status === 'ready' ? money(deps.incomeTaxSummary().federalTaxLiability) + ' est.' : '—'}</span></div>
-        </div>
-        <div class="gpc-bp-gauge-wrap">
-          <div class="gpc-bp-gauge">
-            ${renderGaugeSvg(visible, visible.reduce((s, a) => s + (a.balance || 0), 0))}
-            <div class="gpc-bp-gauge__center">
-              <div class="gpc-bp-gauge__k">NET WORTH</div>
-              <div class="gpc-bp-gauge__v">${hhCompact(total)}</div>
-              <div class="gpc-bp-gauge__sub">${visible.length} account${visible.length === 1 ? '' : 's'}</div>
+      <p class="gpc-eyebrow">Step V — Summary</p>
+      <h1 class="gpc-sr-only">Plan summary</h1>
+      <div class="gpc-summary-canvas">
+        <div class="gpc-summary-hero">
+          <div class="gpc-summary-wheel gpc-bp-gauge" role="img" aria-label="Asset allocation; household net worth ${escHtml(hhMoney(total))}">
+            <div class="gpc-summary-wheel__surface" style="background:${allocConic}"></div>
+            <div class="gpc-summary-wheel__center">
+              <div class="gpc-summary-wheel__label gpc-bp-gauge__k">NET WORTH</div>
+              <div class="gpc-summary-wheel__value gpc-bp-gauge__v">${hhMoney(total)}</div>
             </div>
           </div>
-          <div class="gpc-bp-alloc-list">${alloc}</div>
+          <div class="gpc-summary-alloc">
+            <div class="gpc-summary-alloc__head gpc-foot-k">Asset allocation</div>
+            ${allocationRows || `<div class="gpc-summary-alloc__empty">Add account or property balances to see the allocation.</div>`}
+          </div>
         </div>
+        <div class="gpc-summary-stats">${stats}</div>
       </div>
     </div>`;
   }
