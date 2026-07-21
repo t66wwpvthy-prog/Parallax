@@ -16,10 +16,25 @@ jobs:
       - name: Align verifier with approved GPC compact type scale
         run: node scripts/t9-patch-verifier.mjs
       - name: Run full browser verification
+        id: browser_verify
+        continue-on-error: true
         shell: bash
         run: |
+          set -o pipefail
           CHROME="$(command -v google-chrome-stable || command -v google-chrome || command -v chromium || true)"
           if [ -n "$CHROME" ]; then
             export PUPPETEER_EXECUTABLE_PATH="$CHROME"
           fi
-          node scripts/verify.mjs
+          node scripts/verify.mjs 2>&1 | tee verify.log
+      - name: Upload verification diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: t9-final-verify-diagnostics
+          path: |
+            verify.log
+            verify-out
+          if-no-files-found: warn
+      - name: Enforce verifier result
+        if: steps.browser_verify.outcome == 'failure'
+        run: exit 1
