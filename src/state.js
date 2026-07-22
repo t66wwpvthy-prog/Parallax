@@ -48,23 +48,33 @@ const replayValues = (() => {
   try{
     const saved = JSON.parse(localStorage.getItem(PATH_KEY) || '{}');
     return {
-      mode: ['typical','stressed','favorable','sequence-stress'].includes(saved.mode) ? saved.mode : 'typical',
       seed: Math.max(1, parseInt(saved.seed, 10) || DEFAULT_PATH_SEED),
     };
   }catch{
-    return { mode:'typical', seed:DEFAULT_PATH_SEED };
+    return { seed:DEFAULT_PATH_SEED };
   }
 })();
 
+/** Session-only Cash Flow path; resets to typical when Cash Flow closes. */
+let cashFlowPathMode = 'typical';
+let cashFlowRandomSimIndex = null;
+
 export const pathReplay = {
-  get mode(){ return replayValues.mode; },
-  set mode(value){ replayValues.mode = value; },
+  get mode(){ return cashFlowPathMode; },
+  set mode(value){ cashFlowPathMode = value; },
   get seed(){ return replayValues.seed; },
   set seed(value){ replayValues.seed = value; },
+  get randomSimIndex(){ return cashFlowRandomSimIndex; },
+  set randomSimIndex(value){ cashFlowRandomSimIndex = value; },
 };
 
+export function resetCashFlowPathToTypical(){
+  cashFlowPathMode = 'typical';
+  cashFlowRandomSimIndex = null;
+}
+
 export function savePathReplay(){
-  try{ localStorage.setItem(PATH_KEY, JSON.stringify(pathReplay)); }catch{}
+  try{ localStorage.setItem(PATH_KEY, JSON.stringify({ seed: pathReplay.seed })); }catch{}
 }
 
 const scenariosUiValues = {

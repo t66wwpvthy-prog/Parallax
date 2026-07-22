@@ -2173,7 +2173,14 @@ try {
     }));
     if(advanced.chooseOpt || advanced.indexInput || advanced.seedInput) throw new Error(`removed path #/seed controls still present: ${JSON.stringify(advanced)}`);
     const availableModes = await page.evaluate(() => [...document.querySelectorAll('#path-mode option')].map(o => o.value));
-    for(const mode of ['stressed', 'favorable']){
+    const expectedModes = ['typical', 'favorable', 'stressed-pp', 'sequence-dotcom-gfc', 'random'];
+    if(JSON.stringify(availableModes) !== JSON.stringify(expectedModes)){
+      throw new Error(`path-mode options mismatch: ${JSON.stringify(availableModes)}`);
+    }
+    if(await page.evaluate(() => !!document.querySelector('#path-seed, #path-index'))) {
+      throw new Error('seed/index path controls must stay removed');
+    }
+    for(const mode of ['favorable', 'stressed-pp', 'sequence-dotcom-gfc']){
       if(!availableModes.includes(mode)) throw new Error(`${mode} option missing from path-mode select`);
       await page.select('#path-mode', mode);
       await new Promise(r => setTimeout(r, 400));
@@ -2184,6 +2191,10 @@ try {
         const disclosure = document.querySelector('#scn-view [data-tax-disclosure]');
         return {
           mode: document.querySelector('#path-mode')?.value || '',
+          cols: [...document.querySelectorAll('#scn-view .cf-table__head .cf-th')].map(el => el.textContent.trim()),
+          rowWidths: [...document.querySelectorAll('#scn-view .cf-row')].map(el => el.children.length),
+          returnColors: [...document.querySelectorAll('#scn-view .cf-cell--ret')].map(el => el.style.color),
+          wdColors: [...document.querySelectorAll('#scn-view .cf-cell--wd')].map(el => el.style.color),
           header: th ? {
             label: th.textContent.trim(),
             source: th.dataset.taxSource || '',
@@ -2202,6 +2213,10 @@ try {
         };
       });
       if(federalPath.mode !== mode) throw new Error(`${mode} path mode did not stay selected: ${JSON.stringify(federalPath)}`);
+      if(JSON.stringify(federalPath.cols) !== JSON.stringify(EXPECT)) throw new Error(`${mode} changed the rich Cash Flow columns: ${JSON.stringify(federalPath.cols)}`);
+      if(!federalPath.rowWidths.length || federalPath.rowWidths.some(width => width !== 11)) throw new Error(`${mode} changed the 11-cell Cash Flow rows: ${JSON.stringify(federalPath.rowWidths)}`);
+      if(!federalPath.returnColors.length || federalPath.returnColors.some(color => !['var(--text-mute)', 'var(--down)', 'var(--tone-green)'].includes(color))) throw new Error(`${mode} changed portfolio Return colors: ${JSON.stringify(federalPath.returnColors)}`);
+      if(!federalPath.wdColors.length || federalPath.wdColors.some(color => !['var(--text-mute)', 'var(--text-3)', 'var(--down)', 'var(--down-deep)'].includes(color))) throw new Error(`${mode} changed WD Rate colors: ${JSON.stringify(federalPath.wdColors)}`);
       if(federalPath.header?.label !== 'Tax' || federalPath.header?.source !== 'federal-converged-row' || federalPath.header?.scope !== 'MODELED_FEDERAL_LINE_24') throw new Error(`${mode} path tax scope is not converged federal: ${JSON.stringify(federalPath)}`);
       if(federalPath.compare) throw new Error(`${mode} path still shows an obsolete sidecar comparison: ${JSON.stringify(federalPath)}`);
       if(federalPath.disclosure?.state !== 'federal-converged-row' || !/retirement rows funded and converged, working years reporting-only/i.test(federalPath.disclosure?.scope || '')) throw new Error(`${mode} converged federal scope disclosure missing: ${JSON.stringify(federalPath)}`);
@@ -2217,6 +2232,52 @@ try {
     if(restoredTaxHeader?.label !== 'Tax' || restoredTaxHeader?.source !== 'federal-converged-row') throw new Error(`typical path tax scope did not restore: ${JSON.stringify(restoredTaxHeader)}`);
     if(await page.evaluate(() => !!document.querySelector('#scn-view [data-tax-compare]'))) throw new Error('obsolete federal-vs-engine summary restored on typical path');
     if(!await page.evaluate(() => /retirement rows funded and converged, working years reporting-only/i.test(document.querySelector('#scn-view [data-tax-scope-disclosure]')?.textContent || ''))) throw new Error('readable phase-scoped federal disclosure did not restore on typical path');
+
+    await page.select('#path-mode', 'random');
+    await new Promise(r => setTimeout(r, 300));
+    if(await waitCashRows(page, 10) < 10) throw new Error('random path emptied the cash-flow table');
+    const randomUi = await page.evaluate(() => ({
+      mode: document.querySelector('#path-mode')?.value || '',
+      regenHidden: document.querySelector('#path-regenerate')?.hidden,
+      label: document.querySelector('#path-mode option:checked')?.textContent.trim() || '',
+      cols: [...document.querySelectorAll('#scn-view .cf-table__head .cf-th')].map(el => el.textContent.trim()),
+      rowWidths: [...document.querySelectorAll('#scn-view .cf-row')].map(el => el.children.length),
+      returnColors: [...document.querySelectorAll('#scn-view .cf-cell--ret')].map(el => el.style.color),
+      wdColors: [...document.querySelectorAll('#scn-view .cf-cell--wd')].map(el => el.style.color),
+      taxHeader: (() => {
+        const th = document.querySelector('#scn-view .cf-table__head .cf-th[data-tax-source]');
+        return th ? { source: th.dataset.taxSource || '', scope: th.dataset.taxScope || '' } : null;
+      })(),
+      taxDisclosure: (() => {
+        const el = document.querySelector('#scn-view [data-tax-disclosure]');
+        return el ? { state: el.dataset.taxState || '', scope: el.querySelector('[data-tax-scope-disclosure]')?.textContent.trim() || '' } : null;
+      })(),
+    }));
+    if(randomUi.mode !== 'random') throw new Error(`Random path did not stay selected: ${JSON.stringify(randomUi)}`);
+    if(randomUi.regenHidden) throw new Error('Regenerate must show for Random path');
+    if(/seed/i.test(randomUi.label)) throw new Error(`Random path must not expose seed label: ${JSON.stringify(randomUi)}`);
+    if(JSON.stringify(randomUi.cols) !== JSON.stringify(EXPECT) || randomUi.rowWidths.some(width => width !== 11)) throw new Error(`Random path changed the rich Cash Flow table: ${JSON.stringify(randomUi)}`);
+    if(!randomUi.returnColors.length || randomUi.returnColors.some(color => !['var(--text-mute)', 'var(--down)', 'var(--tone-green)'].includes(color))) throw new Error(`Random path changed portfolio Return colors: ${JSON.stringify(randomUi.returnColors)}`);
+    if(!randomUi.wdColors.length || randomUi.wdColors.some(color => !['var(--text-mute)', 'var(--text-3)', 'var(--down)', 'var(--down-deep)'].includes(color))) throw new Error(`Random path changed WD Rate colors: ${JSON.stringify(randomUi.wdColors)}`);
+    if(randomUi.taxHeader?.source !== 'federal-converged-row' || randomUi.taxHeader?.scope !== 'MODELED_FEDERAL_LINE_24') throw new Error(`Random path changed the converged federal tax header: ${JSON.stringify(randomUi)}`);
+    if(randomUi.taxDisclosure?.state !== 'federal-converged-row' || !/retirement rows funded and converged, working years reporting-only/i.test(randomUi.taxDisclosure?.scope || '')) throw new Error(`Random path changed the federal tax disclosure: ${JSON.stringify(randomUi)}`);
+
+    await page.click('#path-regenerate');
+    await new Promise(r => setTimeout(r, 300));
+    if(await waitCashRows(page, 10) < 10) throw new Error('regenerating Random path emptied the cash-flow table');
+
+    await page.click('#scn-seg-compare');
+    await new Promise(r => setTimeout(r, 350));
+    await page.click('#scn-cash-toggle');
+    await new Promise(r => setTimeout(r, 350));
+    await waitCashRows(page, 10);
+    const reopened = await page.evaluate(() => ({
+      mode: document.querySelector('#path-mode')?.value || '',
+      regenHidden: document.querySelector('#path-regenerate')?.hidden,
+      cols: [...document.querySelectorAll('#scn-view .cf-table__head .cf-th')].map(el => el.textContent.trim()),
+    }));
+    if(reopened.mode !== 'typical' || !reopened.regenHidden) throw new Error(`Cash Flow must reopen on Typical path: ${JSON.stringify(reopened)}`);
+    if(JSON.stringify(reopened.cols) !== JSON.stringify(EXPECT)) throw new Error(`reopened Typical path changed the rich Cash Flow columns: ${JSON.stringify(reopened.cols)}`);
 
     // Exercise warning and attach-failure states directly through the production
     // Cash Flow renderer. This avoids changing real scenario or Household state.
@@ -2713,7 +2774,7 @@ try {
       return [
         disabled('#save-btn'), disabled('#run-btn'), disabled('#hh-menu-btn'), disabled('#hh-switch'),
         disabled('#hh-new'), disabled('#hh-load-demo'), disabled('#scn-add'), disabled('#scn-solve'),
-        disabled('#path-mode'), disabled('#seq-select'),
+        disabled('#path-mode'), disabled('#path-regenerate'), disabled('#seq-select'),
       ];
     });
     const missingBlockedControls = blockedControls.filter(x => !x.exists || !x.disabled);
