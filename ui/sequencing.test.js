@@ -36,5 +36,11 @@ test('closeCashFlowPathReplay resets to typical', () => {
 });
 
 test('pathModeLabel never mentions seed', () => {
-  assert.doesNotMatch(pathModeLabel('random'), /seed/i);
+  const prev = pathReplay.mode;
+  try {
+    pathReplay.mode = 'random';
+    assert.doesNotMatch(pathModeLabel(), /seed/i);
+  } finally {
+    pathReplay.mode = prev;
+  }
 });

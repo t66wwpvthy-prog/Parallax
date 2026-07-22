@@ -1,1 +1,0 @@
-Use the attached Parallax-Guided-Planning-Canvas.dc.html as-is (already updated with plan state, income values, live tax compute, FILLED/BLANK seeding). Keep support.js + parallax-logo.png alongside it. No separate FILLED HTML — one render path.

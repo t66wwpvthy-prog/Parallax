@@ -3,7 +3,7 @@ import { CAPITAL_GAINS_THRESHOLDS, ORDINARY_BRACKETS } from '../../tax/core/cons
 import {
   enteredAdjustmentTotal,
   enteredCreditTotal,
-  activeIncomeSources,
+  findLikelyGpcDuplicateWageRows,
   isSourceActiveNow,
   normalizedIncomeSource,
 } from '../../household/incomeTaxModel.js';
@@ -17,7 +17,9 @@ const add = (target, key, amount) => { target[key] = (target[key] || 0) + amount
 
 function currentIncome(plan){
   const income = {};
-  for(const source of activeIncomeSources(plan)){
+  for(const raw of plan.income?.other || []){
+    if(!isSourceActiveNow(plan, raw)) continue;
+    const source = normalizedIncomeSource(plan, raw);
     const amount = source.amount;
     if(source.typeId === 'wages' || source.typeId === 'bonus') add(income, 'wages', amount);
     else if(source.typeId === 'interest'){
@@ -147,6 +149,15 @@ function rmdSchedule(plan){
 }
 
 export function buildCurrentIncomeTaxSummary(plan){
+  const duplicateWages = findLikelyGpcDuplicateWageRows(plan);
+  if(duplicateWages.length){
+    return {
+      status: 'needs_facts',
+      message: 'Review duplicate salary entries saved by the prior wizard before calculating tax',
+      totalIncome: null,
+      duplicateIncomeRows: duplicateWages,
+    };
+  }
   const filingStatus = plan.meta?.filingStatus;
   const income = currentIncome(plan);
   const adjustments = enteredAdjustmentTotal(plan);

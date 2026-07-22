@@ -124,26 +124,6 @@ test('active Social Security uses the taxable-benefits worksheet, including tax-
   assert.ok(summary.adjustedGrossIncome < summary.totalIncome);
 });
 
-test('duplicate income slots do not inflate the tax total', () => {
-  const summary = buildCurrentIncomeTaxSummary(plan({
-    income: {
-      other: [
-        { typeId:'wages', owner:'client', label:'Wages', amount:215000, startAge:50, endAge:64, taxablePct:1 },
-        { typeId:'wages', owner:'client', label:'Wages', amount:215000, startAge:50, endAge:64, taxablePct:1 },
-        { typeId:'wages', owner:'spouse', label:'Wages', amount:215000, startAge:50, endAge:64, taxablePct:1 },
-      ],
-      socialSecurity: { primary: { pia:0, claimAge:67 } },
-    },
-    meta: { filingStatus: 'marriedFilingJointly' },
-    household: {
-      primary: { birthYear: 1976, currentAge: 50, retirementAge: 65, planEndAge: 95 },
-      spouse: { currentAge: 50, retirementAge: 65 },
-    },
-  }));
-  assert.equal(summary.status, 'ready');
-  assert.equal(summary.totalIncome, 430000);
-});
-
 test('medical deduction applies the federal AGI floor', () => {
   const summary = buildCurrentIncomeTaxSummary(plan({
     incomeTax: {
@@ -225,4 +205,34 @@ test('self-employment facts fail closed instead of fabricating tax', () => {
   assert.equal(selfEmployment.status, 'needs_facts');
   assert.match(selfEmployment.message, /Schedule SE/);
   assert.equal(selfEmployment.federalTaxLiability, undefined);
+});
+
+test('exact duplicate GPC salary rows fail closed while separate pensions remain additive', () => {
+  const wage = {
+    typeId:'wages', owner:'client', label:'Wages or salary', amount:100000,
+    startAge:50, endAge:64, realGrowth:0, taxablePct:1,
+  };
+  const duplicate = buildCurrentIncomeTaxSummary(plan({
+    income: {
+      other: [wage, { ...wage }],
+      socialSecurity: { primary: { pia:0, claimAge:67 } },
+    },
+  }));
+  assert.equal(duplicate.status, 'needs_facts');
+  assert.equal(duplicate.totalIncome, null);
+  assert.match(duplicate.message, /duplicate salary/i);
+  assert.deepEqual(duplicate.duplicateIncomeRows.map(row => row.duplicateIndex), [1]);
+
+  const pensions = buildCurrentIncomeTaxSummary(plan({
+    household: { primary: { birthYear:1956, currentAge:70, retirementAge:65, planEndAge:95 } },
+    income: {
+      other: [
+        { typeId:'pension', owner:'client', label:'Pension A', amount:22000, startAge:65, endAge:999, realGrowth:0, taxablePct:1 },
+        { typeId:'pension', owner:'client', label:'Pension B', amount:14000, startAge:67, endAge:999, realGrowth:0, taxablePct:1 },
+      ],
+      socialSecurity: { primary: { pia:0, claimAge:67 } },
+    },
+  }));
+  assert.equal(pensions.status, 'ready');
+  assert.equal(pensions.totalIncome, 36000);
 });

@@ -1,4 +1,4 @@
-import { pathReplay, savePathReplay, resetCashFlowPathToTypical } from '../src/state.js';
+import { pathReplay, resetCashFlowPathToTypical } from '../src/state.js';
 import {
   normalizeCashFlowPathMode,
   pathModeLabel as cashFlowPathModeLabel,
@@ -12,6 +12,7 @@ import { fmtM } from './formatters.js';
 import { CHART_LAYOUT } from './chartLayout.js';
 
 export { normalizeCashFlowPathMode, pickRandomSimIndex, resolveCashFlowSim, selectedMcSimIndex };
+
 
 export function selectedPathIndex(res){
   return selectedMcSimIndex(res, pathReplay.mode, pathReplay.randomSimIndex);
@@ -41,6 +42,10 @@ export function drawSeqChart(svg, runs, retAge, seqChartSvg, { grid, axisInk }){
 }
 
 export function renderPrints(container, runs, pathDigest){
+  // All three figures come straight from the engine's pathDigest: first-decade
+  // CAGR, lowest balance, and the damage window (longest run of years the
+  // cumulative return sat below its retirement-day level — a long '66/'73
+  // grind hurts a withdrawing portfolio far more than a V-shaped '08 shock).
   const pct=v=>(v>=0?'+':'')+(v*100).toFixed(1)+'%';
   const outcome=r=> r.depletionAge!=null
     ? {t:`Ran dry @ ${r.depletionAge}`, c:'var(--negative-bright)'}
@@ -48,6 +53,8 @@ export function renderPrints(container, runs, pathDigest){
   const card=(m,res)=>{
     const o=outcome(res);
     const d=pathDigest(res);
+    // Only when there IS a drawdown — a good market never goes underwater, so the
+    // row would just read "—". Show it where it tells a story; omit it otherwise.
     const dwBlock = d.underwaterSpellMax ? `
       <div class="pr-row" style="border-bottom:none"><span class="pr-k">Duration</span><span class="pr-v">${d.underwaterSpellMax} yr${d.underwaterSpellMax>1?'s':''}</span></div>
       <div class="dw-bar"><div class="dw-fill" style="width:${Math.min(100,d.underwaterSpellMax/12*100).toFixed(0)}%;background:#c0795f"></div></div>` : '';

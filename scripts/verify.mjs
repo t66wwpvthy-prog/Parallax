@@ -102,20 +102,15 @@ function verifyHousehold(){
   const source = appSource(html);
   const css  = read(join(ROOT, 'styles', 'household.css'));
   const mainCss = read(join(ROOT, 'styles', 'main.css'));
-// Wizard chrome: 5-step guided canvas sidebar + main workspace.
-  ok(/\bgpc-wizard\b/.test(html), 'guided canvas wizard (.gpc-wizard) missing');
-  ok(/\bhh-stepper\b/.test(html), 'wizard stepper (.hh-stepper) missing');
-  [1,2,3,4,5].forEach(n => ok(new RegExp(`id="hh-step-${n}"`).test(html), `stepper button #hh-step-${n} missing`));
-  ok(/hh-step__label">Family</.test(html), 'Family step label missing');
-  ok(/hh-step__label">Balance sheet</.test(html), 'Balance sheet step label missing');
-  ok(/hh-step__label">Income &amp; expenses</.test(html), 'Income step label missing');
-  ok(/hh-step__label">Tax</.test(html), 'Tax step label missing');
+// Wizard chrome: 4-step stepper + workspace (no side rail).
+  ok(/class="hh-stepper"/.test(html), 'wizard stepper (.hh-stepper) missing');
+  [1,2,3,4].forEach(n => ok(new RegExp(`id="hh-step-${n}"`).test(html), `stepper button #hh-step-${n} missing`));
+  ok(!/id="hh-step-5"/.test(html), 'retired 5th wizard step (#hh-step-5) must be gone');
+  ok(/hh-step__label">Profile</.test(html), 'Profile step label missing');
   ok(/hh-step__label">Summary</.test(html), 'Summary step label missing');
-  ok(!/hh-step__label">Profile</.test(html), 'retired Profile step label must be gone');
-  ok(/styles\/guided-canvas\.css/.test(html), 'styles/guided-canvas.css must be linked');
-  ok(!/Profile|Income &amp; Tax/.test(html.replace(/Income &amp; expenses/, '')), 'retired combined Income & Tax label must be gone');
+  ok(!/People &amp; Timeline|Spending &amp; Goals|Blueprint/.test(html), 'retired wizard step labels must be gone');
   ok(!/id="hh-plan-rail"/.test(html), 'retired "Plan so far" rail (#hh-plan-rail) must be gone');
-  ok(/createGuidedPlanningWizard/.test(source), 'guided planning wizard module missing');
+  ok(/createHouseholdWizard/.test(source), 'household wizard module (createHouseholdWizard) missing');
   ok(/id="hh-wiz-footer"/.test(html), 'wizard footer mount (#hh-wiz-footer) missing');
   ok(/function defaultStep\b/.test(source), 'Household wizard landing heuristic missing');
   ok(/data-hh-action="step-back"/.test(source) && /data-hh-action="step-next"/.test(source), 'wizard Back/Continue footer actions missing');
@@ -138,8 +133,8 @@ function verifyHousehold(){
   ok(!/meta\.inflationPct/.test(source), 'engine-inert Inflation field must not ship in the wizard');
   ok(/VALID_OWNERS\s*=\s*new Set\(\[[\s\S]{0,100}['"]trust['"]/.test(source), 'Trust ownership must remain valid in the account registry');
 
-  // Wizard module + step wiring (renderers live in ui/guidedPlanningWizard.js).
-  ok(/ui\/guidedPlanningWizard\.js/.test(source), 'ui/guidedPlanningWizard.js import missing');
+  // Wizard module + step wiring (renderers live in ui/householdWizard.js).
+  ok(/ui\/householdWizard\.js/.test(source), 'ui/householdWizard.js import missing');
   ok(/function ensureWizard\b/.test(source), 'Household wizard lazy wiring missing');
   ok(!/data-hh-action="run-blueprint"/.test(source), 'RUN BLUEPRINT action must be removed');
   ok(!/data-hh-action="goto-planning"/.test(source), 'goto-planning action must be removed');
@@ -149,17 +144,10 @@ function verifyHousehold(){
   // savings; working income must NOT render as a separate wizard input.
   // Goals CRUD stays on the Goals page — not in the wizard.
   ok(/household\.children/.test(source), 'household.children[] (addable children) missing');
-  ok(/data-hh-action="gpc-add-account"/.test(source), 'guided canvas account add action missing');
-  const gpcWizard = read(join(ROOT, 'ui', 'guidedPlanningWizard.js'));
-  ok(/GPC_ACCOUNT_CATALOG/.test(gpcWizard), 'GPC account catalog missing');
-  ['Tax-Deferred', 'Tax-Free (Roth)', 'Taxable', 'Traditional 401(k)', 'Roth IRA', 'Individual Brokerage'].forEach(label => {
-    ok(gpcWizard.includes(label), `GPC catalog missing: ${label}`);
-  });
-  ok(!/529 Plan|data-acct-key="taxable"/.test(gpcWizard), 'mock account picker must not ship in live GPC wizard');
-  ok(/data-hh-action="gpc-add-deduction"/.test(source), 'guided canvas deduction add action missing');
+  ok(/addControl\(state,\s*['"]income['"]/.test(source), 'income add flow missing');
   ok(/data-add-key="spending"/.test(source), 'spending category add flow missing');
   ok(!/data-add-key="goal"/.test(source), 'wizard must not offer goal adds (Goals page owns goals)');
-  ok(!/renderHouseholdSpending\b/.test(source) || /guidedPlanningWizard/.test(source), 'Profile spending renderer retired from live wizard path');
+  ok(/renderHouseholdSpending\b/.test(source), 'Profile spending renderer missing');
   ok(!/class="hh-tl/.test(source) && !/\.hh-tl/.test(css), 'retired person timeline bars must be removed');
   ok(/Annual savings/.test(source), 'annual savings must still appear on the Summary flow');
   ok(/data-add-key="savings"/.test(source) || /data-savings-addon/.test(source), 'optional annual contribution add-on missing');
@@ -582,7 +570,7 @@ try {
       current: document.querySelector('.hh-stepper .hh-step.is-current')?.dataset.step || '',
       chapButtons: !!document.querySelector('#hh-chap-networth, #hh-chap-cashflow'),
       railName: document.querySelector('#hh-rail-name')?.textContent.trim() || '',
-      gauge: !!document.querySelector('#hh-view .gpc-bp-gauge'),
+      gauge: !!document.querySelector('#hh-view .hh-bp-gauge'),
       menuBtn: !!document.querySelector('#hh-menu-btn'),
       coClientText: /co-client|&/i.test(document.querySelector('.page[data-page="household"]')?.textContent || ''),
     }));
@@ -590,8 +578,8 @@ try {
     if(JSON.stringify(m.nav) !== JSON.stringify(expectedNav)) throw new Error(`main nav mismatch: ${JSON.stringify(m.nav)}`);
     if(m.hasSubnav) throw new Error('old net-worth subnav is still rendered');
     if(!m.wizard) throw new Error('household wizard frame (.hh-wizard) missing');
-    if(JSON.stringify(m.steps) !== JSON.stringify(['Family','Balance sheet','Income & expenses','Tax','Summary'])) throw new Error(`stepper mismatch: ${JSON.stringify(m.steps)}`);
-    if(m.current !== '5') throw new Error(`filled demo household must land on Summary (step 5), got "${m.current}"`);
+    if(JSON.stringify(m.steps) !== JSON.stringify(['Profile','Balance Sheet','Income & Tax','Summary'])) throw new Error(`stepper mismatch: ${JSON.stringify(m.steps)}`);
+    if(m.current !== '4') throw new Error(`filled demo household must land on Summary (step 4), got "${m.current}"`);
     if(m.chapButtons) throw new Error('retired chapter rail buttons still rendered');
     if(!m.railName) throw new Error('household name not filled from plan');
     if(!m.gauge) throw new Error('Summary arc gauge missing on landing step');
@@ -621,7 +609,7 @@ try {
 
     const bp = await page.evaluate(() => ({
       controls: document.querySelectorAll('#hh-view input, #hh-view select').length,
-      gaugeVal: document.querySelector('#hh-view .gpc-bp-gauge__v')?.textContent.trim() || '',
+      gaugeVal: document.querySelector('#hh-view .hh-bp-gauge__v')?.textContent.trim() || '',
       cta: !!document.querySelector('#hh-view .hh-bp-cta, #hh-view [data-hh-action="run-blueprint"], #hh-view [data-hh-action="goto-planning"]'),
     }));
     if(bp.controls !== 0) throw new Error(`Summary must be read-only, found ${bp.controls} controls`);
@@ -629,196 +617,438 @@ try {
     if(bp.cta) throw new Error('Run Blueprint CTA must not render');
     await page.screenshot({ path: join(OUT, '01-household.png'), fullPage: true });
 
-    // Step 1 · Household: person tabs, names, Born, filing, state, addable dependents.
+    // Step 1 · Household: names, Born (drives age), filing, state, addable children.
     await page.click('#hh-step-1'); await new Promise(r => setTimeout(r, 350));
     const s1 = await page.evaluate(() => ({
-      personTabs: document.querySelectorAll('#hh-view [data-hh-action="gpc-person-tab"]').length,
-      primaryName: !!document.querySelector('#hh-view input[data-path="meta.primaryName"]'),
-      primaryBorn: !!document.querySelector('#hh-view input[data-path="household.primary.birthYear"]'),
+      nameInputs: document.querySelectorAll('#hh-view input[data-path="meta.primaryName"], #hh-view input[data-path="meta.spouseName"]').length,
+      bornInputs: document.querySelectorAll('#hh-view input[data-type="birthYear"]').length,
       filing: !!document.querySelector('#hh-view select[data-path="meta.filingStatus"]'),
       stateSel: !!document.querySelector('#hh-view select[data-path="meta.state"]'),
+      coClientText: /co-client/i.test(document.querySelector('#hh-view')?.textContent || ''),
+      addChild: !!document.querySelector('#hh-view [data-hh-action="open-add"][data-add-key="child"]'),
       personTimelines: document.querySelectorAll('#hh-view .hh-tl').length,
       back: !!document.querySelector('#hh-wiz-footer [data-hh-action="step-back"]'),
       next: !!document.querySelector('#hh-wiz-footer [data-hh-action="step-next"]'),
     }));
-    if(s1.personTabs !== 3) throw new Error(`step 1 person tabs: want 3, got ${s1.personTabs}`);
-    if(!s1.primaryName || !s1.primaryBorn) throw new Error('step 1 primary name/born missing on Person 1 tab');
+    if(s1.nameInputs !== 2) throw new Error(`step 1 name inputs: want 2, got ${s1.nameInputs}`);
+    if(s1.bornInputs < 2) throw new Error(`step 1 Born inputs missing, got ${s1.bornInputs}`);
     if(!s1.filing) throw new Error('Filing dropdown missing');
     if(!s1.stateSel) throw new Error('State dropdown missing');
+    if(!s1.coClientText) throw new Error('step 1 does not say co-client');
+    if(!s1.addChild) throw new Error('"+ Add child" missing');
     if(s1.personTimelines) throw new Error(`step 1 still renders ${s1.personTimelines} person timeline bars`);
     if(s1.back) throw new Error('Back button must not render on step 1');
     if(!s1.next) throw new Error('Continue button missing on step 1');
 
-    await page.click('#hh-view [data-hh-action="gpc-person-tab"][data-person-tab="spouse"]'); await new Promise(r => setTimeout(r, 350));
-    const s1sp = await page.evaluate(() => ({
-      spouseName: !!document.querySelector('#hh-view input[data-path="meta.spouseName"]'),
-      spouseBorn: !!document.querySelector('#hh-view input[data-path="household.spouse.birthYear"]'),
-      coClientText: /co-client/i.test(document.querySelector('#hh-view')?.textContent || ''),
-    }));
-    if(!s1sp.spouseName || !s1sp.spouseBorn) throw new Error('step 1 spouse name/born missing on Person 2 tab');
-    if(!s1sp.coClientText) throw new Error('step 1 does not say co-client on Person 2 tab');
-
-    await page.click('#hh-view [data-hh-action="gpc-person-tab"][data-person-tab="child"]'); await new Promise(r => setTimeout(r, 350));
-    const s1dep = await page.evaluate(() => ({
-      addChild: !!document.querySelector('#hh-view [data-hh-action="open-add"][data-add-key="child"]'),
-    }));
-    if(!s1dep.addChild) throw new Error('"+ Add dependent" missing on Dependent tab');
-
-    // Dependents: add a row, confirm it renders.
+    // Children: add a row, confirm its inputs, remove it again.
     await page.click('#hh-view [data-hh-action="open-add"][data-add-key="child"]'); await new Promise(r => setTimeout(r, 350));
     await page.click('#hh-view [data-hh-action="commit-add"]'); await new Promise(r => setTimeout(r, 350));
     const kid = await page.evaluate(() => ({
-      row: /Dependent|Child/i.test(document.querySelector('#hh-view')?.textContent || ''),
+      row: /Child/.test(document.querySelector('#hh-view')?.textContent || ''),
     }));
-    if(!kid.row) throw new Error('added dependent row did not render');
+    if(!kid.row) throw new Error('added child row did not render');
 
     // Continue → step 2 (footer nav drives the stepper).
     await page.click('#hh-wiz-footer [data-hh-action="step-next"]'); await new Promise(r => setTimeout(r, 350));
     const onStep2 = await page.evaluate(() => document.querySelector('.hh-stepper .hh-step.is-current')?.dataset.step);
     if(onStep2 !== '2') throw new Error(`Continue did not advance to step 2 (got ${onStep2})`);
 
-    // Step 2 · Balance sheet: grouped account catalog + editable rows + sidebar net worth.
+    // Step 2 · Balance Sheet: two-column layout per handoff spec.
     const s2 = await page.evaluate(() => ({
       acctInputs: document.querySelectorAll('#hh-view input[data-path^="portfolio.extraAccounts."][data-path$=".balance"]').length,
-      addAccountBtns: document.querySelectorAll('#hh-view [data-hh-action="gpc-add-account"]').length,
-      catalogGroups: [...document.querySelectorAll('#hh-view .gpc-acct-group__head')].map(el => el.textContent.trim()),
-      has401k: !!document.querySelector('#hh-view [data-hh-action="gpc-add-account"][data-acct-type-id="401k"]'),
-      hasRothIra: !!document.querySelector('#hh-view [data-hh-action="gpc-add-account"][data-acct-type-id="roth_ira"]'),
-      hasBrokerage: !!document.querySelector('#hh-view [data-hh-action="gpc-add-account"][data-acct-type-id="brokerage_taxable"]'),
-      netWorth: document.querySelector('#gpc-sidebar-foot .gpc-foot-nw')?.textContent.trim() || '',
-      mockOther: /529 Plan|HSA|Other account type|\+ Taxable Account/i.test(document.querySelector('#hh-view')?.textContent || ''),
+      addAccountBtns: document.querySelectorAll('#hh-view [data-hh-action="open-account-form"]').length,
+      grandTotal: document.querySelector('#hh-view .hh-grand-total__v')?.textContent.trim() || '',
     }));
     if(s2.acctInputs < 3) throw new Error(`typed account balances must be editable, got ${s2.acctInputs}`);
-    if(s2.addAccountBtns !== 18) throw new Error(`balance sheet catalog must expose 18 account types, got ${s2.addAccountBtns}`);
-    if(JSON.stringify(s2.catalogGroups) !== JSON.stringify(['Tax-Deferred', 'Tax-Free (Roth)', 'Taxable']))
-      throw new Error(`account catalog groups wrong: ${JSON.stringify(s2.catalogGroups)}`);
-    if(!s2.has401k || !s2.hasRothIra || !s2.hasBrokerage) throw new Error('canonical account catalog buttons missing');
-    if(s2.mockOther) throw new Error('mock account types (529/HSA/Other) must not appear on balance sheet');
-    if(!/\$[\d,]/.test(s2.netWorth)) throw new Error(`net worth not formatted: "${s2.netWorth}"`);
-    if(!/\$2,800,000/.test(s2.netWorth)) throw new Error(`demo net worth must be $2,800,000, got "${s2.netWorth}"`);
+    if(s2.addAccountBtns < 2) throw new Error(`"+ Add account" buttons missing, got ${s2.addAccountBtns}`);
+    if(!/\$[\d,]/.test(s2.grandTotal)) throw new Error(`grand total not formatted: "${s2.grandTotal}"`);
+    if(!/\$2,800,000/.test(s2.grandTotal)) throw new Error(`demo grand total must be $2,800,000, got "${s2.grandTotal}"`);
 
-    await page.click('#hh-view [data-hh-action="gpc-add-account"][data-acct-type-id="brokerage_taxable"]');
-    await new Promise(r => setTimeout(r, 400));
+    await page.click('#hh-view [data-hh-action="open-account-form"][data-owner="client"]');
+    await new Promise(r => setTimeout(r, 300));
     const before = await page.evaluate(() => document.querySelectorAll('#hh-view input[data-path^="portfolio.extraAccounts."][data-path$=".balance"]').length);
     await page.evaluate(() => {
-      const inputs = [...document.querySelectorAll('#hh-view input[data-path^="portfolio.extraAccounts."][data-path$=".balance"]')];
-      const last = inputs[inputs.length - 1];
-      if(last){ last.focus(); last.value = '50000'; last.dispatchEvent(new Event('change', { bubbles: true })); }
+      const f = document.querySelector('#hh-acct-form');
+      const typeSel = f.querySelector('.hh-form-type');
+      typeSel.value = String([...typeSel.options].findIndex(o => o.textContent.trim() === 'Brokerage (taxable)'));
+      f.querySelector('.hh-form-val').value = '50,000';
+      f.querySelector('[data-hh-action="save-account"]').click();
     });
     await new Promise(r => setTimeout(r, 400));
     const added = await page.evaluate(() => document.querySelectorAll('#hh-view input[data-path^="portfolio.extraAccounts."][data-path$=".balance"]').length);
-    if(added !== before) throw new Error(`quick-add brokerage did not add a row (${before} -> ${added})`);
+    if(added !== before + 1) throw new Error(`saving the account did not add a row (${before} -> ${added})`);
 
-    // Step 3 · Income & expenses: employment toggle, wage slots, spending adds.
     await page.click('#hh-step-3'); await new Promise(r => setTimeout(r, 350));
     const s3 = await page.evaluate(() => ({
-      workToggle: document.querySelectorAll('#hh-view .gpc-work-toggle button').length,
-      salaryRows: [...document.querySelectorAll('#hh-view .gpc-field-row__lbl')].filter(el => /Salary/i.test(el.textContent)).length,
-      living: !!document.querySelector('#hh-view input[data-path="expenses.living"]'),
-      addIncome: !!document.querySelector('#hh-view [data-hh-action="open-add"][data-add-key="income"]'),
-      addSpending: !!document.querySelector('#hh-view [data-hh-action="open-add"][data-add-key="spending"]'),
-      workingIncome: !!document.querySelector('#hh-view input[data-path="income.workingIncome"]'),
-      legacyIncomeTax: document.querySelectorAll('#hh-view [data-income-tax-slot]').length,
-    }));
-    if(s3.workToggle !== 2) throw new Error('employment toggle missing on step 3');
-    if(s3.salaryRows < 2) throw new Error(`wage slots missing on step 3, got ${s3.salaryRows}`);
-    if(!s3.living || !s3.addIncome || !s3.addSpending) throw new Error(`income step controls missing: ${JSON.stringify(s3)}`);
-    if(s3.workingIncome || s3.legacyIncomeTax) throw new Error('retired Income & Tax UI must not render on step 3');
-
-    await page.click('#hh-view [data-hh-action="gpc-work-mode"][data-work-mode="retired"]'); await new Promise(r => setTimeout(r, 350));
-    const s3ret = await page.evaluate(() => ({
       pia: document.querySelectorAll('#hh-view input[data-path^="income.socialSecurity."][data-path$=".pia"]').length,
-      wages: [...document.querySelectorAll('#hh-view .gpc-field-row__lbl')].filter(el => /Salary/i.test(el.textContent)).length,
+      claimAges: [...document.querySelectorAll('#hh-view input[data-path^="income.socialSecurity."][data-path$=".claimAge"]')]
+        .map(el => ({ path: el.dataset.path, value: el.value, min: el.min, max: el.max })),
+      slots: [...document.querySelectorAll('#hh-view [data-income-tax-slot]')].map(el => el.dataset.incomeTaxSlot),
+      addIncome: !!document.querySelector('#hh-view [data-hh-action="open-add"][data-add-key="income"]'),
+      addAdjustment: !!document.querySelector('#hh-view [data-hh-action="open-add"][data-add-key="adjustment"]'),
+      addDeduction: !!document.querySelector('#hh-view [data-hh-action="open-add"][data-add-key="deduction"]'),
+      addCredit: !!document.querySelector('#hh-view [data-hh-action="open-add"][data-add-key="credit"]'),
+      working: !!document.querySelector('#hh-view input[data-path="income.workingIncome"]'),
+      incomeHdr: document.querySelector('#hh-view .hh-it-section-head strong')?.textContent.trim() || '',
+      position: !!document.querySelector('#hh-view .hh-it-position'),
+      equation: !!document.querySelector('#hh-view .hh-it-equation'),
+      taxPosition: document.querySelectorAll('#hh-view .hh-it-tax-grid .hh-it-stat').length,
+      taxLabels: [...document.querySelectorAll('#hh-view .hh-it-tax-grid .hh-it-stat > span')].map(el => el.textContent.trim()),
+      standardAuto: /Standard · MFJ \+ senior 65\+/i.test(document.querySelector('#hh-view')?.textContent || ''),
+      amountLayout: (() => {
+        const amount = document.querySelector('#hh-view .hh-it-row__amount');
+        const input = amount?.querySelector('input[data-type="money"]');
+        if(!amount || !input) return null;
+        const wrapperStyle = getComputedStyle(amount);
+        const inputStyle = getComputedStyle(input);
+        return { display:wrapperStyle.display, whiteSpace:wrapperStyle.whiteSpace, fontSize:parseFloat(inputStyle.fontSize) };
+      })(),
+      scrollbarColor: getComputedStyle(document.querySelector('.hh-wiz-workspace')).scrollbarColor,
     }));
-    if(s3ret.pia < 2 || s3ret.wages) throw new Error(`retired mode SS inputs wrong: ${JSON.stringify(s3ret)}`);
-    await page.click('#hh-view [data-hh-action="gpc-work-mode"][data-work-mode="employed"]'); await new Promise(r => setTimeout(r, 250));
+    if(s3.pia < 1) throw new Error(`SS benefit inputs missing, got ${s3.pia}`);
+    if(s3.claimAges.length !== 2 || s3.claimAges.some(field => field.value !== '67' || field.min !== '62' || field.max !== '70'))
+      throw new Error(`SS claim-age inputs missing/defaulted incorrectly: ${JSON.stringify(s3.claimAges)}`);
+    for(const slot of [
+      'wages:client','wages:spouse','interest:joint','dividends:joint',
+      'social_security:client','social_security:spouse',
+      '401k:client','401k:spouse','hsa:joint',
+      'medical','charitable','mortgage_interest','salt',
+    ]){
+      if(!s3.slots.includes(slot)) throw new Error(`Income & Tax default slot missing: ${slot}`);
+    }
+    if(!s3.addIncome) throw new Error('"+ Add income" missing');
+    if(!s3.addAdjustment || !s3.addDeduction) throw new Error('Income & Tax add controls missing');
+    if(s3.addCredit) throw new Error('Credits must not have a standing Add control on Income & Tax');
+    if(s3.working) throw new Error('working income input must not render in the wizard');
+    if(!/\$180,000/.test(s3.incomeHdr)) throw new Error(`Income & Tax total must be $180,000, got "${s3.incomeHdr}"`);
+    if(!s3.position || !s3.equation || s3.taxPosition !== 6)
+      throw new Error(`tax summary structure missing: ${JSON.stringify(s3)}`);
+    if(JSON.stringify(s3.taxLabels) !== JSON.stringify([
+      'Federal marginal bracket','Capital gains rate','Next IRMAA tier',
+      'Senior deduction (65+)','Effective tax rate','RMDs begin',
+    ]))
+      throw new Error(`Income & Tax position cells drifted from the six-slot design: ${JSON.stringify(s3.taxLabels)}`);
+    if(!s3.standardAuto) throw new Error('Standard deduction AUTO row missing MFJ + senior copy');
+    if(!s3.amountLayout || s3.amountLayout.display !== 'flex' || s3.amountLayout.whiteSpace !== 'nowrap' || s3.amountLayout.fontSize < 16)
+      throw new Error(`Income & Tax money inputs must stay readable and unwrapped: ${JSON.stringify(s3.amountLayout)}`);
+    if(!s3.scrollbarColor || s3.scrollbarColor === 'auto') throw new Error(`wizard scrollbar is not subtly styled: ${s3.scrollbarColor}`);
 
+    // Wage growth stays editable on populated default wage slots.
+    const growthPath = await page.evaluate(() =>
+      document.querySelector('#hh-view input[data-path$=".realGrowth"]')?.dataset.path || '');
+    if(!growthPath) throw new Error('demo wage growth input missing on Income & Tax');
+    await page.evaluate((path) => {
+      const el = document.querySelector(`#hh-view input[data-path="${path}"]`);
+      el.value = '3';
+      el.dispatchEvent(new Event('change', { bubbles:true }));
+    }, growthPath);
+    await new Promise(r => setTimeout(r, 300));
+    const editedGrowth = await page.evaluate((path) =>
+      document.querySelector(`#hh-view input[data-path="${path}"]`)?.value || '', growthPath);
+    if(editedGrowth !== '3') throw new Error(`income growth edit did not preserve percentage-point display: "${editedGrowth}"`);
+    await page.evaluate((path) => {
+      const el = document.querySelector(`#hh-view input[data-path="${path}"]`);
+      el.value = '0';
+      el.dispatchEvent(new Event('change', { bubbles:true }));
+    }, growthPath);
+    await new Promise(r => setTimeout(r, 250));
+
+    // Expanded add form: ordinary income catalog (path CG is withdrawal-derived).
     await page.click('#hh-view [data-hh-action="open-add"][data-add-key="income"]'); await new Promise(r => setTimeout(r, 200));
+    const incomeDraft = await page.evaluate(() => ({
+      options: [...document.querySelectorAll('#hh-view [data-hh-draft="type"] option')].map(option => option.value),
+      fields: ['amount','startAge','endAge','growthPct'].every(name => !!document.querySelector(`#hh-view [data-hh-draft="${name}"]`)),
+    }));
+    if(incomeDraft.options.includes('social_security'))
+      throw new Error('Social Security must use the dedicated per-client rows, not duplicate generic income');
+    for(const typeId of ['pension','annuity','deferred_comp']){
+      if(!incomeDraft.options.includes(typeId))
+        throw new Error(`income add catalog missing ${typeId}: ${JSON.stringify(incomeDraft.options)}`);
+    }
+    for(const typeId of ['long_term_capital_gain','short_term_capital_gain','tax_exempt_interest','ira_distribution','roth_conversion']){
+      if(incomeDraft.options.includes(typeId))
+        throw new Error(`path/advanced income type must stay out of primary Add catalog: ${typeId}`);
+    }
+    if(!incomeDraft.fields) throw new Error('expanded income draft is missing amount, timing, or growth fields');
     await page.evaluate(() => {
       const set = (name, value, eventName = 'input') => {
         const el = document.querySelector(`#hh-view [data-hh-draft="${name}"]`);
-        if(!el) return;
         el.value = value;
         el.dispatchEvent(new Event(eventName, { bubbles:true }));
       };
       set('type', 'dividends', 'change');
       set('owner', 'joint', 'change');
       set('amount', '8600');
+      set('startAge', '66');
+      set('endAge', '');
+      set('growthPct', '2');
+      set('qualifiedPct', '85');
     });
+    const conditionalDraft = await page.evaluate(() => ({
+      qualifiedVisible: !document.querySelector('[data-income-types="dividends"]')?.hidden,
+      taxableHidden: document.querySelector('[data-income-types~="interest"]')?.hidden,
+    }));
+    if(!conditionalDraft.qualifiedVisible || !conditionalDraft.taxableHidden)
+      throw new Error(`income-specific draft controls did not toggle correctly: ${JSON.stringify(conditionalDraft)}`);
     const beforeOtherCount = await page.evaluate(() => {
       const active = localStorage.getItem('parallax.activeHouseholdId');
       return JSON.parse(localStorage.getItem('parallax.households.v1') || '{}')?.[active]?.income?.other?.length || 0;
     });
     await page.click('#hh-view [data-hh-action="commit-add"]'); await new Promise(r => setTimeout(r, 350));
+    await page.click('#save-btn'); await new Promise(r => setTimeout(r, 300));
     const addedIncome = await page.evaluate(() => {
       const active = localStorage.getItem('parallax.activeHouseholdId');
       const other = JSON.parse(localStorage.getItem('parallax.households.v1') || '{}')?.[active]?.income?.other || [];
       const saved = other.at(-1);
-      return { count: other.length, saved };
+      const amountInputs = [...document.querySelectorAll('#hh-view input[data-path^="income.other."][data-path$=".amount"]')];
+      const row = amountInputs.at(-1)?.closest('.hh-it-row');
+      return {
+        count: other.length,
+        retirementColumn: /Retirement years/i.test(row?.closest('section')?.querySelector('.hh-it-subhead span')?.textContent || ''),
+        rowText: row?.textContent || '',
+        saved,
+      };
     });
-    if(addedIncome.count !== beforeOtherCount + 1 || addedIncome.saved?.typeId !== 'dividends' || addedIncome.saved?.amount !== 8600)
-      throw new Error(`income add did not persist correctly: ${JSON.stringify(addedIncome)}`);
-
-    // Step 4 · Tax: deduction quick-add + computed summary cards.
-    await page.click('#hh-step-4'); await new Promise(r => setTimeout(r, 350));
-    const s4tax = await page.evaluate(() => ({
-      dedBtns: document.querySelectorAll('#hh-view [data-hh-action="gpc-add-deduction"]').length,
-      taxCards: document.querySelectorAll('#hh-view .gpc-tax-card').length,
-      taxMath: !!document.querySelector('#hh-view .gpc-tax-math'),
-      sidebarFoot: document.querySelector('#gpc-sidebar-foot')?.textContent || '',
-      finishBtn: document.querySelector('#hh-wiz-footer [data-hh-action="step-next"]')?.textContent.trim() || '',
-    }));
-    if(s4tax.dedBtns !== 4) throw new Error(`tax deduction buttons missing, got ${s4tax.dedBtns}`);
-    if(s4tax.taxCards !== 2 || !s4tax.taxMath) throw new Error(`tax summary cards/math missing: ${JSON.stringify(s4tax)}`);
-    if(!/AGI|Federal bracket/i.test(s4tax.sidebarFoot)) throw new Error('tax step sidebar foot missing');
-    if(s4tax.finishBtn !== 'Finish') throw new Error(`step 4 footer must say Finish, got "${s4tax.finishBtn}"`);
-
-    await page.click('#hh-view [data-hh-action="gpc-add-deduction"][data-ded-type="charitable"]'); await new Promise(r => setTimeout(r, 300));
+    if(addedIncome.count !== beforeOtherCount + 1 || !addedIncome.retirementColumn
+      || addedIncome.saved?.typeId !== 'dividends' || addedIncome.saved?.owner !== 'joint'
+      || addedIncome.saved?.amount !== 8600 || addedIncome.saved?.endAge !== 999
+      || addedIncome.saved?.realGrowth !== .02 || addedIncome.saved?.qualifiedPct !== .85)
+      throw new Error(`expanded income source did not render and persist correctly: ${JSON.stringify(addedIncome)}`);
     await page.evaluate(() => {
-      const input = document.querySelector('#hh-view input[data-path^="incomeTax.deductions."][data-path$=".amount"]');
-      if(input){ input.value = '12000'; input.dispatchEvent(new Event('change', { bubbles:true })); }
+      const amountInputs = [...document.querySelectorAll('#hh-view input[data-path^="income.other."][data-path$=".amount"]')];
+      amountInputs.at(-1)?.closest('.hh-it-row')?.querySelector('[data-rmpath]')?.click();
     });
     await new Promise(r => setTimeout(r, 300));
+
+    // External sale (rare) uses compact add and is not a taxable-sleeve draw.
+    await page.click('#hh-view [data-hh-action="open-add"][data-add-key="external-sale"]'); await new Promise(r => setTimeout(r, 150));
+    await page.evaluate(() => {
+      const set = (name, value, eventName = 'input') => {
+        const el = document.querySelector(`#hh-view [data-hh-draft="${name}"]`);
+        el.value = value;
+        el.dispatchEvent(new Event(eventName, { bubbles:true }));
+      };
+      set('type', 'long_term_capital_gain', 'change');
+      set('owner', 'joint', 'change');
+      set('amount', '12000');
+    });
+    const currentYearDraft = await page.evaluate(() => ({
+      timingHidden: ['startAge', 'endAge', 'growthPct'].every(name =>
+        document.querySelector(`#hh-view [data-hh-draft="${name}"]`)?.closest('[data-hide-for-income-types]')?.hidden === true),
+      note: document.querySelector('#hh-view .hh-it-add-form__note')?.textContent || '',
+    }));
+    if(!currentYearDraft.timingHidden)
+      throw new Error(`external-sale controls did not stay compact: ${JSON.stringify(currentYearDraft)}`);
+    if(!/outside the modeled brokerage path/i.test(currentYearDraft.note))
+      throw new Error(`external-sale note missing: ${JSON.stringify(currentYearDraft)}`);
+    await page.click('#hh-view [data-hh-action="commit-add"]'); await new Promise(r => setTimeout(r, 250));
+    await page.click('#save-btn'); await new Promise(r => setTimeout(r, 250));
+    const addedCurrentYearItem = await page.evaluate(() => {
+      const active = localStorage.getItem('parallax.activeHouseholdId');
+      const other = JSON.parse(localStorage.getItem('parallax.households.v1') || '{}')?.[active]?.income?.other || [];
+      const saved = other.at(-1);
+      const amountInputs = [...document.querySelectorAll('#hh-view input[data-path^="income.other."][data-path$=".amount"]')];
+      const row = amountInputs.at(-1)?.closest('.hh-it-row');
+      return {
+        rowText: row?.textContent || '',
+        workingColumn: /Working years/i.test(row?.closest('section')?.querySelector('.hh-it-subhead span')?.textContent || ''),
+        hasTimingInput: !!row?.querySelector('input[data-path$=".startAge"], input[data-path$=".endAge"]'),
+        saved,
+      };
+    });
+    if(addedCurrentYearItem.hasTimingInput || !addedCurrentYearItem.workingColumn
+      || !/not a taxable-sleeve draw/i.test(addedCurrentYearItem.rowText)
+      || addedCurrentYearItem.saved?.typeId !== 'long_term_capital_gain' || addedCurrentYearItem.saved?.amount !== 12000)
+      throw new Error(`external sale did not render and persist correctly: ${JSON.stringify(addedCurrentYearItem)}`);
+    await page.evaluate(() => {
+      const amountInputs = [...document.querySelectorAll('#hh-view input[data-path^="income.other."][data-path$=".amount"]')];
+      amountInputs.at(-1)?.closest('.hh-it-row')?.querySelector('[data-rmpath]')?.click();
+    });
+    await new Promise(r => setTimeout(r, 250));
+
+    // Adjustment and deduction add flows persist without a standing Credits control.
+    await page.click('#hh-view [data-hh-action="open-add"][data-add-key="adjustment"]'); await new Promise(r => setTimeout(r, 150));
+    const adjustmentOptions = await page.evaluate(() => {
+      const type = document.querySelector('#hh-view [data-hh-draft="type"]');
+      const amount = document.querySelector('#hh-view [data-hh-draft="amount"]');
+      amount.value = '23000';
+      return [...type.options].map(option => option.value);
+    });
+    if(!adjustmentOptions.includes('ira_deduction')) throw new Error('deductible IRA contribution missing from adjustment add flow');
+    await page.click('#hh-view [data-hh-action="commit-add"]'); await new Promise(r => setTimeout(r, 250));
+    await page.click('#hh-view [data-hh-action="open-add"][data-add-key="deduction"]'); await new Promise(r => setTimeout(r, 150));
+    const deductionOptions = await page.evaluate(() => {
+      const type = document.querySelector('#hh-view [data-hh-draft="type"]');
+      const amount = document.querySelector('#hh-view [data-hh-draft="amount"]');
+      const options = [...type.options].map(option => option.value);
+      type.value = 'charitable';
+      type.dispatchEvent(new Event('change', { bubbles:true }));
+      amount.value = '12000';
+      return options;
+    });
+    if(!deductionOptions.includes('salt') || !deductionOptions.includes('other'))
+      throw new Error(`deduction add catalog drifted: ${JSON.stringify(deductionOptions)}`);
+    await page.click('#hh-view [data-hh-action="commit-add"]'); await new Promise(r => setTimeout(r, 250));
     await page.click('#save-btn'); await new Promise(r => setTimeout(r, 300));
-    const savedDeduction = await page.evaluate(() => {
+    const savedTaxInputs = await page.evaluate(() => {
       const active = localStorage.getItem('parallax.activeHouseholdId');
       const plan = JSON.parse(localStorage.getItem('parallax.households.v1') || '{}')?.[active];
-      return plan?.incomeTax?.deductions?.find(row => row.typeId === 'charitable') || null;
+      return {
+        adjustment: plan?.incomeTax?.adjustments?.at(-1),
+        deduction: plan?.incomeTax?.deductions?.at(-1),
+      };
     });
-    if(savedDeduction?.amount !== 12000) throw new Error(`charitable deduction did not persist: ${JSON.stringify(savedDeduction)}`);
+    if(savedTaxInputs.adjustment?.typeId !== '401k' || savedTaxInputs.adjustment?.amount !== 23000 || savedTaxInputs.adjustment?.whileWorkingOnly !== true
+      || savedTaxInputs.deduction?.typeId !== 'charitable' || savedTaxInputs.deduction?.amount !== 12000)
+      throw new Error(`Income & Tax adjustments/deductions did not persist: ${JSON.stringify(savedTaxInputs)}`);
+    await page.evaluate(() => {
+      document.querySelector('.hh-it-row [data-rmpath^="incomeTax.adjustments."]')?.click();
+      document.querySelector('.hh-it-row [data-rmpath^="incomeTax.deductions."]')?.click();
+    });
+    await new Promise(r => setTimeout(r, 300));
 
-    // Step 5 · Summary: read-only gauge + allocation legend.
-    await page.click('#hh-wiz-footer [data-hh-action="step-next"]'); await new Promise(r => setTimeout(r, 350));
-    const onStep5 = await page.evaluate(() => document.querySelector('.hh-stepper .hh-step.is-current')?.dataset.step);
-    if(onStep5 !== '5') throw new Error(`Finish did not advance to step 5 (got ${onStep5})`);
-
-    const s5 = await page.evaluate(() => ({
-      gauge: !!document.querySelector('#hh-view .gpc-bp-gauge'),
-      gaugeVal: document.querySelector('#hh-view .gpc-bp-gauge__v')?.textContent.trim() || '',
-      footNote: document.querySelector('#hh-wiz-footer .gpc-foot-note')?.textContent.trim() || '',
-      summaryRows: document.querySelectorAll('#hh-view .gpc-summary-row').length,
-      allocLegend: document.querySelectorAll('#hh-view .gpc-bp-alloc').length,
-      controls: document.querySelectorAll('#hh-view input, #hh-view select').length,
-      incomeLine: [...document.querySelectorAll('#hh-view .gpc-summary-row')].find(r => /Income/i.test(r.textContent))?.textContent.trim() || '',
-      gaugeLabel: document.querySelector('#hh-view .gpc-bp-gauge__k')?.textContent.trim() || '',
+    await page.click('#hh-step-1'); await new Promise(r => setTimeout(r, 350));
+    const profileSpend = await page.evaluate(() => ({
+      living: !!document.querySelector('#hh-view input[data-path="expenses.living"]'),
+      health: !!document.querySelector('#hh-view input[data-path="expenses.healthcare"]'),
+      extras: document.querySelectorAll('#hh-view input[data-path^="expenses.extra."][data-path$=".label"]').length,
+      goals: document.querySelectorAll('#hh-view input[data-path^="goals."][data-path$=".name"]').length,
+      fundingChoices: document.querySelectorAll('#hh-view input[data-path$=".fundFromPortfolioBeforeRetirement"]').length,
+      addCategory: !!document.querySelector('#hh-view [data-add-key="spending"]'),
+      addGoal: !!document.querySelector('#hh-view [data-add-key="goal"]'),
+      doctrine: /withdrawals begin when both clients are retired/i.test(document.querySelector('#hh-view')?.textContent || ''),
+      board: !!document.querySelector('#hh-view .hh-profile__board'),
     }));
-    if(!s5.gauge) throw new Error('Summary gauge missing on step 5');
-    if(s5.controls !== 0) throw new Error(`Summary must be read-only, found ${s5.controls} controls`);
-    if(s5.footNote !== 'Step 5 of 5') throw new Error(`footer note mismatch: "${s5.footNote}"`);
-    if(!/\$188,600/.test(s5.incomeLine)) throw new Error(`Summary income must reflect demo wages + added dividends, got "${s5.incomeLine}"`);
-    if(s5.allocLegend < 3) throw new Error(`Summary account legend must list demo accounts, got ${s5.allocLegend}`);
-    if(s5.gaugeLabel !== 'NET WORTH') throw new Error(`gauge label must read NET WORTH, got "${s5.gaugeLabel}"`);
-    if(!/\$[\d.,MK]/.test(s5.gaugeVal)) throw new Error(`Summary gauge net worth not formatted: "${s5.gaugeVal}"`);
+    if(!profileSpend.living || !profileSpend.health) throw new Error('core spending inputs missing from Profile');
+    if(profileSpend.extras < 1) throw new Error(`spending category rows missing: ${JSON.stringify(profileSpend)}`);
+    if(profileSpend.goals !== 0 || profileSpend.fundingChoices !== 0 || profileSpend.addGoal)
+      throw new Error(`wizard Profile must not edit goals: ${JSON.stringify(profileSpend)}`);
+    if(!profileSpend.addCategory || !profileSpend.doctrine || !profileSpend.board)
+      throw new Error(`Profile spending controls or boundary missing: ${JSON.stringify(profileSpend)}`);
+
+    // Annual savings lives outside Income & Tax; set it on the plan for Summary checks.
+    await page.evaluate(() => {
+      const active = localStorage.getItem('parallax.activeHouseholdId');
+      const store = JSON.parse(localStorage.getItem('parallax.households.v1') || '{}');
+      if(!store[active]) return;
+      store[active].savings = store[active].savings || {};
+      store[active].savings.annual = 12000;
+      localStorage.setItem('parallax.households.v1', JSON.stringify(store));
+    });
+    await page.reload({ waitUntil: 'networkidle0' });
+    await new Promise(r => setTimeout(r, 700));
+    await page.click('.htab[data-page="household"]'); await new Promise(r => setTimeout(r, 400));
+    await page.click('#hh-step-4'); await new Promise(r => setTimeout(r, 350));
+    const s4 = await page.evaluate(() => ({
+      gauge: !!document.querySelector('#hh-view .hh-bp-gauge'),
+      cta: !!document.querySelector('#hh-view .hh-bp-cta, #hh-view [data-hh-action="run-blueprint"], #hh-view [data-hh-action="goto-planning"]'),
+      footNote: document.querySelector('#hh-wiz-footer .hh-wiz-foot-note')?.textContent.trim() || '',
+      incomeVal: document.querySelector('#hh-view .hh-bp-flow__row:first-child .hh-bp-flow__val')?.textContent.trim() || '',
+      ssRow: [...document.querySelectorAll('#hh-view .hh-bp-flow__row')].some(row =>
+        /^Social Security$/i.test(row.querySelector('.hh-bp-flow__label')?.textContent.trim() || '')),
+      ssVal: [...document.querySelectorAll('#hh-view .hh-bp-flow__row')].find(row =>
+        /^Social Security$/i.test(row.querySelector('.hh-bp-flow__label')?.textContent.trim() || ''))
+        ?.querySelector('.hh-bp-flow__val')?.textContent.trim() || '',
+      spendingVal: [...document.querySelectorAll('#hh-view .hh-bp-flow__row')].find(row =>
+        /^Spending$/i.test(row.querySelector('.hh-bp-flow__label')?.textContent.trim() || ''))
+        ?.querySelector('.hh-bp-flow__val')?.textContent.trim() || '',
+      savingsVal: [...document.querySelectorAll('#hh-view .hh-bp-flow__row')].find(row =>
+        /^Annual savings$/i.test(row.querySelector('.hh-bp-flow__label')?.textContent.trim() || ''))
+        ?.querySelector('.hh-bp-flow__val')?.textContent.trim() || '',
+      allocLegend: document.querySelectorAll('#hh-view .hh-bp-alloc').length,
+      gaugeLabel: document.querySelector('#hh-view .hh-bp-gauge__k')?.textContent.trim() || '',
+      eyebrow: document.querySelector('#hh-view .hh-bp-eyebrow')?.textContent.trim() || '',
+    }));
+    if(!s4.gauge) throw new Error('Summary gauge missing on step 4');
+    if(s4.cta) throw new Error('Run Blueprint CTA must not render on step 4');
+    if(s4.footNote !== 'Step 4 of 4') throw new Error(`footer note mismatch: "${s4.footNote}"`);
+    if(s4.eyebrow !== 'SUMMARY') throw new Error(`Summary eyebrow mismatch: "${s4.eyebrow}"`);
+    if(!/\$180,000/.test(s4.incomeVal)) throw new Error(`Summary income must show working income, got "${s4.incomeVal}"`);
+    if(!s4.ssRow) throw new Error('Summary must show a separate Social Security row');
+    if(!/\$62,000/.test(s4.ssVal)) throw new Error(`Summary Social Security must total $62,000, got "${s4.ssVal}"`);
+    if(!/\$90,000/.test(s4.spendingVal)) throw new Error(`Summary spending must be fixed baseline only ($90,000), got "${s4.spendingVal}"`);
+    if(!/\$12,000/.test(s4.savingsVal)) throw new Error(`Summary must summarize entered annual savings, got "${s4.savingsVal}"`);
+    if(s4.allocLegend < 3) throw new Error(`Summary account legend must list demo accounts, got ${s4.allocLegend}`);
+    if(s4.gaugeLabel !== 'NET WORTH') throw new Error(`gauge label must read NET WORTH, got "${s4.gaugeLabel}"`);
+
+    // Restore the shared demo fixture for downstream engine and persistence checks.
+    await page.evaluate(() => {
+      const active = localStorage.getItem('parallax.activeHouseholdId');
+      const store = JSON.parse(localStorage.getItem('parallax.households.v1') || '{}');
+      if(!store[active]?.savings) return;
+      store[active].savings.annual = 0;
+      localStorage.setItem('parallax.households.v1', JSON.stringify(store));
+    });
+    await page.reload({ waitUntil: 'networkidle0' });
+    await new Promise(r => setTimeout(r, 700));
+    await page.click('.htab[data-page="household"]'); await new Promise(r => setTimeout(r, 400));
+    await page.click('#hh-step-4'); await new Promise(r => setTimeout(r, 250));
+  });
+
+  await step('recovery: exact GPC duplicate wages stay visible and block modeling until reviewed', async () => {
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
+    const injected = await page.evaluate(() => {
+      const active = localStorage.getItem('parallax.activeHouseholdId');
+      const store = JSON.parse(localStorage.getItem('parallax.households.v1') || '{}');
+      const rows = store[active]?.income?.other;
+      const wage = Array.isArray(rows)
+        ? rows.find(row => row?.typeId === 'wages' && Number(row.amount) > 0)
+        : null;
+      if(!wage) throw new Error('shared fixture has no positive wage row to duplicate');
+      const originalCount = rows.length;
+      rows.push(structuredClone(wage));
+      localStorage.setItem('parallax.households.v1', JSON.stringify(store));
+      return { originalCount, duplicateIndex: rows.length - 1 };
+    });
+    await page.reload({ waitUntil: 'networkidle0' });
+    await sleep(700);
+    await page.click('.htab[data-page="household"]');
+    await page.click('#hh-step-3');
+    await sleep(350);
+
+    const blocked = await page.evaluate(index => ({
+      warning: document.querySelector('#hh-view [role="alert"]')?.textContent || '',
+      status: document.querySelector('#status')?.textContent || '',
+      duplicateVisible: !!document.querySelector(`#hh-view [data-rmpath="income.other.${index}"]`),
+      headline: document.querySelector('#hh-view .hh-it-section-head strong')?.textContent || '',
+    }), injected.duplicateIndex);
+    if(!/duplicate salary entries/i.test(blocked.warning)
+      || !/duplicate salary entries/i.test(blocked.status)
+      || !blocked.duplicateVisible
+      || !/Review required/i.test(blocked.headline)){
+      throw new Error(`duplicate-wage recovery gate is incomplete: ${JSON.stringify(blocked)}`);
+    }
+
+    await page.click('#run-btn');
+    await sleep(250);
+    const runStatus = await page.$eval('#status', el => el.textContent || '');
+    if(!/duplicate salary entries/i.test(runStatus)){
+      throw new Error(`planning run did not stay blocked for duplicate wages: ${runStatus}`);
+    }
+
+    await page.click(`#hh-view [data-rmpath="income.other.${injected.duplicateIndex}"]`);
+    await sleep(350);
+    await page.click('#save-btn');
+    await sleep(350);
+    const resolved = await page.evaluate(() => {
+      const active = localStorage.getItem('parallax.activeHouseholdId');
+      const store = JSON.parse(localStorage.getItem('parallax.households.v1') || '{}');
+      return {
+        count: store[active]?.income?.other?.length || 0,
+        warning: document.querySelector('#hh-view [role="alert"]')?.textContent || '',
+        status: document.querySelector('#status')?.textContent || '',
+      };
+    });
+    if(resolved.count !== injected.originalCount || resolved.warning){
+      throw new Error(`duplicate-wage review did not restore the original facts: ${JSON.stringify(resolved)}`);
+    }
   });
 
   await step('household tax details: accessible basis edits persist and reach engine truth', async () => {
     const sleep = ms => new Promise(r => setTimeout(r, ms));
     await goStep(2);
     const detailsSelector = '#hh-view [data-hh-tax-details-root]';
-    if(!await page.$(detailsSelector)){
-      console.log('  (skip tax details browser probe — GPC balance sheet does not surface basis editor yet)');
-      return;
-    }
+    if(!await page.$(detailsSelector)) throw new Error('Tax details disclosure missing from Balance Sheet');
     if(!await page.$eval(detailsSelector, el => el.open)){
       await page.click(`${detailsSelector} > summary`);
       await sleep(250);
@@ -980,8 +1210,12 @@ try {
     const sleep = ms => new Promise(r => setTimeout(r, ms));
     await page.click('.htab[data-page="household"]'); await sleep(400);
     const offenders = [];
-    for(const n of [1,2,3,4,5]){
+    for(const n of [1,2,3,4]){
       await page.click('#hh-step-'+n); await sleep(350);
+      if(n === 2){
+        await page.click('#hh-view [data-hh-action="open-account-form"][data-owner="client"]');
+        await sleep(250);
+      }
       const found = await page.evaluate(() => {
         const MICRO = new Set([
           'hh-step__label','hh-step__num','hh-col__role','hh-kv__k',
@@ -989,16 +1223,11 @@ try {
           'hh-grand-total__k','hh-grand-total__sub','hh-bp-eyebrow','hh-bp-filing',
           'hh-bp-facts__k','hh-bp-flow__label','hh-bp-flow__sub','hh-bp-gauge__k','hh-bp-gauge__sub',
           'hh-bp-alloc__pct','hh-bp-alloc__name','hh-wiz-foot-note',
-          'gpc-eyebrow','gpc-foot-k','gpc-foot-note','gpc-foot-row','gpc-meta__k',
-          'gpc-field-row__lbl','gpc-tax-card__k','gpc-bp-gauge__k','gpc-bp-gauge__sub',
-          'gpc-bp-alloc__name','gpc-section-head','gpc-helper','gpc-intro',
           'hh-empty','hh-future-row__note','hh-future-row__name','hh-future-row__claim','hh-ledger-row__name',
           'hh-ledger-row__note','hh-ledger-row__age-label',
           'hh-dash-btn','hh-text-add','pre','hh-av','hh-avatar',
-          'hh-profile__note','hh-profile__eyebrow','hh-derived-in','hh-kv__v',
-          'hh-joint-block__eyebrow','hh-joint-block__note',
           'hh-tax-microcopy','hh-tax-details__state','hh-tax-fieldset__eyebrow',
-          'hh-tax-badge','hh-tax-limit__eyebrow',
+          'hh-tax-badge','hh-tax-limit__eyebrow','hh-profile__eyebrow','hh-joint-block__eyebrow',
         ]);
         const allowMicro = el => {
           const inWizard = el.closest('.hh-wizard');
@@ -1036,6 +1265,10 @@ try {
         return bad;
       });
       found.forEach(f => offenders.push(`step ${n}: ${f}`));
+      if(n === 2){
+        await page.evaluate(() => document.querySelector('[data-hh-action="cancel-account"]')?.click());
+        await sleep(200);
+      }
     }
     if(offenders.length) throw new Error('text below its approved readability floor:\n  ' + [...new Set(offenders)].slice(0, 15).join('\n  '));
   });
@@ -1043,7 +1276,7 @@ try {
   await step('household inline edits write back to plan + live totals update', async () => {
     const sleep = ms => new Promise(r => setTimeout(r, ms));
     await goStep(2);
-    const totalBefore = await page.evaluate(() => document.querySelector('#gpc-sidebar-foot .gpc-foot-nw')?.textContent.trim());
+    const totalBefore = await page.evaluate(() => document.querySelector('#hh-view .hh-grand-total__v')?.textContent.trim());
     const edit = await page.evaluate(() => {
       const el = document.querySelector('#hh-view input[data-path^="portfolio.extraAccounts."][data-path$=".balance"]');
       if(!el) return { ok: false, reason: 'no editable account balance input on step 2' };
@@ -1054,22 +1287,23 @@ try {
     });
     if(!edit.ok) throw new Error(edit.reason);
     await sleep(300);
-    const after = await page.evaluate(() => ({ total: document.querySelector('#gpc-sidebar-foot .gpc-foot-nw')?.textContent.trim(), status: document.querySelector('#status')?.textContent }));
+    const after = await page.evaluate(() => ({ total: document.querySelector('#hh-view .hh-grand-total__v')?.textContent.trim(), status: document.querySelector('#status')?.textContent }));
     if(after.total === totalBefore) throw new Error(`editing an account balance did not update the balance-sheet total (${totalBefore})`);
     if(!/Plan edited/.test(after.status||'')) throw new Error('account edit did not mark the plan dirty (status)');
-    await goStep(3);
-    const livingBefore = await page.evaluate(() => document.querySelector('#hh-view input[data-path="expenses.living"]')?.value);
+    // Profile spending: editing living expenses updates the section total.
+    await goStep(1);
+    const spendBefore = await page.evaluate(() => document.querySelector('#hh-view .hh-sg--profile .hh-it-section-head strong')?.textContent.trim());
     await page.evaluate(() => { const el = document.querySelector('#hh-view input[data-path="expenses.living"]'); el.value = '99,999'; el.dispatchEvent(new Event('change', { bubbles:true })); });
     await sleep(300);
-    const livingAfter = await page.evaluate(() => document.querySelector('#hh-view input[data-path="expenses.living"]')?.value);
-    if(livingBefore === livingAfter) throw new Error(`editing living expenses did not update the field (${livingBefore})`);
+    const spendAfter = await page.evaluate(() => document.querySelector('#hh-view .hh-sg--profile .hh-it-section-head strong')?.textContent.trim());
+    if(spendBefore === spendAfter) throw new Error(`editing living expenses did not update the spending total (${spendBefore})`);
     // Restore the two fields explicitly; Load Demo is a switch, not a reset.
     await goStep(2);
     await page.evaluate(({ path, value }) => {
       const el = document.querySelector(`#hh-view input[data-path="${path}"]`);
       el.value = String(value); el.dispatchEvent(new Event('change', { bubbles:true }));
     }, { path: edit.path, value: edit.original });
-    await goStep(3);
+    await goStep(1);
     await page.evaluate(() => {
       const el = document.querySelector('#hh-view input[data-path="expenses.living"]');
       el.value = '38,000'; el.dispatchEvent(new Event('change', { bubbles:true }));
@@ -1098,15 +1332,15 @@ try {
     });
     await sleep(200);
 
-    // 2. BORN year writes back to the plan (engine input).
-    const birthBefore = await page.evaluate(() => document.querySelector('#hh-view input[data-path="household.primary.birthYear"]')?.value || '');
+    // 2. BORN year drives the person's current age (the engine input).
+    const ageBefore = await page.evaluate(() => document.querySelector('#hh-view .hh-derived-in')?.value.trim());
     await page.evaluate(() => {
       const el = document.querySelector('#hh-view input[data-path="household.primary.birthYear"]');
       el.value = '1970'; el.dispatchEvent(new Event('change', { bubbles:true }));
     });
     await sleep(300);
-    const birthAfter = await page.evaluate(() => document.querySelector('#hh-view input[data-path="household.primary.birthYear"]')?.value || '');
-    if(birthBefore === birthAfter || birthAfter !== '1970') throw new Error(`Born edit did not persist (${birthBefore} -> ${birthAfter})`);
+    const ageAfter = await page.evaluate(() => document.querySelector('#hh-view .hh-derived-in')?.value.trim());
+    if(ageBefore === ageAfter) throw new Error(`Born edit did not re-derive Age (${ageBefore} -> ${ageAfter})`);
     if(!/Plan edited/.test(await page.evaluate(() => document.querySelector('#status')?.textContent || '')))
       throw new Error('Born edit did not mark plan dirty');
     // Restore demo birth year (Client 1 born 1962 → age 64)
@@ -1116,24 +1350,32 @@ try {
     });
     await sleep(200);
 
-    // 3. Step screenshots: Balance sheet catalog + Income.
+    // 3. Step screenshots: Accounts (add-form open) + Income.
     await goStep(2);
+    await page.click('#hh-view [data-hh-action="open-account-form"][data-owner="client"]'); await sleep(300);
     await page.screenshot({ path: join(OUT, '01b-household-accounts.png'), fullPage: true });
+    await page.evaluate(() => document.querySelector('[data-hh-action="cancel-account"]')?.click()); await sleep(250);
     await goStep(3);
     await page.screenshot({ path: join(OUT, '01c-household-income.png'), fullPage: true });
-    await page.click('#hh-view [data-hh-action="gpc-work-mode"][data-work-mode="retired"]'); await sleep(300);
     await page.evaluate(() => {
-      const el = document.querySelector('#hh-view input[data-path="income.socialSecurity.primary.pia"]');
-      if(el){ el.value = '35000'; el.dispatchEvent(new Event('change', { bubbles:true })); }
+      const el = document.querySelector('#hh-view input[data-path="income.socialSecurity.primary.claimAge"]');
+      el.value = '70'; el.dispatchEvent(new Event('change', { bubbles:true }));
     });
     await sleep(250);
-    const piaAfter = await page.evaluate(() => document.querySelector('#hh-view input[data-path="income.socialSecurity.primary.pia"]')?.value?.replace(/[^0-9]/g, '') || '');
-    if(piaAfter !== '35000') throw new Error(`retired mode SS PIA edit did not persist (got ${piaAfter})`);
+    let claimAge = await page.evaluate(() => document.querySelector('#hh-view input[data-path="income.socialSecurity.primary.claimAge"]')?.value || '');
+    if(claimAge !== '70') throw new Error(`primary SS claim age did not persist edit (got ${claimAge})`);
     await page.evaluate(() => {
-      const el = document.querySelector('#hh-view input[data-path="income.socialSecurity.primary.pia"]');
-      if(el){ el.value = '34000'; el.dispatchEvent(new Event('change', { bubbles:true })); }
+      const el = document.querySelector('#hh-view input[data-path="income.socialSecurity.primary.claimAge"]');
+      el.value = '71'; el.dispatchEvent(new Event('change', { bubbles:true }));
     });
-    await page.click('#hh-view [data-hh-action="gpc-work-mode"][data-work-mode="employed"]'); await sleep(200);
+    await sleep(250);
+    claimAge = await page.evaluate(() => document.querySelector('#hh-view input[data-path="income.socialSecurity.primary.claimAge"]')?.value || '');
+    if(claimAge !== '70') throw new Error(`primary SS claim age escaped the 62-70 limit (got ${claimAge})`);
+    await page.evaluate(() => {
+      const el = document.querySelector('#hh-view input[data-path="income.socialSecurity.primary.claimAge"]');
+      el.value = '67'; el.dispatchEvent(new Event('change', { bubbles:true }));
+    });
+    await sleep(200);
 
     // 4. Co-client remove is blocked while spouse-owned accounts exist; reassign first.
     await goStep(1);
@@ -1155,9 +1397,8 @@ try {
     await goStep(2);
     for(let i = 0; i < 4; i++){
       const removed = await page.evaluate(() => {
-        const row = [...document.querySelectorAll('#hh-view .gpc-field-row')].find(el =>
-          /Roth IRA|Brokerage/i.test(el.textContent || '') && !/Traditional IRA/i.test(el.textContent || ''));
-        const btn = row?.querySelector('.row-x[data-rmpath^="portfolio.extraAccounts."]');
+        const col = [...document.querySelectorAll('#hh-view .hh-col')].find(el => /CO-CLIENT/i.test(el.textContent || ''));
+        const btn = col?.querySelector('.row-x[data-rmpath^="portfolio.extraAccounts."]');
         if(!btn) return false;
         btn.click();
         return true;
@@ -1240,9 +1481,8 @@ try {
     });
     await sleep(200);
     await goStep(3);
-    const spouseSalary = await page.evaluate(() =>
-      [...document.querySelectorAll('#hh-view .gpc-field-row__lbl')].some(el => /Salary/i.test(el.textContent) && /Co-client|Test Co-Client/i.test(el.textContent)));
-    if(!spouseSalary) throw new Error('new co-client wage slot missing on step 3');
+    const spouseClaimAge = await page.evaluate(() => document.querySelector('#hh-view input[data-path="income.socialSecurity.spouse.claimAge"]')?.value || '');
+    if(spouseClaimAge !== '67') throw new Error(`new co-client SS claim age must default to 67 (got ${spouseClaimAge})`);
     // Restore co-client retirement age to demo value (Client 2 retires at 65) —
     // retirement ages live on step 1 in the blueprint wizard.
     await goStep(1);
@@ -1253,21 +1493,26 @@ try {
     await sleep(200);
 
     // Restore spouse-owned accounts removed for the ownership block probe.
-    const restoreAccount = async (typeId, amount) => {
-      await page.click(`#hh-view [data-hh-action="gpc-add-account"][data-acct-type-id="${typeId}"]`);
-      await sleep(300);
-      await page.evaluate(({ amount }) => {
-        const inputs = [...document.querySelectorAll('#hh-view input[data-path^="portfolio.extraAccounts."][data-path$=".balance"]')];
-        const last = inputs[inputs.length - 1];
-        if(last){ last.value = amount; last.dispatchEvent(new Event('change', { bubbles:true })); }
-      }, { amount });
+    const restoreAccount = async (owner, label, amount) => {
+      await page.click(`#hh-view [data-hh-action="open-account-form"][data-owner="${owner}"]`);
+      await sleep(250);
+      await page.evaluate(({ label, amount }) => {
+        const form = document.querySelector('#hh-acct-form');
+        const typeSel = form.querySelector('.hh-form-type');
+        typeSel.value = String([...typeSel.options].findIndex(o => o.textContent.trim() === label));
+        form.querySelector('.hh-form-val').value = amount;
+        form.querySelector('[data-hh-action="save-account"]').click();
+      }, { label, amount });
       await sleep(350);
     };
     await goStep(2);
-    await restoreAccount('brokerage_taxable', '800,000');
-    await restoreAccount('roth_ira', '400,000');
-    const nwTotal = await page.evaluate(() => document.querySelector('#gpc-sidebar-foot .gpc-foot-nw')?.textContent.trim() || '');
-    if(!/\$2,800,000/.test(nwTotal)) throw new Error(`restoring spouse accounts must restore demo net worth, got "${nwTotal}"`);
+    await restoreAccount('spouse', 'Brokerage (taxable)', '800,000');
+    await restoreAccount('spouse', 'Roth IRA', '400,000');
+    const spouseTotal = await page.evaluate(() => {
+      const col = [...document.querySelectorAll('#hh-view .hh-col')].find(el => /CO-CLIENT/i.test(el.textContent || ''));
+      return col?.querySelector('.hh-col__sum')?.textContent.trim() || '';
+    });
+    if(!/\$1,200,000/.test(spouseTotal)) throw new Error(`restoring spouse accounts must restore the co-client total, got "${spouseTotal}"`);
   });
 
   await step('household menu: New creates blank; Load Demo switches without resetting it', async () => {
@@ -1309,7 +1554,7 @@ try {
     }));
     if(afterDemo.active !== 'demo' || !/Test Client/.test(afterDemo.name))
       throw new Error(`Load Demo did not reopen the saved demo record: ${JSON.stringify(afterDemo)}`);
-    if(afterDemo.step !== '5') throw new Error(`filled saved demo must land on Summary, got "${afterDemo.step}"`);
+    if(afterDemo.step !== '4') throw new Error(`filled saved demo must land on Summary, got "${afterDemo.step}"`);
   });
 
   await step('household menu: Save As creates a named copy loadable from the switcher', async () => {
@@ -1363,14 +1608,16 @@ try {
     // Add $1,000,000 Brokerage (taxable), owned by the client, via the bank
     // form on step 2 (the cleared household lands on step 1).
     await goStep(2);
-    await page.click('#hh-view [data-hh-action="gpc-add-account"][data-acct-type-id="brokerage_taxable"]'); await sleep(300);
+    await page.click('#hh-view [data-hh-action="open-account-form"][data-owner="client"]'); await sleep(250);
     await page.evaluate(() => {
-      const inputs = [...document.querySelectorAll('#hh-view input[data-path^="portfolio.extraAccounts."][data-path$=".balance"]')];
-      const last = inputs[inputs.length - 1];
-      if(last){ last.value = '1,000,000'; last.dispatchEvent(new Event('change', { bubbles:true })); }
+      const form = document.querySelector('#hh-acct-form');
+      const sel = form.querySelector('.hh-form-type');
+      sel.value = String([...sel.options].findIndex(o => o.textContent.trim() === 'Brokerage (taxable)'));
+      form.querySelector('.hh-form-val').value = '1,000,000';
+      form.querySelector('[data-hh-action="save-account"]').click();
     });
     await sleep(400);
-    const nwTotal = await page.evaluate(() => document.querySelector('#gpc-sidebar-foot .gpc-foot-nw')?.textContent.trim() || '');
+    const nwTotal = await page.evaluate(() => document.querySelector('#hh-view .hh-grand-total__v')?.textContent.trim() || '');
     if(!/1,000,000/.test(nwTotal)) throw new Error(`added brokerage did not reach the balance-sheet total: "${nwTotal}"`);
 
     // Run → engine recomputes from the dirty plan; Baseline median must now be $1M-scale.
@@ -1804,24 +2051,22 @@ try {
     await new Promise(r => setTimeout(r, 600));
     await setCashFlow(page, true);
     await waitCashRows(page, 10);
-    const EXPECT = ['Year', 'Age', 'Income', 'Goals', 'Tax', 'Draw', 'Ending'];
+    const EXPECT = ['Year', 'Age', 'Income', 'RMD', 'Essential', 'Goals', 'Tax', 'Draw', 'Return', 'WD Rate', 'Ending'];
     const m = await page.evaluate(() => {
       const v = document.querySelector('#scn-view');
       return {
         cf: !!v?.querySelector('.cf'),
-        mode: v?.querySelector('.cf')?.dataset.cfMode || '',
         rows: v?.querySelectorAll('.cf-row').length || 0,
-        cols: [...(v?.querySelectorAll('.cf-table__head .cf-th') || [])].map(th => th.childNodes[0]?.textContent?.trim() || th.textContent.trim()),
-        breakHeaders: [...(v?.querySelectorAll('.cf-table__head [data-cf-breakdown]') || [])].map(th => th.dataset.cfBreakdown),
+        cols: [...(v?.querySelectorAll('.cf-table__head .cf-th') || [])].map(th => th.textContent.trim()),
         pills: [...(v?.querySelectorAll('.cf-pill') || [])].map(p => p.textContent.trim()),
         activePill: v?.querySelector('.cf-pill.is-active')?.textContent.trim() || '',
         stats: [...(v?.querySelectorAll('.cf-stat__label') || [])].map(s => s.textContent.trim()),
         pathControls: !!v?.querySelector('#scn-cf-path-controls #path-mode'),
-        pathMode: v?.querySelector('#scn-cf-path-controls #path-mode')?.value || '',
+        mode: v?.querySelector('#scn-cf-path-controls #path-mode')?.value || '',
         taxHeader: (() => {
           const th = v?.querySelector('.cf-table__head .cf-th[data-tax-source]');
           return th ? {
-            label: th.childNodes[0]?.textContent?.trim() || th.textContent.trim(),
+            label: th.textContent.trim(),
             source: th.dataset.taxSource || '',
             scope: th.dataset.taxScope || '',
             title: th.getAttribute('title') || '',
@@ -1860,8 +2105,6 @@ try {
     if(!m.cf) throw new Error('cash-flow view did not render');
     if(m.rows < 10) throw new Error(`cash-flow rows = ${m.rows} (expected >=10)`);
     if(JSON.stringify(m.cols) !== JSON.stringify(EXPECT)) throw new Error(`cash-flow columns are not the exact contract: ${JSON.stringify(m.cols)}`);
-    if(m.mode !== 'summary') throw new Error(`cash-flow default mode should be summary (got "${m.mode}")`);
-    if(JSON.stringify(m.breakHeaders) !== JSON.stringify(['income', 'goals', 'tax', 'draw'])) throw new Error(`breakdown headers missing: ${JSON.stringify(m.breakHeaders)}`);
     if(m.cols.filter(c => /tax/i.test(c)).length !== 1) throw new Error(`cash flow must have exactly one scoped tax column: ${JSON.stringify(m.cols)}`);
     if(m.taxHeader?.source !== 'federal-converged-row' || m.taxHeader?.scope !== 'MODELED_FEDERAL_LINE_24') throw new Error(`typical path converged tax scope missing: ${JSON.stringify(m.taxHeader)}`);
     if(!/retirement rows funded and converged; working years reporting-only/i.test(m.taxHeader?.title || '')) throw new Error(`typical path tax tooltip missing phase scope: ${JSON.stringify(m.taxHeader)}`);
@@ -1869,10 +2112,10 @@ try {
     if(m.taxDisclosure?.state !== 'federal-converged-row' || !/retirement rows funded and converged, working years reporting-only/i.test(m.taxDisclosure?.scope || '')) throw new Error(`typical path converged federal scope disclosure missing: ${JSON.stringify(m.taxDisclosure)}`);
     if(m.taxDisclosure?.fallback) throw new Error(`typical path unexpectedly uses engine fallback: ${JSON.stringify(m.taxDisclosure)}`);
     if(!/^\$[\d,]+/.test(m.accumTax)) throw new Error(`accumulation-year Tax cell is not populated: "${m.accumTax}"`);
-    if(m.cols.some(c => ['Withdraw', 'One-time', 'Return $', 'Starting value', 'Inflows', 'Outflows', 'Annual return', 'Ending value', 'RMD', 'Essential', 'WD Rate'].includes(c))) throw new Error(`old cash-flow columns still present: ${JSON.stringify(m.cols)}`);
+    if(m.cols.some(c => ['Withdraw', 'One-time', 'Return $', 'Starting value', 'Inflows', 'Outflows', 'Annual return', 'Ending value'].includes(c))) throw new Error(`old cash-flow columns still present: ${JSON.stringify(m.cols)}`);
     if(m.pills.length < 2) throw new Error(`scenario pills missing: ${JSON.stringify(m.pills)}`);
     if(!m.pathControls) throw new Error('path-replay controls not relocated into #scn-cf-path-controls');
-    if(m.pathMode !== 'typical') throw new Error(`path replay default mode not typical (${m.pathMode})`);
+    if(m.mode !== 'typical') throw new Error(`path replay default mode not typical (${m.mode})`);
     for(const label of ['Median Ending', 'Peak Withdrawal']){
       if(!m.stats.includes(label)) throw new Error(`cash-flow summary stat missing: ${label} (${JSON.stringify(m.stats)})`);
     }
@@ -1895,27 +2138,6 @@ try {
       return row ? (row.querySelector('.cf-cell--age')?.textContent.trim() || '') : '';
     });
     if(rmdAge !== '75') throw new Error(`RMD start marker not at age 75 (got "${rmdAge}")`);
-
-    // Clickable Income header opens the income breakdown; Summary returns.
-    await page.click('#scn-view .cf-table__head [data-cf-breakdown="income"]');
-    await new Promise(r => setTimeout(r, 300));
-    const incomeBreak = await page.evaluate(() => {
-      const v = document.querySelector('#scn-view');
-      return {
-        mode: v?.querySelector('.cf')?.dataset.cfMode || '',
-        cols: [...(v?.querySelectorAll('.cf-table__head .cf-th') || [])].map(th => th.childNodes[0]?.textContent?.trim() || th.textContent.trim()),
-        back: v?.querySelector('[data-cf-breakdown-bar] [data-cf-breakdown="summary"]')?.textContent.trim() || '',
-      };
-    });
-    if(incomeBreak.mode !== 'income') throw new Error(`income breakdown did not activate: ${JSON.stringify(incomeBreak)}`);
-    if(JSON.stringify(incomeBreak.cols) !== JSON.stringify(['Year', 'Age', 'SS', 'Pension', 'Other', 'Income', 'Ending'])){
-      throw new Error(`income breakdown columns wrong: ${JSON.stringify(incomeBreak.cols)}`);
-    }
-    if(!/Summary/i.test(incomeBreak.back)) throw new Error('income breakdown missing Summary back control');
-    await page.click('#scn-view [data-cf-breakdown-bar] [data-cf-breakdown="summary"]');
-    await new Promise(r => setTimeout(r, 250));
-    const backSummary = await page.evaluate(() => document.querySelector('#scn-view .cf')?.dataset.cfMode || '');
-    if(backSummary !== 'summary') throw new Error(`Summary did not restore lean columns (mode=${backSummary})`);
 
     // The scenario pills switch which plan's cash flow is shown, and each plan's
     // cash flow reflects ITS OWN retire age. demoScenarios seeds Baseline at the
@@ -1969,6 +2191,10 @@ try {
         const disclosure = document.querySelector('#scn-view [data-tax-disclosure]');
         return {
           mode: document.querySelector('#path-mode')?.value || '',
+          cols: [...document.querySelectorAll('#scn-view .cf-table__head .cf-th')].map(el => el.textContent.trim()),
+          rowWidths: [...document.querySelectorAll('#scn-view .cf-row')].map(el => el.children.length),
+          returnColors: [...document.querySelectorAll('#scn-view .cf-cell--ret')].map(el => el.style.color),
+          wdColors: [...document.querySelectorAll('#scn-view .cf-cell--wd')].map(el => el.style.color),
           header: th ? {
             label: th.textContent.trim(),
             source: th.dataset.taxSource || '',
@@ -1987,6 +2213,10 @@ try {
         };
       });
       if(federalPath.mode !== mode) throw new Error(`${mode} path mode did not stay selected: ${JSON.stringify(federalPath)}`);
+      if(JSON.stringify(federalPath.cols) !== JSON.stringify(EXPECT)) throw new Error(`${mode} changed the rich Cash Flow columns: ${JSON.stringify(federalPath.cols)}`);
+      if(!federalPath.rowWidths.length || federalPath.rowWidths.some(width => width !== 11)) throw new Error(`${mode} changed the 11-cell Cash Flow rows: ${JSON.stringify(federalPath.rowWidths)}`);
+      if(!federalPath.returnColors.length || federalPath.returnColors.some(color => !['var(--text-mute)', 'var(--down)', 'var(--tone-green)'].includes(color))) throw new Error(`${mode} changed portfolio Return colors: ${JSON.stringify(federalPath.returnColors)}`);
+      if(!federalPath.wdColors.length || federalPath.wdColors.some(color => !['var(--text-mute)', 'var(--text-3)', 'var(--down)', 'var(--down-deep)'].includes(color))) throw new Error(`${mode} changed WD Rate colors: ${JSON.stringify(federalPath.wdColors)}`);
       if(federalPath.header?.label !== 'Tax' || federalPath.header?.source !== 'federal-converged-row' || federalPath.header?.scope !== 'MODELED_FEDERAL_LINE_24') throw new Error(`${mode} path tax scope is not converged federal: ${JSON.stringify(federalPath)}`);
       if(federalPath.compare) throw new Error(`${mode} path still shows an obsolete sidecar comparison: ${JSON.stringify(federalPath)}`);
       if(federalPath.disclosure?.state !== 'federal-converged-row' || !/retirement rows funded and converged, working years reporting-only/i.test(federalPath.disclosure?.scope || '')) throw new Error(`${mode} converged federal scope disclosure missing: ${JSON.stringify(federalPath)}`);
@@ -2005,19 +2235,49 @@ try {
 
     await page.select('#path-mode', 'random');
     await new Promise(r => setTimeout(r, 300));
+    if(await waitCashRows(page, 10) < 10) throw new Error('random path emptied the cash-flow table');
     const randomUi = await page.evaluate(() => ({
+      mode: document.querySelector('#path-mode')?.value || '',
       regenHidden: document.querySelector('#path-regenerate')?.hidden,
       label: document.querySelector('#path-mode option:checked')?.textContent.trim() || '',
+      cols: [...document.querySelectorAll('#scn-view .cf-table__head .cf-th')].map(el => el.textContent.trim()),
+      rowWidths: [...document.querySelectorAll('#scn-view .cf-row')].map(el => el.children.length),
+      returnColors: [...document.querySelectorAll('#scn-view .cf-cell--ret')].map(el => el.style.color),
+      wdColors: [...document.querySelectorAll('#scn-view .cf-cell--wd')].map(el => el.style.color),
+      taxHeader: (() => {
+        const th = document.querySelector('#scn-view .cf-table__head .cf-th[data-tax-source]');
+        return th ? { source: th.dataset.taxSource || '', scope: th.dataset.taxScope || '' } : null;
+      })(),
+      taxDisclosure: (() => {
+        const el = document.querySelector('#scn-view [data-tax-disclosure]');
+        return el ? { state: el.dataset.taxState || '', scope: el.querySelector('[data-tax-scope-disclosure]')?.textContent.trim() || '' } : null;
+      })(),
     }));
+    if(randomUi.mode !== 'random') throw new Error(`Random path did not stay selected: ${JSON.stringify(randomUi)}`);
     if(randomUi.regenHidden) throw new Error('Regenerate must show for Random path');
     if(/seed/i.test(randomUi.label)) throw new Error(`Random path must not expose seed label: ${JSON.stringify(randomUi)}`);
+    if(JSON.stringify(randomUi.cols) !== JSON.stringify(EXPECT) || randomUi.rowWidths.some(width => width !== 11)) throw new Error(`Random path changed the rich Cash Flow table: ${JSON.stringify(randomUi)}`);
+    if(!randomUi.returnColors.length || randomUi.returnColors.some(color => !['var(--text-mute)', 'var(--down)', 'var(--tone-green)'].includes(color))) throw new Error(`Random path changed portfolio Return colors: ${JSON.stringify(randomUi.returnColors)}`);
+    if(!randomUi.wdColors.length || randomUi.wdColors.some(color => !['var(--text-mute)', 'var(--text-3)', 'var(--down)', 'var(--down-deep)'].includes(color))) throw new Error(`Random path changed WD Rate colors: ${JSON.stringify(randomUi.wdColors)}`);
+    if(randomUi.taxHeader?.source !== 'federal-converged-row' || randomUi.taxHeader?.scope !== 'MODELED_FEDERAL_LINE_24') throw new Error(`Random path changed the converged federal tax header: ${JSON.stringify(randomUi)}`);
+    if(randomUi.taxDisclosure?.state !== 'federal-converged-row' || !/retirement rows funded and converged, working years reporting-only/i.test(randomUi.taxDisclosure?.scope || '')) throw new Error(`Random path changed the federal tax disclosure: ${JSON.stringify(randomUi)}`);
+
+    await page.click('#path-regenerate');
+    await new Promise(r => setTimeout(r, 300));
+    if(await waitCashRows(page, 10) < 10) throw new Error('regenerating Random path emptied the cash-flow table');
 
     await page.click('#scn-seg-compare');
     await new Promise(r => setTimeout(r, 350));
     await page.click('#scn-cash-toggle');
     await new Promise(r => setTimeout(r, 350));
-    const reopened = await page.evaluate(() => document.querySelector('#path-mode')?.value || '');
-    if(reopened !== 'typical') throw new Error(`Cash Flow must reopen on Typical path, got "${reopened}"`);
+    await waitCashRows(page, 10);
+    const reopened = await page.evaluate(() => ({
+      mode: document.querySelector('#path-mode')?.value || '',
+      regenHidden: document.querySelector('#path-regenerate')?.hidden,
+      cols: [...document.querySelectorAll('#scn-view .cf-table__head .cf-th')].map(el => el.textContent.trim()),
+    }));
+    if(reopened.mode !== 'typical' || !reopened.regenHidden) throw new Error(`Cash Flow must reopen on Typical path: ${JSON.stringify(reopened)}`);
+    if(JSON.stringify(reopened.cols) !== JSON.stringify(EXPECT)) throw new Error(`reopened Typical path changed the rich Cash Flow columns: ${JSON.stringify(reopened.cols)}`);
 
     // Exercise warning and attach-failure states directly through the production
     // Cash Flow renderer. This avoids changing real scenario or Household state.
@@ -2037,6 +2297,7 @@ try {
         toneGlow: () => 'transparent', ring: () => '', wdColor: () => 'inherit', num: (n) => String(n),
         esc: (value) => String(value).replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch])),
         fmtMoney: (n) => '$' + Math.round(n).toLocaleString('en-US'),
+        cfCols: ['Year', 'Age', 'Income', 'RMD', 'Essential', 'Goals', 'Tax', 'Draw', 'Return', 'WD Rate', 'Ending'],
       };
       const inspect = () => {
         const host = document.createElement('div');
@@ -2513,7 +2774,7 @@ try {
       return [
         disabled('#save-btn'), disabled('#run-btn'), disabled('#hh-menu-btn'), disabled('#hh-switch'),
         disabled('#hh-new'), disabled('#hh-load-demo'), disabled('#scn-add'), disabled('#scn-solve'),
-        disabled('#path-mode'), disabled('#seq-select'),
+        disabled('#path-mode'), disabled('#path-regenerate'), disabled('#seq-select'),
       ];
     });
     const missingBlockedControls = blockedControls.filter(x => !x.exists || !x.disabled);
@@ -2746,21 +3007,20 @@ try {
     const accountBefore = await page.evaluate(() => ({
       rows:document.querySelectorAll('#hh-view input[data-path^="portfolio.extraAccounts."][data-path$=".balance"]').length,
       rowRemoveDisabled:[...document.querySelectorAll('#hh-view .row-x[data-rmpath^="portfolio.extraAccounts."]')].every(el => el.disabled),
-      addCount:document.querySelectorAll('#hh-view [data-hh-action="gpc-add-account"]').length,
-      addDisabled:[...document.querySelectorAll('#hh-view [data-hh-action="gpc-add-account"]')].every(el => el.disabled),
+      addCount:document.querySelectorAll('#hh-view [data-hh-action="open-account-form"]').length,
+      addDisabled:[...document.querySelectorAll('#hh-view [data-hh-action="open-account-form"]')].every(el => el.disabled),
       taxCount:document.querySelectorAll('#hh-view [data-hh-tax-edit="basis"]').length,
-      taxDisabled:document.querySelectorAll('#hh-view [data-hh-tax-edit]').length
-        ? [...document.querySelectorAll('#hh-view [data-hh-tax-edit]')].every(el => el.disabled)
-        : true,
+      taxDisabled:[...document.querySelectorAll('#hh-view [data-hh-tax-edit]')].every(el => el.disabled),
       taxValue:document.querySelector('#hh-view [data-hh-tax-edit="basis"]')?.value || '',
     }));
-    if(!accountBefore.rows || !accountBefore.rowRemoveDisabled || !accountBefore.addCount || !accountBefore.addDisabled){
+    if(!accountBefore.rows || !accountBefore.rowRemoveDisabled || !accountBefore.addCount || !accountBefore.addDisabled
+      || !accountBefore.taxCount || !accountBefore.taxDisabled){
       throw new Error(`read-only account controls are not disabled: ${JSON.stringify(accountBefore)}`);
     }
     await page.evaluate(() => {
       document.querySelector('#hh-view .row-x[data-rmpath^="portfolio.extraAccounts."]')
         ?.dispatchEvent(new MouseEvent('click', { bubbles:true }));
-      document.querySelector('#hh-view [data-hh-action="gpc-add-account"]')
+      document.querySelector('#hh-view [data-hh-action="open-account-form"]')
         ?.dispatchEvent(new MouseEvent('click', { bubbles:true }));
       const taxInput = document.querySelector('#hh-view [data-hh-tax-edit="basis"]');
       if(taxInput){
@@ -2771,7 +3031,7 @@ try {
     await goStep(1); await goStep(2);
     const accountAfter = await page.evaluate(() => ({
       rows:document.querySelectorAll('#hh-view input[data-path^="portfolio.extraAccounts."][data-path$=".balance"]').length,
-      form:!!document.querySelector('#hh-view .gpc-inline-form'),
+      form:!!document.querySelector('#hh-acct-form'),
       taxValue:document.querySelector('#hh-view [data-hh-tax-edit="basis"]')?.value || '',
     }));
     if(accountAfter.rows !== accountBefore.rows || accountAfter.form || accountAfter.taxValue !== accountBefore.taxValue){

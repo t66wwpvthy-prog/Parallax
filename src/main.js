@@ -1,6 +1,11 @@
 import { runSimulation, resolveInputs, generateReturnPath, resetSeed, LONGRUN_INFLATION, pathDigest, RISK_PROFILES, defaultPlan as plan } from '../engine.js';
 import { runFederalFundingSimulation } from './planning/tax/runMonteCarloWithFederalFunding.js';
-import { attachCashFlowHistoricalPaths } from './planning/cashFlowPathReplay.js';
+import {
+  attachCashFlowHistoricalPaths,
+  mcPathKeyForMode,
+  normalizeCashFlowPathMode,
+  resolveCashFlowSim,
+} from './planning/cashFlowPathReplay.js';
 import { runHistoricalPathWithFederalTax } from './planning/tax/runHistoricalPathWithFederalTax.js';
 import { buildCurrentTaxBucketSnapshot } from './planning/taxBuckets/buildCurrentTaxBucketSnapshot.js';
 import { fmtM, fmtMoney } from '../ui/formatters.js';
@@ -11,6 +16,7 @@ import { createDemoHousehold, createBlankHousehold } from '../ui/householdFactor
 import { resolveTypeFromLabel } from './household/accountTypes.js';
 import { createAccount } from './household/createAccount.js';
 import { bindHouseholdEditor } from './household/commit.js';
+import { findLikelyGpcDuplicateWageRows } from './household/incomeTaxModel.js';
 import { createHouseholdWizardController, HOUSEHOLD_WIZARD_ACCOUNT_TYPES } from './household/wizard.js';
 import {
   ACTIVE_KEY,
@@ -24,9 +30,16 @@ import {
 } from './household/persistence.js';
 import { createGoalsHorizonController } from '../ui/goalsHorizon.js';
 import { createTaxBucketsController } from '../ui/taxBuckets.js';
-import { pathModeLabel, drawSeqChart, renderPrints, syncPathControls, updatePathReplayMode, regenerateRandomPath, closeCashFlowPathReplay } from '../ui/sequencing.js';
-import { mcPathKeyForMode, normalizeCashFlowPathMode, resolveCashFlowSim } from './planning/cashFlowPathReplay.js';
-import { buildPathRows, buildCashSummary, renderCashflow, normalizeCashBreakdown } from '../ui/cashflow.js';
+import {
+  pathModeLabel,
+  drawSeqChart,
+  renderPrints,
+  syncPathControls,
+  updatePathReplayMode,
+  regenerateRandomPath,
+  closeCashFlowPathReplay,
+} from '../ui/sequencing.js';
+import { buildPathRows, buildCashSummary, renderCashflow } from '../ui/cashflow.js';
 import { toneForProb, toneGlow, wdColor, ring, num as scenarioNum, renderCompare, renderFocus } from '../ui/scenarios.js';
 import { solvePanelHTML, goalParamsHtml, comboPillValue } from '../ui/solver.js';
 import {
@@ -93,6 +106,17 @@ function canRunEngine(){
   return !isHouseholdStorageBlocked();
 }
 
+function canRunPlanningModel({ notify = false } = {}){
+  if(!canRunEngine()) return false;
+  if(!findLikelyGpcDuplicateWageRows(plan).length) return true;
+  if(notify){
+    const el = $('#status');
+    if(el) el.textContent = 'Review duplicate salary entries in Household before running planning calculations';
+    syncHeaderCluster();
+  }
+  return false;
+}
+
 function syncRecoveryStatus(message){
   recoveryStatusPinned = true;
   accountMigrationState.message = message;
@@ -144,7 +168,7 @@ function syncRecoveryControls(){
     '#np-content .row-x','#np-content [data-add]','#np-content [data-act]','#scn-add','#scn-view [data-lever-key]','#scn-view .cmp-lev-in',
     '#scn-view .cmp-goal-in','#scn-view .scol__menu','#solve-panel .solve-load','#solve-panel .cc-load'
   ];
-  if(isHouseholdStorageBlocked()) selectors.push('#run-btn','#hh-menu-btn','#hh-load-demo','#hh-switch','#path-mode','#seq-select','#seq-chips button');
+  if(isHouseholdStorageBlocked()) selectors.push('#run-btn','#hh-menu-btn','#hh-load-demo','#hh-switch','#path-mode','#path-regenerate','#seq-select','#seq-chips button');
   if(isHouseholdStorageReadOnly() && !householdsDb.demo) selectors.push('#hh-load-demo');
   document.querySelectorAll(selectors.join(',')).forEach(el => {
     if('disabled' in el) el.disabled=true;
@@ -400,14 +424,14 @@ function removeScenario(ci){
 // Reuses sharedPaths (the cached return-path bundle) so every trial sees the
 // same markets — apples-to-apples, deterministic with our seeded RNG.
 function trySuccess(L){
-  if(!canRunEngine() || isHouseholdStorageReadOnly()) return NaN;
+  if(!canRunPlanningModel() || isHouseholdStorageReadOnly()) return NaN;
   const p = planForScenario(L);
   const ov = leversToOverrides(L);
   return runSimulation(p, ov, sharedPaths).successRate;
 }
 // Probability (0–100) of ending with at least `goal` dollars — the legacy score.
 function tryLegacyProb(L, goal){
-  if(!canRunEngine() || isHouseholdStorageReadOnly()) return NaN;
+  if(!canRunPlanningModel() || isHouseholdStorageReadOnly()) return NaN;
   const p = planForScenario(L);
   const ov = leversToOverrides(L);
   const res = runSimulation(p, ov, sharedPaths);
@@ -1057,7 +1081,6 @@ taxBuckets.bind($('#tax-buckets-view'));
    ownership %, beam) recompute read-only on every sync, never faked.
    ═══════════════════════════════════════════════════════════════════════════ */
 // Ownership is a UI label; data keys stay 'spouse' etc. Visible label is Co-Client.
-let flushHouseholdPendingEdits = () => {};
 const householdWizardController = createHouseholdWizardController({
   getPlan: () => plan,
   renderField: (path, type, extra) => renderField(Object.assign({ path, type }, extra || {})),
@@ -1066,7 +1089,6 @@ const householdWizardController = createHouseholdWizardController({
   isStorageBlocked: isHouseholdStorageBlocked,
   renderBlockedRecoverySurfaces,
   syncRecoveryControls,
-  beforeSync: () => flushHouseholdPendingEdits(),
   onSwitchHousehold: switchHousehold,
   onNewHousehold: newHousehold,
   onLoadDemoHousehold: loadDemoHousehold,
@@ -1763,7 +1785,7 @@ $('#np-content').addEventListener('change', e => {
 });
 
 /* Household field commits and wizard actions are bound in src/household/commit.js. */
-const householdEditorBinding = bindHouseholdEditor({
+bindHouseholdEditor({
   root: $('#hh-view'),
   wizardRoot: document.querySelector('.page[data-page="household"] .hh-wizard'),
   getPlan: () => plan,
@@ -1775,13 +1797,11 @@ const householdEditorBinding = bindHouseholdEditor({
   appState: uiState,
   syncHousehold,
   syncHeaderStatus,
-  persistHousehold: saveActiveHousehold,
   liveCommas,
   getPath,
   setPath,
   ageFromYear: hhAgeFromYear,
 });
-flushHouseholdPendingEdits = householdEditorBinding?.flushPendingEdits ?? (() => {});
 
 // Pension slider range is PER-HOUSEHOLD: it spans only the ages the advisor has
 // actually quoted a benefit for (the keys of benefitByAge). This means the
@@ -1861,7 +1881,7 @@ let running=false;
 // markets across runs make any difference a pure decision-effect, and the
 // fixed seed keeps an unchanged plan at an identical % between Runs.
 function ensureSharedPaths(){
-  if(!canRunEngine()) return null;
+  if(!canRunPlanningModel()) return null;
   const horizon = resolveInputs(plan, {}).horizonYears;
   if(!(horizon > 0)) return null;
   const iters = plan.simulation.iterations;
@@ -1957,6 +1977,7 @@ function scenarioRunFailureMessage(error){
 }
 function runAll(){
   if(!canRunEngine()) return;
+  if(!canRunPlanningModel({ notify: true })) return;
   if(running) return; running=true;
   const btn=$('#run-btn'); btn.disabled=true; syncHeaderStatus('Running…');
   setTimeout(()=>{
@@ -2147,7 +2168,7 @@ function baselineResult(){
 
 /* ── Path Story ───────────────────────────────────────────────────────────
    The baseline run's selected coherent path, told as a statement. The same
-   selected sim the cash-flow drawer replays (selectedPathIndex), digested by
+   selected sim the cash-flow drawer replays (resolveCashFlowSim), digested by
    the engine (pathDigest) — the prose here and the table below are two views
    of one path. Pure formatting of engine fields; no UI math. */
 function renderStory(){
@@ -2278,6 +2299,7 @@ function retireNowClone(p, ov, curAge, retAge, accumYears, analysis){
 }
 function runSeq(){
   if(!canRunEngine()){ renderBlockedRecoverySurfaces(); return; }
+  if(!canRunPlanningModel({ notify: true })) return;
   const sel=$('#seq-select'); const s=scenarios.find(x=>x.name===sel.value)||scenarios[0];
   if(!s) return;
   // Sequence the chosen scenario FAITHFULLY: allocation via the plan clone, every
@@ -2361,14 +2383,13 @@ $('#path-mode').onchange=e=>{
     renderBlockedRecoverySurfaces();
     return;
   }
-  if(isHouseholdStorageReadOnly()) updatePathReplayMode(e.target.value, baselineResult());
-  else updatePathReplayMode(e.target.value, baselineResult());
+  updatePathReplayMode(e.target.value, baselineResult());
   syncPathControls();
   if(window.ScenariosUI) window.ScenariosUI.sync();
   renderStory();
 };
 $('#path-regenerate')?.addEventListener('click', () => {
-  if(isHouseholdStorageBlocked() || isHouseholdStorageReadOnly()) return;
+  if(isHouseholdStorageBlocked()) return;
   regenerateRandomPath(baselineResult());
   syncPathControls();
   if(window.ScenariosUI) window.ScenariosUI.sync();
@@ -2702,18 +2723,18 @@ $('#path-regenerate')?.addEventListener('click', () => {
   }
 
   /* ---- CASH FLOW --------------------------------------------------------- */
-  // Lean summary columns; Income / Goals / Tax / Draw headers open a breakdown.
+  // Visible columns, exactly and in order. No Engine-tax / Federal-tax columns.
+  const CF_COLS = ['Year', 'Age', 'Income', 'RMD', 'Essential', 'Goals', 'Tax', 'Draw', 'Return', 'WD Rate', 'Ending'];
 
   function renderCashflowView(scn, allScns) {
     return renderCashflow(scn, allScns, {
       pathRows: PROD.pathRows,
       cashSummary: PROD.cashSummary,
       cashFromRetirement: state.cashFromRetirement,
-      cashBreakdown: normalizeCashBreakdown(state.cashBreakdown),
       isTypicalPath: PROD.isTypicalPath,
       typicalPathFederalTax: PROD.typicalPathFederalTax,
       pathFederalTax: PROD.pathFederalTax,
-      toneGlow, ring, wdColor, num:scenarioNum, esc, fmtMoney,
+      toneGlow, ring, wdColor, num:scenarioNum, esc, fmtMoney, cfCols: CF_COLS,
     });
   }
 
@@ -2794,12 +2815,6 @@ $('#path-regenerate')?.addEventListener('click', () => {
     // "Start at retirement" — hide the working (accum) years in the cash-flow ledger.
     const retStart = view.querySelector('[data-cash-retstart]');
     if (retStart) retStart.addEventListener('click', () => { state.cashFromRetirement = !state.cashFromRetirement; syncScenariosView(); });
-    view.querySelectorAll('[data-cf-breakdown]').forEach((el) => {
-      el.addEventListener('click', () => {
-        state.cashBreakdown = normalizeCashBreakdown(el.dataset.cfBreakdown);
-        syncScenariosView();
-      });
-    });
     // Always-visible +/- buttons in Compare (discrete levers) and Focus (all levers).
     // data-lever-key + data-dir + optional data-scn-id → stepFocusLever.
     view.querySelectorAll('[data-lever-key]').forEach((el) => {
@@ -2948,7 +2963,7 @@ bindHouseholdRailOnce();   // chapter rail (Demographics / Net Worth / Cash Flow
 if(canRunEngine()){
   reseedScenarios({ markDirty: false });   // align baseline levers with hydrated plan (saved levers can be stale)
   syncHousehold();           // render the editable landing Household page from `plan`
-  runAll();   // first iteration runs immediately so the tool opens populated
+  if(canRunPlanningModel({ notify: true })) runAll();   // first iteration runs immediately so the tool opens populated
 } else {
   renderBlockedRecoverySurfaces();
 }

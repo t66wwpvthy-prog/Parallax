@@ -126,20 +126,43 @@ export function incomeSourceGroups(plan){
   };
 }
 
-export function enteredIncomeTotal(plan){
-  return activeIncomeSources(plan)
-    .reduce((sum, source) => sum + (Number(source.amount) || 0), 0);
+function stableFlatRowSignature(row){
+  return JSON.stringify(Object.keys(row || {})
+    .sort()
+    .map(key => [key, row[key]]));
 }
 
-/** One row per type+owner — matches GPC income slots; last row wins if duplicates exist. */
-export function activeIncomeSources(plan){
-  const seen = new Map();
-  for(const raw of plan.income?.other || []){
-    if(!isSourceActiveNow(plan, raw)) continue;
-    const source = normalizedIncomeSource(plan, raw);
-    seen.set(`${source.typeId}:${source.owner}`, source);
+/**
+ * Detect only the exact duplicate salary rows produced by the retired GPC
+ * flush race. Different jobs and non-salary streams remain separate facts.
+ */
+export function findLikelyGpcDuplicateWageRows(plan){
+  const firstIndexBySignature = new Map();
+  const duplicates = [];
+  const stored = plan.income?.other;
+  const rows = Array.isArray(stored) ? stored : stored ? [stored] : [];
+  for(const [index, row] of rows.entries()){
+    if(row?.typeId !== 'wages' || !(Number(row.amount) > 0)) continue;
+    const owner = row.owner === 'spouse' ? 'spouse' : 'client';
+    const signature = `${owner}:${stableFlatRowSignature(row)}`;
+    if(firstIndexBySignature.has(signature)){
+      duplicates.push(Object.freeze({
+        firstIndex: firstIndexBySignature.get(signature),
+        duplicateIndex: index,
+        typeId: 'wages',
+        owner,
+      }));
+    }else{
+      firstIndexBySignature.set(signature, index);
+    }
   }
-  return [...seen.values()];
+  return Object.freeze(duplicates);
+}
+
+export function enteredIncomeTotal(plan){
+  return (plan.income?.other || [])
+    .filter(source => isSourceActiveNow(plan, source))
+    .reduce((sum, source) => sum + (Number(source.amount) || 0), 0);
 }
 
 export function enteredAdjustmentTotal(plan){

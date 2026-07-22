@@ -8,9 +8,11 @@ import {
   enteredAdjustmentTotal,
   enteredDeductionTotal,
   enteredIncomeTotal,
+  findLikelyGpcDuplicateWageRows,
   incomePhase,
   incomeType,
   isAdjustmentActiveNow,
+  isSourceActiveNow,
   ownerLabel,
 } from '../src/household/incomeTaxModel.js';
 
@@ -272,13 +274,16 @@ function taxStat(label, value, note = '', className = ''){
 
 export function renderHouseholdIncomeTax(plan, deps, state){
   const summary = deps.incomeTaxSummary();
+  const duplicateWages = findLikelyGpcDuplicateWageRows(plan);
   const incomeTotal = enteredIncomeTotal(plan);
   const adjustments = enteredAdjustmentTotal(plan);
   const deductions = enteredDeductionTotal(plan);
 
   const incomeRows = plan.income?.other || [];
   const incomeSlots = allocateSlots(incomeRows, DEFAULT_INCOME_SLOTS,
-    (row, slot) => row.typeId === slot.typeId && (row.owner || 'client') === slot.owner);
+    (row, slot) => row.typeId === slot.typeId
+      && (row.owner || 'client') === slot.owner
+      && (slot.typeId === 'wages' || isSourceActiveNow(plan, row)));
   const incomeIndexed = incomeRows.map((source, index) => ({ ...source, index }));
   const extraIncome = incomeIndexed.filter(row => positive(row) && !incomeSlots.used.has(row.index));
   const workingExtras = extraIncome.filter(source => incomePhase(plan, source) === 'working');
@@ -310,7 +315,8 @@ export function renderHouseholdIncomeTax(plan, deps, state){
   const summaryMessage = summaryReady
     ? 'Computed by the tax engine — updates as inputs change'
     : (summary.message || 'Add required tax facts');
-  const totalIncome = summary.totalIncome ?? incomeTotal;
+  const totalIncome = duplicateWages.length ? null : (summary.totalIncome ?? incomeTotal);
+  const incomeTotalLabel = duplicateWages.length ? 'Review required' : money(incomeTotal);
   const agi = summaryReady ? summary.adjustedGrossIncome : null;
   const deductionUsed = summaryReady ? summary.deductionUsed : null;
   const taxable = summaryReady ? summary.taxableIncome : null;
@@ -330,8 +336,9 @@ export function renderHouseholdIncomeTax(plan, deps, state){
   return `<div class="hh-step-pane hh-it">
     <h2 class="hh-step-title hh-it__title">Income &amp; Tax</h2>
     <p class="hh-it__intro">All known income, pre-tax contributions and deductions — the base year the tax engine works from.</p>
+    ${duplicateWages.length ? `<p class="hh-it__intro" role="alert"><strong>Review duplicate salary entries.</strong> A prior wizard save bug created identical rows. Remove the extra row before running Scenarios; no income fact was deleted automatically.</p>` : ''}
 
-    <div class="hh-it-section-head"><span>INCOME SOURCES</span><strong>${money(incomeTotal)} <small>this year</small></strong></div>
+    <div class="hh-it-section-head"><span>INCOME SOURCES</span><strong>${incomeTotalLabel} <small>this year</small></strong></div>
     <div class="hh-it-grid">
       <section>
         <div class="hh-it-subhead"><span>Working years</span><small>${money(workingTotal)} /yr</small></div>
@@ -368,7 +375,7 @@ export function renderHouseholdIncomeTax(plan, deps, state){
       <div class="hh-it-equation" role="group" aria-label="Taxable income equation">
         <div class="hh-it-equation__cell">
           <span>Total income</span>
-          <strong>${money(totalIncome)}</strong>
+          <strong>${totalIncome == null ? 'Review required' : money(totalIncome)}</strong>
           <small aria-hidden="true">&nbsp;</small>
         </div>
         <div class="hh-it-equation__op" aria-hidden="true">−</div>
