@@ -101,23 +101,18 @@ Extract **when you touch an area**, not as a standalone refactor sprint.
 
 ---
 
-## Active workstreams (priority)
+## Current structural debt (not a roadmap)
 
-1. **Land UI modularization** — merge PR for `refactor/ui-modularization` branch.
-2. **Tax** — T0 inventory → adapter (T1) → NIIT (T2) → spine 17–23 (T3) → benchmark (T4) → UI (T5). See `docs/TAX-HANDOFF-2026-06-22.md`.
-3. **Thin `main.js`** — alongside features: `src/household/persistence.js` first (low risk).
-4. **Asset bucketing** — `engine.js` + tests, then `ui/household.js` inputs, then scenarios/CF display. Start after tax adapter (T1) is stable.
+- UI modularization has landed. Do not revive its old branch plan or move logic back into `index.html`.
+- `src/main.js` remains larger than the target. Continue extracting bounded seams only when that area is touched and browser-verified; do not start a big-bang rewrite.
+- Existing Household seams include `src/household/persistence.js`, `commit.js`, and `wizard.js`. Reuse them before creating another controller layer.
+- Tax work must follow current code, tests, and the real↔nominal contract. Dated phase handoffs are provenance, not active branch or worktree instructions.
+- Historical branches, mockups, QA notes, and backlog entries do not change layer ownership.
 
-**Deferred decision:** Replace engine `row.taxes` with federal tax vs keep parallel compare — decide after tax benchmark (T4), not before. Real↔nominal tax bridge: see `docs/tax/real-vs-nominal-tax-contract.md`.
+The decision to replace engine `row.taxes` with federal tax or keep a parallel comparison remains a product/modeling decision. Real↔nominal tax bridge: see `docs/tax/real-vs-nominal-tax-contract.md`.
 
 ---
 
-## Handoff block (paste at start of new AI sessions)
+## Agent entry point
 
-```
-PARALLAX ARCHITECTURE — read docs/ARCHITECTURE.md and PRINCIPLES.md.
-
-Repo: static ES modules, no bundler. index.html = markup only. src/main.js = thin boot (do not grow). Truth: engine.js (sim), src/tax/ (federal). Views: ui/*. State: src/state.js.
-
-Rules: no math in UI, no tax in engine, no DOM in tax, one module per rule/view, extract from main.js if >50 lines, npm test (+ verify.mjs for UI).
-```
+`AGENTS.md` is the single agent entry point. Do not maintain copy/paste session prompts or active branch instructions in architecture documents.

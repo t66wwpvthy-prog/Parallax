@@ -1,8 +1,10 @@
-# T4 planner adapter handoff
+# T4 planner adapter handoff (historical)
 
-**Branch:** `feat/tax-t4-planner-adapter` (continue on same branch)  
-**Base:** `main` @ `2602fc8` (T1–T3 + T4.1–T4.5 merged)
-**Validation:** `npm test` (190 passed, 1 skipped) + `verify.mjs` passed
+**Status:** T4.1–T4.6 completion record. Do not continue the branch or worktree
+named in older versions of this file. Start any new tax work from the approved
+current base under `AGENTS.md` and establish a fresh test baseline.
+
+**Completion validation:** `npm test` (190 passed, 1 skipped) + `verify.mjs` passed
 
 ## Goal
 
@@ -120,14 +122,3 @@ The federal tax **rules** are largely ready for benchmark returns. T4 connects *
 ## Benchmark reminder
 
 annual-08 authoritative fixture remains the tax-module truth test. T4 validates **planner → tax** wiring on realistic engine rows, not just standalone fixtures.
-
-## GPT session opener (T4.6)
-
-```
-PARALLAX TAX T4 — read docs/tax/GPT-TAX-WORKFLOW.md and docs/tax/T4-HANDOFF.md
-Worktree: C:\Dev\Parallax\.worktrees\Parallax-tax-t4
-Branch: feat/tax-t4-planner-adapter (NOT feat/household-wizard)
-Base: main @ d9360c5 (+ T4.5 PR when merged)
-Tests: npm test (187 baseline) + verify.mjs
-Scope: T4.6 — integration tests (MFJ/single/SS/RMD/survivor) or next gap from Remaining T4 gaps table
-```

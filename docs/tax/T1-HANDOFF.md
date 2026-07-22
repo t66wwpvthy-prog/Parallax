@@ -1,10 +1,9 @@
-# T1 benchmark handoff
+# T1 benchmark handoff (historical)
 
-**Status:** complete (2026-07-10)
+**Status:** complete (2026-07-10). This is benchmark provenance, not an active
+branch instruction.
 
-**Branch:** `feat/tax-t1-benchmark`
-
-**Baseline:** `npm test` — 158 passed, 0 failed.
+**Completion validation:** `npm test` — 158 passed, 0 failed.
 
 ## Authoritative benchmark
 
@@ -29,18 +28,3 @@ Reconciliation: `docs/tax/T1-BENCHMARK-RECONCILIATION.md`
 - Cross-foot and lines 15–24 assertions in `annual1040Fixtures.test.js`
 - Dedicated tolerance test in `authoritativeBenchmark.test.js`
 - No tax rules, engine logic, adapters, or UI changes
-
-## Deferred to later phases
-
-| Item | Phase |
-|------|-------|
-| Schedule D ST/LT classification | T2 |
-| IRS Tax Table vs exact bracket ($0.60) | T2 (optional) |
-| $1,028 self-employment tax calculation | T3 |
-| $543 NIIT calculation | T3 |
-| Planner adapter facts | T4 |
-| Sidecar validation + UI scope | T5 |
-
-## Next: T2
-
-`git checkout feat/tax-t1-benchmark` (or branch `feat/tax-t2-income-spine` after merge)
