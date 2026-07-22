@@ -1,51 +1,37 @@
-# AGENTS.md
+# Parallax agent instructions
 
-## Architecture (read first)
+## Authority
 
-**Before any feature or refactor, read `docs/ARCHITECTURE.md` and `PRINCIPLES.md`.**
+Read these before any feature, fix, or refactor:
 
-Parallax is a static ES-module app. **No new monoliths.**
+1. `PRINCIPLES.md` — product doctrine and what belongs in Parallax.
+2. `docs/ARCHITECTURE.md` — repository layout and code ownership.
+3. `README.md` and `package.json` — current commands and shipping behavior.
 
-| File | Role |
-|------|------|
-| `index.html` | Markup only (~250 lines). One script: `src/main.js`. **Do not add JS here.** |
-| `src/main.js` | Boot, `runAll`, listeners. **Keep thin** — extract new logic to `ui/*` or `src/household/` / `src/scenarios/`. |
-| `src/state.js` | Mutable UI state (scenarios, replay, solver flags). No render/DOM. |
-| `ui/*.js` | View modules (household, goals, scenarios, cashflow, sequencing, solver, …). Display only. |
-| `engine.js` | Simulation truth. Test-guarded. Only place for wealth/path/bucket math. |
-| `src/tax/` | Federal 1040 engine. Never imports `engine.js`. |
-| `src/planning/tax/` | Glue: engine rows → tax input; typical-path attach. |
+If they conflict, that order wins. Tool-specific files may add tool mechanics, but they must not restate or change product or architecture doctrine.
 
-**Decision tree:** see `docs/ARCHITECTURE.md` § "Where new work goes".
+## Clean-work rule
 
-**If ~50+ lines would land in `src/main.js`:** extract a module in the same change.
+- Do not commit directly to `main`.
+- Before editing, confirm the absolute worktree path, branch, base commit, and `git status --short`.
+- If a checkout contains unrelated or uncommitted work, do not switch, stash, reset, clean, or build on it. Create a dedicated worktree from the approved base.
+- Keep one bounded purpose per branch. Do not mix opportunistic cleanup, redesign, or unrelated feature work into the task.
+- Preserve user changes. Never transplant a historical branch or whole file into current `main` without a current-tree comparison.
 
----
+## Architecture boundaries
 
-## Cursor Cloud specific instructions
+- `index.html` is markup only and loads one module entry: `src/main.js`.
+- Keep `src/main.js` to boot, orchestration, and listeners; extract feature logic when an area is touched.
+- `engine.js` owns simulation truth.
+- `src/tax/` owns federal tax rules and must not import `engine.js`.
+- `src/planning/tax/` connects planner rows to tax inputs; it does not own tax-law math.
+- `ui/*` renders and collects inputs; it must not invent engine or tax results.
+- Reuse existing helpers. Do not add dependencies without explicit approval.
 
-Parallax is a static, single-page web app: `index.html` (markup) loads `src/main.js`, which wires the UI to `engine.js`. Styled by `styles/*.css`. Helpers in `ui/*.js`, orchestration in `src/`, tax in `src/tax/`. No backend or database.
+## Verification
 
-Standard commands live in `package.json` and `README.md`:
+- Engine, planning, or tax changes: `npm test`.
+- UI, `src/main.js`, `index.html`, or CSS changes: `npm test` and `node scripts/verify.mjs`.
+- Documentation-only changes: inspect links, paths, and commands for consistency; tests are optional.
 
-- `npm test` — Node test suite (engine + tax rules). Fast, no browser needed.
-- `node scripts/verify.mjs` — full visual verification: runs `npm test`, serves the repo, drives headless Chrome through `index.html`, writes screenshots to `verify-out/`. **Required before claiming UI work is done.**
-- `node scripts/preview.mjs` — dev server at `http://127.0.0.1:8825/` (`PORT`/`HOST`). Must use HTTP, not `file://`.
-
-Non-obvious caveats:
-
-- `scripts/verify.mjs` scans `index.html` for markup and `index.html` + `src/**/*.js` + `ui/**/*.js` for JS symbols.
-- `verify.mjs` Chrome discovery: `PUPPETEER_EXECUTABLE_PATH` or hard-coded paths — not puppeteer cache auto-discovery.
-- `npm ci` postinstall downloads Chrome for Puppeteer.
-- No lint step configured.
-- `localStorage` persists scenarios/households; `verify.mjs` clears it for deterministic runs. Clear site data if manual testing looks wrong.
-
----
-
-## Session handoff (paste when context is heavy)
-
-```
-PARALLAX — read docs/ARCHITECTURE.md. index.html = markup only. main.js = thin boot.
-Truth: engine.js (sim), src/tax/ (federal). Views: ui/*. No math in UI. No tax in engine.
-npm test for engine/tax; + verify.mjs for UI. Extract from main.js if >50 lines.
-```
+Do not claim completion from static checks alone when rendered behavior changed.

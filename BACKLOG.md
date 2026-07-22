@@ -1,17 +1,18 @@
-# Backlog — "need to adds"
+# Backlog
 
-A dead-simple parking lot for future iterations. Drop a one-line bullet whenever
-something comes up mid-flow; don't stop to design it. No status columns, no
-process — just capture it so it isn't lost. Move an item into a real task/PR when
-you're ready to build it. Newest at the top of each section.
+This is a parking lot for unresolved product and modeling questions, not build
+authority or permission to add a feature. Keep only items that can plausibly pass
+`PRINCIPLES.md`; move an approved item into one bounded task and remove it here
+when resolved. Newest items go at the top of each section.
 
 Format: `- [YYYY-MM-DD] short description (why / context)`
 
 ## Ideas / features
-- [2026-07-12] Reconsider Sequencing Playback only when its advisor purpose and
-  place in the core planning flow are clear. The active panel, renderer, styling,
-  and browser contract were deliberately removed before the visual-consistency PR;
-  the complete prior implementation remains recoverable from Git commit `4a293b7`.
+- [2026-07-12] Decide whether to restore or replace the missing Sequencing advisor
+  playback capabilities: retirement-year verdict, same-sequence withdrawal-order
+  comparison, lifetime-tax comparison, and expandable year-by-year engine rows.
+  Track those behaviors separately from visual styling; prior removal is not a
+  final product decision and no historical branch should be restored wholesale.
 - [2026-07-07] Survivor / early-death modeling — a death-age event that, from that
   year on, cuts household expenses by a set % (survivor spends ~70–80%), drops the
   smaller of the two Social Security benefits, and flips filing status MFJ → Single,
@@ -31,12 +32,14 @@ Format: `- [YYYY-MM-DD] short description (why / context)`
   into an invariant.
 
 ## Tech debt / structure
-- [2026-07-10] Thin `src/main.js` — extract to `src/household/*` and `src/scenarios/*`
-  per `docs/ARCHITECTURE.md`. First target: `persistence.js` (household DB). Do alongside
-  feature work, not as a standalone sprint.
-- [2026-07-10] Tax engine completion — see `docs/ARCHITECTURE.md` workstreams and
-  `docs/TAX-HANDOFF-2026-06-22.md` (T0–T6).
-- [2026-07-10] Asset-class bucketing — `engine.js` + `ui/household.js`; after tax T1.
+- [2026-07-10] Thin `src/main.js` — continue extracting bounded seams alongside
+  feature work. Reuse the existing `src/household/persistence.js`, `commit.js`, and
+  `wizard.js`; do not run a standalone refactor sprint.
+- [2026-07-10] Tax accuracy gaps — derive the next bounded gap from current tests,
+  current tax contracts, and an approved product need. Do not resume a branch or
+  worktree named by a dated handoff.
+- [2026-07-10] Asset-class bucketing — reconcile the surviving branch evidence with
+  current engine and tax boundaries before choosing an implementation scope.
 
 ## Flexibility / "don't trap the input"
 - [2026-07-07] Spending lever range is a fixed $80k–$360k window (LEVCFG `spend`).
@@ -51,16 +54,3 @@ Format: `- [YYYY-MM-DD] short description (why / context)`
 - [2026-07-07] Demo currently has $0 working income while pre-retirement (64/63) with
   $30k/yr savings. Consider adding realistic pre-retirement earnings for the two
   years before they retire, if we want the accumulation phase to look real.
-
-## Done (for reference; prune when stale)
-- [2026-07-10] UI modularization (Phases 0–8). `index.html` → 255 lines markup;
-  `src/main.js` boot/orchestration; `src/state.js`; `ui/*` view modules (dom,
-  chartLayout, goalPalette, householdFactories, household, goals, sequencing,
-  cashflow, scenarios, solver). `buildLevers` and retired `#scn-levers` code
-  removed. `verify.mjs` scans html + modules. 156 tests + verify pass.
-- [2026-07-07] Goals Horizon dead code removed from index.html (PR #67). Goals Ledger
-  (`renderGoalsPage`, `initGoalsPage`) is the live view; icon/color constants kept.
-- [2026-07-07] Retirement age goes inert once the household is already retired
-  (hidden from Scenarios levers, no engine effect). Shipped + tested.
-- [2026-07-07] Multi-household persistence + demo/blank factories, per-household
-  scoped scenarios, New/Switch/Reset-Demo controls. Shipped + tested.
