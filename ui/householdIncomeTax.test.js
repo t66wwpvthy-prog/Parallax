@@ -108,6 +108,21 @@ test('nonzero optional income and adjustment rows render without becoming defaul
   assert.match(html, /data-path="income\.other\.0\.amount"/);
 });
 
+test('future interest and dividend rows render in retirement instead of a current-year fixed slot', () => {
+  const value = plan();
+  value.income.other = [{
+    typeId:'dividends', owner:'joint', label:'Future dividends', amount:8600,
+    startAge:67, endAge:999, realGrowth:.02, taxablePct:1, qualifiedPct:.85,
+  }];
+
+  const html = renderHouseholdIncomeTax(value, deps, { hhAddingKey: null });
+  const retirementStart = html.indexOf('<span>Retirement years</span>');
+  const futureRow = html.indexOf('Future dividends');
+
+  assert.ok(retirementStart >= 0 && futureRow > retirementStart);
+  assert.match(html, /data-path="income\.other\.0\.amount"/);
+});
+
 test('adjustment and deduction add flows expose approved vocabularies', () => {
   const adjustment = renderHouseholdIncomeTax(plan(), deps, { hhAddingKey: 'adjustment' });
   assert.match(adjustment, /data-hh-draft="whileWorkingOnly"/);
@@ -132,4 +147,21 @@ test('tax position retains all six required reference outputs', () => {
   assert.match(html, /Requires Medicare threshold rule support/);
   assert.match(html, /\$117,200/);
   assert.match(html, /22%/);
+});
+
+test('duplicate GPC salary rows stay visible for review instead of being silently removed', () => {
+  const value = plan();
+  const wage = {
+    typeId:'wages', owner:'client', label:'Wages or salary', amount:100000,
+    startAge:64, endAge:66, realGrowth:0, taxablePct:1,
+  };
+  value.income.other = [wage, { ...wage }];
+
+  const html = renderHouseholdIncomeTax(value, deps, { hhAddingKey: null });
+
+  assert.match(html, /Review duplicate salary entries/);
+  assert.match(html, /no income fact was deleted automatically/i);
+  assert.match(html, /Review required/);
+  assert.doesNotMatch(html, /\$200,000 <small>this year/);
+  assert.match(html, /data-rmpath="income\.other\.1"/);
 });

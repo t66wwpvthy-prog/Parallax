@@ -1,6 +1,5 @@
 import { buildHouseholdTaxFactContract } from '../planning/tax/buildHouseholdTaxFactContract.js';
-import { createGuidedPlanningWizard } from '../../ui/guidedPlanningWizard.js';
-import { applyItemizedDeductionDisplay } from '../../ui/itemizedDeductionDisplay.js';
+import { createHouseholdWizard } from '../../ui/householdWizard.js';
 import { escHtml } from '../../ui/dom.js';
 import { hhAllAccounts, hhAgeFromYear, hhInitial, hhSelect } from '../../ui/household.js';
 import { getWizardAccountTypes } from './accountTypes.js';
@@ -19,8 +18,6 @@ const STATES = [
   ['DC','District of Columbia'],
 ];
 
-const STEP_COUNT = 5;
-
 export function createHouseholdWizardController({
   getPlan,
   renderField,
@@ -29,7 +26,6 @@ export function createHouseholdWizardController({
   isStorageBlocked,
   renderBlockedRecoverySurfaces,
   syncRecoveryControls,
-  beforeSync,
   onSwitchHousehold,
   onNewHousehold,
   onLoadDemoHousehold,
@@ -42,8 +38,6 @@ export function createHouseholdWizardController({
   let draftLabel = '';
   let draftAmount = '';
   let taxDetailsOpen = false;
-  let gpcPersonTab = 'primary';
-  let gpcWorkMode = 'employed';
   let wizard;
 
   const uiState = {
@@ -59,23 +53,19 @@ export function createHouseholdWizardController({
     set hhTaxDetailsOpen(value){ taxDetailsOpen = value; },
     get hhStep(){ return step; },
     set hhStep(value){ step = value; },
-    get gpcPersonTab(){ return gpcPersonTab; },
-    set gpcPersonTab(value){ gpcPersonTab = value; },
-    get gpcWorkMode(){ return gpcWorkMode; },
-    set gpcWorkMode(value){ gpcWorkMode = value; },
   };
 
   function defaultStep(){
     const plan = getPlan();
     const hasAccounts = (plan.portfolio.extraAccounts || []).length > 0;
     const hasIncome = !!((plan.income.socialSecurity.primary && plan.income.socialSecurity.primary.pia) ||
-                         (plan.income.other || []).some(r => Number(r.amount) > 0));
-    return (hasAccounts || hasIncome) ? STEP_COUNT : 1;
+                         (plan.income.socialSecurity.spouse && plan.income.socialSecurity.spouse.pia));
+    return (hasAccounts || hasIncome) ? 4 : 1;
   }
 
   function ensureWizard(){
     if(wizard) return wizard;
-    wizard = createGuidedPlanningWizard({
+    wizard = createHouseholdWizard({
       get plan(){ return getPlan(); },
       uiState,
       field: (path, type, extra) => renderField(path, type, extra),
@@ -98,8 +88,6 @@ export function createHouseholdWizardController({
     draftLabel = '';
     draftAmount = '';
     taxDetailsOpen = false;
-    gpcPersonTab = 'primary';
-    gpcWorkMode = 'employed';
   }
 
   function updateHouseholdControls(){
@@ -116,24 +104,11 @@ export function createHouseholdWizardController({
     sel.value = activeHouseholdId;
   }
 
-  let syncPending = false;
-  let syncAgain = false;
-
   function sync(){
-    if(syncPending){
-      syncAgain = true;
-      return;
-    }
-    syncPending = true;
-    beforeSync?.();
     const view = $('#hh-view');
-    if(!view){
-      syncPending = false;
-      return;
-    }
+    if(!view) return;
     if(isStorageBlocked()){
       renderBlockedRecoverySurfaces();
-      syncPending = false;
       return;
     }
     const plan = getPlan();
@@ -146,50 +121,38 @@ export function createHouseholdWizardController({
     if($('#hh-avatar-c')) $('#hh-avatar-c').textContent = hhInitial(plan.meta.primaryName, 'C');
     if($('#hh-avatar-s')) $('#hh-avatar-s').textContent =
       (!plan.meta.spouseName || plan.meta.spouseName === 'Co-Client') ? 'CC' : hhInitial(plan.meta.spouseName, 'CC');
-
     const householdWizard = ensureWizard();
     const renderStep = householdWizard.steps[step] || householdWizard.steps[1];
-    view.innerHTML = renderStep();
-    if(step === 4) applyItemizedDeductionDisplay(view, buildCurrentIncomeTaxSummary(plan), plan.incomeTax?.deductions || []);
-
+    view.innerHTML = `<div class="hh-wstep${step === 4 ? ' hh-wstep--bp' : ''}">${renderStep()}</div>`;
     const footer = $('#hh-wiz-footer');
     if(footer) footer.innerHTML = householdWizard.footer(step);
-
-    const sidebarFoot = $('#gpc-sidebar-foot');
-    if(sidebarFoot) sidebarFoot.innerHTML = householdWizard.sidebarFoot(step);
-
     const wizardRoot = document.querySelector('.hh-wizard');
     if(wizardRoot){
-      wizardRoot.dataset.wizardRev = 'gpc-1';
+      wizardRoot.dataset.wizardRev = '8';
       wizardRoot.dataset.wizardStep = String(step);
     }
-
-    for(let i = 1; i <= STEP_COUNT; i++){
+    for(let i = 1; i <= 4; i++){
       const element = $('#hh-step-' + i);
       if(!element) continue;
+      const number = element.querySelector('.hh-step__num');
       element.classList.toggle('is-current', i === step);
       element.classList.toggle('is-done', i < step);
+      if(number) number.textContent = i < step ? '✓' : String(i);
       element.setAttribute('aria-selected', i === step ? 'true' : 'false');
     }
-
+    document.querySelectorAll('.hh-stepper .hh-step__conn').forEach((connector, index) =>
+      connector.classList.toggle('is-done', index < step - 1));
     syncRecoveryControls();
-    syncPending = false;
-    if(syncAgain){
-      syncAgain = false;
-      sync();
-    }
   }
 
   function bindRail(){
     document.querySelectorAll('.hh-stepper .hh-step').forEach(button =>
       button.addEventListener('click', () => {
-        beforeSync?.();
         step = +button.dataset.step || 1;
         addingKey = null;
         accountFormOwner = null;
         sync();
       }));
-
     const menuButton = $('#hh-menu-btn');
     const menu = $('#hh-menu-pop');
     if(menuButton && menu){

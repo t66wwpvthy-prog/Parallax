@@ -1,24 +1,35 @@
-import { pathReplay, savePathReplay, resetCashFlowPathToTypical } from '../src/state.js';
-import {
-  normalizeCashFlowPathMode,
-  pathModeLabel as cashFlowPathModeLabel,
-  pickRandomSimIndex,
-  resolveCashFlowSim,
-  selectedMcSimIndex,
-} from '../src/planning/cashFlowPathReplay.js';
+import { pathReplay, savePathReplay } from '../src/state.js';
 
 import { fmtM } from './formatters.js';
 
 import { CHART_LAYOUT } from './chartLayout.js';
 
-export { normalizeCashFlowPathMode, pickRandomSimIndex, resolveCashFlowSim, selectedMcSimIndex };
+
 
 export function selectedPathIndex(res){
-  return selectedMcSimIndex(res, pathReplay.mode, pathReplay.randomSimIndex);
+  if(!res || !Array.isArray(res.sims) || !res.sims.length) return 0;
+  if(pathReplay.mode === 'typical'){
+    return (res.paths && res.paths.p50 && res.paths.p50.simIndex != null) ? res.paths.p50.simIndex : 0;
+  }
+  if(pathReplay.mode === 'stressed'){
+    return (res.paths && res.paths.p10 && res.paths.p10.simIndex != null) ? res.paths.p10.simIndex : 0;
+  }
+  if(pathReplay.mode === 'favorable'){
+    return (res.paths && res.paths.p90 && res.paths.p90.simIndex != null) ? res.paths.p90.simIndex : 0;
+  }
+  if(pathReplay.mode === 'sequence-stress'){
+    return (res.paths && res.paths.p10 && res.paths.p10.simIndex != null) ? res.paths.p10.simIndex : 0;
+  }
+  return 0;
 }
 
 export function pathModeLabel(){
-  return cashFlowPathModeLabel(pathReplay.mode);
+  return ({
+    typical:'Typical path',
+    stressed:'Stressed path',
+    favorable:'Favorable path',
+    'sequence-stress':'Sequence Stress'
+  })[pathReplay.mode] || 'Typical path';
 }
 
 export function pathOutcomeText(sim){
@@ -41,6 +52,10 @@ export function drawSeqChart(svg, runs, retAge, seqChartSvg, { grid, axisInk }){
 }
 
 export function renderPrints(container, runs, pathDigest){
+  // All three figures come straight from the engine's pathDigest: first-decade
+  // CAGR, lowest balance, and the damage window (longest run of years the
+  // cumulative return sat below its retirement-day level — a long '66/'73
+  // grind hurts a withdrawing portfolio far more than a V-shaped '08 shock).
   const pct=v=>(v>=0?'+':'')+(v*100).toFixed(1)+'%';
   const outcome=r=> r.depletionAge!=null
     ? {t:`Ran dry @ ${r.depletionAge}`, c:'var(--negative-bright)'}
@@ -48,6 +63,8 @@ export function renderPrints(container, runs, pathDigest){
   const card=(m,res)=>{
     const o=outcome(res);
     const d=pathDigest(res);
+    // Only when there IS a drawdown — a good market never goes underwater, so the
+    // row would just read "—". Show it where it tells a story; omit it otherwise.
     const dwBlock = d.underwaterSpellMax ? `
       <div class="pr-row" style="border-bottom:none"><span class="pr-k">Duration</span><span class="pr-v">${d.underwaterSpellMax} yr${d.underwaterSpellMax>1?'s':''}</span></div>
       <div class="dw-bar"><div class="dw-fill" style="width:${Math.min(100,d.underwaterSpellMax/12*100).toFixed(0)}%;background:#c0795f"></div></div>` : '';
@@ -63,29 +80,11 @@ export function renderPrints(container, runs, pathDigest){
 }
 
 export function syncPathControls(){
-  if(typeof document === 'undefined') return;
   const mode=document.querySelector('#path-mode');
-  if(mode) mode.value = normalizeCashFlowPathMode(pathReplay.mode);
-  const regen=document.querySelector('#path-regenerate');
-  if(regen) regen.hidden = normalizeCashFlowPathMode(pathReplay.mode) !== 'random';
+  if(mode) mode.value = pathReplay.mode;
 }
 
-export function updatePathReplayMode(mode, baselineAnalysis = null){
-  const next = normalizeCashFlowPathMode(mode);
-  pathReplay.mode = next;
-  if(next === 'random'){
-    pathReplay.randomSimIndex = pickRandomSimIndex(baselineAnalysis, pathReplay.randomSimIndex);
-  } else {
-    pathReplay.randomSimIndex = null;
-  }
-}
-
-export function regenerateRandomPath(baselineAnalysis){
-  if(normalizeCashFlowPathMode(pathReplay.mode) !== 'random') return;
-  pathReplay.randomSimIndex = pickRandomSimIndex(baselineAnalysis, pathReplay.randomSimIndex);
-}
-
-export function closeCashFlowPathReplay(){
-  resetCashFlowPathToTypical();
-  syncPathControls();
+export function updatePathReplayMode(mode){
+  pathReplay.mode=mode;
+  savePathReplay();
 }

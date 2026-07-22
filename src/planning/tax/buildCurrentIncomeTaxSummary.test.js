@@ -86,7 +86,7 @@ test('current-year federal items route through existing 1040 inputs and Premium 
   assert.match(withCredit.capitalGainsNote, /0% bracket exceeded/);
 });
 
-test('deductible IRA and unsupported SALT filing statuses still fail closed', () => {
+test('deductible IRA and separate property taxes persist but fail closed without required federal facts', () => {
   const ira = buildCurrentIncomeTaxSummary(plan({
     incomeTax: {
       adjustments: [{ typeId:'ira_deduction', owner:'client', amount:7000 }],
@@ -106,7 +106,7 @@ test('deductible IRA and unsupported SALT filing statuses still fail closed', ()
       },
     }));
     assert.equal(propertyTax.status, 'needs_facts');
-    assert.match(propertyTax.message, /married filing jointly only/);
+    assert.match(propertyTax.message, /SALT.*cap rule/);
   }
 });
 
@@ -124,98 +124,14 @@ test('active Social Security uses the taxable-benefits worksheet, including tax-
   assert.ok(summary.adjustedGrossIncome < summary.totalIncome);
 });
 
-test('duplicate income slots do not inflate the tax total', () => {
-  const summary = buildCurrentIncomeTaxSummary(plan({
-    income: {
-      other: [
-        { typeId:'wages', owner:'client', label:'Wages', amount:215000, startAge:50, endAge:64, taxablePct:1 },
-        { typeId:'wages', owner:'client', label:'Wages', amount:215000, startAge:50, endAge:64, taxablePct:1 },
-        { typeId:'wages', owner:'spouse', label:'Wages', amount:215000, startAge:50, endAge:64, taxablePct:1 },
-      ],
-      socialSecurity: { primary: { pia:0, claimAge:67 } },
-    },
-    meta: { filingStatus: 'marriedFilingJointly' },
-    household: {
-      primary: { birthYear: 1976, currentAge: 50, retirementAge: 65, planEndAge: 95 },
-      spouse: { currentAge: 50, retirementAge: 65 },
-    },
+test('unsupported deduction and self-employment facts fail closed instead of fabricating tax', () => {
+  const medical = buildCurrentIncomeTaxSummary(plan({
+    incomeTax: { adjustments: [], deductions: [{ typeId:'medical', amount:5000 }] },
   }));
-  assert.equal(summary.status, 'ready');
-  assert.equal(summary.totalIncome, 430000);
-});
+  assert.equal(medical.status, 'needs_facts');
+  assert.match(medical.message, /AGI-floor/);
+  assert.equal(medical.adjustedGrossIncome, undefined);
 
-test('medical deduction applies the federal AGI floor', () => {
-  const summary = buildCurrentIncomeTaxSummary(plan({
-    incomeTax: {
-      adjustments: [],
-      deductions: [{ typeId:'medical', amount:10000 }],
-      credits: [],
-    },
-  }));
-  assert.equal(summary.status, 'ready');
-  assert.equal(summary.adjustedGrossIncome, 100000);
-  assert.equal(summary.itemizedEnteredAmount, 10000);
-  assert.equal(summary.itemizedDeductionBreakdown.medical.floorAmount, 7500);
-  assert.equal(summary.itemizedDeductionBreakdown.medical.appliedAmount, 2500);
-  assert.equal(summary.itemizedDeduction, 2500);
-  assert.equal(summary.deductionMethod, 'Standard');
-});
-
-test('MFJ SALT rows roll up and apply one 40000 cap', () => {
-  const summary = buildCurrentIncomeTaxSummary(plan({
-    meta: { filingStatus:'marriedFilingJointly' },
-    incomeTax: {
-      adjustments: [],
-      deductions: [
-        { typeId:'salt', amount:20000 },
-        { typeId:'real_estate_tax', amount:18000 },
-        { typeId:'personal_property_tax', amount:6800 },
-      ],
-      credits: [],
-    },
-  }));
-  assert.equal(summary.status, 'ready');
-  assert.equal(summary.itemizedDeductionBreakdown.salt.enteredAmount, 44800);
-  assert.equal(summary.itemizedDeductionBreakdown.salt.appliedAmount, 40000);
-  assert.equal(summary.itemizedDeduction, 40000);
-  assert.equal(summary.deductionMethod, 'Itemized');
-});
-
-test('filled T9 demo reconciles AGI and itemized total', () => {
-  const summary = buildCurrentIncomeTaxSummary(plan({
-    meta: { filingStatus:'marriedFilingJointly' },
-    income: {
-      other: [{ typeId:'wages', owner:'joint', label:'Wages', amount:413000, startAge:50, endAge:64, taxablePct:1 }],
-      socialSecurity: { primary: { pia:0, claimAge:67 } },
-    },
-    incomeTax: {
-      adjustments: [{ typeId:'other', owner:'joint', amount:41750 }],
-      deductions: [
-        { typeId:'medical', amount:8000 },
-        { typeId:'charitable', amount:12000 },
-        { typeId:'mortgage_interest', amount:18400 },
-        { typeId:'salt', amount:44800 },
-      ],
-      credits: [],
-    },
-  }));
-
-  assert.equal(summary.status, 'ready');
-  assert.equal(summary.totalIncome, 413000);
-  assert.equal(summary.adjustments, 41750);
-  assert.equal(summary.adjustedGrossIncome, 371250);
-  assert.equal(summary.itemizedEnteredAmount, 83200);
-  assert.equal(summary.itemizedDeductionBreakdown.medical.appliedAmount, 0);
-  assert.equal(summary.itemizedDeductionBreakdown.salt.appliedAmount, 40000);
-  assert.equal(summary.itemizedDeduction, 70400);
-  assert.equal(summary.deductionMethod, 'Itemized');
-  assert.deepEqual(summary.itemizedDeductionAudits.map(audit => audit.ruleId), [
-    'FED_MEDICAL_EXPENSE_DEDUCTION',
-    'FED_SALT_DEDUCTION_CAP',
-  ]);
-});
-
-test('self-employment facts fail closed instead of fabricating tax', () => {
   const selfEmployment = buildCurrentIncomeTaxSummary(plan({
     income: {
       other: [{ typeId:'self_employment', owner:'client', label:'Consulting', amount:50000, startAge:50, endAge:64, realGrowth:0, taxablePct:1 }],
@@ -225,4 +141,34 @@ test('self-employment facts fail closed instead of fabricating tax', () => {
   assert.equal(selfEmployment.status, 'needs_facts');
   assert.match(selfEmployment.message, /Schedule SE/);
   assert.equal(selfEmployment.federalTaxLiability, undefined);
+});
+
+test('exact duplicate GPC salary rows fail closed while separate pensions remain additive', () => {
+  const wage = {
+    typeId:'wages', owner:'client', label:'Wages or salary', amount:100000,
+    startAge:50, endAge:64, realGrowth:0, taxablePct:1,
+  };
+  const duplicate = buildCurrentIncomeTaxSummary(plan({
+    income: {
+      other: [wage, { ...wage }],
+      socialSecurity: { primary: { pia:0, claimAge:67 } },
+    },
+  }));
+  assert.equal(duplicate.status, 'needs_facts');
+  assert.equal(duplicate.totalIncome, null);
+  assert.match(duplicate.message, /duplicate salary/i);
+  assert.deepEqual(duplicate.duplicateIncomeRows.map(row => row.duplicateIndex), [1]);
+
+  const pensions = buildCurrentIncomeTaxSummary(plan({
+    household: { primary: { birthYear:1956, currentAge:70, retirementAge:65, planEndAge:95 } },
+    income: {
+      other: [
+        { typeId:'pension', owner:'client', label:'Pension A', amount:22000, startAge:65, endAge:999, realGrowth:0, taxablePct:1 },
+        { typeId:'pension', owner:'client', label:'Pension B', amount:14000, startAge:67, endAge:999, realGrowth:0, taxablePct:1 },
+      ],
+      socialSecurity: { primary: { pia:0, claimAge:67 } },
+    },
+  }));
+  assert.equal(pensions.status, 'ready');
+  assert.equal(pensions.totalIncome, 36000);
 });

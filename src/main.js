@@ -1,6 +1,5 @@
 import { runSimulation, resolveInputs, generateReturnPath, resetSeed, LONGRUN_INFLATION, pathDigest, RISK_PROFILES, defaultPlan as plan } from '../engine.js';
 import { runFederalFundingSimulation } from './planning/tax/runMonteCarloWithFederalFunding.js';
-import { attachCashFlowHistoricalPaths } from './planning/cashFlowPathReplay.js';
 import { runHistoricalPathWithFederalTax } from './planning/tax/runHistoricalPathWithFederalTax.js';
 import { buildCurrentTaxBucketSnapshot } from './planning/taxBuckets/buildCurrentTaxBucketSnapshot.js';
 import { fmtM, fmtMoney } from '../ui/formatters.js';
@@ -11,6 +10,7 @@ import { createDemoHousehold, createBlankHousehold } from '../ui/householdFactor
 import { resolveTypeFromLabel } from './household/accountTypes.js';
 import { createAccount } from './household/createAccount.js';
 import { bindHouseholdEditor } from './household/commit.js';
+import { findLikelyGpcDuplicateWageRows } from './household/incomeTaxModel.js';
 import { createHouseholdWizardController, HOUSEHOLD_WIZARD_ACCOUNT_TYPES } from './household/wizard.js';
 import {
   ACTIVE_KEY,
@@ -24,9 +24,8 @@ import {
 } from './household/persistence.js';
 import { createGoalsHorizonController } from '../ui/goalsHorizon.js';
 import { createTaxBucketsController } from '../ui/taxBuckets.js';
-import { pathModeLabel, drawSeqChart, renderPrints, syncPathControls, updatePathReplayMode, regenerateRandomPath, closeCashFlowPathReplay } from '../ui/sequencing.js';
-import { mcPathKeyForMode, normalizeCashFlowPathMode, resolveCashFlowSim } from './planning/cashFlowPathReplay.js';
-import { buildPathRows, buildCashSummary, renderCashflow, normalizeCashBreakdown } from '../ui/cashflow.js';
+import { pathModeLabel, drawSeqChart, renderPrints, syncPathControls, updatePathReplayMode } from '../ui/sequencing.js';
+import { buildPathRows, buildCashSummary, renderCashflow } from '../ui/cashflow.js';
 import { toneForProb, toneGlow, wdColor, ring, num as scenarioNum, renderCompare, renderFocus } from '../ui/scenarios.js';
 import { solvePanelHTML, goalParamsHtml, comboPillValue } from '../ui/solver.js';
 import {
@@ -37,7 +36,7 @@ import { investableTotal, hhAgeFromYear } from '../ui/household.js';
 import {
   scenarios, sharedPaths, plansDirty, baseSnapshot,
   solverResults, solverSearching, comboResults, comboOpen, comboSearching, solverFormOpen, solving,
-  pathReplay, resetCashFlowPathToTypical, uiState, scenariosUiState as state,
+  pathReplay, uiState, scenariosUiState as state,
 } from './state.js';
 /* ╔══════════════════════════════════════════════════════════════╗
    ║  PARALLAX V2 — UI WIRING (calls the engine above)             ║
@@ -91,6 +90,17 @@ function isHouseholdStorageBlocked(){
 
 function canRunEngine(){
   return !isHouseholdStorageBlocked();
+}
+
+function canRunPlanningModel({ notify = false } = {}){
+  if(!canRunEngine()) return false;
+  if(!findLikelyGpcDuplicateWageRows(plan).length) return true;
+  if(notify){
+    const el = $('#status');
+    if(el) el.textContent = 'Review duplicate salary entries in Household before running planning calculations';
+    syncHeaderCluster();
+  }
+  return false;
 }
 
 function syncRecoveryStatus(message){
@@ -400,14 +410,14 @@ function removeScenario(ci){
 // Reuses sharedPaths (the cached return-path bundle) so every trial sees the
 // same markets — apples-to-apples, deterministic with our seeded RNG.
 function trySuccess(L){
-  if(!canRunEngine() || isHouseholdStorageReadOnly()) return NaN;
+  if(!canRunPlanningModel() || isHouseholdStorageReadOnly()) return NaN;
   const p = planForScenario(L);
   const ov = leversToOverrides(L);
   return runSimulation(p, ov, sharedPaths).successRate;
 }
 // Probability (0–100) of ending with at least `goal` dollars — the legacy score.
 function tryLegacyProb(L, goal){
-  if(!canRunEngine() || isHouseholdStorageReadOnly()) return NaN;
+  if(!canRunPlanningModel() || isHouseholdStorageReadOnly()) return NaN;
   const p = planForScenario(L);
   const ov = leversToOverrides(L);
   const res = runSimulation(p, ov, sharedPaths);
@@ -1057,7 +1067,6 @@ taxBuckets.bind($('#tax-buckets-view'));
    ownership %, beam) recompute read-only on every sync, never faked.
    ═══════════════════════════════════════════════════════════════════════════ */
 // Ownership is a UI label; data keys stay 'spouse' etc. Visible label is Co-Client.
-let flushHouseholdPendingEdits = () => {};
 const householdWizardController = createHouseholdWizardController({
   getPlan: () => plan,
   renderField: (path, type, extra) => renderField(Object.assign({ path, type }, extra || {})),
@@ -1066,7 +1075,6 @@ const householdWizardController = createHouseholdWizardController({
   isStorageBlocked: isHouseholdStorageBlocked,
   renderBlockedRecoverySurfaces,
   syncRecoveryControls,
-  beforeSync: () => flushHouseholdPendingEdits(),
   onSwitchHousehold: switchHousehold,
   onNewHousehold: newHousehold,
   onLoadDemoHousehold: loadDemoHousehold,
@@ -1763,7 +1771,7 @@ $('#np-content').addEventListener('change', e => {
 });
 
 /* Household field commits and wizard actions are bound in src/household/commit.js. */
-const householdEditorBinding = bindHouseholdEditor({
+bindHouseholdEditor({
   root: $('#hh-view'),
   wizardRoot: document.querySelector('.page[data-page="household"] .hh-wizard'),
   getPlan: () => plan,
@@ -1775,13 +1783,11 @@ const householdEditorBinding = bindHouseholdEditor({
   appState: uiState,
   syncHousehold,
   syncHeaderStatus,
-  persistHousehold: saveActiveHousehold,
   liveCommas,
   getPath,
   setPath,
   ageFromYear: hhAgeFromYear,
 });
-flushHouseholdPendingEdits = householdEditorBinding?.flushPendingEdits ?? (() => {});
 
 // Pension slider range is PER-HOUSEHOLD: it spans only the ages the advisor has
 // actually quoted a benefit for (the keys of benefitByAge). This means the
@@ -1861,7 +1867,7 @@ let running=false;
 // markets across runs make any difference a pure decision-effect, and the
 // fixed seed keeps an unchanged plan at an identical % between Runs.
 function ensureSharedPaths(){
-  if(!canRunEngine()) return null;
+  if(!canRunPlanningModel()) return null;
   const horizon = resolveInputs(plan, {}).horizonYears;
   if(!(horizon > 0)) return null;
   const iters = plan.simulation.iterations;
@@ -1957,6 +1963,7 @@ function scenarioRunFailureMessage(error){
 }
 function runAll(){
   if(!canRunEngine()) return;
+  if(!canRunPlanningModel({ notify: true })) return;
   if(running) return; running=true;
   const btn=$('#run-btn'); btn.disabled=true; syncHeaderStatus('Running…');
   setTimeout(()=>{
@@ -2003,18 +2010,6 @@ function runAll(){
           // Isolated so a stress hiccup never blanks the scenario's main result.
           try{ s.res.stress = computeHistoricalStress(s, p, ov); }
           catch(stressErr){ s.res.stress = []; console.warn('Historical stress failed:', s.name, stressErr); }
-          try{
-            attachCashFlowHistoricalPaths(
-              s.res,
-              p,
-              ov,
-              taxOptions,
-              normalizeHistoricalStrategy(p.portfolio.withdrawalStrategy)
-            );
-          }catch(histErr){
-            s.res.cashFlowHistorical = null;
-            console.warn('Cash Flow historical paths failed:', s.name, histErr);
-          }
         }catch(err){
           s.res=null;
           s.runError=scenarioRunFailureMessage(err);
@@ -2154,7 +2149,7 @@ function renderStory(){
   const el = $('#story-panel'); if(!el) return;
   const res = baselineResult();
   if(!res || !Array.isArray(res.sims) || !res.sims.length){ el.innerHTML=''; return; }
-  const sim = resolveCashFlowSim(res, pathReplay.mode, pathReplay.randomSimIndex, simByIndex);
+  const sim = simByIndex(res, selectedPathIndex(res));
   if(!sim){ el.innerHTML=''; return; }
   const d = pathDigest(sim);
   const pc = v => (v>=0?'+':'−') + Math.abs(v*100).toFixed(1) + '%';
@@ -2162,13 +2157,8 @@ function renderStory(){
   const endStat = d.failed
     ? `<b>${fmtM(0)}</b><i>depleted at age ${d.depletionAge}</i>`
     : `<b>${fmtM(d.endBalance)}</b><i>ends at age ${endAge}</i>`;
-  const picks = [
-    ['typical','Typical'],
-    ['favorable','Favorable'],
-    ['stressed-pp','Stressed'],
-    ['sequence-dotcom-gfc','Sequence'],
-    ['random','Random'],
-  ].map(([m,l]) => `<button class="${pathReplay.mode===m?'on':''}" data-story-mode="${m}">${l}</button>`).join('');
+  const picks = [['stressed','Stressed'],['typical','Median'],['favorable','Favorable']]
+    .map(([m,l]) => `<button class="${pathReplay.mode===m?'on':''}" data-story-mode="${m}">${l}</button>`).join('');
   const verb = d.first10Supports ? 'cooperate' : 'push back';
   const reads = [
     [pc(d.first10Cagr), 'Market sequence',
@@ -2197,8 +2187,8 @@ function renderStory(){
     <div class="story-sec"><span>What shapes this outcome</span></div>
     ${reads}`;
   el.querySelectorAll('[data-story-mode]').forEach(b => b.onclick = () => {
-    updatePathReplayMode(b.dataset.storyMode, res);
-    syncPathControls(); if(window.ScenariosUI) window.ScenariosUI.sync(); renderStory();
+    pathReplay.mode = b.dataset.storyMode;
+    savePathReplay(); syncPathControls(); if(window.ScenariosUI) window.ScenariosUI.sync(); renderStory();
   });
 }
 
@@ -2278,6 +2268,7 @@ function retireNowClone(p, ov, curAge, retAge, accumYears, analysis){
 }
 function runSeq(){
   if(!canRunEngine()){ renderBlockedRecoverySurfaces(); return; }
+  if(!canRunPlanningModel({ notify: true })) return;
   const sel=$('#seq-select'); const s=scenarios.find(x=>x.name===sel.value)||scenarios[0];
   if(!s) return;
   // Sequence the chosen scenario FAITHFULLY: allocation via the plan clone, every
@@ -2361,19 +2352,11 @@ $('#path-mode').onchange=e=>{
     renderBlockedRecoverySurfaces();
     return;
   }
-  if(isHouseholdStorageReadOnly()) updatePathReplayMode(e.target.value, baselineResult());
-  else updatePathReplayMode(e.target.value, baselineResult());
+  if(isHouseholdStorageReadOnly()) pathReplay.mode=e.target.value;
+  else updatePathReplayMode(e.target.value);
   syncPathControls();
   if(window.ScenariosUI) window.ScenariosUI.sync();
-  renderStory();
 };
-$('#path-regenerate')?.addEventListener('click', () => {
-  if(isHouseholdStorageBlocked() || isHouseholdStorageReadOnly()) return;
-  regenerateRandomPath(baselineResult());
-  syncPathControls();
-  if(window.ScenariosUI) window.ScenariosUI.sync();
-  renderStory();
-});
 // Cash Flow is now an explicit view inside the ScenariosUI view layer (the
 // Compare/Focus/Cash-Flow renderer at the end of this script). The old
 // cf-mode sidebar (cfMode / cfPrimary / cfCompare / renderCfSidebar / setCfMode
@@ -2408,7 +2391,7 @@ $('#path-regenerate')?.addEventListener('click', () => {
     addScenario:  () => { addScenario(); },
     solve:        () => openSolver(),
     afterEngineAction: () => {},      // addScenario already runs runAll()→sync; solver opens a form
-    isTypicalPath:() => normalizeCashFlowPathMode(pathReplay.mode) === 'typical',
+    isTypicalPath:() => pathReplay.mode === 'typical',
     id:        (s) => String(scenarios.indexOf(s)),
     name:      (s) => s.name,
     prob:      (s) => s.res && s.res.successRate,
@@ -2427,15 +2410,18 @@ $('#path-regenerate')?.addEventListener('click', () => {
     goals:     (s) => goalsVM(s),
     stress:    (s) => (s.res && s.res.stress) || [],   // populated by computeHistoricalStress in runAll (engine-derived)
     pathRows:  (s) => buildPathRows(s, {
-      simByIndex, plan,
+      simByIndex, baselineResult, plan,
       currentYear: new Date().getFullYear(),
     }),
     cashSummary: (s) => buildCashSummary(s, {
-      simByIndex, pathDigest,
+      simByIndex, baselineResult, pathDigest,
     }),
     typicalPathFederalTax: (s) => s.res && s.res.typicalPathFederalTax,
     pathFederalTax: (s) => {
-      const pathKey = mcPathKeyForMode(pathReplay.mode);
+      const pathKey = pathReplay.mode === 'favorable' ? 'p90'
+        : pathReplay.mode === 'typical' ? 'p50'
+        : (pathReplay.mode === 'stressed' || pathReplay.mode === 'sequence-stress') ? 'p10'
+        : null;
       return pathKey ? s.res?.pathFederalTax?.[pathKey] : null;
     },
     householdName: () => (plan.meta && (plan.meta.primaryName || plan.meta.household)) || '',
@@ -2702,18 +2688,18 @@ $('#path-regenerate')?.addEventListener('click', () => {
   }
 
   /* ---- CASH FLOW --------------------------------------------------------- */
-  // Lean summary columns; Income / Goals / Tax / Draw headers open a breakdown.
+  // Visible columns, exactly and in order. No Engine-tax / Federal-tax columns.
+  const CF_COLS = ['Year', 'Age', 'Income', 'RMD', 'Essential', 'Goals', 'Tax', 'Draw', 'Return', 'WD Rate', 'Ending'];
 
   function renderCashflowView(scn, allScns) {
     return renderCashflow(scn, allScns, {
       pathRows: PROD.pathRows,
       cashSummary: PROD.cashSummary,
       cashFromRetirement: state.cashFromRetirement,
-      cashBreakdown: normalizeCashBreakdown(state.cashBreakdown),
       isTypicalPath: PROD.isTypicalPath,
       typicalPathFederalTax: PROD.typicalPathFederalTax,
       pathFederalTax: PROD.pathFederalTax,
-      toneGlow, ring, wdColor, num:scenarioNum, esc, fmtMoney,
+      toneGlow, ring, wdColor, num:scenarioNum, esc, fmtMoney, cfCols: CF_COLS,
     });
   }
 
@@ -2794,12 +2780,6 @@ $('#path-regenerate')?.addEventListener('click', () => {
     // "Start at retirement" — hide the working (accum) years in the cash-flow ledger.
     const retStart = view.querySelector('[data-cash-retstart]');
     if (retStart) retStart.addEventListener('click', () => { state.cashFromRetirement = !state.cashFromRetirement; syncScenariosView(); });
-    view.querySelectorAll('[data-cf-breakdown]').forEach((el) => {
-      el.addEventListener('click', () => {
-        state.cashBreakdown = normalizeCashBreakdown(el.dataset.cfBreakdown);
-        syncScenariosView();
-      });
-    });
     // Always-visible +/- buttons in Compare (discrete levers) and Focus (all levers).
     // data-lever-key + data-dir + optional data-scn-id → stepFocusLever.
     view.querySelectorAll('[data-lever-key]').forEach((el) => {
@@ -2908,17 +2888,9 @@ $('#path-regenerate')?.addEventListener('click', () => {
 
   function bindToolbarOnce() {
     const segC = $id('scn-seg-compare'), segF = $id('scn-seg-focus'), chip = $id('scn-cash-toggle');
-    if (segC) segC.addEventListener('click', () => { closeCashFlowPathReplay(); state.cashActive = false; state.view = 'compare'; syncScenariosView(); });
-    if (segF) segF.addEventListener('click', () => { closeCashFlowPathReplay(); state.cashActive = false; state.view = 'focus'; syncScenariosView(); });
-    if (chip) chip.addEventListener('click', () => {
-      if(state.cashActive) closeCashFlowPathReplay();
-      else {
-        resetCashFlowPathToTypical();
-        syncPathControls();
-      }
-      state.cashActive = !state.cashActive;
-      syncScenariosView();
-    });
+    if (segC) segC.addEventListener('click', () => { state.cashActive = false; state.view = 'compare'; syncScenariosView(); });
+    if (segF) segF.addEventListener('click', () => { state.cashActive = false; state.view = 'focus'; syncScenariosView(); });
+    if (chip) chip.addEventListener('click', () => { state.cashActive = !state.cashActive; syncScenariosView(); });
     const add = $id('scn-add'), solve = $id('scn-solve');
     if (add)   add.addEventListener('click',   () => { PROD.addScenario(); PROD.afterEngineAction(); });
     if (solve) solve.addEventListener('click', () => { PROD.solve();       PROD.afterEngineAction(); });
@@ -2948,7 +2920,7 @@ bindHouseholdRailOnce();   // chapter rail (Demographics / Net Worth / Cash Flow
 if(canRunEngine()){
   reseedScenarios({ markDirty: false });   // align baseline levers with hydrated plan (saved levers can be stale)
   syncHousehold();           // render the editable landing Household page from `plan`
-  runAll();   // first iteration runs immediately so the tool opens populated
+  if(canRunPlanningModel({ notify: true })) runAll();   // first iteration runs immediately so the tool opens populated
 } else {
   renderBlockedRecoverySurfaces();
 }

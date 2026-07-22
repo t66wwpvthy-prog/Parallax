@@ -514,25 +514,6 @@
   cursor: pointer;
 }
 
-.page[data-page="scenarios"] .cf__path-controls .scn-path-regen {
-  margin-left: 4px;
-  padding: 3px 10px;
-  font-family: var(--font-sans);
-  font-size: 12px;
-  letter-spacing: 0.04em;
-  text-transform: none;
-  color: var(--text-3);
-  background: transparent;
-  border: 1px solid var(--line-10);
-  border-radius: var(--r-pill);
-  cursor: pointer;
-}
-
-.page[data-page="scenarios"] .cf__path-controls .scn-path-regen:hover {
-  color: var(--text-1);
-  border-color: var(--line-18);
-}
-
 /* summary strip — floats directly on the page, no glass box */
 .page[data-page="scenarios"] .cf-summary { display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap; padding: 4px 0 18px; margin-bottom: 16px; border-bottom: 1px solid var(--line-07); }
 .page[data-page="scenarios"] .cf-summary__id { display: flex; align-items: center; gap: 16px; }
@@ -569,96 +550,29 @@
 
 /* the ledger table */
 .page[data-page="scenarios"] .cf-table { border-radius: 0; overflow: visible; background: transparent; border: 0; box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none; font-variant-numeric: tabular-nums; }
-/* shared grids for header + every data row. Summary stays lean; breakdown
-   modes swap column templates (one detail view at a time). */
+/* shared 11-column grid for header + every data row. Each numeric column gets
+   a minimum sized to ITS OWN header (14px uppercase, nowrap) so headers never
+   collide at narrow widths, then grows proportionally; digits align via
+   tabular-nums on .cf-table.
+   Order: Year Age Income RMD Essential Goals Tax Draw Return WDRate Ending */
 .page[data-page="scenarios"] .cf-grid {
   display: grid;
+  grid-template-columns:
+    64px 40px
+    minmax(72px, 1fr)   /* Income */
+    minmax(56px, 1fr)   /* RMD */
+    minmax(94px, 1fr)   /* Essential */
+    minmax(64px, 1fr)   /* Goals */
+    minmax(52px, 1fr)   /* Tax */
+    minmax(72px, 1fr)   /* Draw — parenthetical outflows e.g. ($62K) */
+    minmax(72px, 0.8fr) /* Return */
+    minmax(80px, 0.8fr) /* WD Rate */
+    minmax(76px, 1.1fr);/* Ending */
   column-gap: 12px;
 }
-.page[data-page="scenarios"] .cf-grid--summary {
-  grid-template-columns:
-    64px 40px
-    minmax(72px, 1fr)   /* Income */
-    minmax(64px, 1fr)   /* Goals */
-    minmax(52px, 1fr)   /* Tax */
-    minmax(72px, 1fr)   /* Draw */
-    minmax(76px, 1.1fr);/* Ending */
-}
-.page[data-page="scenarios"] .cf-grid--income {
-  grid-template-columns:
-    64px 40px
-    minmax(56px, 1fr)   /* SS */
-    minmax(72px, 1fr)   /* Pension */
-    minmax(64px, 1fr)   /* Other */
-    minmax(72px, 1fr)   /* Income */
-    minmax(76px, 1.1fr);/* Ending */
-}
-.page[data-page="scenarios"] .cf-grid--draw {
-  grid-template-columns:
-    64px 40px
-    minmax(72px, 1fr)   /* Taxable */
-    minmax(88px, 1fr)   /* Traditional */
-    minmax(56px, 0.8fr) /* Roth */
-    minmax(56px, 0.8fr) /* Gain */
-    minmax(52px, 0.8fr) /* RMD */
-    minmax(72px, 1fr)   /* Draw */
-    minmax(76px, 1.1fr);/* Ending */
-}
-.page[data-page="scenarios"] .cf-grid--goals {
-  grid-template-columns:
-    64px 40px
-    minmax(80px, 1fr)   /* Recurring */
-    minmax(80px, 1fr)   /* One-time */
-    minmax(64px, 1fr)   /* Goals */
-    minmax(76px, 1.1fr);/* Ending */
-}
-.page[data-page="scenarios"] .cf-grid--tax {
-  grid-template-columns:
-    64px 40px
-    minmax(72px, 1fr)   /* Federal */
-    minmax(72px, 1fr)   /* Engine */
-    minmax(52px, 1fr)   /* Tax */
-    minmax(76px, 1.1fr);/* Ending */
-}
 .page[data-page="scenarios"] .cf-table__head { padding: 11px 6px; border-bottom: 1px solid var(--line-09); }
-.page[data-page="scenarios"] .cf-th {
-  font-size: 12px; letter-spacing: 0.10em; text-transform: uppercase; color: var(--text-5); white-space: nowrap;
-  font-family: inherit; background: transparent; border: 0; padding: 0; text-align: left;
-}
+.page[data-page="scenarios"] .cf-th { font-size: 12px; letter-spacing: 0.10em; text-transform: uppercase; color: var(--text-5); white-space: nowrap; }
 .page[data-page="scenarios"] .cf-th--r { text-align: right; }
-.page[data-page="scenarios"] .cf-th--break {
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 5px;
-  color: var(--text-4);
-}
-.page[data-page="scenarios"] .cf-th--break:hover { color: var(--gold-bright); }
-.page[data-page="scenarios"] .cf-th--break.is-active { color: var(--gold-bright); }
-.page[data-page="scenarios"] .cf-th__caret {
-  width: 0; height: 0;
-  border-left: 3.5px solid transparent;
-  border-right: 3.5px solid transparent;
-  border-top: 4px solid currentColor;
-  opacity: 0.55;
-}
-.page[data-page="scenarios"] .cf-th--break.is-active .cf-th__caret {
-  border-top: 0;
-  border-bottom: 4px solid currentColor;
-}
-.page[data-page="scenarios"] .cf-breakdown-bar {
-  display: flex; align-items: center; gap: 14px;
-  margin: 0 0 10px; padding: 0 2px;
-}
-.page[data-page="scenarios"] .cf-breakdown-bar__back {
-  font-family: inherit; font-size: 13px; color: var(--gold-bright);
-  background: transparent; border: 0; padding: 0; cursor: pointer;
-}
-.page[data-page="scenarios"] .cf-breakdown-bar__back:hover { text-decoration: underline; }
-.page[data-page="scenarios"] .cf-breakdown-bar__label {
-  font-size: 12px; letter-spacing: 0.10em; text-transform: uppercase; color: var(--text-5);
-}
 
 .page[data-page="scenarios"] .cf-band { padding: 0; }
 .page[data-page="scenarios"] .cf-band.is-shaded { background: transparent; }

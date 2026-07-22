@@ -1,12 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  activeIncomeSources,
   createAdjustment,
   createCredit,
   createIncomeSource,
   createIncomeTaxInputs,
   enteredAdjustmentTotal,
+  findLikelyGpcDuplicateWageRows,
   incomeSourceGroups,
   isAdjustmentActiveNow,
 } from './incomeTaxModel.js';
@@ -59,19 +59,6 @@ test('working-only adjustments stop at retirement and joint rows remain active w
   assert.equal(enteredAdjustmentTotal(subject), 14300);
 });
 
-test('active income sources dedupe duplicate type+owner rows', () => {
-  const subject = plan({
-    income: {
-      other: [
-        { typeId:'wages', owner:'client', amount:215000, startAge:50, endAge:999 },
-        { typeId:'wages', owner:'client', amount:215000, startAge:50, endAge:999 },
-        { typeId:'bonus', owner:'client', amount:10000, startAge:50, endAge:999 },
-      ],
-    },
-  });
-  assert.equal(activeIncomeSources(subject).length, 2);
-});
-
 test('new 401(k) adjustments persist their working-only default', () => {
   assert.equal(createAdjustment('401k', 'spouse').whileWorkingOnly, true);
   assert.equal(createAdjustment('hsa', 'joint').whileWorkingOnly, false);
@@ -102,4 +89,37 @@ test('Premium Tax Credit is part of the persisted Income & Tax defaults', () => 
     label: 'Premium Tax Credit',
     amount: 0,
   });
+});
+
+test('known GPC duplicate wages are flagged without collapsing legitimate income streams', () => {
+  const duplicatedWage = {
+    typeId: 'wages',
+    owner: 'client',
+    label: 'Wages or salary',
+    amount: 100000,
+    startAge: 64,
+    endAge: 64,
+    realGrowth: 0,
+    taxablePct: 1,
+  };
+  const subject = plan({
+    income: {
+      other: [
+        duplicatedWage,
+        { ...duplicatedWage },
+        { ...duplicatedWage, label: 'Second job', amount: 20000 },
+        { typeId:'pension', owner:'client', label:'Pension A', amount:22000, startAge:65, endAge:999, taxablePct:1 },
+        { typeId:'pension', owner:'client', label:'Pension B', amount:14000, startAge:67, endAge:999, taxablePct:1 },
+      ],
+    },
+  });
+
+  assert.deepEqual(findLikelyGpcDuplicateWageRows(subject), [{
+    firstIndex: 0,
+    duplicateIndex: 1,
+    typeId: 'wages',
+    owner: 'client',
+  }]);
+  assert.equal(subject.income.other.filter(row => row.typeId === 'pension').length, 2);
+  assert.deepEqual(findLikelyGpcDuplicateWageRows(plan({ income: { other: duplicatedWage } })), []);
 });

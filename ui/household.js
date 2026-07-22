@@ -43,12 +43,6 @@ export function hhInitial(name, fallback){ const n=(name||'').trim(); return n ?
 
 export function hhMoney(v){ const n=Math.round(Number(v)||0); return (n<0?'–$':'$') + Math.abs(n).toLocaleString('en-US'); }
 export function hhShort(v){ const n=Number(v)||0, a=Math.abs(n), s=n<0?'–':''; if(a>=1e6) return s+'$'+(a/1e6).toFixed(2).replace(/\.?0+$/,'')+'M'; if(a>=1e3) return s+'$'+Math.round(a/1e3)+'K'; return s+'$'+Math.round(a); }
-export function hhCompact(v){
-  const x = Math.abs(Number(v) || 0);
-  if(x >= 1e6) return '$' + (x / 1e6).toFixed(x % 1e6 === 0 ? 0 : (x / 1e6 >= 10 ? 1 : 2)).replace(/\.?0+$/, '') + 'M';
-  if(x >= 1e3) return '$' + Math.round(x / 1e3) + 'K';
-  return '$' + Math.round(x);
-}
 
 export function hhSelect(path, value, opts, kind){
   const o = opts.map(([v,l]) => `<option value="${v}" ${v===value?'selected':''}>${l}</option>`).join('');

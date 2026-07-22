@@ -3,21 +3,20 @@ import { CAPITAL_GAINS_THRESHOLDS, ORDINARY_BRACKETS } from '../../tax/core/cons
 import {
   enteredAdjustmentTotal,
   enteredCreditTotal,
-  activeIncomeSources,
+  enteredDeductionTotal,
+  findLikelyGpcDuplicateWageRows,
   isSourceActiveNow,
   normalizedIncomeSource,
 } from '../../household/incomeTaxModel.js';
 import { getRmdStartAge, inferBirthYear } from '../rmdStartAge.js';
-import {
-  buildItemizedDeductionTotal,
-  SALT_DEDUCTION_TYPE_IDS,
-} from './buildItemizedDeductionTotal.js';
 
 const add = (target, key, amount) => { target[key] = (target[key] || 0) + amount; };
 
 function currentIncome(plan){
   const income = {};
-  for(const source of activeIncomeSources(plan)){
+  for(const raw of plan.income?.other || []){
+    if(!isSourceActiveNow(plan, raw)) continue;
+    const source = normalizedIncomeSource(plan, raw);
     const amount = source.amount;
     if(source.typeId === 'wages' || source.typeId === 'bonus') add(income, 'wages', amount);
     else if(source.typeId === 'interest'){
@@ -83,10 +82,12 @@ function unsupportedCurrentInputs(plan, filingStatus, income){
   const unsupportedAdjustment = (plan.incomeTax?.adjustments || [])
     .find(row => row.typeId === 'ira_deduction' && Number(row.amount) > 0);
   if(unsupportedAdjustment) return 'Deductible IRA treatment needs workplace-plan facts';
-  const hasSalt = (plan.incomeTax?.deductions || [])
-    .some(row => SALT_DEDUCTION_TYPE_IDS.includes(row.typeId) && Number(row.amount) > 0);
-  if(hasSalt && filingStatus !== 'marriedFilingJointly'){
-    return 'SALT cap is currently modeled for married filing jointly only';
+  const unsupportedDeduction = (plan.incomeTax?.deductions || [])
+    .find(row => ['medical', 'salt', 'real_estate_tax', 'personal_property_tax'].includes(row.typeId) && Number(row.amount) > 0);
+  if(unsupportedDeduction){
+    return unsupportedDeduction.typeId === 'medical'
+      ? 'Medical deduction needs the federal AGI-floor rule'
+      : 'SALT deduction needs the federal cap rule';
   }
   if(filingStatus === 'marriedFilingSeparately' && Number(income.socialSecurityBenefits) > 0){
     return 'Social Security taxation needs the lived-with-spouse fact for MFS';
@@ -94,17 +95,14 @@ function unsupportedCurrentInputs(plan, filingStatus, income){
   return '';
 }
 
-function currentTaxContext(suffix){
-  return buildDefaultTaxContext({
+function run(intake, suffix){
+  const context = buildDefaultTaxContext({
     taxYear: 2026,
     calculatedAt: new Date().toISOString(),
     runId: `wizard_current_${suffix}`,
     scenarioId: 'household_wizard',
   });
-}
-
-function run(intake, suffix){
-  return runClient1040Intake(intake, currentTaxContext(suffix));
+  return runClient1040Intake(intake, context);
 }
 
 function ordinaryBracketRoom(filingStatus, taxableOrdinaryIncome){
@@ -147,10 +145,20 @@ function rmdSchedule(plan){
 }
 
 export function buildCurrentIncomeTaxSummary(plan){
+  const duplicateWages = findLikelyGpcDuplicateWageRows(plan);
+  if(duplicateWages.length){
+    return {
+      status: 'needs_facts',
+      message: 'Review duplicate salary entries saved by the prior wizard before calculating tax',
+      totalIncome: null,
+      duplicateIncomeRows: duplicateWages,
+    };
+  }
   const filingStatus = plan.meta?.filingStatus;
   const income = currentIncome(plan);
   const adjustments = enteredAdjustmentTotal(plan);
   const premiumTaxCredit = enteredCreditTotal(plan);
+  const itemizedAmount = enteredDeductionTotal(plan);
   const enteredTotal = totalIncome(income);
   if(!filingStatus){
     return { status: 'needs_facts', message: 'Filing status required', totalIncome: enteredTotal };
@@ -177,15 +185,8 @@ export function buildCurrentIncomeTaxSummary(plan){
     }
     if(adjustments > 0) base.adjustments = { total: adjustments };
     const standard = run({ ...base, deductions: { useStandard: true } }, 'standard');
-    const adjustedGrossIncome = standard.annual1040Result?.federalSummary?.adjustedGrossIncome;
-    const itemizedTotal = buildItemizedDeductionTotal({
-      deductions: plan.incomeTax?.deductions || [],
-      adjustedGrossIncome,
-      filingStatus,
-      context: currentTaxContext('itemized_deductions'),
-    });
-    const itemized = itemizedTotal.itemizedAmount > 0
-      ? run({ ...base, deductions: { itemizedAmount: itemizedTotal.itemizedAmount } }, 'itemized')
+    const itemized = itemizedAmount > 0
+      ? run({ ...base, deductions: { itemizedAmount } }, 'itemized')
       : null;
     const standardDeduction = standard.result?.form1040?.line12e?.value ?? 0;
     const itemizedDeduction = itemized?.result?.form1040?.line12e?.value ?? 0;
@@ -209,10 +210,7 @@ export function buildCurrentIncomeTaxSummary(plan){
       deductionUsed: annual.lines.line15.value == null ? null : Math.max(standardDeduction, itemizedDeduction),
       deductionMethod: itemizedDeduction > standardDeduction ? 'Itemized' : 'Standard',
       standardDeduction,
-      itemizedEnteredAmount: itemizedTotal.enteredAmount,
       itemizedDeduction,
-      itemizedDeductionBreakdown: itemizedTotal.breakdown,
-      itemizedDeductionAudits: itemizedTotal.audits,
       adjustedGrossIncome: annual.federalSummary.adjustedGrossIncome,
       taxableIncome: annual.federalSummary.taxableIncome,
       federalTaxLiability: annual.federalSummary.federalTaxLiability,
