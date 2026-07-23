@@ -1,6 +1,7 @@
-name: Parallax tests
+name: engine tests
 
-# Run the package's complete declared Node test suite on every push and PR.
+# The engine is sacred. This guard runs engine.test.js on every push and PR,
+# so the math can never silently break while the UI is rebuilt.
 on:
   push:
   pull_request:

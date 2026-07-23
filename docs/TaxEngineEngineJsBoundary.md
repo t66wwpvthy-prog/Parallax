@@ -146,13 +146,3 @@ advisor interpretation
 - engine.js remains the owner of projection, resilience testing, and outcome modeling.
 
 **Final doctrine:** engine.js projects. Tax engine calculates. Planning layer compares. The advisor interprets. Parallax shows.
-
----
-
-### Real-dollar ↔ nominal tax
-
-Dollar conventions (inflate year facts → Form 1040 → deflate liability) live in:
-
-**`docs/tax/real-vs-nominal-tax-contract.md`**
-
-Planning helpers: `src/planning/tax/realNominalBridge.js`. Do not put inflation math inside tax rules.

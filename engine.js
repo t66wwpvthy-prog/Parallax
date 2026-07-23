@@ -1,6 +1,5 @@
 import { resolvePortfolioAccounts } from './src/household/resolvePortfolioAccounts.js';
 import { resolveTaxableStartingBasis } from './src/household/resolveTaxableStartingBasis.js';
-import { getRmdStartAge, inferBirthYear } from './src/planning/rmdStartAge.js';
 
 /* ============================================================================
    PARALLAX ENGINE  —  the heart of the model. Treat as SACRED.
@@ -743,20 +742,11 @@ function resolveInputs(plan, ov){
     }
   }
 
-  const asOfYear = Number.isFinite(ov.asOfYear)
-    ? ov.asOfYear
-    : (Number.isFinite(plan.meta?.asOfYear) ? plan.meta.asOfYear : new Date().getFullYear());
-  const rmdBirthYear = inferBirthYear(pCurAge, asOfYear);
-  const rmdStartAge = getRmdStartAge(rmdBirthYear) ?? 73;
-
   return {
     currentAge: plan.household.primary.currentAge,
     retirementAge,
     savingsAnnual,
     savingsSplit,
-    asOfYear,
-    rmdBirthYear,
-    rmdStartAge,
     horizonYears: horizon,
     accounts,  // structured account container
     portfolio: {
@@ -875,16 +865,15 @@ function resolveInputs(plan, ov){
 
 
 // ── RMDs (Required Minimum Distributions) ───────────────────────────────────
-// SECURE / SECURE 2.0: pre-tax (Traditional) sleeve distributes a minimum each
-// year from the owner's RMD start age = prior-year-end balance ÷ the IRS Uniform
-// Lifetime divisor for that age. Start age comes from birth year inferred as
-// asOfYear - currentAge (see getRmdStartAge). Combined Traditional sleeve is still
-// timed on the primary age timeline — not owner-by-owner legal RMD truth.
-// Roth is exempt. Excess after tax is reinvested into the taxable sleeve.
+// SECURE 2.0: the pre-tax (Traditional) sleeve must distribute a minimum each
+// year from age 73 = prior-year-end balance ÷ the IRS Uniform Lifetime divisor
+// for that age. Roth is exempt. The distribution is ordinary income; any part
+// not needed for spending is reinvested (after tax) into the taxable sleeve —
+// you must TAKE it, not SPEND it, so the portfolio only loses the tax.
 //
 // Divisors: IRS Uniform Lifetime Table (Pub 590-B, Table III), current 2026.
+const RMD_START_AGE = 73;
 const UNIFORM_LIFETIME = {
-  70:29.1, 71:28.2, 72:27.4,
   73:26.5, 74:25.5, 75:24.6, 76:23.7, 77:22.9, 78:22.0, 79:21.1, 80:20.2,
   81:19.4, 82:18.5, 83:17.7, 84:16.8, 85:16.0, 86:15.2, 87:14.4, 88:13.7,
   89:12.9, 90:12.2, 91:11.5, 92:10.8, 93:10.1, 94:9.5, 95:8.9, 96:8.4,
@@ -892,10 +881,9 @@ const UNIFORM_LIFETIME = {
   105:4.6, 106:4.3, 107:4.1, 108:3.9, 109:3.7, 110:3.5, 111:3.4, 112:3.3,
   113:3.1, 114:3.0, 115:2.9, 116:2.8, 117:2.7, 118:2.5, 119:2.3, 120:2.0
 };
-function rmdDivisor(age, rmdStartAge){
-  if(!(age >= rmdStartAge)) return Infinity;        // no RMD → required = 0
-  const keyed = Math.max(70, Math.min(Math.floor(age), 120));
-  return UNIFORM_LIFETIME[keyed];                    // table floors at 120+
+function rmdDivisor(age){
+  if(age < RMD_START_AGE) return Infinity;          // no RMD → required = 0
+  return UNIFORM_LIFETIME[Math.min(age, 120)];      // table floors at 120+
 }
 
 function externalIncomeAtAge(p, age){
@@ -1016,9 +1004,8 @@ function buildFederalFundingCandidate({
     roth: accounts.roth.balance,
   };
   const taxableStartingBasis = accounts.taxable.basis;
-  const rmdStartAge = p.rmdStartAge ?? 73;
-  const rmdRequired = age >= rmdStartAge && accountStartingBalances.traditional > 0.01
-    ? accountStartingBalances.traditional / rmdDivisor(age, rmdStartAge)
+  const rmdRequired = age >= RMD_START_AGE && accountStartingBalances.traditional > 0.01
+    ? accountStartingBalances.traditional / rmdDivisor(age)
     : 0;
 
   const adjustedGap = gap + taxFundingAdjustment;
@@ -1423,10 +1410,10 @@ function runSinglePath(p, returnPath, options = {}){
       roth: accounts.roth.balance
     };
     const taxableStartingBasis = accounts.taxable.basis;
-    // Combined Traditional sleeve on the primary age timeline (not owner-by-owner).
-    const rmdStartAge = p.rmdStartAge ?? 73;
-    const rmdRequired = age >= rmdStartAge && accountStartingBalances.traditional > 0.01
-      ? accountStartingBalances.traditional / rmdDivisor(age, rmdStartAge)
+    // Existing engine RMD model: combined Traditional sleeve on the primary
+    // age timeline. This is a planning fact, not owner-by-owner legal RMD truth.
+    const rmdRequired = age >= RMD_START_AGE && accountStartingBalances.traditional > 0.01
+      ? accountStartingBalances.traditional / rmdDivisor(age)
       : 0;
 
     if(taxPolicy && fundTaxPolicyDelta){

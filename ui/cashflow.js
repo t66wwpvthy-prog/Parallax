@@ -1,5 +1,4 @@
-import { resolveCashFlowSim } from '../src/planning/cashFlowPathReplay.js';
-import { pathReplay } from '../src/state.js';
+import { selectedPathIndex } from './sequencing.js';
 
 
 
@@ -9,6 +8,7 @@ export function cfWdColor(wd, shortfall) {
     if (wd < 7) return 'var(--down)';
     return 'var(--down-deep)';
   }
+
 export function goalTagFor(plan, r, age) {
     if (!(r.goals > 0)) return null;
     const g = (Array.isArray(plan.goals) ? plan.goals : [])
@@ -17,10 +17,10 @@ export function goalTagFor(plan, r, age) {
   }
 
 export function buildPathRows(s, {
-    simByIndex, plan, currentYear,
+    simByIndex, baselineResult, plan, currentYear,
   }) {
     if (!s.res) return [];
-    const sim = resolveCashFlowSim(s.res, pathReplay.mode, pathReplay.randomSimIndex, simByIndex);
+    const sim = simByIndex(s.res, selectedPathIndex(baselineResult()));
     if (!sim || !Array.isArray(sim.rows)) return [];
     const curAge = plan.household.primary.currentAge;
     const baseYear = currentYear;
@@ -47,10 +47,10 @@ export function buildPathRows(s, {
   }
 
 export function buildCashSummary(s, {
-    simByIndex, pathDigest,
+    simByIndex, baselineResult, pathDigest,
   }) {
     if (!s.res) return {};
-    const sim = resolveCashFlowSim(s.res, pathReplay.mode, pathReplay.randomSimIndex, simByIndex);
+    const sim = simByIndex(s.res, selectedPathIndex(baselineResult()));
     if (!sim) return {};
     let d = {};
     try { d = (typeof pathDigest === 'function') ? pathDigest(sim) : {}; } catch (e) { d = {}; }
@@ -169,15 +169,12 @@ export function federalWarningMessage(warning) {
     return 'Federal tax calculation warning';
   }
 
-export function groupPhases(rows, rmdStartAge = null) {
+export function groupPhases(rows) {
     if (!rows.length) return [];
-    const start = Number.isFinite(rmdStartAge)
-      ? rmdStartAge
-      : (rows.find((r) => (r.rmdRequired || 0) > 0)?.age ?? null);
-    if(start == null) return [{ rows }];
+    const RMD_START_AGE = 73;
     return [
-      { rows: rows.filter((r) => r.age < start) },
-      { rows: rows.filter((r) => r.age >= start) },
+      { rows: rows.filter((r) => r.age < RMD_START_AGE) },
+      { rows: rows.filter((r) => r.age >= RMD_START_AGE) },
     ].filter((p) => p.rows.length);
   }
 
@@ -210,9 +207,8 @@ export function renderCashflow(scn, allScns, {
     )).join('');
 
     const retStartAge = rows.find((r) => !r.accum)?.age ?? null;
-    const rmdStartAge = Number.isFinite(scn.raw?.res?.params?.rmdStartAge)
-      ? scn.raw.res.params.rmdStartAge
-      : (rows.find((r) => (r.rmdRequired || 0) > 0)?.age ?? null);
+    const RMD_START_AGE = 73;
+    const rmdStartAge = rows.find((r) => r.age >= RMD_START_AGE)?.age ?? null;
 
     const taxComparisonHtml = taxComparison ? (
       '<div class="cf-tax-compare" data-tax-compare style="display:contents;"' +
@@ -289,7 +285,7 @@ export function renderCashflow(scn, allScns, {
       );
     };
 
-    const phases = groupPhases(rows, rmdStartAge).map((p, idx) => (
+    const phases = groupPhases(rows).map((p, idx) => (
       '<div class="cf-band ' + (idx % 2 === 1 ? 'is-shaded' : '') + '">' + p.rows.map(rowHtml).join('') + '</div>'
     )).join('');
 
@@ -323,3 +319,4 @@ export function renderCashflow(scn, allScns, {
       '</div>'
     );
   }
+

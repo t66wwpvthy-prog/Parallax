@@ -1,25 +1,35 @@
-import { pathReplay, resetCashFlowPathToTypical } from '../src/state.js';
-import {
-  normalizeCashFlowPathMode,
-  pathModeLabel as cashFlowPathModeLabel,
-  pickRandomSimIndex,
-  resolveCashFlowSim,
-  selectedMcSimIndex,
-} from '../src/planning/cashFlowPathReplay.js';
+import { pathReplay, savePathReplay } from '../src/state.js';
 
 import { fmtM } from './formatters.js';
 
 import { CHART_LAYOUT } from './chartLayout.js';
 
-export { normalizeCashFlowPathMode, pickRandomSimIndex, resolveCashFlowSim, selectedMcSimIndex };
 
 
 export function selectedPathIndex(res){
-  return selectedMcSimIndex(res, pathReplay.mode, pathReplay.randomSimIndex);
+  if(!res || !Array.isArray(res.sims) || !res.sims.length) return 0;
+  if(pathReplay.mode === 'typical'){
+    return (res.paths && res.paths.p50 && res.paths.p50.simIndex != null) ? res.paths.p50.simIndex : 0;
+  }
+  if(pathReplay.mode === 'stressed'){
+    return (res.paths && res.paths.p10 && res.paths.p10.simIndex != null) ? res.paths.p10.simIndex : 0;
+  }
+  if(pathReplay.mode === 'favorable'){
+    return (res.paths && res.paths.p90 && res.paths.p90.simIndex != null) ? res.paths.p90.simIndex : 0;
+  }
+  if(pathReplay.mode === 'sequence-stress'){
+    return (res.paths && res.paths.p10 && res.paths.p10.simIndex != null) ? res.paths.p10.simIndex : 0;
+  }
+  return 0;
 }
 
 export function pathModeLabel(){
-  return cashFlowPathModeLabel(pathReplay.mode);
+  return ({
+    typical:'Typical path',
+    stressed:'Stressed path',
+    favorable:'Favorable path',
+    'sequence-stress':'Sequence Stress'
+  })[pathReplay.mode] || 'Typical path';
 }
 
 export function pathOutcomeText(sim){
@@ -70,29 +80,11 @@ export function renderPrints(container, runs, pathDigest){
 }
 
 export function syncPathControls(){
-  if(typeof document === 'undefined') return;
   const mode=document.querySelector('#path-mode');
-  if(mode) mode.value = normalizeCashFlowPathMode(pathReplay.mode);
-  const regen=document.querySelector('#path-regenerate');
-  if(regen) regen.hidden = normalizeCashFlowPathMode(pathReplay.mode) !== 'random';
+  if(mode) mode.value = pathReplay.mode;
 }
 
-export function updatePathReplayMode(mode, baselineAnalysis = null){
-  const next = normalizeCashFlowPathMode(mode);
-  pathReplay.mode = next;
-  if(next === 'random'){
-    pathReplay.randomSimIndex = pickRandomSimIndex(baselineAnalysis, pathReplay.randomSimIndex);
-  } else {
-    pathReplay.randomSimIndex = null;
-  }
-}
-
-export function regenerateRandomPath(baselineAnalysis){
-  if(normalizeCashFlowPathMode(pathReplay.mode) !== 'random') return;
-  pathReplay.randomSimIndex = pickRandomSimIndex(baselineAnalysis, pathReplay.randomSimIndex);
-}
-
-export function closeCashFlowPathReplay(){
-  resetCashFlowPathToTypical();
-  syncPathControls();
+export function updatePathReplayMode(mode){
+  pathReplay.mode=mode;
+  savePathReplay();
 }

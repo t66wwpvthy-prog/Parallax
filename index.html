@@ -11,12 +11,12 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3E%3Crect%20width='64'%20height='64'%20rx='12'%20fill='%231e3d2b'/%3E%3Cpath%20d='M16%2038c8-20%2024-20%2032%200'%20fill='none'%20stroke='%23d9a07e'%20stroke-width='6'%20stroke-linecap='round'/%3E%3Ccircle%20cx='32'%20cy='32'%20r='7'%20fill='%23e5d9c4'/%3E%3C/svg%3E"/>
 <!-- ?v= cache-buster: bump on any CSS change so browsers fetch the new file
      instead of serving a stale cached copy (GitHub Pages caches CSS hard). -->
-<link rel="stylesheet" href="styles/main.css?v=17"/>
-<link rel="stylesheet" href="styles/household.css?v=44"/>
-<link rel="stylesheet" href="styles/scenarios.css?v=15"/>
+<link rel="stylesheet" href="styles/main.css?v=16"/>
+<link rel="stylesheet" href="styles/household.css?v=34"/>
+<link rel="stylesheet" href="styles/scenarios.css?v=14"/>
 <link rel="stylesheet" href="styles/sequencing.css?v=1"/>
 <link rel="stylesheet" href="styles/goals.css?v=8"/>
-<link rel="stylesheet" href="styles/header.css?v=3"/>
+<link rel="stylesheet" href="styles/header.css?v=2"/>
 <link rel="stylesheet" href="styles/tax-buckets.css?v=1"/>
 </head>
 <body>
@@ -57,8 +57,7 @@
     <div class="hh-stage">
       <!-- Household controls sit above the card shell (spec: card = stepper + workspace + footer). -->
       <div class="hh-wiz-top">
-        <!-- Identity kept in DOM for persistence/verify hooks; visually removed to reclaim vertical space. -->
-        <div class="hh-wiz-id" hidden>
+        <div class="hh-wiz-id">
           <div class="hh-avatars">
             <div class="hh-avatar hh-avatar--c" id="hh-avatar-c" aria-hidden="true">C</div>
             <div class="hh-avatar hh-avatar--s" id="hh-avatar-s" aria-hidden="true">S</div>
@@ -72,8 +71,6 @@
                   aria-haspopup="true" aria-expanded="false" title="Household options">⋯</button>
           <div class="hh-menu__pop" id="hh-menu-pop" hidden>
             <select class="hh-rail__switch-sel" id="hh-switch" title="Open household" aria-label="Open household"></select>
-            <button class="hh-rail-act" id="hh-save-as" type="button" title="Save a named copy of this household">Save As…</button>
-            <button class="hh-rail-act" id="hh-rename" type="button" title="Rename the active household in the switcher">Rename…</button>
             <button class="hh-rail-act hh-rail-act--new" id="hh-new" type="button" title="Create a new blank household">New Household</button>
             <button class="hh-rail-act" id="hh-load-demo" type="button" title="Open the blank demo household">Load Demo</button>
           </div>
@@ -85,13 +82,15 @@
         <!-- Gold progress stepper = the view switch. The view layer toggles
              .is-current / .is-done and renders the matching step into #hh-view. -->
         <nav class="hh-stepper" role="tablist" aria-label="Household setup steps">
-          <button class="hh-step" id="hh-step-1" data-step="1" type="button" role="tab" aria-controls="hh-view"><span class="hh-step__num">1</span><span class="hh-step__label">Profile</span></button>
+          <button class="hh-step" id="hh-step-1" data-step="1" type="button" role="tab" aria-controls="hh-view"><span class="hh-step__num">1</span><span class="hh-step__label">People &amp; Timeline</span></button>
           <span class="hh-step__conn" aria-hidden="true"></span>
           <button class="hh-step" id="hh-step-2" data-step="2" type="button" role="tab" aria-controls="hh-view"><span class="hh-step__num">2</span><span class="hh-step__label">Balance Sheet</span></button>
           <span class="hh-step__conn" aria-hidden="true"></span>
           <button class="hh-step" id="hh-step-3" data-step="3" type="button" role="tab" aria-controls="hh-view"><span class="hh-step__num">3</span><span class="hh-step__label">Income &amp; Tax</span></button>
           <span class="hh-step__conn" aria-hidden="true"></span>
-          <button class="hh-step" id="hh-step-4" data-step="4" type="button" role="tab" aria-controls="hh-view"><span class="hh-step__num">4</span><span class="hh-step__label">Summary</span></button>
+          <button class="hh-step" id="hh-step-4" data-step="4" type="button" role="tab" aria-controls="hh-view"><span class="hh-step__num">4</span><span class="hh-step__label">Spending &amp; Goals</span></button>
+          <span class="hh-step__conn" aria-hidden="true"></span>
+          <button class="hh-step" id="hh-step-5" data-step="5" type="button" role="tab" aria-controls="hh-view"><span class="hh-step__num">5</span><span class="hh-step__label">Blueprint</span></button>
         </nav>
 
         <div class="hh-wiz-workspace">
@@ -157,12 +156,10 @@
       <label class="scn-path" id="scn-path-replay">Path
         <select id="path-mode">
             <option value="typical">Typical path</option>
+            <option value="stressed">Stressed path</option>
             <option value="favorable">Favorable path</option>
-            <option value="stressed-pp">Stressed</option>
-            <option value="sequence-dotcom-gfc">Sequence</option>
-            <option value="random">Random path</option>
+            <option value="sequence-stress">Sequence Stress</option>
           </select>
-        <button type="button" class="scn-path-regen" id="path-regenerate" hidden>↻ Regenerate</button>
         </label>
     </div>
   </section>

@@ -76,7 +76,7 @@ select option{background:#14161b;color:var(--text-2,#d9d4c9)}
 /* ─── PANEL LAYER ───────────────────────────────────────────────────
    Shared page shell. The single panel treatment is declared with the app-shell
    selectors near the end of this file, after component layout rules. */
-.page{flex:1 1 auto;min-width:0;min-height:0;display:none;flex-direction:column;padding:0 28px 22px}
+.page{flex:1 1 auto;min-height:0;display:none;flex-direction:column;padding:0 28px 22px}
 .page.on{display:flex}
 .eyebrow{font-size:14px;color:var(--ink-mute);letter-spacing:.26em;text-transform:uppercase;font-weight:500;display:flex;align-items:center;gap:12px}
 .eyebrow::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,var(--rule-bright),transparent);max-width:320px}
