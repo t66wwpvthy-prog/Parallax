@@ -29,8 +29,6 @@ export function createHouseholdWizardController({
   onSwitchHousehold,
   onNewHousehold,
   onLoadDemoHousehold,
-  onSaveHouseholdAs,
-  onRenameHousehold,
 }){
   let step = 1;
   let accountFormOwner = null;
@@ -60,7 +58,7 @@ export function createHouseholdWizardController({
     const hasAccounts = (plan.portfolio.extraAccounts || []).length > 0;
     const hasIncome = !!((plan.income.socialSecurity.primary && plan.income.socialSecurity.primary.pia) ||
                          (plan.income.socialSecurity.spouse && plan.income.socialSecurity.spouse.pia));
-    return (hasAccounts || hasIncome) ? 4 : 1;
+    return (hasAccounts || hasIncome) ? 5 : 1;
   }
 
   function ensureWizard(){
@@ -123,15 +121,15 @@ export function createHouseholdWizardController({
       (!plan.meta.spouseName || plan.meta.spouseName === 'Co-Client') ? 'CC' : hhInitial(plan.meta.spouseName, 'CC');
     const householdWizard = ensureWizard();
     const renderStep = householdWizard.steps[step] || householdWizard.steps[1];
-    view.innerHTML = `<div class="hh-wstep${step === 4 ? ' hh-wstep--bp' : ''}">${renderStep()}</div>`;
+    view.innerHTML = `<div class="hh-wstep${step === 5 ? ' hh-wstep--bp' : ''}">${renderStep()}</div>`;
     const footer = $('#hh-wiz-footer');
     if(footer) footer.innerHTML = householdWizard.footer(step);
     const wizardRoot = document.querySelector('.hh-wizard');
     if(wizardRoot){
-      wizardRoot.dataset.wizardRev = '8';
+      wizardRoot.dataset.wizardRev = '7';
       wizardRoot.dataset.wizardStep = String(step);
     }
-    for(let i = 1; i <= 4; i++){
+    for(let i = 1; i <= 5; i++){
       const element = $('#hh-step-' + i);
       if(!element) continue;
       const number = element.querySelector('.hh-step__num');
@@ -170,34 +168,9 @@ export function createHouseholdWizardController({
       });
     }
     const switcher = $('#hh-switch');
-    const saveAsButton = $('#hh-save-as');
-    const renameButton = $('#hh-rename');
     const newButton = $('#hh-new');
     const loadDemoButton = $('#hh-load-demo');
-    const closeMenu = () => {
-      if(menu){
-        menu.hidden = true;
-        menuButton?.setAttribute('aria-expanded', 'false');
-      }
-    };
     if(switcher) switcher.addEventListener('change', event => onSwitchHousehold(event.target.value));
-    if(saveAsButton) saveAsButton.addEventListener('click', () => {
-      closeMenu();
-      const plan = getPlan();
-      const current = (plan?.meta?.name || '').trim();
-      const suggestion = (!current || current === 'New Household' || current === 'Demo Household')
-        ? 'Test household'
-        : `${current} copy`;
-      const name = window.prompt('Save household as:', suggestion);
-      if(name != null) onSaveHouseholdAs?.(name);
-    });
-    if(renameButton) renameButton.addEventListener('click', () => {
-      closeMenu();
-      const plan = getPlan();
-      const current = (plan?.meta?.name || 'Household').trim() || 'Household';
-      const name = window.prompt('Rename household:', current);
-      if(name != null) onRenameHousehold?.(name);
-    });
     if(newButton) newButton.addEventListener('click', () => onNewHousehold());
     if(loadDemoButton) loadDemoButton.addEventListener('click', () => onLoadDemoHousehold());
     step = defaultStep();

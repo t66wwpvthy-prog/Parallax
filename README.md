@@ -9,28 +9,25 @@ this file — conflicts with it, `PRINCIPLES.md` wins.
 
 ## Product Spine
 
-Five tabs form one planning path; Cash Flow is detail inside Scenarios:
+Four surfaces, nothing else unless it exposes engine truth or helps an advisor
+explain a client decision:
 
-- Household: collect household, asset, income, expense, liability, and assumption facts.
-- Goals: collect and edit the client goals used by the plan.
-- Scenarios: compare planning choices on the same market paths and inspect the
-  year-by-year Cash Flow ledger that proves where each result came from.
-- Tax Buckets: show the account-tax composition and planning facts used by the
-  tax-aware analysis.
+- Household / Plan inputs: household, assets, income, expenses, goals,
+  liabilities, assumptions.
+- Scenarios: compare planning choices on the same market paths, so differences
+  come from the decision, not simulation noise.
 - Sequencing: run the same plan through real markets such as 1966, 1973, 2000,
   and 2008.
-
-Nothing else belongs unless it exposes engine truth or helps an advisor explain
-a client decision.
+- Cash-flow detail: the year-by-year ledger that proves where the result came
+  from.
 
 ## Repository Layout
 
-- `engine.js` — the simulation engine and source of wealth/path/bucket truth.
+- `engine.js` — the financial engine. The only source of financial truth.
   Do not change engine math without explicit agreement and tests.
-- `src/tax/` — isolated federal tax-law truth. It never imports `engine.js`.
 - `engine.test.js` — Node test suite guarding the engine. Runs in CI on every
   push (`.github/workflows/test.yml`).
-- `index.html` — app markup and stylesheet links. Loads `src/main.js` as the sole ES module
+- `index.html` — app markup and styles. Loads `src/main.js` as the sole ES module
   entry; must be served over HTTP (as `scripts/verify.mjs` and GitHub Pages do),
   not opened via `file://`.
 - `src/main.js` — UI boot, orchestration (`runAll`), and wiring to `engine.js`.
@@ -47,7 +44,7 @@ a client decision.
 
 ```bash
 npm ci                    # install dev dependencies (puppeteer)
-npm test                  # complete declared Node test suite
+npm test                  # engine tests
 node scripts/verify.mjs   # visual verification + screenshots
 ```
 

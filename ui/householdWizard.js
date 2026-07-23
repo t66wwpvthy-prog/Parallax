@@ -2,7 +2,7 @@ import { escHtml } from './dom.js';
 import { accountDisplayTreatment } from '../src/household/accountTypes.js';
 import { renderHouseholdTaxFacts } from './householdTaxFacts.js';
 import { renderHouseholdIncomeTax } from './householdIncomeTax.js';
-import { renderHouseholdSpending } from './householdSpendingGoals.js';
+import { renderHouseholdSpendingGoals } from './householdSpendingGoals.js';
 
 const FS_LABELS = {
   marriedFilingJointly: 'Married filing jointly',
@@ -154,49 +154,16 @@ function acctOwnerColumn(owner, plan, deps, state){
   }
   const init = isJoint ? 'H' : isC ? deps.initial(plan.meta?.primaryName, 'C')
     : deps.initial(plan.meta?.spouseName, 'CC');
-  const title = isJoint ? 'JOINT ACCOUNTS' : isC ? 'CLIENT' : 'CO-CLIENT';
+  const title = isJoint ? 'HOUSEHOLD & JOINT' : isC ? 'CLIENT' : 'CO-CLIENT';
   const rows = accts.map(a => acctRow(a, deps)).join('');
   return `<div class="hh-col${isJoint ? ' hh-col--joint' : ''}">
     <div class="hh-col__head hh-col__head--total">
       <span class="hh-col__id"><span class="hh-av hh-av--${isJoint ? 'joint' : isC ? 'c' : 's'}">${init}</span><span class="hh-col__role">${title}</span></span>
       <span class="hh-col__sum">${hhMoney(inv)}</span>
     </div>
-    ${isJoint ? `<p class="hh-joint-block__note">Joint and household accounts — ownership is Joint, separate from client/co-client sleeves.</p>` : ''}
     ${rows || `<p class="hh-account-empty">No ${isJoint ? 'joint or household' : 'personal'} accounts entered.</p>`}
     ${acctAddForm(owner, deps, state)}
-    ${state.hhAcctFormOwner !== owner ? `<button class="hh-dash-btn" type="button" data-hh-action="open-account-form" data-owner="${owner}">+ Add ${isJoint ? 'joint account' : 'account'}</button>` : ''}
-  </div>`;
-}
-
-function savingsAddon(plan, deps, state){
-  const annual = plan.savings?.annual || 0;
-  if(state.hhAddingKey === 'savings'){
-    return `<div class="hh-savings-addon hh-savings-addon--open" data-savings-addon="draft">
-      <div class="hh-savings-addon__label">Annual contribution</div>
-      <p class="hh-savings-addon__note">Optional — lands in the pre-tax sleeve by default until retirement.</p>
-      <div class="hh-inline-form hh-inline-form--slim">
-        <span class="hh-inline-form__money"><span class="pre">$</span><input data-hh-draft="amount" type="text" inputmode="numeric" data-type="money" placeholder="0" aria-label="Annual contribution amount"></span>
-        <button class="hh-btn hh-btn--primary" type="button" data-hh-action="commit-add">Add</button>
-        <button class="hh-btn hh-btn--ghost" type="button" data-hh-action="cancel-add">Cancel</button>
-      </div>
-    </div>`;
-  }
-  if(annual > 0){
-    return `<div class="hh-savings-addon" data-savings-addon="active">
-      <div class="hh-savings-addon__row">
-        <span class="hh-savings-addon__copy">
-          <span class="hh-savings-addon__label">Annual contribution</span>
-          <span class="hh-savings-addon__note">Stops when the last spouse retires · default pre-tax</span>
-        </span>
-        <span class="hh-savings-addon__end">
-          <span class="hh-savings-addon__amount">${deps.field('savings.annual', 'money')}</span>
-          <button class="row-x" type="button" data-hh-clear-path="savings.annual" title="Remove annual contribution">×</button>
-        </span>
-      </div>
-    </div>`;
-  }
-  return `<div class="hh-savings-addon" data-savings-addon="inactive">
-    <button class="hh-dash-btn" type="button" data-hh-action="open-add" data-add-key="savings">+ Add annual contribution</button>
+    ${state.hhAcctFormOwner !== owner ? `<button class="hh-dash-btn" type="button" data-hh-action="open-account-form" data-owner="${owner}">+ Add account</button>` : ''}
   </div>`;
 }
 
@@ -276,31 +243,20 @@ export function createHouseholdWizard(deps){
           <button class="row-x" data-rmpath="${base}" title="Remove child">×</button></span>
       </div>`;
     }).join('');
-    return `<div class="hh-step-pane hh-profile">
-      <header class="hh-profile__head">
-        <h2 class="hh-profile__title">Profile</h2>
-        <p class="hh-profile__note">Household identity and retirement lifestyle — goals stay on Goals.</p>
-      </header>
-      <div class="hh-profile__board">
-        <section class="hh-profile__people" aria-label="Household">
-          <div class="hh-profile__eyebrow">Household</div>
-          <div class="hh-cols hh-cols--split hh-profile__people-cols">
-            ${personColumn('client', plan, deps)}
-            <div class="hh-cols__div" aria-hidden="true"></div>
-            ${personColumn('spouse', plan, deps)}
-          </div>
-          <div class="hh-meta-row hh-profile__meta">
-            <div class="hh-meta"><span class="hh-meta__k">Filing</span>
-              <div class="hh-meta__v">${deps.select('meta.filingStatus', fsVal, FS_OPTS, 'text')}</div></div>
-            <div class="hh-meta"><span class="hh-meta__k">State</span>
-              <div class="hh-meta__v">${deps.select('meta.state', plan.meta?.state || 'VA', deps.states, 'text')}</div></div>
-            <div class="hh-meta"><span class="hh-meta__k">Children</span>
-              <div class="hh-meta__v">${childRows}${childAdd}</div></div>
-          </div>
-        </section>
-        <aside class="hh-profile__spend" aria-label="Retirement spending">
-          ${renderHouseholdSpending(plan, deps, state)}
-        </aside>
+    return `<div class="hh-step-pane">
+      <h2 class="hh-step-title">Household</h2>
+      <div class="hh-cols hh-cols--split">
+        ${personColumn('client', plan, deps)}
+        <div class="hh-cols__div" aria-hidden="true"></div>
+        ${personColumn('spouse', plan, deps)}
+      </div>
+      <div class="hh-meta-row">
+        <div class="hh-meta"><span class="hh-meta__k">Filing</span>
+          <div class="hh-meta__v">${deps.select('meta.filingStatus', fsVal, FS_OPTS, 'text')}</div></div>
+        <div class="hh-meta"><span class="hh-meta__k">State</span>
+          <div class="hh-meta__v">${deps.select('meta.state', plan.meta?.state || 'VA', deps.states, 'text')}</div></div>
+        <div class="hh-meta"><span class="hh-meta__k">Children</span>
+          <div class="hh-meta__v">${childRows}${childAdd}</div></div>
       </div>
     </div>`;
   }
@@ -318,11 +274,9 @@ export function createHouseholdWizard(deps){
         <div class="hh-cols__div" aria-hidden="true"></div>
         ${acctOwnerColumn('spouse', plan, deps, state)}
       </div>
-      <div class="hh-joint-block" data-joint-accounts>
-        <div class="hh-joint-block__eyebrow">Joint</div>
+      <div class="hh-joint-block">
         ${acctOwnerColumn('joint', plan, deps, state)}
       </div>
-      ${savingsAddon(plan, deps, state)}
       <div class="hh-grand-total">
         <div><div class="hh-grand-total__k">Total investable</div><div class="hh-grand-total__sub">${count} account${count === 1 ? '' : 's'}</div></div>
         <div class="hh-grand-total__v">${hhMoney(total)}</div>
@@ -331,7 +285,7 @@ export function createHouseholdWizard(deps){
     </div>`;
   }
 
-  function stepSummary(){
+  function stepBlueprint(){
     const plan = deps.plan;
     const all = deps.allAccounts();
     const visible = plan.household?.spouse ? all : all.filter(a => a.owner === 'client' || a.owner === 'joint' || a.owner === 'trust');
@@ -361,7 +315,7 @@ export function createHouseholdWizard(deps){
         <span class="hh-bp-corner hh-bp-corner--bl" aria-hidden="true"></span>
         <span class="hh-bp-corner hh-bp-corner--br" aria-hidden="true"></span>
         <div class="hh-bp-read">
-          <div class="hh-bp-eyebrow">SUMMARY</div>
+          <div class="hh-bp-eyebrow">BLUEPRINT</div>
           <div class="hh-bp-house">
             <span class="hh-bp-avs"><span class="hh-av hh-av--c hh-av--lg">${cInit}</span>${plan.household?.spouse ? `<span class="hh-av hh-av--s hh-av--lg hh-av--overlap">${sInit}</span>` : ''}</span>
             <span class="hh-bp-house__name">${escHtml(householdName)}</span>
@@ -392,9 +346,9 @@ export function createHouseholdWizard(deps){
     const back = step > 1
       ? `<button class="hh-btn hh-btn--outline" type="button" data-hh-action="step-back">← Back</button>`
       : `<span></span>`;
-    const right = step < 4
-      ? `<button class="hh-btn hh-btn--primary" type="button" data-hh-action="step-next">${step === 3 ? 'Review →' : 'Continue →'}</button>`
-      : `<span class="hh-wiz-foot-note">Step 4 of 4</span>`;
+    const right = step < 5
+      ? `<button class="hh-btn hh-btn--primary" type="button" data-hh-action="step-next">${step === 4 ? 'Review →' : 'Continue →'}</button>`
+      : `<span class="hh-wiz-foot-note">Step 5 of 5</span>`;
     return `<div class="hh-wiz-footer">${back}${right}</div>`;
   }
 
@@ -403,9 +357,10 @@ export function createHouseholdWizard(deps){
       1: stepPeople,
       2: stepBalance,
       3: () => renderHouseholdIncomeTax(deps.plan, deps, state),
-      4: stepSummary,
+      4: () => renderHouseholdSpendingGoals(deps.plan, deps, state),
+      5: stepBlueprint,
     },
     footer,
-    stepLabels: ['Profile', 'Balance Sheet', 'Income & Tax', 'Summary'],
+    stepLabels: ['People & Timeline', 'Balance Sheet', 'Income & Tax', 'Spending & Goals', 'Blueprint'],
   };
 }

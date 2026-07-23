@@ -60,8 +60,8 @@ function emptySummary(selected, pathKey){
  */
 export function attachPathFederalTax(analysis, pathKey, options = {}){
   assertAnalysis(analysis);
-  if(!['p10', 'p50', 'p75', 'p90'].includes(pathKey)){
-    throw new TaxInputError('pathKey must be p10, p50, p75, or p90');
+  if(!['p10', 'p50', 'p90'].includes(pathKey)){
+    throw new TaxInputError('pathKey must be p10, p50, or p90');
   }
 
   const selected = analysis.paths?.[pathKey];
